@@ -63,6 +63,12 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
         public double[] GetHiddenPosteriorFromCourtSignal(int courtSignal) =>
             model.GetHiddenDistributionGivenSignal(CourtIndex, courtSignal);
 
+        public double[] GetHiddenPosteriorFromPlaintiffAndDefendantSignals(
+            int plaintiffSignal, int defendantSignal)
+            => model.GetHiddenDistributionGivenTwoSignals(
+                   PlaintiffIndex, plaintiffSignal,
+                   DefendantIndex, defendantSignal);
+
         // === Conditional signal distributions ==========================================
         public double[] GetPlaintiffSignalDistributionGivenDefendantSignal(int defendantSignal) =>
             model.GetSignalDistributionGivenSignal(PlaintiffIndex, DefendantIndex, defendantSignal);

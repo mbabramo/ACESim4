@@ -1,8 +1,9 @@
-﻿using System;
-using System.Linq;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-using FluentAssertions;
+﻿using ACESimBase.Games.LitigGame.PrecautionModel;
 using ACESimBase.Util.DiscreteProbabilities;
+using FluentAssertions;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
+using System;
+using System.Linq;
 
 namespace ACESimTest
 {
@@ -246,6 +247,27 @@ namespace ACESimTest
                 givenPartyIndex2: 0, givenSignalValue2: 2);
 
             act.Should().Throw<ArgumentException>();
+        }
+
+        [TestMethod]
+        public void DeterministicSignalsYieldPointPosterior()
+        {
+            var sigModel = new PrecautionSignalModel(2, 2, 2, 2, 1e-5, 1e-5, 1e-5); // nearly noiseless
+            double[] posterior = sigModel.GetHiddenPosteriorFromPlaintiffAndDefendantSignals(1, 1);
+
+            posterior[0].Should().BeApproximately(0.0, 1e-6);
+            posterior[1].Should().BeApproximately(1.0, 1e-6);
+            posterior.Sum().Should().BeApproximately(1.0, 1e-6);
+        }
+
+        [TestMethod]
+        public void NoisySignalsPosteriorSumsToOne()
+        {
+            var sigModel = new PrecautionSignalModel(2, 3, 3, 3, 0.25, 0.25, 0.25);
+            double[] posterior = sigModel.GetHiddenPosteriorFromPlaintiffAndDefendantSignals(0, 2);
+
+            posterior.Sum().Should().BeApproximately(1.0, 1e-8);
+            posterior.Should().OnlyContain(p => p >= 0 && p <= 1);
         }
 
     }

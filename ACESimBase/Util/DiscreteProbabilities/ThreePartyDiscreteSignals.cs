@@ -85,6 +85,43 @@ namespace ACESimBase.Util.DiscreteProbabilities
             return probHiddenGivenSignal[partyIndex][signalValue];
         }
 
+        public double[] GetHiddenDistributionGivenTwoSignals(
+            int partyIndex1, int signalValue1,
+            int partyIndex2, int signalValue2)
+        {
+            ValidateParty(partyIndex1);
+            ValidateParty(partyIndex2);
+            if (partyIndex1 == partyIndex2)
+                throw new ArgumentException("Parties must differ.");
+
+            if ((uint)signalValue1 >= signalCounts[partyIndex1])
+                throw new ArgumentOutOfRangeException(nameof(signalValue1));
+            if ((uint)signalValue2 >= signalCounts[partyIndex2])
+                throw new ArgumentOutOfRangeException(nameof(signalValue2));
+
+            int H = hiddenCount;
+            double[] posterior = new double[H];
+            double denom = 0.0;
+
+            for (int h = 0; h < H; h++)
+            {
+                double like1 = probSignalGivenHidden[partyIndex1][h][signalValue1];
+                double like2 = probSignalGivenHidden[partyIndex2][h][signalValue2];
+                double val = like1 * like2;          // uniform prior ⇒ multiply likelihoods
+                posterior[h] = val;
+                denom += val;
+            }
+
+            if (denom == 0.0)
+                return posterior;                      // impossible combination → all zeros
+
+            for (int h = 0; h < H; h++)
+                posterior[h] /= denom;
+
+            return posterior;
+        }
+
+
         public double[] GetSignalDistributionGivenSignal(int targetPartyIndex, int givenPartyIndex, int givenSignalValue)
         {
             ValidateParty(targetPartyIndex);
