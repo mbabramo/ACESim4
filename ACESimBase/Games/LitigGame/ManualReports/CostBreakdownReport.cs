@@ -52,11 +52,6 @@ namespace ACESimBase.Games.LitigGame.ManualReports
         // ---------------------------------------------------------------------
 
         /// <summary>
-        /// The maximum stack height for legacy non-scaled mode.
-        /// </summary>
-        const double MaxStackUnits = 4.0;
-
-        /// <summary>
         /// Fill patterns for print mode (default color/line patterns).
         /// </summary>
         static readonly string[] RegFill =
@@ -89,32 +84,8 @@ namespace ACESimBase.Games.LitigGame.ManualReports
         #region Report generation
 
         // ---------------------------------------------------------------------
-        // Public entrypoints — three overloads for different report contexts
+        // Public entrypoints
         // ---------------------------------------------------------------------
-
-        /// <summary>
-        /// Generate a cost breakdown report using default axis scaling
-        /// (right-axis top fixed at 4.0).
-        /// </summary>
-        /// <param name="raw">Raw data (progress, weight)</param>
-        /// <param name="presentation">Whether to use presentation styling</param>
-        /// <param name="splitRareHarmPanel">Whether to use the split-panel view</param>
-        /// <returns>List of strings: CSV, TikZ, CSV</returns>
-        public static List<string> GenerateReport(
-            IEnumerable<(LitigGameProgress p, double w)> raw,
-            bool presentation = false,
-            bool splitRareHarmPanel = true)
-        {
-            var slices = ToNormalizedSlices(raw);
-            var scale = splitRareHarmPanel
-                ? ComputeScaling(slices, MaxStackUnits)
-                : ComputeSinglePanelScaling(slices, MaxStackUnits);
-
-            var options = raw.First().p == null ? null
-                : (LitigGameOptions)raw.First().p.GameDefinition.GameOptions;
-
-            return BuildOutputs(slices, scale, presentation, splitRareHarmPanel, "", options);
-        }
 
         /// <summary>
         /// Generate a cost breakdown using a specified right-axis maximum.
@@ -131,7 +102,7 @@ namespace ACESimBase.Games.LitigGame.ManualReports
             bool presentation = false,
             bool splitRareHarmPanel = true)
         {
-            var slices = ToNormalizedSlices(raw);
+            var slices = ToNormalizedSlices(raw, rightAxisTop);
             var scale = splitRareHarmPanel
                 ? ComputeScaling(slices, rightAxisTop)
                 : ComputeSinglePanelScaling(slices, rightAxisTop);
@@ -160,8 +131,8 @@ namespace ACESimBase.Games.LitigGame.ManualReports
             bool presentation = false,
             bool splitRareHarmPanel = true)
         {
-            var slices = ToNormalizedSlices(raw);
-            var referenceSlices = ToNormalizedSlices(reference);
+            var slices = ToNormalizedSlices(raw, referenceRightAxisTop);
+            var referenceSlices = ToNormalizedSlices(reference, referenceRightAxisTop);
             var scale = splitRareHarmPanel
                 ? ComputeScalingFromReference(
                       slices, referenceSlices, referenceRightAxisTop)
@@ -238,12 +209,13 @@ namespace ACESimBase.Games.LitigGame.ManualReports
         /// <returns>A list of distinct, normalized, scaled <see cref="Slice"/> objects.</returns>
 
         static List<Slice> ToNormalizedSlices(
-            IEnumerable<(LitigGameProgress p, double w)> raw)
+            IEnumerable<(LitigGameProgress p, double w)> raw,
+            double yAxisTop)
         {
             double tot = raw.Sum(t => t.w);
             if (tot <= 0) throw new ArgumentException("weights");
             return SinglePanelScale(Merge(
-                    raw.Select(t => BuildSlice(t.p, t.w / tot))))
+                    raw.Select(t => BuildSlice(t.p, t.w / tot))), yAxisTop)
                    .ToList();
         }
 
@@ -278,10 +250,10 @@ namespace ACESimBase.Games.LitigGame.ManualReports
         /// fits within the legacy y-axis range MaxStackUnits.
         /// Used only in older one-panel diagrams.
         /// </summary>
-        static IEnumerable<Slice> SinglePanelScale(IEnumerable<Slice> src)
+        static IEnumerable<Slice> SinglePanelScale(IEnumerable<Slice> src, double yAxisTop)
         {
             double peak = src.Max(s => s.Total);
-            double k = peak > MaxStackUnits ? MaxStackUnits / peak : 1;
+            double k = peak > yAxisTop ? yAxisTop / peak : 1;
             return src.Select(s => s with
             {
                 Opportunity = s.Opportunity * k,
