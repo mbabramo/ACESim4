@@ -90,16 +90,16 @@ namespace ACESimBase.Games.LitigGame.ManualReports
         /// <summary>
         /// Generate a cost breakdown using a specified right-axis maximum.
         /// Useful when controlling the vertical scaling manually.
+        /// Returns both non-presentation and presentation mode results.
         /// </summary>
         /// <param name="raw">Raw data (progress, weight)</param>
         /// <param name="rightAxisTop">Numeric top value of right y-axis</param>
         /// <param name="presentation">Whether to use presentation styling</param>
         /// <param name="splitRareHarmPanel">Whether to use the split-panel view</param>
         /// <returns>List of strings: CSV, TikZ, CSV</returns>
-        public static List<string> GenerateReport(
+        public static List<string> GenerateReports(
             IEnumerable<(LitigGameProgress p, double w)> raw,
             double rightAxisTop,
-            bool presentation = false,
             bool splitRareHarmPanel = true)
         {
             var slices = ToNormalizedSlices(raw, rightAxisTop);
@@ -110,7 +110,7 @@ namespace ACESimBase.Games.LitigGame.ManualReports
             var options = raw.First().p == null ? null
                 : (LitigGameOptions)raw.First().p.GameDefinition.GameOptions;
 
-            return BuildOutputs(slices, scale, presentation, splitRareHarmPanel, "", options);
+            return BuildOutputs(slices, scale, splitRareHarmPanel, "", options);
         }
 
         /// <summary>
@@ -124,11 +124,10 @@ namespace ACESimBase.Games.LitigGame.ManualReports
         /// <param name="presentation">Whether to use presentation styling</param>
         /// <param name="splitRareHarmPanel">Whether to use split panel layout</param>
         /// <returns>List of strings: CSV, TikZ, CSV</returns>
-        public static List<string> GenerateReport(
+        public static List<string> GenerateReports(
             IEnumerable<(LitigGameProgress p, double w)> raw,
             IEnumerable<(LitigGameProgress p, double w)> reference,
             double referenceRightAxisTop,
-            bool presentation = false,
             bool splitRareHarmPanel = true)
         {
             var slices = ToNormalizedSlices(raw, referenceRightAxisTop);
@@ -141,10 +140,10 @@ namespace ACESimBase.Games.LitigGame.ManualReports
             var options = raw.First().p == null ? null
                 : (LitigGameOptions)raw.First().p.GameDefinition.GameOptions;
 
-            return BuildOutputs(slices, scale, presentation, splitRareHarmPanel, "", options);
+            return BuildOutputs(slices, scale, splitRareHarmPanel, "", options);
         }
 
-#endregion
+        #endregion
 
         #region Slices
 
@@ -434,9 +433,18 @@ namespace ACESimBase.Games.LitigGame.ManualReports
             }
 
             // --- Split panel: divide into left/right by content ----------------
-            var left = slices.Where(s => s.Harm + s.Filing + s.Answer +
-                                          s.Bargaining + s.Trial == 0).ToList();
-            var right = slices.Except(left).ToList();
+            // Split into left/right and apply ordering within each panel
+            var left = slices
+                .Where(s => s.Harm + s.Filing + s.Answer + s.Bargaining + s.Trial == 0)
+                .OrderByDescending(s => s.Opportunity)
+                .ThenBy(s => s.Total)
+                .ToList();
+
+            var right = slices
+                .Where(s => s.Harm + s.Filing + s.Answer + s.Bargaining + s.Trial > 0)
+                .OrderByDescending(s => s.Opportunity)
+                .ThenBy(s => s.Total)
+                .ToList();
 
             double xL = 0.0;
             for (int i = 0; i < left.Count; i++)
@@ -576,8 +584,8 @@ namespace ACESimBase.Games.LitigGame.ManualReports
                 double pLeft = 0.5 / sc.XScaleLeft;
                 double pRight = 0.5 / sc.XScaleRight;
 
-                string leftLbl = $"No\\ Harm\\ ({Pct(pLeft)})";
-                string rightLbl = $"Harm\\ ({Pct(pRight)})";
+                string leftLbl = $"No\\ Dispute\\ ({Pct(pLeft)})";
+                string rightLbl = $"Dispute\\ ({Pct(pRight)})";
                 double yLabel = pane.bottom - 0.6;
 
                 sb.AppendLine(TikzHelper.DrawText(
@@ -640,7 +648,6 @@ namespace ACESimBase.Games.LitigGame.ManualReports
         static List<string> BuildOutputs(
             List<Slice> slices,
             AxisScalingInfo sc,
-            bool pres,
             bool splitRareHarmPanel,
             string subtitle,
             LitigGameOptions options = null)
@@ -654,8 +661,9 @@ namespace ACESimBase.Games.LitigGame.ManualReports
             return new()
             {
                 Csv(slices),
-                TikzScaled(slices, sc, pres, title, splitRareHarmPanel),
-                Csv(slices)
+                TikzScaled(slices, sc, false, title, splitRareHarmPanel),
+                Csv(slices),
+                TikzScaled(slices, sc, true, title, splitRareHarmPanel),
             };
         }
 
