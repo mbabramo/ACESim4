@@ -1064,7 +1064,7 @@ namespace ACESim
 
         public override IEnumerable<(string suffix, string reportcontent)> ProduceManualReports(List<(GameProgress theProgress, double weight)> gameProgresses, string supplementalString)
         {
-            var contents = CostBreakdownReport.GenerateReport(gameProgresses);
+            var contents = CostBreakdownReport.GenerateReport(gameProgresses.Select(x => ((LitigGameProgress) x.theProgress, x.weight)));
             yield return ($"-costbreakdownlight{supplementalString}.csv", contents[0]);
             yield return ($"-costbreakdownlight{supplementalString}.tex", contents[1]);
             yield return ($"-costbreakdowndark{supplementalString}.csv", contents[2]);
