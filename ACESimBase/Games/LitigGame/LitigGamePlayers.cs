@@ -20,19 +20,20 @@ namespace ACESim
 
         // chance players (small information sets)
         PostPrimaryChance = 3,
-        PLiabilitySignalChance = 4,
-        DLiabilitySignalChance = 5,
-        LiabilityStrengthChance = 6,
-        PDamagesSignalChance = 7,
-        DDamagesSignalChance = 8,
-        DamagesStrengthChance = 9,
-        CourtLiabilityChance = 10,
-        CourtDamagesChance = 11,
+        AccidentChance = 4,
+        PLiabilitySignalChance = 5,
+        DLiabilitySignalChance = 6,
+        LiabilityStrengthChance = 7,
+        PDamagesSignalChance = 8,
+        DDamagesSignalChance = 9,
+        DamagesStrengthChance = 10,
+        CourtLiabilityChance = 11,
+        CourtDamagesChance = 12,
 
         // chance players (no information sets)
-        PrePrimaryChance = 12,
-        BothGiveUpChance = 13,
-        PreBargainingRoundChance = 14, // no real chance / 1 possible action
-        PostBargainingRoundChance = 15, // no real chance / 1 possible action
+        PrePrimaryChance = 13,
+        BothGiveUpChance = 14,
+        PreBargainingRoundChance = 15, // no real chance / 1 possible action
+        PostBargainingRoundChance = 16, // no real chance / 1 possible action
     }
 }

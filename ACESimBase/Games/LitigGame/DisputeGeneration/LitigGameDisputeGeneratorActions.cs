@@ -10,7 +10,7 @@ namespace ACESim
     public struct LitigGameDisputeGeneratorActions
     {
         // we combine actions from different dispute generators here for convenience.
-        public byte PrePrimaryChanceAction, PrimaryAction, PostPrimaryChanceAction, EngageInActivityAction, PrecautionLevelAction;
+        public byte PrePrimaryChanceAction, PrimaryAction, PostPrimaryChanceAction, EngageInActivityAction, PrecautionLevelAction, AccidentChanceAction;
     }
 }
 

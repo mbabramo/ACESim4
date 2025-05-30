@@ -167,6 +167,9 @@ namespace ACESim
         public byte GameHistoryCacheIndex_PChipsAction = 14;
         public byte GameHistoryCacheIndex_DChipsAction = 15;
         public byte GameHistoryCacheIndex_PWins = 16;
+        public byte GameHistoryCacheIndex_EngagesInActivity = 17;
+        public byte GameHistoryCacheIndex_PrecautionLevel = 18;
+        public byte GameHistoryCacheIndex_Accident = 19;
 
         public bool CheckCompleteAfterPrimaryAction;
         public bool CheckCompleteAfterPostPrimaryAction;
@@ -875,6 +878,10 @@ namespace ACESim
                     return Options.LitigGameStandardDisputeGenerator.MarkComplete(this, gameHistory.GetCacheItemAtIndex(GameHistoryCacheIndex_PrePrimaryChance), gameHistory.GetCacheItemAtIndex(GameHistoryCacheIndex_PrimaryAction));
                 case (byte)LitigGameDecisions.PostPrimaryActionChance:
                     return Options.LitigGameStandardDisputeGenerator.MarkComplete(this, gameHistory.GetCacheItemAtIndex(GameHistoryCacheIndex_PrePrimaryChance), gameHistory.GetCacheItemAtIndex(GameHistoryCacheIndex_PrimaryAction), gameHistory.GetCacheItemAtIndex(GameHistoryCacheIndex_PostPrimaryChance));
+                case (byte)LitigGameDecisions.Accident:
+                    return ((PrecautionNegligenceDisputeGenerator)Options.LitigGameDisputeGenerator).MarkCompleteAfterAccidentDecision(this, gameHistory.GetCacheItemAtIndex(GameHistoryCacheIndex_Accident));
+                case (byte)LitigGameDecisions.EngageInActivity:
+                    return ((PrecautionNegligenceDisputeGenerator)(Options.LitigGameDisputeGenerator)).MarkCompleteAfterEngageInActivity(this, gameHistory.GetCacheItemAtIndex(GameHistoryCacheIndex_EngagesInActivity));
                 case (byte)LitigGameDecisions.PFile:
                     if (actionChosen == 2)
                         return true; // plaintiff hasn't filed

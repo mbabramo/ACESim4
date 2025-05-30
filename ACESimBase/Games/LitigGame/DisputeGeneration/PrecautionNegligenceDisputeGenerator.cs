@@ -69,18 +69,19 @@ namespace ACESim // Assuming the ACESim base namespace; adjust if needed
                     PrecautionPowerLevels,
                     (byte)LitigGameDecisions.LiabilityStrength,
                     unevenChanceActions: false)
-                    {
-                        IsReversible = true,
-                        DistributedChanceDecision = false, // using collapse chance instead
-                        Unroll_Parallelize = true,
-                        Unroll_Parallelize_Identical = false,
-                        SymmetryMap = (SymmetryMapInput.NotCompatibleWithSymmetry, SymmetryMapOutput.CantBeSymmetric)
-                    }
-                    );
+                {
+                    StoreActionInGameCacheItem = g.GameHistoryCacheIndex_LiabilityStrength,
+                    IsReversible = true,
+                    DistributedChanceDecision = false, // using collapse chance instead
+                    Unroll_Parallelize = true,
+                    Unroll_Parallelize_Identical = false,
+                    SymmetryMap = (SymmetryMapInput.NotCompatibleWithSymmetry, SymmetryMapOutput.CantBeSymmetric)
+                }
+                );
 
             list.Add(new("Defendant Signal", "DLS", true,
                 (byte)LitigGamePlayers.DLiabilitySignalChance,
-                new byte[] { (byte) LitigGamePlayers.Defendant, (byte)LitigGamePlayers.PostPrimaryChance, (byte)LitigGamePlayers.CourtLiabilityChance, (byte)LitigGamePlayers.Resolution },
+                new byte[] { (byte) LitigGamePlayers.Defendant, (byte)LitigGamePlayers.AccidentChance, (byte)LitigGamePlayers.CourtLiabilityChance, (byte)LitigGamePlayers.Resolution },
                 Options.NumLiabilitySignals,
                 (byte)LitigGameDecisions.DLiabilitySignal,
                 unevenChanceActions: Options.CollapseChanceDecisions) // DEBUG 
@@ -92,10 +93,53 @@ namespace ACESim // Assuming the ACESim base namespace; adjust if needed
                     SymmetryMap = (SymmetryMapInput.NotCompatibleWithSymmetry, SymmetryMapOutput.CantBeSymmetric)
                 });
 
+            list.Add(new("Engage in Activity", "ENG", false,
+                (byte)LitigGamePlayers.Defendant,
+                new byte[] { (byte)LitigGamePlayers.Plaintiff, (byte)LitigGamePlayers.Defendant, (byte)LitigGamePlayers.AccidentChance, (byte)LitigGamePlayers.CourtLiabilityChance, (byte)LitigGamePlayers.Resolution },
+                Options.NumLiabilitySignals,
+                (byte)LitigGameDecisions.EngageInActivity)
+            {
+                StoreActionInGameCacheItem = g.GameHistoryCacheIndex_EngagesInActivity,
+                IsReversible = true,
+                DistributedChanceDecision = false,
+                Unroll_Parallelize = true,
+                Unroll_Parallelize_Identical = false,
+                SymmetryMap = (SymmetryMapInput.NotCompatibleWithSymmetry, SymmetryMapOutput.CantBeSymmetric)
+            }); // 1 = yes, 2 = no
+
+            list.Add(new("Precaution", "PREC", false,
+                (byte)LitigGamePlayers.Defendant,
+                new byte[] { (byte)LitigGamePlayers.Plaintiff, (byte)LitigGamePlayers.Defendant, (byte)LitigGamePlayers.AccidentChance, (byte)LitigGamePlayers.CourtLiabilityChance, (byte)LitigGamePlayers.Resolution },
+                PrecautionLevels,
+                (byte)LitigGameDecisions.TakePrecaution)
+            {
+                StoreActionInGameCacheItem = g.GameHistoryCacheIndex_PrecautionLevel,
+                IsReversible = true,
+                DistributedChanceDecision = false,
+                Unroll_Parallelize = true,
+                Unroll_Parallelize_Identical = false,
+                SymmetryMap = (SymmetryMapInput.NotCompatibleWithSymmetry, SymmetryMapOutput.CantBeSymmetric)
+            }); // 1 = no precaution, ...
+
+            list.Add(new("Accident", "ACC", true,
+                (byte)LitigGamePlayers.AccidentChance,
+                new byte[] { (byte)LitigGamePlayers.Plaintiff, (byte)LitigGamePlayers.Defendant, (byte)LitigGamePlayers.CourtLiabilityChance, (byte)LitigGamePlayers.Resolution },
+                (byte)2, /* no accident or accident */
+                (byte)LitigGameDecisions.Accident
+                )
+            {
+                StoreActionInGameCacheItem = g.GameHistoryCacheIndex_Accident,
+                IsReversible = true,
+                DistributedChanceDecision = false,
+                Unroll_Parallelize = true,
+                Unroll_Parallelize_Identical = false,
+                SymmetryMap = (SymmetryMapInput.NotCompatibleWithSymmetry, SymmetryMapOutput.CantBeSymmetric)
+
+            }); // 1 --> accident, 2 --> no accident
 
             list.Add(new("Plaintiff Signal", "PLS", true,
                 (byte)LitigGamePlayers.PLiabilitySignalChance,
-                new byte[] { (byte)LitigGamePlayers.Plaintiff, (byte)LitigGamePlayers.PostPrimaryChance, (byte)LitigGamePlayers.CourtLiabilityChance, (byte)LitigGamePlayers.Resolution },
+                new byte[] { (byte)LitigGamePlayers.Plaintiff, (byte)LitigGamePlayers.AccidentChance, (byte)LitigGamePlayers.CourtLiabilityChance, (byte)LitigGamePlayers.Resolution },
                 Options.NumLiabilitySignals,
                 (byte)LitigGameDecisions.PLiabilitySignal,
                 unevenChanceActions: Options.CollapseChanceDecisions) // DEBUG 
@@ -107,29 +151,38 @@ namespace ACESim // Assuming the ACESim base namespace; adjust if needed
                 SymmetryMap = (SymmetryMapInput.NotCompatibleWithSymmetry, SymmetryMapOutput.CantBeSymmetric)
             });
 
-            list.Add(new("Precaution", "PREC", false,
-                (byte)LitigGamePlayers.Defendant,
-                new byte[] { (byte)LitigGamePlayers.Plaintiff, (byte)LitigGamePlayers.Defendant, (byte)LitigGamePlayers.PostPrimaryChance, (byte)LitigGamePlayers.CourtLiabilityChance, (byte)LitigGamePlayers.Resolution },
-                Options.NumLiabilitySignals,
-                (byte)LitigGameDecisions.PrimaryAction) // DEBUG 
-            {
-                IsReversible = true,
-                DistributedChanceDecision = false,
-                Unroll_Parallelize = true,
-                Unroll_Parallelize_Identical = false,
-                SymmetryMap = (SymmetryMapInput.NotCompatibleWithSymmetry, SymmetryMapOutput.CantBeSymmetric)
-            });
-
-            list.Add(new("Accident", "ACC", true,
-                (byte)LitigGamePlayers.PostPrimaryChance,
-                new byte[] { (byte)LitigGamePlayers.Plaintiff, (byte)LitigGamePlayers.Defendant, (byte)LitigGamePlayers.CourtLiabilityChance, (byte)LitigGamePlayers.Resolution },
-                (byte)2, /* no accident or accident */
-                (byte)LitigGameDecisions.PostPrimaryActionChance
-                ));
-
             return list;
         }
+        public bool PotentialDisputeArises(LitigGameDefinition gameDef, LitigGameDisputeGeneratorActions acts) =>
+            acts.EngageInActivityAction == 1;  // dispute arises if Breach
 
+        public bool MarkCompleteAfterEngageInActivity(LitigGameDefinition g, byte engagesInActivityCode) => engagesInActivityCode == 2;
+        public bool MarkCompleteAfterAccidentDecision(LitigGameDefinition g, byte accidentCode) => accidentCode == 2 && ProbabilityAccidentWrongfulAttribution == 0;
+
+        public bool HandleUpdatingGameProgress(LitigGameProgress gameProgress, byte currentDecisionByteCode, byte action)
+        {
+            PrecautionNegligenceProgress precautionProgress = (PrecautionNegligenceProgress)gameProgress;
+
+            switch (currentDecisionByteCode)
+            {
+                case (byte)LitigGameDecisions.EngageInActivity:
+                    gameProgress.DisputeGeneratorActions.EngageInActivityAction = action;
+                    if (action == 2)
+                        gameProgress.GameComplete = true;
+                    break;
+                case (byte)LitigGameDecisions.TakePrecaution:
+                    gameProgress.DisputeGeneratorActions.PrecautionLevelAction = action;
+                    break;
+                case (byte)LitigGameDecisions.PostPrimaryActionChance:
+                    gameProgress.DisputeGeneratorActions.AccidentChanceAction = action;
+                    if (action == 2 && ProbabilityAccidentWrongfulAttribution == 0)
+                        gameProgress.GameComplete = true;
+                    break;
+                default:
+                    return false;
+            }
+            return true;
+        }
 
     }
 
@@ -139,8 +192,13 @@ namespace ACESim // Assuming the ACESim base namespace; adjust if needed
     /// </summary>
     public class PrecautionNegligenceProgress : LitigGameProgress
     {
+        public PrecautionNegligenceProgress(bool fullHistoryRequired) : base(fullHistoryRequired)
+        {
+
+        }
+
         // Decision outcomes
-        public bool Engaged { get; set; }              // whether the plaintiff engaged (filed the lawsuit)
+        public bool EngagesInActivity { get; set; }              // whether the plaintiff engaged (filed the lawsuit)
         public int PrecautionLevel { get; set; }       // defendant's chosen precaution level
         public bool AccidentOccurred { get; set; }     // whether an accident occurred
     }

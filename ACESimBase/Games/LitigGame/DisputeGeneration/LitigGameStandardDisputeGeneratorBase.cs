@@ -275,11 +275,11 @@ namespace ACESim
 
         // ---------- model-specific calculations remain abstract ----------
         public abstract bool PotentialDisputeArises(LitigGameDefinition g, LitigGameDisputeGeneratorActions a);
-        public virtual bool MarkComplete(
-            LitigGameDefinition g,
-            GameProgress prog,
-            Decision decisionJustTaken,
-            byte actionChosen) => false;
+        //public virtual bool MarkComplete(
+        //    LitigGameDefinition g,
+        //    GameProgress prog,
+        //    Decision decisionJustTaken,
+        //    byte actionChosen) => false; // DEBUG can delete
         public abstract bool MarkComplete(LitigGameDefinition g, byte pre, byte primary);
         public abstract bool MarkComplete(LitigGameDefinition g, byte pre, byte primary, byte post);
         public bool HandleUpdatingGameProgress(LitigGameProgress gameProgress, byte currentDecisionByteCode, byte action)

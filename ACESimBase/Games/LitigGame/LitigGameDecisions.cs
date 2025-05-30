@@ -37,5 +37,8 @@ namespace ACESim
         CourtDecisionLiability, // with processed signals: 1 = defendant wins, 2 = plaintiff wins (unless using margin of victory)
         CourtDecisionDamages,
         SubdividableOffer,
+        EngageInActivity,
+        TakePrecaution,
+        Accident
     }
 }
