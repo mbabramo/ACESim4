@@ -38,7 +38,7 @@ namespace ACESimBase.Games.DMSReplicationGame
         /// of the game will have subclassed GameProgressInfo and thus must override this method. 
         /// </summary>
         /// <returns></returns>
-        public GameProgress CreateNewGameProgress(bool fullHistoryRequired, IterationID iterationID)
+        public GameProgress CreateNewGameProgress(GameDefinition gameDefinition, bool fullHistoryRequired, IterationID iterationID)
         {
             GameProgress gameProgress = new DMSReplicationGameProgress(fullHistoryRequired) { IterationID = iterationID };
             return gameProgress;

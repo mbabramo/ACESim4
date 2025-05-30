@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 
@@ -39,8 +40,9 @@ namespace ACESim
         /// of the game will have subclassed GameProgressInfo and thus must override this method. 
         /// </summary>
         /// <returns></returns>
-        public GameProgress CreateNewGameProgress(bool fullHistoryRequired, IterationID iterationID)
+        public GameProgress CreateNewGameProgress(GameDefinition gameDefinition, bool fullHistoryRequired, IterationID iterationID)
         {
+            LitigGameDefinition litigGameDefinition = (LitigGameDefinition)gameDefinition;
             GameProgress gameProgress = new LitigGameProgress(fullHistoryRequired)  { IterationID = iterationID };
             return gameProgress;
         }

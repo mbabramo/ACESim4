@@ -23,7 +23,7 @@ namespace ACESim
             NumPlayers = (byte)Players.Count();
             DecisionsExecutionOrder = GetDecisionsList();
 
-            IGameFactory gameFactory = new LitigGameFactory();
+            IGameFactory gameFactory = new SimpleGameFactory();
             Initialize(gameFactory);
         }
 

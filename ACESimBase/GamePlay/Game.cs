@@ -30,7 +30,7 @@ namespace ACESim
             )
         {
             if (restartFromBeginningOfGame && (progress == null || Strategies != null))
-                progress = gameDefinition.GameFactory.CreateNewGameProgress(fullHistoryRequired, progress?.IterationID ?? new IterationID());
+                progress = gameDefinition.GameFactory.CreateNewGameProgress(GameDefinition, fullHistoryRequired, progress?.IterationID ?? new IterationID());
             if (restartFromBeginningOfGame)
             {
                 progress.GameHistoryStorable = GameHistoryStorable.NewInitialized();

@@ -379,7 +379,7 @@ namespace ACESimBase.Games.LitigGame
             LitigGameProgress gameProgress = null;
             if (useDirectGamePlayer)
             {
-                gameProgress = (LitigGameProgress)new LitigGameFactory().CreateNewGameProgress(true, new IterationID());
+                gameProgress = (LitigGameProgress)gameDefinition.CreateLitigGameFactory().CreateNewGameProgress(gameDefinition, true, new IterationID());
                 DirectGamePlayer directGamePlayer = new DeepCFRDirectGamePlayer(DeepCFRMultiModelMode.DecisionSpecific, gameDefinition, gameProgress, true, false, default);
                 gameProgress = (LitigGameProgress)directGamePlayer.PlayWithActionsOverride(actionsOverride);
             }

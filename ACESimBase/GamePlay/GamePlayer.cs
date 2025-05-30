@@ -39,7 +39,7 @@ namespace ACESim
             Strategies = strategies;
             DoParallelIfNotDisabled = doParallel;
             GameDefinition = gameDefinition;
-            StartingProgress = GameDefinition.GameFactory.CreateNewGameProgress(fullHistoryRequired, new IterationID(1));
+            StartingProgress = GameDefinition.GameFactory.CreateNewGameProgress(GameDefinition, fullHistoryRequired, new IterationID(1));
         }
 
 
@@ -266,7 +266,7 @@ namespace ACESim
             }
             else
             {
-                gameProgress = GameDefinition.GameFactory.CreateNewGameProgress(false, iterationIDArray?[iteration]);
+                gameProgress = GameDefinition.GameFactory.CreateNewGameProgress(GameDefinition, false, iterationIDArray?[iteration]);
                 gameProgress.ReportingMode = ReportingMode;
                 gameProgress.ActionOverrider = actionOverride;
             }

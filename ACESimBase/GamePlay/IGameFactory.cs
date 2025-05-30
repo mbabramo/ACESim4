@@ -14,7 +14,7 @@ namespace ACESim
             bool restartFromBeginningOfGame,
             bool fullHistoryRequired);
         Type GetGameDefinitionType();
-        GameProgress CreateNewGameProgress(bool fullHistoryRequired, IterationID iterationID);
+        GameProgress CreateNewGameProgress(GameDefinition gameDefinition, bool fullHistoryRequired, IterationID iterationID);
         void InitializeStrategyDevelopment(Strategy strategy);
         void ConcludeStrategyDevelopment();
     }

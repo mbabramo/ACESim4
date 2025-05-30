@@ -38,7 +38,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
         /// of the game will have subclassed GameProgressInfo and thus must override this method. 
         /// </summary>
         /// <returns></returns>
-        public GameProgress CreateNewGameProgress(bool fullHistoryRequired, IterationID iterationID)
+        public GameProgress CreateNewGameProgress(GameDefinition gameDefinition, bool fullHistoryRequired, IterationID iterationID)
         {
             GameProgress gameProgress = new AdditiveEvidenceGameProgress(fullHistoryRequired) { IterationID = iterationID };
             return gameProgress;

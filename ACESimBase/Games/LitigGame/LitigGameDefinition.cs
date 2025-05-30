@@ -48,9 +48,11 @@ namespace ACESim
             DecisionsExecutionOrder = GetDecisionsList();
             CalculateDistributorChanceInputDecisionMultipliers();
 
-            IGameFactory gameFactory = new LitigGameFactory();
+            IGameFactory gameFactory = CreateLitigGameFactory();
             Initialize(gameFactory);
         }
+
+        public LitigGameFactory CreateLitigGameFactory() => new LitigGameFactory();
 
         public override bool GameIsSymmetric()
         {
