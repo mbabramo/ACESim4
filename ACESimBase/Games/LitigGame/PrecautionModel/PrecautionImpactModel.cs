@@ -17,7 +17,7 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
         public double PAccidentNoActivity { get; }
         public double PAccidentNoPrecaution { get; }
         public double PAccidentWrongfulAttribution { get; }
-        public double PrecautionCost { get; }
+        public double MarginalPrecautionCost { get; }
         public double HarmCost { get; }
         public double LiabilityThreshold { get; }
 
@@ -34,21 +34,21 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
         /// <summary>
         /// Constructs the model.
         /// </summary>
-        /// <param name="hiddenCount">Number of hidden precaution‑power states &gt; 0.</param>
+        /// <param name="precautionPowerLevels">Number of hidden precaution‑power states &gt; 0.</param>
         /// <param name="precautionLevels">Number of precaution levels the defendant may choose (>=1).</param>
         /// <param name="pAccidentNoActivity">Baseline accident risk with no activity (0≤p≤1).</param>
         /// <param name="pAccidentNoPrecaution">Accident risk when activity undertaken with zero precaution (≥ pAccidentNoActivity).</param>
-        /// <param name="precautionCost">Cost of one unit of precaution (&gt;0).</param>
+        /// <param name="marginalPrecautionCost">Cost of one unit of precaution (&gt;0).</param>
         /// <param name="harmCost">Loss from an accident (&gt;0).</param>
         /// <param name="precautionPowerFactors">Optional array length = hiddenCount with entries in (0,1]. If null, evenly spaced factors between 0.9 and 0.5 are used.</param>
         /// <param name="liabilityThreshold">Benefit / cost threshold for negligence (default 1.0).</param>
         /// <param name="accidentProbabilityOverride">Optional custom function P(accident | hiddenIndex, precautionLevel).</param>
         public PrecautionImpactModel(
-            int hiddenCount,
+            int precautionPowerLevels,
             int precautionLevels,
             double pAccidentNoActivity,
             double pAccidentNoPrecaution,
-            double precautionCost,
+            double marginalPrecautionCost,
             double harmCost,
             double[] precautionPowerFactors = null,
             double precautionPowerFactorLeastEffective = 0.9,
@@ -57,22 +57,22 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
             double pAccidentWrongfulAttribution = 0.0,
             Func<int, int, double> accidentProbabilityOverride = null)
         {
-            if (hiddenCount <= 0) throw new ArgumentException(nameof(hiddenCount));
+            if (precautionPowerLevels <= 0) throw new ArgumentException(nameof(precautionPowerLevels));
             if (precautionLevels <= 0) throw new ArgumentException(nameof(precautionLevels));
             if (pAccidentNoActivity < 0 || pAccidentNoActivity > 1) throw new ArgumentException(nameof(pAccidentNoActivity));
             if (pAccidentNoPrecaution < pAccidentNoActivity || pAccidentNoPrecaution > 1) throw new ArgumentException(nameof(pAccidentNoPrecaution));
-            if (precautionCost <= 0) throw new ArgumentException(nameof(precautionCost));
+            if (marginalPrecautionCost <= 0) throw new ArgumentException(nameof(marginalPrecautionCost));
             if (harmCost <= 0) throw new ArgumentException(nameof(harmCost));
             if (liabilityThreshold <= 0) throw new ArgumentException(nameof(liabilityThreshold));
             if (pAccidentWrongfulAttribution < 0 || pAccidentWrongfulAttribution > 1)
                 throw new ArgumentException(nameof(pAccidentWrongfulAttribution));
 
-            HiddenCount = hiddenCount;
+            HiddenCount = precautionPowerLevels;
             PrecautionLevels = precautionLevels;
             TotalLevelsForRisk = precautionLevels + 1; // include hypothetical next level
             PAccidentNoActivity = pAccidentNoActivity;
             PAccidentNoPrecaution = pAccidentNoPrecaution;
-            PrecautionCost = precautionCost;
+            MarginalPrecautionCost = marginalPrecautionCost;
             HarmCost = harmCost;
             LiabilityThreshold = liabilityThreshold;
             PAccidentWrongfulAttribution = pAccidentWrongfulAttribution;
@@ -80,7 +80,7 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
             // Set up precaution‑power factors (effectiveness multipliers per hidden state)
             if (precautionPowerFactors != null)
             {
-                if (precautionPowerFactors.Length != hiddenCount)
+                if (precautionPowerFactors.Length != precautionPowerLevels)
                     throw new ArgumentException("precautionPowerFactors length must equal hiddenCount");
                 if (precautionPowerFactors.Any(f => f <= 0 || f > 1))
                     throw new ArgumentException("All precaution power factors must be in (0,1]");
@@ -89,10 +89,10 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
             else
             {
                 // Default: evenly spaced factors from 0.9 (least effective) down to 0.5 (most effective)
-                this.precautionPowerFactors = new double[hiddenCount];
+                this.precautionPowerFactors = new double[precautionPowerLevels];
                 double start = precautionPowerFactorLeastEffective, end = precautionPowerFactorMostEffective;
-                for (int h = 0; h < hiddenCount; h++)
-                    this.precautionPowerFactors[h] = start - (start - end) * h / Math.Max(1, hiddenCount - 1);
+                for (int h = 0; h < precautionPowerLevels; h++)
+                    this.precautionPowerFactors[h] = start - (start - end) * h / Math.Max(1, precautionPowerLevels - 1);
             }
 
             accidentFuncOverride = accidentProbabilityOverride;
@@ -300,7 +300,7 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
                 for (int k = 0; k < PrecautionLevels; k++)
                 {
                     double benefit = riskReduction[h][k] * HarmCost;
-                    double ratio = benefit / PrecautionCost;
+                    double ratio = benefit / MarginalPrecautionCost;
                     arr[h][k] = ratio > LiabilityThreshold; // negligent if benefit exceeds cost threshold
                 }
             }

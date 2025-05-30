@@ -14,10 +14,6 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
         readonly PrecautionImpactModel impact;
         readonly PrecautionSignalModel signal;
 
-        readonly double precautionCost;
-        readonly double harmCost;
-        readonly double liabilityThreshold;
-
         // Dimensions
         readonly int numCourtSignals;
         readonly int numPrecautionLevels;
@@ -33,16 +29,10 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
         /// </summary>
         public PrecautionCourtDecisionModel(
             PrecautionImpactModel impactModel,
-            PrecautionSignalModel signalModel,
-            double precautionCost,
-            double harmCost,
-            double liabilityThreshold = 1.0)
+            PrecautionSignalModel signalModel)
         {
             impact = impactModel ?? throw new ArgumentNullException(nameof(impactModel));
             signal = signalModel ?? throw new ArgumentNullException(nameof(signalModel));
-            this.precautionCost = precautionCost > 0 ? precautionCost : throw new ArgumentException(nameof(precautionCost));
-            this.harmCost = harmCost > 0 ? harmCost : throw new ArgumentException(nameof(harmCost));
-            this.liabilityThreshold = liabilityThreshold > 0 ? liabilityThreshold : throw new ArgumentException(nameof(liabilityThreshold));
 
             numPrecautionLevels = impactModel.PrecautionLevels;
             numCourtSignals = signalModel.GetHiddenPosteriorFromCourtSignal(0).Length == 0
@@ -73,11 +63,11 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
                         expectedDelta += delta * posterior[h];
                     }
                     expRiskReduction[s][k] = expectedDelta; // already normalized via posterior
-                    double benefit = expectedDelta * harmCost;
+                    double benefit = expectedDelta * impactModel.HarmCost;
                     expBenefit[s][k] = benefit;
-                    double ratio = precautionCost == 0 ? double.PositiveInfinity : benefit / precautionCost;
+                    double ratio = impactModel.MarginalPrecautionCost == 0 ? double.PositiveInfinity : benefit / impactModel.MarginalPrecautionCost;
                     benefitCostRatio[s][k] = ratio;
-                    liable[s][k] = ratio >= liabilityThreshold && k < numPrecautionLevels - 1; // cannot be liable if no further precaution exists
+                    liable[s][k] = ratio >= impactModel.LiabilityThreshold && k < numPrecautionLevels - 1; // cannot be liable if no further precaution exists
                 }
             }
         }
