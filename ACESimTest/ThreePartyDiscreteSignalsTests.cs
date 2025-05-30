@@ -19,7 +19,7 @@ namespace ACESimTest
         const int HiddenCount = 2;
         const int SignalLevels = 3;
 
-        ThreePartyDiscreteSignals model; 
+        ThreePartyDiscreteSignals model;
 
         [TestInitialize]
         public void Init()
@@ -29,7 +29,7 @@ namespace ACESimTest
                 hiddenCount: HiddenCount,
                 signalCounts: new[] { SignalLevels, SignalLevels, SignalLevels },
                 sigmas: new[] { 0.12, 0.12, 0.12 },
-                sourceIncludesExtremes: true); // DEBUG
+                sourceIncludesExtremes: true);
         }
 
         // ---------------------------------------------------------------
