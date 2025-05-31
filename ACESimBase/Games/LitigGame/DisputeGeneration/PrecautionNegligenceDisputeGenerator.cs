@@ -2,6 +2,7 @@
 using ACESimBase.GameSolvingSupport.Symmetry;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 
 namespace ACESim // Assuming the ACESim base namespace; adjust if needed
@@ -19,7 +20,7 @@ namespace ACESim // Assuming the ACESim base namespace; adjust if needed
 
         public string OptionsString => throw new NotImplementedException();
 
-        public double HarmCost = 1.0; // normalized harm in the event of an accident
+        public double CostOfAccident = 1.0; // normalized harm in the event of an accident
         public byte PrecautionPowerLevels = 10; // can be high if we're collapsing chance decisions, since this is the decision that gets collapsed
         public byte PrecautionLevels = 5;
         public double PrecautionPowerFactor = 0.8;
@@ -53,9 +54,9 @@ namespace ACESim // Assuming the ACESim base namespace; adjust if needed
         {
             LitigGameDefinition = myGameDefinition;
             var options = LitigGameDefinition.Options;
-            options.DamagesMax = options.DamagesMin = HarmCost;
+            options.DamagesMax = options.DamagesMin = CostOfAccident;
             options.NumDamagesStrengthPoints = 1;
-            _impactModel = new PrecautionImpactModel(PrecautionPowerLevels, PrecautionLevels, ProbabilityAccidentNoActivity, ProbabilityAccidentNoPrecaution, MarginalPrecautionCost, HarmCost, null, PrecautionPowerFactor, PrecautionPowerFactor, LiabilityThreshold, ProbabilityAccidentWrongfulAttribution, null);
+            _impactModel = new PrecautionImpactModel(PrecautionPowerLevels, PrecautionLevels, ProbabilityAccidentNoActivity, ProbabilityAccidentNoPrecaution, MarginalPrecautionCost, CostOfAccident, null, PrecautionPowerFactor, PrecautionPowerFactor, LiabilityThreshold, ProbabilityAccidentWrongfulAttribution, null);
             _signalModel = new PrecautionSignalModel(PrecautionPowerLevels, options.NumLiabilitySignals, options.NumLiabilitySignals, options.NumCourtLiabilitySignals, options.PLiabilityNoiseStdev, options.DLiabilityNoiseStdev, options.CourtLiabilityNoiseStdev, includeExtremes: false);
             _courtDecisionModel = new PrecautionCourtDecisionModel(_impactModel, _signalModel);
             _precautionPowerProbabilities = Enumerable.Range(1, PrecautionPowerLevels).Select(x => 1.0 / PrecautionPowerLevels).ToArray();
@@ -182,10 +183,14 @@ namespace ACESim // Assuming the ACESim base namespace; adjust if needed
                     break;
                 case (byte)LitigGameDecisions.TakePrecaution:
                     precautionProgress.RelativePrecautionLevel = action;
+                    precautionProgress.OpportunityCost = action * MarginalPrecautionCost;
                     break;
                 case (byte)LitigGameDecisions.Accident:
                     bool accidentOccurs = action == 1;
                     precautionProgress.AccidentOccurs = accidentOccurs;
+                    Debug; // need to think about how to do wrongful attribution -- we might need in non-collapse mode to actually have three decisions, so that we can properly attribute the accident. Or we could just proportionally assign harm cost. Note that we have GetWrongfulAttributionProbabilityGivenSignals, so we can calculate this, in the event that we don't know the precaution power (without creating more game progresses), and we could do something even simpler in other situations. We could also possibly treat the collapse chance decisions situation differently, and use the game progress enumeration. We might have a OverallHarmCost and a RightfulHarmCost. But that would mean a different number of game progresses. To get it exactly the same, we probably need to have three decisions in non-collapse mode and two in collapse mode and then use the game progress enumeration in collapse mode to recover whether we had a wrongful accident attribution.
+                    if (accidentOccurs && (ProbabilityAccidentWrongfulAttribution == 0 || accidentWouldHaveOccurredAbsentWrongfulAttribution))
+                        precautionProgress.HarmCost = CostOfAccident;
                     if (!accidentOccurs && ProbabilityAccidentWrongfulAttribution == 0)
                         gameProgress.GameComplete = true;
                     break;
@@ -215,6 +220,7 @@ namespace ACESim // Assuming the ACESim base namespace; adjust if needed
 
         public double GetLitigationIndependentSocialWelfare(LitigGameDefinition gameDefinition, LitigGameStandardDisputeGeneratorActions disputeGeneratorActions, LitigGameProgress gameProgress)
         {
+            PrecautionNegligenceProgress precautionProgress = (PrecautionNegligenceProgress)gameProgress;
             throw new NotImplementedException();
         }
 
@@ -228,20 +234,11 @@ namespace ACESim // Assuming the ACESim base namespace; adjust if needed
             throw new NotImplementedException();
         }
 
-        public bool SupportsSymmetry()
-        {
-            throw new NotImplementedException();
-        }
+        public bool SupportsSymmetry() => false;
 
-        public string GetGeneratorName()
-        {
-            throw new NotImplementedException();
-        }
+        public string GetGeneratorName() => "PrecautionNegligence";
 
-        public string GetActionString(byte action, byte decisionByteCode)
-        {
-            throw new NotImplementedException();
-        }
+        public string GetActionString(byte action, byte decisionByteCode) => action.ToString();
 
         public double[] InvertedCalculations_GetPLiabilitySignalProbabilities(byte? dLiabilitySignal)
         {

@@ -11,7 +11,7 @@ namespace ACESim
     [Serializable]
     public class LitigGameNegligencePrecautionLevelDisputeGenerator : LitigGameStandardDisputeGeneratorBase
     {
-        public override string GetGeneratorName() => "NegligencePrecaution";
+        public override string GetGeneratorName() => "NegligencePrecautionSimple";
         public override string OptionsString => $"NumMarginalBenefitSchedules {NumMarginalBenefitSchedules} NumPrecautionLevels {NumPrecautionLevels} CostOfInjury {CostOfInjury} ProbabilityOfInjuryNoPrecaution {ProbabilityOfInjuryNoPrecaution} IncrementalPrecautionCost {IncrementalPrecautionCost} RiskReductionFromFirstPrecautionTaken {RiskReductionFromFirstPrecautionTaken}";
         public override (string name, string abbreviation) PrePrimaryNameAndAbbreviation => ("Precaution Benefit Curve", "PrecautionBenefit");
         public override (string name, string abbreviation) PrimaryNameAndAbbreviation => ("Precaution Level", "Precaution");

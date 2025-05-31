@@ -15,6 +15,8 @@
         public bool EngagesInActivity { get; set; }              // whether the plaintiff engaged (filed the lawsuit)
         public int RelativePrecautionLevel { get; set; }       // defendant's chosen precaution level
         public bool AccidentOccurs { get; set; }     // whether an accident occurred
+        public double BenefitCostRatio { get; set; } // of the forsaken precaution
+
 
         public override LitigGameProgress DeepCopy()
         {
