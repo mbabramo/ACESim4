@@ -321,18 +321,18 @@ namespace ACESim
         public abstract string GetActionString(byte action, byte decisionByteCode);
 
         // Inverted-calculation methods – must be overridden by those generators that use them
-        public virtual double[] InvertedCalculations_GetPLiabilitySignalProbabilities(byte? dLiabilitySignal) => throw new NotSupportedException();
-        public virtual double[] InvertedCalculations_GetDLiabilitySignalProbabilities(byte? pLiabilitySignal) => throw new NotSupportedException();
-        public virtual double[] InvertedCalculations_GetCLiabilitySignalProbabilities(byte pSignal, byte dSignal) => throw new NotSupportedException();
-        public virtual double[] InvertedCalculations_GetPDamagesSignalProbabilities(byte? dDamagesSignal) => throw new NotSupportedException();
-        public virtual double[] InvertedCalculations_GetDDamagesSignalProbabilities(byte? pDamagesSignal) => throw new NotSupportedException();
-        public virtual double[] InvertedCalculations_GetCDamagesSignalProbabilities(byte pSignal, byte dSignal) => throw new NotSupportedException();
-        public virtual double[] InvertedCalculations_GetLiabilityStrengthProbabilities(byte pL, byte dL, byte? cL) => throw new NotSupportedException();
-        public virtual double[] InvertedCalculations_GetDamagesStrengthProbabilities(byte pD, byte dD, byte? cD) => throw new NotSupportedException();
+        public virtual double[] BayesianCalculations_GetPLiabilitySignalProbabilities(byte? dLiabilitySignal) => throw new NotSupportedException();
+        public virtual double[] BayesianCalculations_GetDLiabilitySignalProbabilities(byte? pLiabilitySignal) => throw new NotSupportedException();
+        public virtual double[] BayesianCalculations_GetCLiabilitySignalProbabilities(byte pSignal, byte dSignal) => throw new NotSupportedException();
+        public virtual double[] BayesianCalculations_GetPDamagesSignalProbabilities(byte? dDamagesSignal) => throw new NotSupportedException();
+        public virtual double[] BayesianCalculations_GetDDamagesSignalProbabilities(byte? pDamagesSignal) => throw new NotSupportedException();
+        public virtual double[] BayesianCalculations_GetCDamagesSignalProbabilities(byte pSignal, byte dSignal) => throw new NotSupportedException();
+        public virtual double[] BayesianCalculations_GetLiabilityStrengthProbabilities(byte pL, byte dL, byte? cL) => throw new NotSupportedException();
+        public virtual double[] BayesianCalculations_GetDamagesStrengthProbabilities(byte pD, byte dD, byte? cD) => throw new NotSupportedException();
         public virtual void
-            InvertedCalculations_WorkBackwardsFromSignals(LitigGameProgress gameProgress, byte pLiabilitySignal, byte dLiabilitySignal, byte? cLiabilitySignal, byte pDamagesSignal, byte dDamagesSignal, byte? cDamagesSignal, int randomSeed) => throw new NotSupportedException();
+            BayesianCalculations_WorkBackwardsFromSignals(LitigGameProgress gameProgress, byte pLiabilitySignal, byte dLiabilitySignal, byte? cLiabilitySignal, byte pDamagesSignal, byte dDamagesSignal, byte? cDamagesSignal, int randomSeed) => throw new NotSupportedException();
         public virtual List<(GameProgress progress, double weight)>
-            InvertedCalculations_GenerateAllConsistentGameProgresses(byte pL, byte dL, byte? cL, byte pD, byte dD, byte? cD, LitigGameProgress baseProgress) => throw new NotSupportedException();
+            BayesianCalculations_GenerateAllConsistentGameProgresses(byte pL, byte dL, byte? cL, byte pD, byte dD, byte? cD, LitigGameProgress baseProgress) => throw new NotSupportedException();
 
         // Chance-ordering helper defaults
         public virtual (bool unrollParallelize, bool unrollIdentical, SymmetryMapInput symmetryMapInput)

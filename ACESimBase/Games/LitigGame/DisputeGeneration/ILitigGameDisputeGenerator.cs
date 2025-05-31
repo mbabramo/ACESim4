@@ -63,26 +63,26 @@ namespace ACESim
 
         /* ─────── Inversion support (mirrors Exogenous generator) ─────── */
 
-        double[] InvertedCalculations_GetPLiabilitySignalProbabilities(byte? dLiabilitySignal);
-        double[] InvertedCalculations_GetDLiabilitySignalProbabilities(byte? pLiabilitySignal);
-        double[] InvertedCalculations_GetCLiabilitySignalProbabilities(byte pLiabilitySignal, byte dLiabilitySignal);
+        double[] BayesianCalculations_GetPLiabilitySignalProbabilities(byte? dLiabilitySignal);
+        double[] BayesianCalculations_GetDLiabilitySignalProbabilities(byte? pLiabilitySignal);
+        double[] BayesianCalculations_GetCLiabilitySignalProbabilities(byte pLiabilitySignal, byte dLiabilitySignal);
 
-        double[] InvertedCalculations_GetPDamagesSignalProbabilities(byte? dDamagesSignal);
-        double[] InvertedCalculations_GetDDamagesSignalProbabilities(byte? pDamagesSignal);
-        double[] InvertedCalculations_GetCDamagesSignalProbabilities(byte pDamagesSignal, byte dDamagesSignal);
+        double[] BayesianCalculations_GetPDamagesSignalProbabilities(byte? dDamagesSignal);
+        double[] BayesianCalculations_GetDDamagesSignalProbabilities(byte? pDamagesSignal);
+        double[] BayesianCalculations_GetCDamagesSignalProbabilities(byte pDamagesSignal, byte dDamagesSignal);
 
-        double[] InvertedCalculations_GetLiabilityStrengthProbabilities(
+        double[] BayesianCalculations_GetLiabilityStrengthProbabilities(
             byte pLiabilitySignal,
             byte dLiabilitySignal,
             byte? cLiabilitySignal);
 
-        double[] InvertedCalculations_GetDamagesStrengthProbabilities(
+        double[] BayesianCalculations_GetDamagesStrengthProbabilities(
             byte pDamagesSignal,
             byte dDamagesSignal,
             byte? cDamagesSignal);
 
         void
-            InvertedCalculations_WorkBackwardsFromSignals(
+            BayesianCalculations_WorkBackwardsFromSignals(
                 LitigGameProgress gameProgress,
                 byte pLiabilitySignal,
                 byte dLiabilitySignal,
@@ -95,7 +95,7 @@ namespace ACESim
         bool GenerateConsistentGameProgressesWhenNotCollapsing => false;
 
         List<(GameProgress progress, double weight)>
-            InvertedCalculations_GenerateAllConsistentGameProgresses(
+            BayesianCalculations_GenerateAllConsistentGameProgresses(
                 byte pLiabilitySignal,
                 byte dLiabilitySignal,
                 byte? cLiabilitySignal,

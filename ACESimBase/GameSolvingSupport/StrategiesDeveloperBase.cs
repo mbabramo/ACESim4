@@ -3226,7 +3226,7 @@ namespace ACESim
                     IEnumerable<(GameProgress progress, double splitWeight)> weightedProgresses = toProcess.Item1.GetGameProgressIncludingAnySplits(); // splits occur ex post after the game to transform a single outcome into multiple possible sources
                     if (GameDefinition.GenerateConsistentGameProgresses && multiplyGameProgressesIfInvertingChanceDecisions)
                     {
-                        weightedProgresses = weightedProgresses.SelectMany(x => x.progress.InvertedCalculations_GenerateAllConsistentGameProgresses(x.splitWeight));
+                        weightedProgresses = weightedProgresses.SelectMany(x => x.progress.BayesianCalculations_GenerateAllConsistentGameProgresses(x.splitWeight));
                     }
                     foreach ((GameProgress theProgress, double splitWeight) in weightedProgresses)
                     {

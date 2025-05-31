@@ -726,7 +726,7 @@ namespace ACESim
                 var myGameProgress = ((LitigGameProgress)gameProgress);
                 double[] probabilities;
                 if (Options.CollapseChanceDecisions)
-                    probabilities = Options.LitigGameDisputeGenerator.InvertedCalculations_GetPLiabilitySignalProbabilities(myGameProgress.DLiabilitySignalDiscrete);
+                    probabilities = Options.LitigGameDisputeGenerator.BayesianCalculations_GetPLiabilitySignalProbabilities(myGameProgress.DLiabilitySignalDiscrete);
                 else
                     probabilities = GetPLiabilitySignalProbabilities(myGameProgress.LiabilityStrengthDiscrete);
                 if (Math.Abs(probabilities.Sum() - 1) > 1E-8)
@@ -738,7 +738,7 @@ namespace ACESim
                 var myGameProgress = ((LitigGameProgress)gameProgress);
                 double[] probabilities;
                 if (Options.CollapseChanceDecisions)
-                    probabilities = Options.LitigGameDisputeGenerator.InvertedCalculations_GetDLiabilitySignalProbabilities(myGameProgress.PLiabilitySignalDiscrete);
+                    probabilities = Options.LitigGameDisputeGenerator.BayesianCalculations_GetDLiabilitySignalProbabilities(myGameProgress.PLiabilitySignalDiscrete);
                 else
                     probabilities = GetDLiabilitySignalProbabilities(myGameProgress.LiabilityStrengthDiscrete);
                 if (Math.Abs(probabilities.Sum() - 1) > 1E-8)
@@ -762,7 +762,7 @@ namespace ACESim
                 var myGameProgress = ((LitigGameProgress)gameProgress);
                 double[] probabilities;
                 if (Options.CollapseChanceDecisions)
-                    probabilities = Options.LitigGameDisputeGenerator.InvertedCalculations_GetPDamagesSignalProbabilities(myGameProgress.DDamagesSignalDiscrete);
+                    probabilities = Options.LitigGameDisputeGenerator.BayesianCalculations_GetPDamagesSignalProbabilities(myGameProgress.DDamagesSignalDiscrete);
                 else
                     probabilities = GetPDamagesSignalProbabilities(myGameProgress.DamagesStrengthDiscrete);
                 if (Math.Abs(probabilities.Sum() - 1) > 1E-8)
@@ -774,7 +774,7 @@ namespace ACESim
                 var myGameProgress = ((LitigGameProgress)gameProgress);
                 double[] probabilities;
                 if (Options.CollapseChanceDecisions)
-                    probabilities = Options.LitigGameDisputeGenerator.InvertedCalculations_GetDDamagesSignalProbabilities(myGameProgress.PDamagesSignalDiscrete);
+                    probabilities = Options.LitigGameDisputeGenerator.BayesianCalculations_GetDDamagesSignalProbabilities(myGameProgress.PDamagesSignalDiscrete);
                 else
                     probabilities = GetDDamagesSignalProbabilities(myGameProgress.DamagesStrengthDiscrete);
                 if (Math.Abs(probabilities.Sum() - 1) > 1E-8)
@@ -786,7 +786,7 @@ namespace ACESim
                 var myGameProgress = ((LitigGameProgress)gameProgress);
                 double[] probabilities;
                 if (Options.CollapseChanceDecisions)
-                    probabilities = Options.LitigGameDisputeGenerator.InvertedCalculations_GetCLiabilitySignalProbabilities(myGameProgress.PLiabilitySignalDiscrete, myGameProgress.DLiabilitySignalDiscrete);
+                    probabilities = Options.LitigGameDisputeGenerator.BayesianCalculations_GetCLiabilitySignalProbabilities(myGameProgress.PLiabilitySignalDiscrete, myGameProgress.DLiabilitySignalDiscrete);
                 else
                     probabilities = GetCLiabilitySignalProbabilities(myGameProgress.LiabilityStrengthDiscrete);
                 if (Math.Abs(probabilities.Sum() - 1) > 1E-8)
@@ -798,7 +798,7 @@ namespace ACESim
                 var myGameProgress = ((LitigGameProgress)gameProgress);
                 double[] probabilities;
                 if (Options.CollapseChanceDecisions)
-                    probabilities = Options.LitigGameDisputeGenerator.InvertedCalculations_GetCDamagesSignalProbabilities(myGameProgress.PDamagesSignalDiscrete, myGameProgress.DDamagesSignalDiscrete);
+                    probabilities = Options.LitigGameDisputeGenerator.BayesianCalculations_GetCDamagesSignalProbabilities(myGameProgress.PDamagesSignalDiscrete, myGameProgress.DDamagesSignalDiscrete);
                 else
                     probabilities = GetCDamagesSignalProbabilities(myGameProgress.DamagesStrengthDiscrete);
                 if (Math.Abs(probabilities.Sum() - 1) > 1E-8)

@@ -513,7 +513,7 @@ namespace ACESim
                 NumChips = outcome.NumChips;
 
                 if (options.CollapseChanceDecisions)
-                    options.LitigGameDisputeGenerator.InvertedCalculations_WorkBackwardsFromSignals(this, options.NumLiabilitySignals == 1 ? (byte) 1 : PLiabilitySignalDiscrete, options.NumLiabilitySignals == 1 ? (byte) 1 : DLiabilitySignalDiscrete, options.NumLiabilitySignals == 1 ? 1 : CLiabilitySignalDiscrete, options.NumDamagesSignals == 1 ? (byte) 1 : PDamagesSignalDiscrete, options.NumDamagesSignals == 1 ? (byte) 1 : DDamagesSignalDiscrete, options.NumDamagesSignals == 1 ? 1 : CDamagesSignalDiscrete, IterationID.IterationNumIntUnchecked);
+                    options.LitigGameDisputeGenerator.BayesianCalculations_WorkBackwardsFromSignals(this, options.NumLiabilitySignals == 1 ? (byte) 1 : PLiabilitySignalDiscrete, options.NumLiabilitySignals == 1 ? (byte) 1 : DLiabilitySignalDiscrete, options.NumLiabilitySignals == 1 ? 1 : CLiabilitySignalDiscrete, options.NumDamagesSignals == 1 ? (byte) 1 : PDamagesSignalDiscrete, options.NumDamagesSignals == 1 ? (byte) 1 : DDamagesSignalDiscrete, options.NumDamagesSignals == 1 ? 1 : CDamagesSignalDiscrete, IterationID.IterationNumIntUnchecked);
             }
             else
             {
@@ -598,7 +598,7 @@ namespace ACESim
         }
 
 
-        public override List<(GameProgress progress, double weight)> InvertedCalculations_GenerateAllConsistentGameProgresses(double initialWeight)
+        public override List<(GameProgress progress, double weight)> BayesianCalculations_GenerateAllConsistentGameProgresses(double initialWeight)
         {
             List<(GameProgress progress, double weight)> results = new List<(GameProgress progress, double weight)>();
             var possibleCurrentStates = AlternativeEndings ?? new List<(LitigGameProgress completedGame, double weight)>() { (DeepCopy(), 1.0) };
@@ -606,7 +606,7 @@ namespace ACESim
             {
                 var p = currentState.completedGame;
                 var o = LitigGameOptions;
-                var consistentGameProgresses = o.LitigGameDisputeGenerator.InvertedCalculations_GenerateAllConsistentGameProgresses(o.NumLiabilitySignals == 1 ? (byte) 1 : p.PLiabilitySignalDiscrete, o.NumLiabilitySignals == 1 ? (byte) 1 : p.DLiabilitySignalDiscrete, o.NumLiabilitySignals == 1 ? 1 : p.CLiabilitySignalDiscrete, o.NumDamagesSignals == 1 ? (byte) 1 : p.PDamagesSignalDiscrete, o.NumDamagesSignals == 1 ? (byte) 1 : p.DDamagesSignalDiscrete, o.NumDamagesSignals == 1 ? 1 : p.CDamagesSignalDiscrete, p);
+                var consistentGameProgresses = o.LitigGameDisputeGenerator.BayesianCalculations_GenerateAllConsistentGameProgresses(o.NumLiabilitySignals == 1 ? (byte) 1 : p.PLiabilitySignalDiscrete, o.NumLiabilitySignals == 1 ? (byte) 1 : p.DLiabilitySignalDiscrete, o.NumLiabilitySignals == 1 ? 1 : p.CLiabilitySignalDiscrete, o.NumDamagesSignals == 1 ? (byte) 1 : p.PDamagesSignalDiscrete, o.NumDamagesSignals == 1 ? (byte) 1 : p.DDamagesSignalDiscrete, o.NumDamagesSignals == 1 ? 1 : p.CDamagesSignalDiscrete, p);
                 var weightedConsistentGameProgress = consistentGameProgresses.Select(x => (x.progress, currentState.weight * x.weight * initialWeight)).ToList();
                 results.AddRange(weightedConsistentGameProgress);
             }

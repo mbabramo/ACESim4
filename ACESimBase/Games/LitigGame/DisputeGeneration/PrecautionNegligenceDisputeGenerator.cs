@@ -249,54 +249,54 @@ namespace ACESim // Assuming the ACESim base namespace; adjust if needed
 
         public string GetActionString(byte action, byte decisionByteCode) => action.ToString();
 
-        public double[] InvertedCalculations_GetPLiabilitySignalProbabilities(byte? dLiabilitySignal)
+        public double[] BayesianCalculations_GetPLiabilitySignalProbabilities(byte? dLiabilitySignal)
         {
             throw new NotImplementedException();
         }
 
-        public double[] InvertedCalculations_GetDLiabilitySignalProbabilities(byte? pLiabilitySignal)
+        public double[] BayesianCalculations_GetDLiabilitySignalProbabilities(byte? pLiabilitySignal)
         {
             throw new NotImplementedException();
         }
 
-        public double[] InvertedCalculations_GetCLiabilitySignalProbabilities(byte pLiabilitySignal, byte dLiabilitySignal)
+        public double[] BayesianCalculations_GetCLiabilitySignalProbabilities(byte pLiabilitySignal, byte dLiabilitySignal)
         {
             throw new NotImplementedException();
         }
 
-        public double[] InvertedCalculations_GetPDamagesSignalProbabilities(byte? dDamagesSignal)
+        public double[] BayesianCalculations_GetPDamagesSignalProbabilities(byte? dDamagesSignal)
         {
             throw new NotImplementedException();
         }
 
-        public double[] InvertedCalculations_GetDDamagesSignalProbabilities(byte? pDamagesSignal)
+        public double[] BayesianCalculations_GetDDamagesSignalProbabilities(byte? pDamagesSignal)
         {
             throw new NotImplementedException();
         }
 
-        public double[] InvertedCalculations_GetCDamagesSignalProbabilities(byte pDamagesSignal, byte dDamagesSignal)
+        public double[] BayesianCalculations_GetCDamagesSignalProbabilities(byte pDamagesSignal, byte dDamagesSignal)
         {
             throw new NotImplementedException();
         }
 
-        public double[] InvertedCalculations_GetLiabilityStrengthProbabilities(byte pLiabilitySignal, byte dLiabilitySignal, byte? cLiabilitySignal)
+        public double[] BayesianCalculations_GetLiabilityStrengthProbabilities(byte pLiabilitySignal, byte dLiabilitySignal, byte? cLiabilitySignal)
         {
             throw new NotImplementedException();
         }
 
-        public double[] InvertedCalculations_GetDamagesStrengthProbabilities(byte pDamagesSignal, byte dDamagesSignal, byte? cDamagesSignal)
+        public double[] BayesianCalculations_GetDamagesStrengthProbabilities(byte pDamagesSignal, byte dDamagesSignal, byte? cDamagesSignal)
         {
             throw new NotImplementedException();
         }
 
-        public void InvertedCalculations_WorkBackwardsFromSignals(LitigGameProgress gameProgress, byte pLiabilitySignal, byte dLiabilitySignal, byte? cLiabilitySignal, byte pDamagesSignal, byte dDamagesSignal, byte? cDamagesSignal, int randomSeed)
+        public void BayesianCalculations_WorkBackwardsFromSignals(LitigGameProgress gameProgress, byte pLiabilitySignal, byte dLiabilitySignal, byte? cLiabilitySignal, byte pDamagesSignal, byte dDamagesSignal, byte? cDamagesSignal, int randomSeed)
         {
             throw new NotImplementedException();
         }
 
         public bool GenerateConsistentGameProgressesWhenNotCollapsing => true;
 
-        public List<(GameProgress progress, double weight)> InvertedCalculations_GenerateAllConsistentGameProgresses(byte pLiabilitySignal, byte dLiabilitySignal, byte? cLiabilitySignal, byte pDamagesSignal, byte dDamagesSignal, byte? cDamagesSignal, LitigGameProgress baseProgress)
+        public List<(GameProgress progress, double weight)> BayesianCalculations_GenerateAllConsistentGameProgresses(byte pLiabilitySignal, byte dLiabilitySignal, byte? cLiabilitySignal, byte pDamagesSignal, byte dDamagesSignal, byte? cDamagesSignal, LitigGameProgress baseProgress)
         {
             baseProgress.ResetPostGameInfo(); // reset this because we're going to figure out wrongful attribution here and that 
 
