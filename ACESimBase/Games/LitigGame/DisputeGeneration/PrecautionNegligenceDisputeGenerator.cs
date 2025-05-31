@@ -330,16 +330,6 @@ namespace ACESim // Assuming the ACESim base namespace; adjust if needed
             return [1.0];
         }
 
-        public double[] BayesianCalculations_GetLiabilityStrengthProbabilities(byte pLiabilitySignal, byte dLiabilitySignal, byte? cLiabilitySignal)
-        {
-            throw new NotImplementedException();
-        }
-
-        public double[] BayesianCalculations_GetDamagesStrengthProbabilities(byte pDamagesSignal, byte dDamagesSignal, byte? cDamagesSignal)
-        {
-            throw new NotImplementedException();
-        }
-
         public void BayesianCalculations_WorkBackwardsFromSignals(LitigGameProgress gameProgress, byte pLiabilitySignal, byte dLiabilitySignal, byte? cLiabilitySignal, byte pDamagesSignal, byte dDamagesSignal, byte? cDamagesSignal, int randomSeed)
         {
             throw new NotImplementedException();

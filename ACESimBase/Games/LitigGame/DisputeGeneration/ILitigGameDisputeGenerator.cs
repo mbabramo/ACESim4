@@ -71,16 +71,6 @@ namespace ACESim
         double[] BayesianCalculations_GetDDamagesSignalProbabilities(byte? pDamagesSignal);
         double[] BayesianCalculations_GetCDamagesSignalProbabilities(byte pDamagesSignal, byte dDamagesSignal);
 
-        double[] BayesianCalculations_GetLiabilityStrengthProbabilities(
-            byte pLiabilitySignal,
-            byte dLiabilitySignal,
-            byte? cLiabilitySignal);
-
-        double[] BayesianCalculations_GetDamagesStrengthProbabilities(
-            byte pDamagesSignal,
-            byte dDamagesSignal,
-            byte? cDamagesSignal);
-
         void
             BayesianCalculations_WorkBackwardsFromSignals(
                 LitigGameProgress gameProgress,
