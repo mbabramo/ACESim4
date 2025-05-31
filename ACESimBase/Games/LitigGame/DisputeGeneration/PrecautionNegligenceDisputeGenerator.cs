@@ -38,6 +38,8 @@ namespace ACESim // Assuming the ACESim base namespace; adjust if needed
 
         // Precomputed lookup tables
         private double[] _precautionPowerProbabilities; // Probability of each precaution level
+        private double[] _dSignalProbabilities; // Probability of each defendant signal, when NOT conditioned on the precaution power level (in collapse chance mode)
+        private double[][] _pSignalProbabilities;
         private double[] _accidentProbabilities;  // Probability of accident for each precaution level
         private bool[] _breachByPrecaution;       // Whether each precaution level is below the legal standard (true = breach of duty)
 
@@ -60,12 +62,17 @@ namespace ACESim // Assuming the ACESim base namespace; adjust if needed
             _signalModel = new PrecautionSignalModel(PrecautionPowerLevels, options.NumLiabilitySignals, options.NumLiabilitySignals, options.NumCourtLiabilitySignals, options.PLiabilityNoiseStdev, options.DLiabilityNoiseStdev, options.CourtLiabilityNoiseStdev, includeExtremes: false);
             _courtDecisionModel = new PrecautionCourtDecisionModel(_impactModel, _signalModel);
             _precautionPowerProbabilities = Enumerable.Range(1, PrecautionPowerLevels).Select(x => 1.0 / PrecautionPowerLevels).ToArray();
+            if (Options.CollapseChanceDecisions)
+            {
+                _dSignalProbabilities = _signalModel.GetUnconditionalDefendantSignalDistribution();
+                _pSignalProbabilities = _signalModel.GetPlaintiffSignalDistributionGivenDefendantSignal();
+            }
         }
 
-        public List<Decision> GenerateDisputeDecisions(LitigGameDefinition g)
+        public List<Decision> GenerateDisputeDecisions(LitigGameDefinition litigGameDefinition)
         {
             var list = new List<Decision>();
-            bool collapse = g.Options.CollapseChanceDecisions;
+            bool collapse = litigGameDefinition.Options.CollapseChanceDecisions;
 
             if (!collapse)
                 list.Add(new(
@@ -76,7 +83,7 @@ namespace ACESim // Assuming the ACESim base namespace; adjust if needed
                     (byte)LitigGameDecisions.LiabilityStrength,
                     unevenChanceActions: false)
                 {
-                    StoreActionInGameCacheItem = g.GameHistoryCacheIndex_LiabilityStrength,
+                    StoreActionInGameCacheItem = litigGameDefinition.GameHistoryCacheIndex_LiabilityStrength,
                     IsReversible = true,
                     DistributedChanceDecision = false, // using collapse chance instead
                     Unroll_Parallelize = true,
@@ -105,7 +112,7 @@ namespace ACESim // Assuming the ACESim base namespace; adjust if needed
                 Options.NumLiabilitySignals,
                 (byte)LitigGameDecisions.EngageInActivity)
             {
-                StoreActionInGameCacheItem = g.GameHistoryCacheIndex_EngagesInActivity,
+                StoreActionInGameCacheItem = litigGameDefinition.GameHistoryCacheIndex_EngagesInActivity,
                 IsReversible = true,
                 DistributedChanceDecision = false,
                 Unroll_Parallelize = true,
@@ -119,7 +126,7 @@ namespace ACESim // Assuming the ACESim base namespace; adjust if needed
                 PrecautionLevels,
                 (byte)LitigGameDecisions.TakePrecaution)
             {
-                StoreActionInGameCacheItem = g.GameHistoryCacheIndex_PrecautionLevel,
+                StoreActionInGameCacheItem = litigGameDefinition.GameHistoryCacheIndex_PrecautionLevel,
                 IsReversible = true,
                 DistributedChanceDecision = false,
                 Unroll_Parallelize = true,
@@ -134,7 +141,7 @@ namespace ACESim // Assuming the ACESim base namespace; adjust if needed
                 (byte)LitigGameDecisions.Accident
                 )
             {
-                StoreActionInGameCacheItem = g.GameHistoryCacheIndex_Accident,
+                StoreActionInGameCacheItem = litigGameDefinition.GameHistoryCacheIndex_Accident,
                 IsReversible = true,
                 DistributedChanceDecision = false,
                 Unroll_Parallelize = true,
@@ -156,6 +163,11 @@ namespace ACESim // Assuming the ACESim base namespace; adjust if needed
                 Unroll_Parallelize_Identical = false,
                 SymmetryMap = (SymmetryMapInput.NotCompatibleWithSymmetry, SymmetryMapOutput.CantBeSymmetric)
             });
+
+            // The liability signals tables are used when NOT collapsing decisions. This logic is already built in, so we don't need to enhance it.
+            litigGameDefinition.CreateLiabilitySignalsTables();
+            if (litigGameDefinition.Options.NumDamagesStrengthPoints > 1)
+                throw new NotImplementedException(); // gameDefinition.CreateDamagesSignalsTables();
 
             return list;
         }
@@ -249,14 +261,20 @@ namespace ACESim // Assuming the ACESim base namespace; adjust if needed
 
         public string GetActionString(byte action, byte decisionByteCode) => action.ToString();
 
-        public double[] BayesianCalculations_GetPLiabilitySignalProbabilities(byte? dLiabilitySignal)
-        {
-            throw new NotImplementedException();
-        }
 
         public double[] BayesianCalculations_GetDLiabilitySignalProbabilities(byte? pLiabilitySignal)
         {
-            throw new NotImplementedException();
+            // Defendant goes first, so we can just use the original liability signal tables.
+            if (pLiabilitySignal is not null)
+                throw new NotSupportedException(); // This should only be called in collapse decision mode, as the first signal to be computed
+            return _dSignalProbabilities; // not conditioned on anything
+        }
+
+        public double[] BayesianCalculations_GetPLiabilitySignalProbabilities(byte? dLiabilitySignal)
+        {
+            // Note: This is used ONLY when collapsing chance decisions.
+            byte dSignal = (byte)dLiabilitySignal; // should not be null, because defendant gets signal first in this game
+            return _pSignalProbabilities[dSignal - 1];
         }
 
         public double[] BayesianCalculations_GetCLiabilitySignalProbabilities(byte pLiabilitySignal, byte dLiabilitySignal)
@@ -266,17 +284,17 @@ namespace ACESim // Assuming the ACESim base namespace; adjust if needed
 
         public double[] BayesianCalculations_GetPDamagesSignalProbabilities(byte? dDamagesSignal)
         {
-            throw new NotImplementedException();
+            return [1.0];
         }
 
         public double[] BayesianCalculations_GetDDamagesSignalProbabilities(byte? pDamagesSignal)
         {
-            throw new NotImplementedException();
+            return [1.0];
         }
 
         public double[] BayesianCalculations_GetCDamagesSignalProbabilities(byte pDamagesSignal, byte dDamagesSignal)
         {
-            throw new NotImplementedException();
+            return [1.0];
         }
 
         public double[] BayesianCalculations_GetLiabilityStrengthProbabilities(byte pLiabilitySignal, byte dLiabilitySignal, byte? cLiabilitySignal)

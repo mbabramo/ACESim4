@@ -270,5 +270,63 @@ namespace ACESimTest
             posterior.Should().OnlyContain(p => p >= 0 && p <= 1);
         }
 
+        // ---------------------------------------------------------------
+        // 9) Unconditional signal distribution behaves correctly
+        // ---------------------------------------------------------------
+        [DataTestMethod]
+        [DataRow(0)]   // plaintiff
+        [DataRow(1)]   // defendant
+        [DataRow(2)]   // court
+        public void UnconditionalDistributionSumsToOne(int party)
+        {
+            double[] unconditional = model.GetUnconditionalSignalDistribution(party);
+            unconditional.Sum().Should().BeApproximately(1.0, 1e-8);
+            unconditional.Should().OnlyContain(p => p >= 0 && p <= 1);
+        }
+
+        [DataTestMethod]
+        [DataRow(0)]
+        [DataRow(1)]
+        [DataRow(2)]
+        public void UnconditionalMatchesHiddenAverage(int party)
+        {
+            double[] expected = new double[SignalLevels];
+            double prior = 1.0 / HiddenCount;
+
+            for (int h = 0; h < HiddenCount; h++)
+            {
+                double[] cond = model.GetSignalDistributionGivenHidden(party, h);
+                for (int s = 0; s < SignalLevels; s++)
+                    expected[s] += cond[s] * prior;
+            }
+
+            double[] table = model.GetUnconditionalSignalDistribution(party);
+            for (int s = 0; s < SignalLevels; s++)
+                table[s].Should().BeApproximately(expected[s], 1e-8);
+        }
+
+        [TestMethod]
+        public void UnconditionalMonteCarloSampling()
+        {
+            var rng = new Random(314);
+            const int Samples = 200_000;
+            int[] counts = new int[SignalLevels];
+
+            for (int i = 0; i < Samples; i++)
+            {
+                // Draw a hidden state uniformly, then its court signal
+                int h = rng.Next(HiddenCount);
+                int court = model.GenerateSignalsFromHidden(h, rng).Item3;
+                counts[court]++;
+            }
+
+            double[] empirical = counts.Select(c => (double)c / Samples).ToArray();
+            double[] theoretical = model.GetUnconditionalSignalDistribution(2); // court
+
+            for (int s = 0; s < SignalLevels; s++)
+                empirical[s].Should().BeApproximately(theoretical[s], 0.01);  // ≤1 % error
+        }
+
+
     }
 }

@@ -61,6 +61,28 @@ namespace ACESimBase.Util.DiscreteProbabilities
 
         #region Public API
 
+        /// <summary>
+        /// Unconditional distribution P(signal) for a given party, assuming a uniform prior over hidden states.
+        /// The returned array has length signalCounts[partyIndex].
+        /// </summary>
+        public double[] GetUnconditionalSignalDistribution(int partyIndex)
+        {
+            ValidateParty(partyIndex);
+
+            int sCount = signalCounts[partyIndex];
+            double[] distribution = new double[sCount];
+            double priorHidden = 1.0 / hiddenCount;
+
+            for (int h = 0; h < hiddenCount; h++)
+            {
+                double[] cond = probSignalGivenHidden[partyIndex][h];
+                for (int s = 0; s < sCount; s++)
+                    distribution[s] += cond[s] * priorHidden;   // mix over hidden
+            }
+            return distribution;
+        }
+
+
         public (int sig0, int sig1, int sig2) GenerateSignalsFromHidden(int hiddenValue, Random rng = null)
         {
             if ((uint)hiddenValue >= hiddenCount) throw new ArgumentOutOfRangeException(nameof(hiddenValue));
