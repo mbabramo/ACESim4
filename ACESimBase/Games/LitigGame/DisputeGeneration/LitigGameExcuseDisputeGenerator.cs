@@ -154,7 +154,7 @@ namespace ACESim
             postPrimaryChanceCanTerminate = false;
         }
 
-        public override bool PotentialDisputeArises(LitigGameDefinition gameDef, LitigGameDisputeGeneratorActions acts) =>
+        public override bool PotentialDisputeArises(LitigGameDefinition gameDef, LitigGameStandardDisputeGeneratorActions acts, LitigGameProgress gameProgress) =>
             acts.PrimaryAction == 1;  // dispute arises if Breach
 
         public override bool MarkComplete(LitigGameDefinition gameDef, byte prePrimaryAction, byte primaryAction) =>
@@ -163,7 +163,7 @@ namespace ACESim
         public override bool MarkComplete(LitigGameDefinition gameDef, byte prePrimaryAction, byte primaryAction, byte postPrimaryAction) =>
             throw new NotSupportedException();
 
-        public override bool IsTrulyLiable(LitigGameDefinition gameDef, LitigGameDisputeGeneratorActions acts, GameProgress progress)
+        public override bool IsTrulyLiable(LitigGameDefinition gameDef, LitigGameStandardDisputeGeneratorActions acts, GameProgress progress)
         {
             int pIdx = acts.PrePrimaryChanceAction - 1;
             int aIdx = acts.PrimaryAction - 1;
@@ -192,20 +192,20 @@ namespace ACESim
             return weights;
         }
 
-        public override double[] GetPostPrimaryChanceProbabilities(LitigGameDefinition gameDef, LitigGameDisputeGeneratorActions acts) =>
+        public override double[] GetPostPrimaryChanceProbabilities(LitigGameDefinition gameDef, LitigGameStandardDisputeGeneratorActions acts) =>
             throw new NotImplementedException();  // no post-primary chance stage
 
-        public override double[] GetLiabilityStrengthProbabilities(LitigGameDefinition gameDef, LitigGameDisputeGeneratorActions acts)
+        public override double[] GetLiabilityStrengthProbabilities(LitigGameDefinition gameDef, LitigGameStandardDisputeGeneratorActions acts)
         {
             int pIdx = acts.PrePrimaryChanceAction - 1;
             int aIdx = acts.PrimaryAction - 1;
             return _liabilityStrengthProbabilities[pIdx][aIdx];
         }
 
-        public override double[] GetDamagesStrengthProbabilities(LitigGameDefinition gameDef, LitigGameDisputeGeneratorActions acts) =>
+        public override double[] GetDamagesStrengthProbabilities(LitigGameDefinition gameDef, LitigGameStandardDisputeGeneratorActions acts) =>
             new[] { 1.0 };
 
-        public override double[] GetLitigationIndependentWealthEffects(LitigGameDefinition gameDef, LitigGameDisputeGeneratorActions acts)
+        public override double[] GetLitigationIndependentWealthEffects(LitigGameDefinition gameDef, LitigGameStandardDisputeGeneratorActions acts, LitigGameProgress gameProgress)
         {
             if (acts.PrimaryAction == 2)
             {
@@ -221,7 +221,7 @@ namespace ACESim
             }
         }
 
-        public override double GetLitigationIndependentSocialWelfare(LitigGameDefinition gameDef, LitigGameDisputeGeneratorActions acts)
+        public override double GetLitigationIndependentSocialWelfare(LitigGameDefinition gameDef, LitigGameStandardDisputeGeneratorActions acts, LitigGameProgress gameProgress)
         {
             if (acts.PrimaryAction == 2)
             {
@@ -239,7 +239,7 @@ namespace ACESim
         }
 
         public override (double opportunityCost, double harmCost) GetOpportunityAndHarmCosts(LitigGameDefinition gameDef,
-                                LitigGameDisputeGeneratorActions acts)
+                                LitigGameStandardDisputeGeneratorActions acts, LitigGameProgress gameProgress)
         {
             double costLevel = _costLevels[acts.PrePrimaryChanceAction - 1];
 

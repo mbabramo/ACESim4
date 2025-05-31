@@ -221,7 +221,8 @@ namespace ACESim
 
         public override bool PotentialDisputeArises(
             LitigGameDefinition gameDef,
-            LitigGameDisputeGeneratorActions acts) =>
+            LitigGameStandardDisputeGeneratorActions acts, 
+            LitigGameProgress gameProgress) =>
             acts.PostPrimaryChanceAction == 1; // injury occurred
 
         public override bool MarkComplete(
@@ -239,7 +240,7 @@ namespace ACESim
 
         public override bool IsTrulyLiable(
             LitigGameDefinition gameDef,
-            LitigGameDisputeGeneratorActions acts,
+            LitigGameStandardDisputeGeneratorActions acts,
             GameProgress progress)
         {
             int pIdx = acts.PrePrimaryChanceAction - 1;
@@ -254,7 +255,7 @@ namespace ACESim
 
         public override double[] GetPostPrimaryChanceProbabilities(
             LitigGameDefinition gameDef,
-            LitigGameDisputeGeneratorActions acts)
+            LitigGameStandardDisputeGeneratorActions acts)
         {
             int pIdx = acts.PrePrimaryChanceAction - 1;
             bool tookPrecaution = acts.PrimaryAction == 2;
@@ -271,7 +272,7 @@ namespace ACESim
 
         public override double[] GetLiabilityStrengthProbabilities(
             LitigGameDefinition gameDef,
-            LitigGameDisputeGeneratorActions acts)
+            LitigGameStandardDisputeGeneratorActions acts)
         {
             int pIdx = acts.PrePrimaryChanceAction - 1;
             int aIdx = acts.PrimaryAction - 1;
@@ -280,12 +281,13 @@ namespace ACESim
 
         public override double[] GetDamagesStrengthProbabilities(
             LitigGameDefinition gameDef,
-            LitigGameDisputeGeneratorActions acts) =>
+            LitigGameStandardDisputeGeneratorActions acts) =>
             new[] { 1.0 };
 
         public override double[] GetLitigationIndependentWealthEffects(
             LitigGameDefinition gameDef,
-            LitigGameDisputeGeneratorActions acts)
+            LitigGameStandardDisputeGeneratorActions acts,
+            LitigGameProgress gameProgress)
         {
             bool tookPrecaution = acts.PrimaryAction == 2;
             bool injury = acts.PostPrimaryChanceAction == 1;
@@ -304,13 +306,14 @@ namespace ACESim
 
         public override double GetLitigationIndependentSocialWelfare(
             LitigGameDefinition gameDef,
-            LitigGameDisputeGeneratorActions acts)
+            LitigGameStandardDisputeGeneratorActions acts, 
+            LitigGameProgress gameProgress)
         {
-            double[] w = GetLitigationIndependentWealthEffects(gameDef, acts);
+            double[] w = GetLitigationIndependentWealthEffects(gameDef, acts, gameProgress);
             return w.Sum();
         }
 
-        public override (double opportunityCost, double harmCost) GetOpportunityAndHarmCosts(LitigGameDefinition gameDef, LitigGameDisputeGeneratorActions acts)
+        public override (double opportunityCost, double harmCost) GetOpportunityAndHarmCosts(LitigGameDefinition gameDef, LitigGameStandardDisputeGeneratorActions acts, LitigGameProgress gameProgress)
         {
             // Precaution outlay only if the defendant actually took care (primaryAction == 2)
             double precaution = 0.0;

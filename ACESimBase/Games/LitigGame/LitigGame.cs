@@ -286,11 +286,11 @@ namespace ACESim
             public byte NumChips;
         }
 
-        public static LitigGameOutcome CalculateGameOutcome(LitigGameDefinition gameDefinition, LitigGameDisputeGeneratorActions disputeGeneratorActions, LitigGamePretrialActions pretrialActions, LitigGameRunningSideBetsActions runningSideBetActions, double pInitialWealth, double dInitialWealth, bool pFiles, bool pAbandons, bool dAnswers, bool dDefaults, double? settlementValue, bool pWinsAtTrial, bool largeMarginAtTrial, double? damagesAwarded, byte bargainingRoundsComplete, double? pFinalWealthWithBestOffer, double? dFinalWealthWithBestOffer, List<double> pOffers, List<bool> pResponses, List<double> dOffers, List<bool> dResponses)
+        public static LitigGameOutcome CalculateGameOutcome(LitigGameDefinition gameDefinition, LitigGameStandardDisputeGeneratorActions disputeGeneratorActions, LitigGamePretrialActions pretrialActions, LitigGameRunningSideBetsActions runningSideBetActions, double pInitialWealth, double dInitialWealth, bool pFiles, bool pAbandons, bool dAnswers, bool dDefaults, double? settlementValue, bool pWinsAtTrial, bool largeMarginAtTrial, double? damagesAwarded, byte bargainingRoundsComplete, double? pFinalWealthWithBestOffer, double? dFinalWealthWithBestOffer, List<double> pOffers, List<bool> pResponses, List<double> dOffers, List<bool> dResponses, LitigGameProgress gameProgress)
         {
             LitigGameOutcome outcome = new LitigGameOutcome();
 
-            double[] changeWealthOutsideLitigation = gameDefinition.Options.LitigGameDisputeGenerator.GetLitigationIndependentWealthEffects(gameDefinition, disputeGeneratorActions);
+            double[] changeWealthOutsideLitigation = gameDefinition.Options.LitigGameDisputeGenerator.GetLitigationIndependentWealthEffects(gameDefinition, disputeGeneratorActions, gameProgress);
             double pWealthAfterPrimaryConduct = pInitialWealth + changeWealthOutsideLitigation[0];
             double dWealthAfterPrimaryConduct = dInitialWealth + changeWealthOutsideLitigation[1];
 

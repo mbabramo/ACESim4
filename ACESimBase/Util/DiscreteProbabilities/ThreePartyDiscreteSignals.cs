@@ -13,8 +13,8 @@ namespace ACESimBase.Util.DiscreteProbabilities
     {
         public const int PartyCount = 3;
 
-        readonly int hiddenCount;
-        readonly int[] signalCounts; // length 3
+        public readonly int hiddenCount;
+        public readonly int[] signalCounts; // length 3
 
         readonly DiscreteValueSignalParameters[] partyParams; // length 3
 

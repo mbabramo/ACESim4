@@ -81,7 +81,7 @@ namespace ACESim
         }
 
         readonly double[] WealthEffects_NoBenefitTaken = new double[] { 0, 0 };
-        public override double[] GetLitigationIndependentWealthEffects(LitigGameDefinition myGameDefinition, LitigGameDisputeGeneratorActions disputeGeneratorActions)
+        public override double[] GetLitigationIndependentWealthEffects(LitigGameDefinition myGameDefinition, LitigGameStandardDisputeGeneratorActions disputeGeneratorActions, LitigGameProgress gameProgress)
         {
             if (disputeGeneratorActions.PrimaryAction == 2)
             {
@@ -94,14 +94,14 @@ namespace ACESim
             }
         }
 
-        public override double GetLitigationIndependentSocialWelfare(LitigGameDefinition myGameDefinition, LitigGameDisputeGeneratorActions disputeGeneratorActions)
+        public override double GetLitigationIndependentSocialWelfare(LitigGameDefinition myGameDefinition, LitigGameStandardDisputeGeneratorActions disputeGeneratorActions, LitigGameProgress gameProgress)
         {
             if (disputeGeneratorActions.PrimaryAction == 2)
                 return 0;
             return BenefitOfActionToDefendant_Level(disputeGeneratorActions.PrePrimaryChanceAction) - CostOfActionOnPlaintiff;
         }
 
-        public override (double opportunityCost, double harmCost) GetOpportunityAndHarmCosts(LitigGameDefinition gameDef, LitigGameDisputeGeneratorActions acts)
+        public override (double opportunityCost, double harmCost) GetOpportunityAndHarmCosts(LitigGameDefinition gameDef, LitigGameStandardDisputeGeneratorActions acts, LitigGameProgress gameProgress)
         {
             // If the defendant *declines* to take the benefit (primaryAction == 2),
             // the foregone benefit is treated as a precaution / opportunity cost.
@@ -117,19 +117,19 @@ namespace ACESim
         }
 
 
-        public override double[] GetLiabilityStrengthProbabilities(LitigGameDefinition myGameDefinition, LitigGameDisputeGeneratorActions disputeGeneratorActions)
+        public override double[] GetLiabilityStrengthProbabilities(LitigGameDefinition myGameDefinition, LitigGameStandardDisputeGeneratorActions disputeGeneratorActions)
         {
             return ProbabilityLiabilityStrength[disputeGeneratorActions.PrePrimaryChanceAction - 1];
         }
 
-        public override double[] GetDamagesStrengthProbabilities(LitigGameDefinition myGameDefinition, LitigGameDisputeGeneratorActions disputeGeneratorActions) => new double[] { 1.0 };
+        public override double[] GetDamagesStrengthProbabilities(LitigGameDefinition myGameDefinition, LitigGameStandardDisputeGeneratorActions disputeGeneratorActions) => new double[] { 1.0 };
 
-        public override bool IsTrulyLiable(LitigGameDefinition myGameDefinition, LitigGameDisputeGeneratorActions disputeGeneratorActions, GameProgress gameProgress)
+        public override bool IsTrulyLiable(LitigGameDefinition myGameDefinition, LitigGameStandardDisputeGeneratorActions disputeGeneratorActions, GameProgress gameProgress)
         {
-            return GetLitigationIndependentSocialWelfare(myGameDefinition, disputeGeneratorActions) < 0;
+            return GetLitigationIndependentSocialWelfare(myGameDefinition, disputeGeneratorActions, (LitigGameProgress) gameProgress) < 0;
         }
 
-        public override bool PotentialDisputeArises(LitigGameDefinition myGameDefinition, LitigGameDisputeGeneratorActions disputeGeneratorActions)
+        public override bool PotentialDisputeArises(LitigGameDefinition myGameDefinition, LitigGameStandardDisputeGeneratorActions disputeGeneratorActions, LitigGameProgress gameProgress)
         {
             return disputeGeneratorActions.PrimaryAction == 1; // defendant has taken benefit, so there is something to sue over
         }
@@ -149,7 +149,7 @@ namespace ACESim
             throw new NotImplementedException(); // even probabiltiies
         }
 
-        public override double[] GetPostPrimaryChanceProbabilities(LitigGameDefinition myGameDefinition, LitigGameDisputeGeneratorActions disputeGeneratorActions)
+        public override double[] GetPostPrimaryChanceProbabilities(LitigGameDefinition myGameDefinition, LitigGameStandardDisputeGeneratorActions disputeGeneratorActions)
         {
             throw new NotImplementedException(); // no post primary chance function
         }

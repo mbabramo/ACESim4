@@ -37,7 +37,7 @@ namespace ACESim
 
         double[] GetPostPrimaryChanceProbabilities(
             LitigGameDefinition gameDefinition,
-            LitigGameDisputeGeneratorActions disputeGeneratorActions);
+            LitigGameStandardDisputeGeneratorActions disputeGeneratorActions);
 
         bool PostPrimaryDoesNotAffectStrategy();
 

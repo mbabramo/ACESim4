@@ -111,6 +111,7 @@ namespace ACESim
         private static string DefendantName = "D";
         private static string PrePrimaryChanceName = "PPC";
         private static string PostPrimaryChanceName = "POPC";
+        private static string AccidentChanceName = "ACC";
         private static string LiabilityStrengthChanceName = "LC";
         private static string PLiabilityNoiseChanceName = "PLC";
         private static string DLiabilityNoiseChanceName = "DLC";
@@ -123,15 +124,18 @@ namespace ACESim
         private static string CourtLiabilityChanceName = "CL";
         private static string CourtDamagesChanceName = "CL";
         private static string ResolutionPlayerName = "R";
+        
 
         private static List<PlayerInfo> GetPlayersList()
         {
-            // IMPORTANT: Chance players MUST be listed after other players. Resolution player should be listed afte4r main players.
+            // IMPORTANT: Chance players MUST be listed after other players. Resolution player should be listed after main players.
             return new List<PlayerInfo>
                 {
                     new PlayerInfo(PlaintiffName, (int) LitigGamePlayers.Plaintiff, false, true),
                     new PlayerInfo(DefendantName, (int) LitigGamePlayers.Defendant, false, true),
+
                     new PlayerInfo(ResolutionPlayerName, (int) LitigGamePlayers.Resolution, true, false),
+
                     new PlayerInfo(PrePrimaryChanceName, (int) LitigGamePlayers.PrePrimaryChance, true, false),
                     new PlayerInfo(PostPrimaryChanceName, (int) LitigGamePlayers.PrePrimaryChance, true, false),
                     new PlayerInfo(LiabilityStrengthChanceName, (int) LitigGamePlayers.LiabilityStrengthChance, true, false),
@@ -140,11 +144,13 @@ namespace ACESim
                     new PlayerInfo(DamagesStrengthChanceName, (int) LitigGamePlayers.DamagesStrengthChance, true, false),
                     new PlayerInfo(PDamagesNoiseChanceName, (int) LitigGamePlayers.PDamagesSignalChance, true, false),
                     new PlayerInfo(DDamagesNoiseChanceName, (int) LitigGamePlayers.DDamagesSignalChance, true, false),
+                    new PlayerInfo(AccidentChanceName, (int) LitigGamePlayers.AccidentChance, true, false),
                     new PlayerInfo(BothGiveUpChanceName, (int) LitigGamePlayers.BothGiveUpChance, true, false),
                     new PlayerInfo(PreBargainingRoundChanceName, (int) LitigGamePlayers.PreBargainingRoundChance, true, false),
                     new PlayerInfo(PostBargainingRoundChanceName, (int) LitigGamePlayers.PostBargainingRoundChance, true, false),
                     new PlayerInfo(CourtLiabilityChanceName, (int) LitigGamePlayers.CourtLiabilityChance, true, false),
                     new PlayerInfo(CourtDamagesChanceName, (int) LitigGamePlayers.CourtDamagesChance, true, false),
+
                 };
         }
 

@@ -134,7 +134,7 @@ namespace ACESimTest
         public void AccidentProbabilityGivenSignalsMatchesBayesMix()
         {
             var signalModel = new PrecautionSignalModel(
-                hiddenCount: 2,
+                numPrecautionPowerLevels: 2,
                 numPlaintiffSignals: 2,
                 numDefendantSignals: 2,
                 numCourtSignals: 2,
@@ -170,7 +170,7 @@ namespace ACESimTest
         public void WrongfulAttributionProbabilityMatchesBayesMix()
         {
             var signalModel = new PrecautionSignalModel(
-                hiddenCount: 2,
+                numPrecautionPowerLevels: 2,
                 numPlaintiffSignals: 2,
                 numDefendantSignals: 2,
                 numCourtSignals: 2,

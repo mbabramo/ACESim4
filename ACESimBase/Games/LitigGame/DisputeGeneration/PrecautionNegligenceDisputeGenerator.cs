@@ -2,6 +2,7 @@
 using ACESimBase.GameSolvingSupport.Symmetry;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace ACESim // Assuming the ACESim base namespace; adjust if needed
 {
@@ -15,6 +16,8 @@ namespace ACESim // Assuming the ACESim base namespace; adjust if needed
         public LitigGameDefinition LitigGameDefinition { get; set; }
 
         public LitigGameOptions Options => LitigGameDefinition.Options;
+
+        public string OptionsString => throw new NotImplementedException();
 
         public double HarmCost = 1.0; // normalized harm in the event of an accident
         public byte PrecautionPowerLevels = 10; // can be high if we're collapsing chance decisions, since this is the decision that gets collapsed
@@ -33,8 +36,9 @@ namespace ACESim // Assuming the ACESim base namespace; adjust if needed
         private PrecautionCourtDecisionModel _courtDecisionModel;
 
         // Precomputed lookup tables
-        private readonly double[] _accidentProbabilities;  // Probability of accident for each precaution level
-        private readonly bool[] _breachByPrecaution;       // Whether each precaution level is below the legal standard (true = breach of duty)
+        private double[] _precautionPowerProbabilities; // Probability of each precaution level
+        private double[] _accidentProbabilities;  // Probability of accident for each precaution level
+        private bool[] _breachByPrecaution;       // Whether each precaution level is below the legal standard (true = breach of duty)
 
         /// <summary>
         /// Initializes a new PrecautionNegligenceDisputeGenerator with the given models and settings.
@@ -54,6 +58,7 @@ namespace ACESim // Assuming the ACESim base namespace; adjust if needed
             _impactModel = new PrecautionImpactModel(PrecautionPowerLevels, PrecautionLevels, ProbabilityAccidentNoActivity, ProbabilityAccidentNoPrecaution, MarginalPrecautionCost, HarmCost, null, PrecautionPowerFactor, PrecautionPowerFactor, LiabilityThreshold, ProbabilityAccidentWrongfulAttribution, null);
             _signalModel = new PrecautionSignalModel(PrecautionPowerLevels, options.NumLiabilitySignals, options.NumLiabilitySignals, options.NumCourtLiabilitySignals, options.PLiabilityNoiseStdev, options.DLiabilityNoiseStdev, options.CourtLiabilityNoiseStdev, includeExtremes: false);
             _courtDecisionModel = new PrecautionCourtDecisionModel(_impactModel, _signalModel);
+            _precautionPowerProbabilities = Enumerable.Range(1, PrecautionPowerLevels).Select(x => 1.0 / PrecautionPowerLevels).ToArray();
         }
 
         public List<Decision> GenerateDisputeDecisions(LitigGameDefinition g)
@@ -81,17 +86,17 @@ namespace ACESim // Assuming the ACESim base namespace; adjust if needed
 
             list.Add(new("Defendant Signal", "DLS", true,
                 (byte)LitigGamePlayers.DLiabilitySignalChance,
-                new byte[] { (byte) LitigGamePlayers.Defendant, (byte)LitigGamePlayers.AccidentChance, (byte)LitigGamePlayers.CourtLiabilityChance, (byte)LitigGamePlayers.Resolution },
+                new byte[] { (byte)LitigGamePlayers.Defendant, (byte)LitigGamePlayers.AccidentChance, (byte)LitigGamePlayers.CourtLiabilityChance, (byte)LitigGamePlayers.Resolution },
                 Options.NumLiabilitySignals,
                 (byte)LitigGameDecisions.DLiabilitySignal,
                 unevenChanceActions: Options.CollapseChanceDecisions) // DEBUG 
-                {
-                    IsReversible = true,
-                    DistributedChanceDecision = false,
-                    Unroll_Parallelize = true,
-                    Unroll_Parallelize_Identical = false,
-                    SymmetryMap = (SymmetryMapInput.NotCompatibleWithSymmetry, SymmetryMapOutput.CantBeSymmetric)
-                });
+            {
+                IsReversible = true,
+                DistributedChanceDecision = false,
+                Unroll_Parallelize = true,
+                Unroll_Parallelize_Identical = false,
+                SymmetryMap = (SymmetryMapInput.NotCompatibleWithSymmetry, SymmetryMapOutput.CantBeSymmetric)
+            });
 
             list.Add(new("Engage in Activity", "ENG", false,
                 (byte)LitigGamePlayers.Defendant,
@@ -153,8 +158,12 @@ namespace ACESim // Assuming the ACESim base namespace; adjust if needed
 
             return list;
         }
-        public bool PotentialDisputeArises(LitigGameDefinition gameDef, LitigGameDisputeGeneratorActions acts) =>
-            acts.EngageInActivityAction == 1;  // dispute arises if Breach
+
+        public bool PotentialDisputeArises(LitigGameDefinition gameDef, LitigGameStandardDisputeGeneratorActions acts, LitigGameProgress gameProgress)
+        {
+            PrecautionNegligenceProgress precautionProgress = (PrecautionNegligenceProgress)gameProgress;
+            return precautionProgress.EngagesInActivity && (precautionProgress.AccidentOccurs || ProbabilityAccidentWrongfulAttribution > 0);
+        }
 
         public bool MarkCompleteAfterEngageInActivity(LitigGameDefinition g, byte engagesInActivityCode) => engagesInActivityCode == 2;
         public bool MarkCompleteAfterAccidentDecision(LitigGameDefinition g, byte accidentCode) => accidentCode == 2 && ProbabilityAccidentWrongfulAttribution == 0;
@@ -166,16 +175,18 @@ namespace ACESim // Assuming the ACESim base namespace; adjust if needed
             switch (currentDecisionByteCode)
             {
                 case (byte)LitigGameDecisions.EngageInActivity:
-                    gameProgress.DisputeGeneratorActions.EngageInActivityAction = action;
-                    if (action == 2)
+                    bool engagesInActivity = action == 1;
+                    precautionProgress.EngagesInActivity = engagesInActivity;
+                    if (!engagesInActivity)
                         gameProgress.GameComplete = true;
                     break;
                 case (byte)LitigGameDecisions.TakePrecaution:
-                    gameProgress.DisputeGeneratorActions.PrecautionLevelAction = action;
+                    precautionProgress.RelativePrecautionLevel = action;
                     break;
-                case (byte)LitigGameDecisions.PostPrimaryActionChance:
-                    gameProgress.DisputeGeneratorActions.AccidentChanceAction = action;
-                    if (action == 2 && ProbabilityAccidentWrongfulAttribution == 0)
+                case (byte)LitigGameDecisions.Accident:
+                    bool accidentOccurs = action == 1;
+                    precautionProgress.AccidentOccurs = accidentOccurs;
+                    if (!accidentOccurs && ProbabilityAccidentWrongfulAttribution == 0)
                         gameProgress.GameComplete = true;
                     break;
                 default:
@@ -184,22 +195,102 @@ namespace ACESim // Assuming the ACESim base namespace; adjust if needed
             return true;
         }
 
-    }
-
-    /// <summary>
-    /// Extended litigation progress state for the precaution negligence scenario.
-    /// Includes fields for key events and outcomes in the case.
-    /// </summary>
-    public class PrecautionNegligenceProgress : LitigGameProgress
-    {
-        public PrecautionNegligenceProgress(bool fullHistoryRequired) : base(fullHistoryRequired)
+        public bool IsTrulyLiable(
+            LitigGameDefinition gameDefinition,
+            LitigGameStandardDisputeGeneratorActions disputeGeneratorActions,
+            GameProgress gameProgress)
         {
-
+            PrecautionNegligenceProgress precautionProgress = (PrecautionNegligenceProgress)gameProgress;
+            bool isTrulyLiable = _impactModel.IsTrulyLiable(precautionProgress.LiabilityStrengthDiscrete, precautionProgress.RelativePrecautionLevel);
+            return isTrulyLiable;
         }
 
-        // Decision outcomes
-        public bool EngagesInActivity { get; set; }              // whether the plaintiff engaged (filed the lawsuit)
-        public int PrecautionLevel { get; set; }       // defendant's chosen precaution level
-        public bool AccidentOccurred { get; set; }     // whether an accident occurred
+        public double[] GetLiabilityStrengthProbabilities(
+            LitigGameDefinition gameDefinition,
+            LitigGameStandardDisputeGeneratorActions disputeGeneratorActions) => _precautionPowerProbabilities;
+
+        public double[] GetDamagesStrengthProbabilities(
+            LitigGameDefinition gameDefinition,
+            LitigGameStandardDisputeGeneratorActions disputeGeneratorActions) => [1.0];
+
+        public double GetLitigationIndependentSocialWelfare(LitigGameDefinition gameDefinition, LitigGameStandardDisputeGeneratorActions disputeGeneratorActions, LitigGameProgress gameProgress)
+        {
+            throw new NotImplementedException();
+        }
+
+        public double[] GetLitigationIndependentWealthEffects(LitigGameDefinition gameDefinition, LitigGameStandardDisputeGeneratorActions disputeGeneratorActions, LitigGameProgress gameProgress)
+        {
+            throw new NotImplementedException();
+        }
+
+        public (double opportunityCost, double harmCost) GetOpportunityAndHarmCosts(LitigGameDefinition gameDefinition, LitigGameStandardDisputeGeneratorActions disputeGeneratorActions, LitigGameProgress gameProgress)
+        {
+            throw new NotImplementedException();
+        }
+
+        public bool SupportsSymmetry()
+        {
+            throw new NotImplementedException();
+        }
+
+        public string GetGeneratorName()
+        {
+            throw new NotImplementedException();
+        }
+
+        public string GetActionString(byte action, byte decisionByteCode)
+        {
+            throw new NotImplementedException();
+        }
+
+        public double[] InvertedCalculations_GetPLiabilitySignalProbabilities(byte? dLiabilitySignal)
+        {
+            throw new NotImplementedException();
+        }
+
+        public double[] InvertedCalculations_GetDLiabilitySignalProbabilities(byte? pLiabilitySignal)
+        {
+            throw new NotImplementedException();
+        }
+
+        public double[] InvertedCalculations_GetCLiabilitySignalProbabilities(byte pLiabilitySignal, byte dLiabilitySignal)
+        {
+            throw new NotImplementedException();
+        }
+
+        public double[] InvertedCalculations_GetPDamagesSignalProbabilities(byte? dDamagesSignal)
+        {
+            throw new NotImplementedException();
+        }
+
+        public double[] InvertedCalculations_GetDDamagesSignalProbabilities(byte? pDamagesSignal)
+        {
+            throw new NotImplementedException();
+        }
+
+        public double[] InvertedCalculations_GetCDamagesSignalProbabilities(byte pDamagesSignal, byte dDamagesSignal)
+        {
+            throw new NotImplementedException();
+        }
+
+        public double[] InvertedCalculations_GetLiabilityStrengthProbabilities(byte pLiabilitySignal, byte dLiabilitySignal, byte? cLiabilitySignal)
+        {
+            throw new NotImplementedException();
+        }
+
+        public double[] InvertedCalculations_GetDamagesStrengthProbabilities(byte pDamagesSignal, byte dDamagesSignal, byte? cDamagesSignal)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void InvertedCalculations_WorkBackwardsFromSignals(LitigGameProgress gameProgress, byte pLiabilitySignal, byte dLiabilitySignal, byte? cLiabilitySignal, byte pDamagesSignal, byte dDamagesSignal, byte? cDamagesSignal, int randomSeed)
+        {
+            throw new NotImplementedException();
+        }
+
+        public List<(GameProgress progress, double weight)> InvertedCalculations_GenerateAllConsistentGameProgresses(byte pLiabilitySignal, byte dLiabilitySignal, byte? cLiabilitySignal, byte pDamagesSignal, byte dDamagesSignal, byte? cDamagesSignal, LitigGameProgress baseProgress)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

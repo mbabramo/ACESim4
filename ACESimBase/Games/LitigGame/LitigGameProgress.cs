@@ -41,7 +41,7 @@ namespace ACESim
         public double DamagesAwarded;
         public bool DWinsAtTrial => TrialOccurs && !PWinsAtTrial;
 
-        public LitigGameDisputeGeneratorActions DisputeGeneratorActions;
+        public LitigGameStandardDisputeGeneratorActions DisputeGeneratorActions;
         public LitigGamePretrialActions PretrialActions;
         public LitigGameRunningSideBetsActions RunningSideBetsActions;
 
@@ -160,13 +160,13 @@ namespace ACESim
             {
                 if (playersMovingSimultaneously || !pGoesFirstIfNotSimultaneous)
                 { // defendant has made an offer this round
-                    var pMissedOpportunity = LitigGame.CalculateGameOutcome(gameDefinition, DisputeGeneratorActions, PretrialActions, RunningSideBetsActions, gameDefinition.Options.PInitialWealth, gameDefinition.Options.DInitialWealth, PFiles, PAbandons, DAnswers, DDefaults, (double) DLastOffer * (double)gameDefinition.Options.DamagesMax * gameDefinition.Options.DamagesMultiplier, true /* ignored */, false /* ignored */, 0, (byte) (BargainingRoundsComplete + 1), null, null, POffers, PResponses, DOffers, DResponses);
+                    var pMissedOpportunity = LitigGame.CalculateGameOutcome(gameDefinition, DisputeGeneratorActions, PretrialActions, RunningSideBetsActions, gameDefinition.Options.PInitialWealth, gameDefinition.Options.DInitialWealth, PFiles, PAbandons, DAnswers, DDefaults, (double) DLastOffer * (double)gameDefinition.Options.DamagesMax * gameDefinition.Options.DamagesMultiplier, true /* ignored */, false /* ignored */, 0, (byte) (BargainingRoundsComplete + 1), null, null, POffers, PResponses, DOffers, DResponses, this);
                     if (pMissedOpportunity.PFinalWealth > PFinalWealthWithBestOffer || PFinalWealthWithBestOffer == null)
                         PFinalWealthWithBestOffer = pMissedOpportunity.PFinalWealth;
                 }
                 if (playersMovingSimultaneously || pGoesFirstIfNotSimultaneous)
                 { // plaintiff has made an offer this round
-                    var dMissedOpportunity = LitigGame.CalculateGameOutcome(gameDefinition, DisputeGeneratorActions, PretrialActions, RunningSideBetsActions, gameDefinition.Options.PInitialWealth, gameDefinition.Options.DInitialWealth, PFiles, PAbandons, DAnswers, DDefaults, (double)PLastOffer * (double)gameDefinition.Options.DamagesMax * gameDefinition.Options.DamagesMultiplier, true /* ignored */, false /* ignored */, 0, (byte)(BargainingRoundsComplete + 1), null, null, POffers, PResponses, DOffers, DResponses);
+                    var dMissedOpportunity = LitigGame.CalculateGameOutcome(gameDefinition, DisputeGeneratorActions, PretrialActions, RunningSideBetsActions, gameDefinition.Options.PInitialWealth, gameDefinition.Options.DInitialWealth, PFiles, PAbandons, DAnswers, DDefaults, (double)PLastOffer * (double)gameDefinition.Options.DamagesMax * gameDefinition.Options.DamagesMultiplier, true /* ignored */, false /* ignored */, 0, (byte)(BargainingRoundsComplete + 1), null, null, POffers, PResponses, DOffers, DResponses, this);
                     if (dMissedOpportunity.DFinalWealth > DFinalWealthWithBestOffer || DFinalWealthWithBestOffer == null)
                         DFinalWealthWithBestOffer = dMissedOpportunity.DFinalWealth;
                 }
@@ -275,7 +275,19 @@ namespace ACESim
             LitigGameProgress copy = new LitigGameProgress(FullHistoryRequired);
 
             // copy.GameComplete = this.GameComplete;
+            CopyFieldInfo(copy);
+
+            // We don't need to copy the PostGameInfo, because that's automatically created
+
+            return copy;
+        }
+
+        internal override void CopyFieldInfo(GameProgress theCopy)
+        {
+            var copy = (LitigGameProgress)theCopy;
+
             base.CopyFieldInfo(copy);
+
             copy.DisputeArises = DisputeArises;
 
             copy.PFiles = PFiles;
@@ -335,15 +347,6 @@ namespace ACESim
                 copy.DOfferMixedness = DOfferMixedness.ToList();
 
             copy.AlternativeEndings = AlternativeEndings?.Select(x => (x.completedGame.DeepCopy(), x.weight))?.ToList();
-
-            // We don't need to copy the PostGameInfo, because that's automatically created
-
-            return copy;
-        }
-
-        internal override void CopyFieldInfo(GameProgress copy)
-        {
-            base.CopyFieldInfo(copy);
         }
 
         public override double[] GetNonChancePlayerUtilities()
@@ -497,8 +500,8 @@ namespace ACESim
 
             if (AlternativeEndings == null)
             {
-                LitigGame.LitigGameOutcome outcome = LitigGame.CalculateGameOutcome(gameDefinition, DisputeGeneratorActions, PretrialActions, RunningSideBetsActions, gameDefinition.Options.PInitialWealth, gameDefinition.Options.DInitialWealth, PFiles, PAbandons, DAnswers, DDefaults, SettlementValue, PWinsAtTrial, WinIsByLargeMargin, DamagesAwarded, BargainingRoundsComplete, PFinalWealthWithBestOffer, DFinalWealthWithBestOffer, POffers, PResponses, DOffers, DResponses);
-                DisputeArises = options.LitigGameDisputeGenerator.PotentialDisputeArises(gameDefinition, DisputeGeneratorActions);
+                LitigGame.LitigGameOutcome outcome = LitigGame.CalculateGameOutcome(gameDefinition, DisputeGeneratorActions, PretrialActions, RunningSideBetsActions, gameDefinition.Options.PInitialWealth, gameDefinition.Options.DInitialWealth, PFiles, PAbandons, DAnswers, DDefaults, SettlementValue, PWinsAtTrial, WinIsByLargeMargin, DamagesAwarded, BargainingRoundsComplete, PFinalWealthWithBestOffer, DFinalWealthWithBestOffer, POffers, PResponses, DOffers, DResponses, this);
+                DisputeArises = options.LitigGameDisputeGenerator.PotentialDisputeArises(gameDefinition, DisputeGeneratorActions, this);
                 PChangeWealth = outcome.PChangeWealth;
                 DChangeWealth = outcome.DChangeWealth;
                 PFinalWealth = outcome.PFinalWealth;
@@ -536,7 +539,7 @@ namespace ACESim
             LitigGameOptions o = LitigGameDefinition.Options;
             if (!o.CollapseChanceDecisions)
             {
-                if (!o.LitigGameDisputeGenerator.PotentialDisputeArises(LitigGameDefinition, DisputeGeneratorActions))
+                if (!o.LitigGameDisputeGenerator.PotentialDisputeArises(LitigGameDefinition, DisputeGeneratorActions, this))
                     IsTrulyLiable = false;
                 else
                     IsTrulyLiable = o.LitigGameDisputeGenerator.IsTrulyLiable(LitigGameDefinition, DisputeGeneratorActions, this);
@@ -584,8 +587,8 @@ namespace ACESim
                 FalseNegativeShortfall = 0;
                 FalsePositiveExpenditures = falsePositiveExpendituresIfNotTrulyLiable;
             }
-            PreDisputeSharedWelfare = o.LitigGameDisputeGenerator.GetLitigationIndependentSocialWelfare(LitigGameDefinition, DisputeGeneratorActions);
-            (OpportunityCost, HarmCost) = o.LitigGameDisputeGenerator.GetOpportunityAndHarmCosts(LitigGameDefinition, DisputeGeneratorActions);
+            PreDisputeSharedWelfare = o.LitigGameDisputeGenerator.GetLitigationIndependentSocialWelfare(LitigGameDefinition, DisputeGeneratorActions, this);
+            (OpportunityCost, HarmCost) = o.LitigGameDisputeGenerator.GetOpportunityAndHarmCosts(LitigGameDefinition, DisputeGeneratorActions, this);
         }
 
         public override void RecalculateGameOutcome()

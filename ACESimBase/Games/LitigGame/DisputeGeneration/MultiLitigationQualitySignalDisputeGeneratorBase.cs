@@ -138,15 +138,14 @@ namespace ACESim
 
         /* ─────────────────────—— generic abstract stubs ───────────────────── */
 
-        public abstract bool PotentialDisputeArises(LitigGameDefinition g, LitigGameDisputeGeneratorActions a);
-        public abstract bool MarkComplete(LitigGameDefinition g, GameProgress prog, Decision decisionJustTaken, byte actionChosen);
+        public abstract bool PotentialDisputeArises(LitigGameDefinition g, LitigGameStandardDisputeGeneratorActions a, LitigGameProgress gameProgress);
         public abstract bool HandleUpdatingGameProgress(LitigGameProgress gameProgress, byte currentDecisionByteCode, byte action);
-        public abstract bool IsTrulyLiable(LitigGameDefinition g, LitigGameDisputeGeneratorActions a, GameProgress p);
-        public abstract double[] GetLiabilityStrengthProbabilities(LitigGameDefinition g, LitigGameDisputeGeneratorActions a);
-        public abstract double[] GetDamagesStrengthProbabilities(LitigGameDefinition g, LitigGameDisputeGeneratorActions a);
-        public abstract double GetLitigationIndependentSocialWelfare(LitigGameDefinition g, LitigGameDisputeGeneratorActions a);
-        public abstract double[] GetLitigationIndependentWealthEffects(LitigGameDefinition g, LitigGameDisputeGeneratorActions a);
-        public virtual (double opportunityCost, double harmCost) GetOpportunityAndHarmCosts(LitigGameDefinition g, LitigGameDisputeGeneratorActions a) => (0.0, 0.0);
+        public abstract bool IsTrulyLiable(LitigGameDefinition g, LitigGameStandardDisputeGeneratorActions a, GameProgress p);
+        public abstract double[] GetLiabilityStrengthProbabilities(LitigGameDefinition g, LitigGameStandardDisputeGeneratorActions a);
+        public abstract double[] GetDamagesStrengthProbabilities(LitigGameDefinition g, LitigGameStandardDisputeGeneratorActions a);
+        public abstract double GetLitigationIndependentSocialWelfare(LitigGameDefinition g, LitigGameStandardDisputeGeneratorActions a, LitigGameProgress gameProgress);
+        public abstract double[] GetLitigationIndependentWealthEffects(LitigGameDefinition g, LitigGameStandardDisputeGeneratorActions a, LitigGameProgress gameProgress);
+        public virtual (double opportunityCost, double harmCost) GetOpportunityAndHarmCosts(LitigGameDefinition g, LitigGameStandardDisputeGeneratorActions a, LitigGameProgress gameProgress) => (0.0, 0.0);
         public abstract string GetGeneratorName();
         public virtual string OptionsString => string.Empty;
         public abstract string GetActionString(byte action, byte decisionByteCode);

@@ -13,40 +13,44 @@ namespace ACESim
 
         bool PotentialDisputeArises(
             LitigGameDefinition gameDefinition,
-            LitigGameDisputeGeneratorActions disputeGeneratorActions);
+            LitigGameStandardDisputeGeneratorActions disputeGeneratorActions,
+            LitigGameProgress gameProgress);
 
-        bool MarkComplete(
-            LitigGameDefinition gameDefinition,
-            GameProgress gameProgress,
-            Decision decisionJustTaken,
-            byte actionChosen);
+        //bool MarkComplete(
+        //    LitigGameDefinition gameDefinition,
+        //    GameProgress gameProgress,
+        //    Decision decisionJustTaken,
+        //    byte actionChosen); // DEBUG
 
         bool HandleUpdatingGameProgress(LitigGameProgress gameProgress, byte currentDecisionByteCode, byte action);
 
         bool IsTrulyLiable(
             LitigGameDefinition gameDefinition,
-            LitigGameDisputeGeneratorActions disputeGeneratorActions,
+            LitigGameStandardDisputeGeneratorActions disputeGeneratorActions,
             GameProgress gameProgress);
 
         double[] GetLiabilityStrengthProbabilities(
             LitigGameDefinition gameDefinition,
-            LitigGameDisputeGeneratorActions disputeGeneratorActions);
+            LitigGameStandardDisputeGeneratorActions disputeGeneratorActions);
 
         double[] GetDamagesStrengthProbabilities(
             LitigGameDefinition gameDefinition,
-            LitigGameDisputeGeneratorActions disputeGeneratorActions);
+            LitigGameStandardDisputeGeneratorActions disputeGeneratorActions);
 
         double GetLitigationIndependentSocialWelfare(
             LitigGameDefinition gameDefinition,
-            LitigGameDisputeGeneratorActions disputeGeneratorActions);
+            LitigGameStandardDisputeGeneratorActions disputeGeneratorActions,
+            LitigGameProgress gameProgress);
 
         double[] GetLitigationIndependentWealthEffects(
             LitigGameDefinition gameDefinition,
-            LitigGameDisputeGeneratorActions disputeGeneratorActions);
+            LitigGameStandardDisputeGeneratorActions disputeGeneratorActions, 
+            LitigGameProgress gameProgress);
 
         (double opportunityCost, double harmCost) GetOpportunityAndHarmCosts(
             LitigGameDefinition gameDefinition,
-            LitigGameDisputeGeneratorActions disputeGeneratorActions);
+            LitigGameStandardDisputeGeneratorActions disputeGeneratorActions, 
+            LitigGameProgress gameProgress);
 
         bool SupportsSymmetry();
 

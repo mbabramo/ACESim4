@@ -16,12 +16,12 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
 
         readonly ThreePartyDiscreteSignals model;
         public int HiddenStatesCount =>
-    model.GetHiddenDistributionGivenSignal(PlaintiffIndex, 0).Length;
+            model.hiddenCount;
 
         /// <summary>
         /// Constructs a new signal model.
         /// </summary>
-        /// <param name="hiddenCount">Number of discrete precaution‑power values.</param>
+        /// <param name="numPrecautionPowerLevels">Number of discrete precaution‑power values.</param>
         /// <param name="numPlaintiffSignals">Signal levels for plaintiff.</param>
         /// <param name="numDefendantSignals">Signal levels for defendant.</param>
         /// <param name="numCourtSignals">Signal levels for court.</param>
@@ -30,7 +30,7 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
         /// <param name="sigmaCourt">Noise stdev for court.</param>
         /// <param name="includeExtremes">Map hidden extremes to [0,1] extremes when true.</param>
         public PrecautionSignalModel(
-            int hiddenCount,
+            int numPrecautionPowerLevels,
             int numPlaintiffSignals,
             int numDefendantSignals,
             int numCourtSignals,
@@ -41,7 +41,7 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
         {
             int[] signalCounts = { numPlaintiffSignals, numDefendantSignals, numCourtSignals };
             double[] sigmas = { sigmaPlaintiff, sigmaDefendant, sigmaCourt };
-            model = new ThreePartyDiscreteSignals(hiddenCount, signalCounts, sigmas, includeExtremes);
+            model = new ThreePartyDiscreteSignals(numPrecautionPowerLevels, signalCounts, sigmas, includeExtremes);
         }
 
         /// <summary>

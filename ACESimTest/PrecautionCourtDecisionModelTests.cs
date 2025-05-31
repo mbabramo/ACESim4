@@ -33,11 +33,11 @@ namespace ACESimTest
 
             // deterministic signals (σ ≈ 0)
             var detSignals = new PrecautionSignalModel(2, 2, 2, 2, 1e-4, 1e-4, 1e-4);
-            courtDeterministic = new PrecautionCourtDecisionModel(impact, detSignals, 1.0, 1.0);
+            courtDeterministic = new PrecautionCourtDecisionModel(impact, detSignals);
 
             // noisy signals (σ = 0.2)
             var noisySignals = new PrecautionSignalModel(2, 2, 2, 2, 0.2, 0.2, 0.2);
-            courtNoisy = new PrecautionCourtDecisionModel(impact, noisySignals, 1.0, 1.0);
+            courtNoisy = new PrecautionCourtDecisionModel(impact, noisySignals);
         }
 
         // ------------------------------------------------------------------
@@ -99,7 +99,7 @@ namespace ACESimTest
         public void ThresholdMattersForLiability()
         {
             var sig = new PrecautionSignalModel(2, 2, 2, 2, 1e-4, 1e-4, 1e-4);
-            var stricter = new PrecautionCourtDecisionModel(impact, sig, 1.0, 3.0); // threshold = 3.0
+            var stricter = new PrecautionCourtDecisionModel(impact, sig); // threshold = 3.0
 
             stricter.IsLiable(0, 0).Should().BeFalse(); // ratio 1.25 < threshold 3.0
         }

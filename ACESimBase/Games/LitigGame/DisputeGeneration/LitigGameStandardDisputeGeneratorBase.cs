@@ -274,7 +274,8 @@ namespace ACESim
             => ("PostPrimary", "Post");
 
         // ---------- model-specific calculations remain abstract ----------
-        public abstract bool PotentialDisputeArises(LitigGameDefinition g, LitigGameDisputeGeneratorActions a);
+        public abstract bool PotentialDisputeArises(LitigGameDefinition g, LitigGameStandardDisputeGeneratorActions a, LitigGameProgress p);
+
         //public virtual bool MarkComplete(
         //    LitigGameDefinition g,
         //    GameProgress prog,
@@ -304,14 +305,15 @@ namespace ACESim
             }
             return true;
         }
-        public abstract bool IsTrulyLiable(LitigGameDefinition g, LitigGameDisputeGeneratorActions a, GameProgress p);
-        public abstract double[] GetLiabilityStrengthProbabilities(LitigGameDefinition g, LitigGameDisputeGeneratorActions a);
-        public abstract double[] GetDamagesStrengthProbabilities(LitigGameDefinition g, LitigGameDisputeGeneratorActions a);
-        public abstract double GetLitigationIndependentSocialWelfare(LitigGameDefinition g, LitigGameDisputeGeneratorActions a);
-        public abstract double[] GetLitigationIndependentWealthEffects(LitigGameDefinition g, LitigGameDisputeGeneratorActions a);
+        public abstract bool IsTrulyLiable(LitigGameDefinition g, LitigGameStandardDisputeGeneratorActions a, GameProgress p);
+        public abstract double[] GetLiabilityStrengthProbabilities(LitigGameDefinition g, LitigGameStandardDisputeGeneratorActions a);
+        public abstract double[] GetDamagesStrengthProbabilities(LitigGameDefinition g, LitigGameStandardDisputeGeneratorActions a);
+        public abstract double GetLitigationIndependentSocialWelfare(LitigGameDefinition g, LitigGameStandardDisputeGeneratorActions a, LitigGameProgress p);
+        public abstract double[] GetLitigationIndependentWealthEffects(LitigGameDefinition g, LitigGameStandardDisputeGeneratorActions a, LitigGameProgress p);
         public virtual (double opportunityCost, double harmCost) GetOpportunityAndHarmCosts(
             LitigGameDefinition g,
-            LitigGameDisputeGeneratorActions acts)
+            LitigGameStandardDisputeGeneratorActions acts, 
+            LitigGameProgress gameProgress)
         => (0.0, 0.0);
 
         public abstract string GetGeneratorName();
@@ -355,7 +357,7 @@ namespace ACESim
 
 
         public abstract double[] GetPrePrimaryChanceProbabilities(LitigGameDefinition g);
-        public abstract double[] GetPostPrimaryChanceProbabilities(LitigGameDefinition g, LitigGameDisputeGeneratorActions a);
+        public abstract double[] GetPostPrimaryChanceProbabilities(LitigGameDefinition g, LitigGameStandardDisputeGeneratorActions a);
         public abstract bool PostPrimaryDoesNotAffectStrategy();
 
         #endregion
