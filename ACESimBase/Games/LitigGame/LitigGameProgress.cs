@@ -98,6 +98,7 @@ namespace ACESim
                 return _PostGameInfo;
             }
         }
+        public void ResetPostGameInfo() => _PostGameInfo = null;
 
         public double? LiabilityStrengthUniform { get => PostGameInfo.LiabilityStrengthUniform; set { PostGameInfo.LiabilityStrengthUniform = value; } }
         public double PLiabilitySignalUniform { get => PostGameInfo.PLiabilitySignalUniform; set { PostGameInfo.PLiabilitySignalUniform = value; } }

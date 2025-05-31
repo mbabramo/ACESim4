@@ -222,18 +222,25 @@ namespace ACESim // Assuming the ACESim base namespace; adjust if needed
 
         public double GetLitigationIndependentSocialWelfare(LitigGameDefinition gameDefinition, LitigGameStandardDisputeGeneratorActions disputeGeneratorActions, LitigGameProgress gameProgress)
         {
-            PrecautionNegligenceProgress precautionProgress = (PrecautionNegligenceProgress)gameProgress;
-            throw new NotImplementedException();
+            var costs = GetOpportunityAndHarmCosts(gameDefinition, disputeGeneratorActions, gameProgress);
+            return 0 - costs.harmCost - costs.opportunityCost;
         }
 
         public double[] GetLitigationIndependentWealthEffects(LitigGameDefinition gameDefinition, LitigGameStandardDisputeGeneratorActions disputeGeneratorActions, LitigGameProgress gameProgress)
         {
-            throw new NotImplementedException();
+            var costs = GetOpportunityAndHarmCosts(gameDefinition, disputeGeneratorActions, gameProgress);
+            return [0 - costs.opportunityCost, 0 - costs.harmCost];
         }
 
         public (double opportunityCost, double harmCost) GetOpportunityAndHarmCosts(LitigGameDefinition gameDefinition, LitigGameStandardDisputeGeneratorActions disputeGeneratorActions, LitigGameProgress gameProgress)
         {
-            throw new NotImplementedException();
+            PrecautionNegligenceProgress precautionProgress = (PrecautionNegligenceProgress)gameProgress;
+
+            // recalculate this from scratch here, in case there have been changes based on post-game info beng reset
+            var precautionTaken = precautionProgress.RelativePrecautionLevel * MarginalPrecautionCost;
+            var harmCost = precautionProgress.AccidentProperlyCausallyAttributedToDefendant ? CostOfAccident : 0; // an accident that is not causally attributable to the defendant is not counted as a cost here, since it's exogenous to the model.
+
+            return (precautionTaken, harmCost);
         }
 
         public bool SupportsSymmetry() => false;
@@ -291,6 +298,8 @@ namespace ACESim // Assuming the ACESim base namespace; adjust if needed
 
         public List<(GameProgress progress, double weight)> InvertedCalculations_GenerateAllConsistentGameProgresses(byte pLiabilitySignal, byte dLiabilitySignal, byte? cLiabilitySignal, byte pDamagesSignal, byte dDamagesSignal, byte? cDamagesSignal, LitigGameProgress baseProgress)
         {
+            baseProgress.ResetPostGameInfo(); // reset this because we're going to figure out wrongful attribution here and that 
+
             throw new NotImplementedException();
         }
     }
