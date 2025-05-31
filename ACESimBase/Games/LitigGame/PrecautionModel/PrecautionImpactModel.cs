@@ -162,10 +162,48 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
         }
 
         /// <summary>
+        /// P(accident | defendantSignal, precautionLevel).
+        /// Only the defendant’s signal is known; plaintiff’s signal is still unobserved.
+        /// </summary>
+        public double GetAccidentProbabilityGivenDSignalAndPrecautionLevel(
+            int defendantSignal,
+            int precautionLevel,
+            PrecautionSignalModel signalModel)
+        {
+            ValidatePrecautionLevel(precautionLevel, allowHypothetical: false);
+            if (signalModel == null) throw new ArgumentNullException(nameof(signalModel));
+            if ((uint)defendantSignal >= signalModel.NumDSignals)
+                throw new ArgumentOutOfRangeException(nameof(defendantSignal));
+
+            double numer = 0.0, denom = 0.0;
+            double uniformPrior = 1.0 / HiddenCount;
+
+            for (int h = 0; h < HiddenCount; h++)
+            {
+                // Likelihood of the observed defendant signal given hidden state h.
+                double pDefSig = signalModel.GetDefendantSignalProbability(h, defendantSignal);
+                double joint = uniformPrior * pDefSig;        // P(h, dSignal)
+
+                // Accident probability for this hidden state and precaution level.
+                double pCaused = accidentFuncOverride != null
+                    ? accidentFuncOverride(h, precautionLevel)
+                    : PAccidentNoPrecaution * Math.Pow(precautionPowerFactors[h], precautionLevel);
+
+                pCaused = Math.Max(0.0, Math.Min(1.0, pCaused));
+                double pAccident = pCaused + (1.0 - pCaused) * PAccidentWrongfulAttribution;
+
+                numer += joint * pAccident;
+                denom += joint;
+            }
+            return denom == 0.0 ? 0.0 : numer / denom;
+        }
+
+
+        /// <summary>
         /// P(accident | defendantSignal, plaintiffSignal, precautionLevel).
         /// Requires a configured PrecautionSignalModel (same hidden count & ordering).
         /// </summary>
-        public double GetAccidentProbabilityGivenSignals(
+        public double GetAccidentProbabilityGivenBothSignalsAndPrecautionLevel(
             int defendantSignal,
             int plaintiffSignal,
             int precautionLevel,

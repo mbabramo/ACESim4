@@ -805,6 +805,13 @@ namespace ACESim
                     throw new Exception();
                 return probabilities;
             }
+            else if (decisionByteCode == (byte)LitigGameDecisions.Accident)
+            {
+                var myGameProgress = ((PrecautionNegligenceProgress)gameProgress);
+                var myDisputeGenerator = (PrecautionNegligenceDisputeGenerator)Options.LitigGameDisputeGenerator;
+                double accidentProbability = myDisputeGenerator.GetAccidentProbability(myGameProgress.LiabilityStrengthDiscrete, myGameProgress.DLiabilitySignalDiscrete, myGameProgress.PLiabilitySignalDiscrete, (byte) myGameProgress.RelativePrecautionLevel);
+                return [1 - accidentProbability, accidentProbability];
+            }
             else
                 throw new NotImplementedException(); // subclass should define if needed
         }

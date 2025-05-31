@@ -106,6 +106,22 @@ namespace ACESim // Assuming the ACESim base namespace; adjust if needed
                 SymmetryMap = (SymmetryMapInput.NotCompatibleWithSymmetry, SymmetryMapOutput.CantBeSymmetric)
             });
 
+            var plaintiffSignalDecision = new Decision("Plaintiff Signal", "PLS", true,
+                (byte)LitigGamePlayers.PLiabilitySignalChance,
+                new byte[] { (byte)LitigGamePlayers.Plaintiff, (byte)LitigGamePlayers.AccidentChance, (byte)LitigGamePlayers.CourtLiabilityChance, (byte)LitigGamePlayers.Resolution },
+                Options.NumLiabilitySignals,
+                (byte)LitigGameDecisions.PLiabilitySignal,
+                unevenChanceActions: Options.CollapseChanceDecisions) 
+            {
+                IsReversible = true,
+                DistributedChanceDecision = false,
+                Unroll_Parallelize = true,
+                Unroll_Parallelize_Identical = false,
+                SymmetryMap = (SymmetryMapInput.NotCompatibleWithSymmetry, SymmetryMapOutput.CantBeSymmetric)
+            };
+            if (!Options.CollapseChanceDecisions)
+                list.Add(plaintiffSignalDecision); // when not collapsing chance decisions, we want the game tree to be as straightforward as possible, and don't want to worry about Bayesian calculations. So, we give the plaintiff it's signal (conditional on the underlying precaution power level) early.
+
             list.Add(new("Engage in Activity", "ENG", false,
                 (byte)LitigGamePlayers.Defendant,
                 new byte[] { (byte)LitigGamePlayers.Plaintiff, (byte)LitigGamePlayers.Defendant, (byte)LitigGamePlayers.AccidentChance, (byte)LitigGamePlayers.CourtLiabilityChance, (byte)LitigGamePlayers.Resolution },
@@ -138,7 +154,8 @@ namespace ACESim // Assuming the ACESim base namespace; adjust if needed
                 (byte)LitigGamePlayers.AccidentChance,
                 new byte[] { (byte)LitigGamePlayers.Plaintiff, (byte)LitigGamePlayers.Defendant, (byte)LitigGamePlayers.CourtLiabilityChance, (byte)LitigGamePlayers.Resolution },
                 (byte)2, /* no accident or accident */
-                (byte)LitigGameDecisions.Accident
+                (byte)LitigGameDecisions.Accident,
+                unevenChanceActions: true
                 )
             {
                 StoreActionInGameCacheItem = litigGameDefinition.GameHistoryCacheIndex_Accident,
@@ -150,19 +167,9 @@ namespace ACESim // Assuming the ACESim base namespace; adjust if needed
 
             }); // 1 --> accident, 2 --> no accident
 
-            list.Add(new("Plaintiff Signal", "PLS", true,
-                (byte)LitigGamePlayers.PLiabilitySignalChance,
-                new byte[] { (byte)LitigGamePlayers.Plaintiff, (byte)LitigGamePlayers.AccidentChance, (byte)LitigGamePlayers.CourtLiabilityChance, (byte)LitigGamePlayers.Resolution },
-                Options.NumLiabilitySignals,
-                (byte)LitigGameDecisions.PLiabilitySignal,
-                unevenChanceActions: Options.CollapseChanceDecisions) // DEBUG 
-            {
-                IsReversible = true,
-                DistributedChanceDecision = false,
-                Unroll_Parallelize = true,
-                Unroll_Parallelize_Identical = false,
-                SymmetryMap = (SymmetryMapInput.NotCompatibleWithSymmetry, SymmetryMapOutput.CantBeSymmetric)
-            });
+
+            if (Options.CollapseChanceDecisions)
+                list.Add(plaintiffSignalDecision); // when collapsing chance decisions, we can add the plaintiff's signal here, so we don't need to even deal with it if no accident occurs. We'll have to deal with the Bayesian calculations.
 
             // The liability signals tables are used when NOT collapsing decisions. This logic is already built in, so we don't need to enhance it.
             litigGameDefinition.CreateLiabilitySignalsTables();
@@ -194,7 +201,7 @@ namespace ACESim // Assuming the ACESim base namespace; adjust if needed
                         gameProgress.GameComplete = true;
                     break;
                 case (byte)LitigGameDecisions.TakePrecaution:
-                    precautionProgress.RelativePrecautionLevel = action;
+                    precautionProgress.RelativePrecautionLevel = action - 1;
                     precautionProgress.OpportunityCost = action * MarginalPrecautionCost;
                     break;
                 case (byte)LitigGameDecisions.Accident:
@@ -272,9 +279,35 @@ namespace ACESim // Assuming the ACESim base namespace; adjust if needed
 
         public double[] BayesianCalculations_GetPLiabilitySignalProbabilities(byte? dLiabilitySignal)
         {
-            // Note: This is used ONLY when collapsing chance decisions.
+            // Note: This is used ONLY when collapsing chance decisions. We know the accident occurred, and that depends
+            // on the level of precaution chosen by the defendant, but that decision is solely a function of the defendant's
+            // liability signal, so it doesn't add any information to this signal calculation.
             byte dSignal = (byte)dLiabilitySignal; // should not be null, because defendant gets signal first in this game
             return _pSignalProbabilities[dSignal - 1];
+        }
+
+        public double GetAccidentProbability(
+            byte? precautionPowerLevel,
+            byte dLiabilitySignal,
+            byte chosenPrecautionLevel // zero-based, unlike others
+            )
+        {
+            if ((uint)(dLiabilitySignal - 1) >= _signalModel.NumDSignals)
+                throw new ArgumentOutOfRangeException(nameof(dLiabilitySignal));
+
+            // Collapsed chance mode → integrate over hidden states.
+            if (precautionPowerLevel is null)
+            {
+                return _impactModel.GetAccidentProbabilityGivenDSignalAndPrecautionLevel(
+                    (int)dLiabilitySignal - 1,
+                    chosenPrecautionLevel,
+                    _signalModel);
+            }
+
+            // Full tree mode → hidden state is known, signals add no extra information.
+            return _impactModel.GetAccidentProbability(
+                (int)precautionPowerLevel.Value - 1,
+                chosenPrecautionLevel);
         }
 
         public double[] BayesianCalculations_GetCLiabilitySignalProbabilities(byte pLiabilitySignal, byte dLiabilitySignal)

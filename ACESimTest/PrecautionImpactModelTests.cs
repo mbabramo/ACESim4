@@ -161,7 +161,7 @@ namespace ACESimTest
             }
 
             double expected = numer / denom;
-            double actual = impact.GetAccidentProbabilityGivenSignals(dSig, pSig, k, signalModel);
+            double actual = impact.GetAccidentProbabilityGivenBothSignalsAndPrecautionLevel(dSig, pSig, k, signalModel);
 
             actual.Should().BeApproximately(expected, 1e-9);
         }
@@ -235,5 +235,76 @@ namespace ACESimTest
             Action bad2 = () => impact.IsTrulyLiable(0, 99);
             bad2.Should().Throw<ArgumentOutOfRangeException>();
         }
+
+        [TestMethod]
+        public void AccidentProbabilityGivenDefendantSignalMatchesBayesMix()
+        {
+            // Fresh model so the calculation is independent of the shared fixture.
+            var localImpact = new PrecautionImpactModel(
+                precautionPowerLevels: 2,
+                precautionLevels: 2,
+                pAccidentNoActivity: 0.01,
+                pAccidentNoPrecaution: 0.25,
+                marginalPrecautionCost: 0.04,
+                harmCost: 1.0,
+                precautionPowerFactorLeastEffective: 0.8,
+                precautionPowerFactorMostEffective: 0.6,
+                liabilityThreshold: 1.0);
+
+            var signalModel = new PrecautionSignalModel(
+                numPrecautionPowerLevels: 2,
+                numPlaintiffSignals: 2,
+                numDefendantSignals: 2,
+                numCourtSignals: 2,
+                sigmaPlaintiff: 0.0,
+                sigmaDefendant: 0.0,
+                sigmaCourt: 0.0);
+
+            const int defendantSignal = 0;
+            const int precautionLevel = 1;
+
+            double prior = 0.5;          // uniform prior over hidden states
+            double numer = 0.0, denom = 0.0;
+
+            for (int h = 0; h < 2; h++)
+            {
+                double likelihood =
+                    prior *
+                    signalModel.GetDefendantSignalProbability(h, defendantSignal);
+
+                numer += likelihood *
+                         localImpact.GetAccidentProbability(h, precautionLevel);
+                denom += likelihood;
+            }
+
+            double expected = numer / denom;
+            double actual = localImpact.GetAccidentProbabilityGivenDSignalAndPrecautionLevel(
+                                defendantSignal,
+                                precautionLevel,
+                                signalModel);
+
+            actual.Should().BeApproximately(expected, 1e-9);
+        }
+
+        [TestMethod]
+        public void AccidentProbabilityGivenDefendantSignalOutOfRangeThrows()
+        {
+            var signalModel = new PrecautionSignalModel(
+                numPrecautionPowerLevels: 2,
+                numPlaintiffSignals: 2,
+                numDefendantSignals: 1,  // only index 0 is valid
+                numCourtSignals: 2,
+                sigmaPlaintiff: 0.0,
+                sigmaDefendant: 0.0,
+                sigmaCourt: 0.0);
+
+            Action act = () => impact.GetAccidentProbabilityGivenDSignalAndPrecautionLevel(
+                                    defendantSignal: 99,
+                                    precautionLevel: 0,
+                                    signalModel);
+
+            act.Should().Throw<ArgumentOutOfRangeException>();
+        }
+
     }
 }
