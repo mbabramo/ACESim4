@@ -92,6 +92,8 @@ namespace ACESim
                 byte? cDamagesSignal,
                 int randomSeed);
 
+        bool GenerateConsistentGameProgressesWhenNotCollapsing => false;
+
         List<(GameProgress progress, double weight)>
             InvertedCalculations_GenerateAllConsistentGameProgresses(
                 byte pLiabilitySignal,

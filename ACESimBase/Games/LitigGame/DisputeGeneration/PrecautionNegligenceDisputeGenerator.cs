@@ -188,9 +188,11 @@ namespace ACESim // Assuming the ACESim base namespace; adjust if needed
                 case (byte)LitigGameDecisions.Accident:
                     bool accidentOccurs = action == 1;
                     precautionProgress.AccidentOccurs = accidentOccurs;
-                    Debug; // need to think about how to do wrongful attribution -- we might need in non-collapse mode to actually have three decisions, so that we can properly attribute the accident. Or we could just proportionally assign harm cost. Note that we have GetWrongfulAttributionProbabilityGivenSignals, so we can calculate this, in the event that we don't know the precaution power (without creating more game progresses), and we could do something even simpler in other situations. We could also possibly treat the collapse chance decisions situation differently, and use the game progress enumeration. We might have a OverallHarmCost and a RightfulHarmCost. But that would mean a different number of game progresses. To get it exactly the same, we probably need to have three decisions in non-collapse mode and two in collapse mode and then use the game progress enumeration in collapse mode to recover whether we had a wrongful accident attribution.
-                    if (accidentOccurs && (ProbabilityAccidentWrongfulAttribution == 0 || accidentWouldHaveOccurredAbsentWrongfulAttribution))
-                        precautionProgress.HarmCost = CostOfAccident;
+                    // We're not going to set HarmCost yet --> instead, we'll do that when we generate consistent game progresses.
+                    // The reason for this is that if there is an accident, there is some probability that the accident was
+                    // wrongfully attributed to the defendant. But when reporting, we would like to separate out the cases in 
+                    // which there was and wasn't wrongful attribution, so that we can have graphics that separate out these
+                    // two sets of cases. We can do that based on information later, taking into account the precaution level.
                     if (!accidentOccurs && ProbabilityAccidentWrongfulAttribution == 0)
                         gameProgress.GameComplete = true;
                     break;
@@ -284,6 +286,8 @@ namespace ACESim // Assuming the ACESim base namespace; adjust if needed
         {
             throw new NotImplementedException();
         }
+
+        public bool GenerateConsistentGameProgressesWhenNotCollapsing => true;
 
         public List<(GameProgress progress, double weight)> InvertedCalculations_GenerateAllConsistentGameProgresses(byte pLiabilitySignal, byte dLiabilitySignal, byte? cLiabilitySignal, byte pDamagesSignal, byte dDamagesSignal, byte? cDamagesSignal, LitigGameProgress baseProgress)
         {

@@ -59,6 +59,9 @@ namespace ACESim
             return Options.IsSymmetric();
         }
 
+        public override bool GenerateConsistentGameProgresses => GameOptions.CollapseChanceDecisions || Options.LitigGameDisputeGenerator.GenerateConsistentGameProgressesWhenNotCollapsing;
+
+
         private void FurtherOptionsSetup()
         {
             if (Options.DeltaOffersOptions.SubsequentOffersAreDeltas)

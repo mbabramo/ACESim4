@@ -489,7 +489,9 @@ namespace ACESim
         /// </summary>
         /// <returns></returns>
         public virtual bool GameIsSymmetric() => false;
-        
+
+        public virtual bool GenerateConsistentGameProgresses => GameOptions.CollapseChanceDecisions;
+
 
         public virtual List<SimpleReportDefinition> GetSimpleReportDefinitions()
         {
