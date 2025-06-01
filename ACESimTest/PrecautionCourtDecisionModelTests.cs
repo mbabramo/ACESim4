@@ -98,8 +98,18 @@ namespace ACESimTest
         [TestMethod]
         public void ThresholdMattersForLiability()
         {
+            var impact2 = new PrecautionImpactModel(
+                precautionPowerLevels: 2,
+                precautionLevels: 2,
+                pAccidentNoActivity: 0.01,
+                pAccidentNoPrecaution: 0.25,
+                marginalPrecautionCost: 0.04,
+                harmCost: 1.0,
+                precautionPowerFactorLeastEffective: 0.8,
+                precautionPowerFactorMostEffective: 0.6,
+                liabilityThreshold: 3.0); // <--- from 1
             var sig = new PrecautionSignalModel(2, 2, 2, 2, 1e-4, 1e-4, 1e-4);
-            var stricter = new PrecautionCourtDecisionModel(impact, sig); // threshold = 3.0
+            var stricter = new PrecautionCourtDecisionModel(impact2, sig); 
 
             stricter.IsLiable(0, 0).Should().BeFalse(); // ratio 1.25 < threshold 3.0
         }
@@ -193,8 +203,69 @@ namespace ACESimTest
             return sum == 0.0 ? vec.Select(_ => 0.0).ToArray()
                               : vec.Select(v => v / sum).ToArray();
         }
+        // ------------------------------------------------------------------
+        // GetLiabilityOutcomeProbabilities tests
+        // ------------------------------------------------------------------
+
+        [TestMethod]
+        public void LiabilityProbabilitiesDeterministicModel()
+        {
+            // σ≈0 ⇒ every signal is perfectly informative; the court must
+            // find liability at k=0 and must not at k=1.
+            var probsNegligent = courtDeterministic
+                .GetLiabilityOutcomeProbabilities(plaintiffSignal: 0, defendantSignal: 0,
+                                                  accidentOccurred: true, precautionLevel: 0);
+            var probsSafe = courtDeterministic
+                .GetLiabilityOutcomeProbabilities(plaintiffSignal: 0, defendantSignal: 0,
+                                                  accidentOccurred: true, precautionLevel: 1);
+
+            probsNegligent[1].Should().BeApproximately(1.0, 1e-6);  // liable
+            probsNegligent[0].Should().BeApproximately(0.0, 1e-6);
+
+            probsSafe[1].Should().BeApproximately(0.0, 1e-6);       // not liable
+            probsSafe[0].Should().BeApproximately(1.0, 1e-6);
+        }
+
+        [TestMethod]
+        public void AccidentEvidenceRaisesLiabilityOdds()
+        {
+            // same signals, same precaution; adding the accident fact should
+            // (weakly) increase the probability of liability.
+            double[] noAcc = courtNoisy.GetLiabilityOutcomeProbabilities(0, 1, false, 0);
+            double[] acc = courtNoisy.GetLiabilityOutcomeProbabilities(0, 1, true, 0);
+
+            acc[1].Should().BeGreaterThan(noAcc[1] - 1e-12);
+            (acc[0] + acc[1]).Should().BeApproximately(1.0, 1e-10);
+            (noAcc[0] + noAcc[1]).Should().BeApproximately(1.0, 1e-10);
+        }
+
+        [DataTestMethod]
+        [DataRow(0, 0)]
+        [DataRow(1, 1)]
+        public void LiabilityProbabilityDecreasesWithPrecaution(int pSig, int dSig)
+        {
+            double[] lowPrec = courtNoisy.GetLiabilityOutcomeProbabilities(pSig, dSig, true, 0);
+            double[] hiPrec = courtNoisy.GetLiabilityOutcomeProbabilities(pSig, dSig, true, 1);
+
+            lowPrec[1].Should().BeGreaterOrEqualTo(hiPrec[1] - 1e-12);
+        }
+
+        [TestMethod]
+        public void ProbabilitiesAlwaysNormalise()
+        {
+            for (int p = 0; p < 2; p++)
+                for (int d = 0; d < 2; d++)
+                    for (int k = 0; k < 2; k++)
+                    {
+                        double[] pr = courtNoisy.GetLiabilityOutcomeProbabilities(p, d, true, k);
+                        pr[0].Should().BeInRange(0, 1);
+                        pr[1].Should().BeInRange(0, 1);
+                        (pr[0] + pr[1]).Should().BeApproximately(1.0, 1e-8);
+                    }
+        }
+
     }
 
 
-    
+
 }

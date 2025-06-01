@@ -15,7 +15,7 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
         readonly PrecautionSignalModel signal;
 
         // Dimensions
-        readonly int numCourtSignals;
+        readonly int numCourtSamplesForCalculatingLiability;
         readonly int numPrecautionLevels;
 
         // Precomputed tables
@@ -23,6 +23,7 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
         readonly double[][] expBenefit;        // [signal][precaution]
         readonly double[][] benefitCostRatio;  // [signal][precaution]
         readonly bool[][] liable;            // [signal][precaution]
+        double[][] liableProbGivenHidden;   // [hidden][precaution]
 
         /// <summary>
         /// Build a court‑decision model.
@@ -35,17 +36,17 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
             signal = signalModel ?? throw new ArgumentNullException(nameof(signalModel));
 
             numPrecautionLevels = impactModel.PrecautionLevels;
-            numCourtSignals = signalModel.GetHiddenPosteriorFromCourtSignal(0).Length == 0
+            numCourtSamplesForCalculatingLiability = signalModel.GetHiddenPosteriorFromCourtSignal(0).Length == 0
                 ? throw new InvalidOperationException("Signal model appears unconfigured for court signals.")
                 : signalModel.GetCourtSignalDistributionGivenDefendantSignal(0).Length; // quick way to fetch count
 
             // Precompute decision metrics
-            expRiskReduction = new double[numCourtSignals][];
-            expBenefit = new double[numCourtSignals][];
-            benefitCostRatio = new double[numCourtSignals][];
-            liable = new bool[numCourtSignals][];
+            expRiskReduction = new double[numCourtSamplesForCalculatingLiability][];
+            expBenefit = new double[numCourtSamplesForCalculatingLiability][];
+            benefitCostRatio = new double[numCourtSamplesForCalculatingLiability][];
+            liable = new bool[numCourtSamplesForCalculatingLiability][];
 
-            for (int s = 0; s < numCourtSignals; s++)
+            for (int s = 0; s < numCourtSamplesForCalculatingLiability; s++)
             {
                 var posterior = signal.GetHiddenPosteriorFromCourtSignal(s); // length = hiddenCount, sums to 1
                 expRiskReduction[s] = new double[numPrecautionLevels];
@@ -69,6 +70,21 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
                     benefitCostRatio[s][k] = ratio;
                     liable[s][k] = ratio >= impactModel.LiabilityThreshold && k < numPrecautionLevels - 1; // cannot be liable if no further precaution exists
                 }
+            }
+            BuildLiableProbTable();
+        }
+        void BuildLiableProbTable()
+        {
+            int hiddenCount = signal.HiddenStatesCount;
+            liableProbGivenHidden = new double[hiddenCount][];
+            for (int h = 0; h < hiddenCount; h++)
+            {
+                liableProbGivenHidden[h] = new double[numPrecautionLevels];
+                double[] courtDist = signal.GetCourtSignalDistributionGivenHidden(h);
+                for (int k = 0; k < numPrecautionLevels; k++)
+                    for (int s = 0; s < numCourtSamplesForCalculatingLiability; s++)
+                        if (liable[s][k])
+                            liableProbGivenHidden[h][k] += courtDist[s];
             }
         }
 
@@ -102,12 +118,12 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
         }
         public double GetLiabilityProbability(double[] courtSignalDistribution, int precautionLevel)
         {
-            if (courtSignalDistribution == null || courtSignalDistribution.Length != numCourtSignals)
+            if (courtSignalDistribution == null || courtSignalDistribution.Length != numCourtSamplesForCalculatingLiability)
                 throw new ArgumentException(nameof(courtSignalDistribution));
             ValidateIndices(0, precautionLevel); // ensure precautionLevel is in range
 
             double liabilityProb = 0.0;
-            for (int s = 0; s < numCourtSignals; s++)
+            for (int s = 0; s < numCourtSamplesForCalculatingLiability; s++)
             {
                 if (IsLiable(s, precautionLevel))
                 {
@@ -197,14 +213,68 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
             return posterior;
         }
 
+        public double[] GetLiabilityOutcomeProbabilities(
+            int hiddenState,
+            int precautionLevel) => [ 1.0 - liableProbGivenHidden[hiddenState][precautionLevel],
+               liableProbGivenHidden[hiddenState][precautionLevel]];
 
+        /// <summary>
+        /// Returns { P(no-liability) , P(liability) } given the two private signals,
+        /// the accident outcome, and the defendant’s precaution level.
+        /// Works in both expanded and collapsed-chance game trees.
+        /// All indices are zero-based.
+        /// </summary>
+        public double[] GetLiabilityOutcomeProbabilities(
+            int plaintiffSignal,
+            int defendantSignal,
+            bool accidentOccurred,
+            int precautionLevel)
+        {
+            ValidateIndices(0, precautionLevel); // check precaution range
+            if ((uint)plaintiffSignal >= signal.NumPSignals)
+                throw new ArgumentOutOfRangeException(nameof(plaintiffSignal));
+            if ((uint)defendantSignal >= signal.NumDSignals)
+                throw new ArgumentOutOfRangeException(nameof(defendantSignal));
+
+            // -------- posterior over hidden states ----------
+            int H = signal.HiddenStatesCount;
+            double uniformPrior = 1.0 / H;
+            double[] posterior = new double[H];
+            double total = 0.0;
+
+            for (int h = 0; h < H; h++)
+            {
+                double w =
+                    uniformPrior *
+                    signal.GetPlaintiffSignalProbability(h, plaintiffSignal) *
+                    signal.GetDefendantSignalProbability(h, defendantSignal);
+
+                double pAcc = impact.GetAccidentProbability(h, precautionLevel);
+                w *= accidentOccurred ? pAcc : (1.0 - pAcc);
+
+                posterior[h] = w;
+                total += w;
+            }
+
+            if (total == 0.0)           // unreachable evidence ⇒ uninformed prior
+                return new[] { 0.5, 0.5 };
+
+            for (int h = 0; h < H; h++) posterior[h] /= total;
+
+            // -------- integrate court decision ----------
+            double liableProb = 0.0;
+            for (int h = 0; h < H; h++)
+                liableProb += posterior[h] * liableProbGivenHidden[h][precautionLevel];
+
+            return new[] { 1.0 - liableProb, liableProb };
+        }
 
 
         // ---------------- Helpers ---------------------------
 
         void ValidateIndices(int signal, int precautionLevel)
         {
-            if ((uint)signal >= numCourtSignals) throw new ArgumentOutOfRangeException(nameof(signal));
+            if ((uint)signal >= numCourtSamplesForCalculatingLiability) throw new ArgumentOutOfRangeException(nameof(signal));
             if ((uint)precautionLevel >= numPrecautionLevels) throw new ArgumentOutOfRangeException(nameof(precautionLevel));
         }
     }

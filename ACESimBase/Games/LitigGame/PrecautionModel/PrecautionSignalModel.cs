@@ -14,7 +14,7 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
         public const int DefendantIndex = 1;
         public const int CourtIndex = 2;
 
-        readonly ThreePartyDiscreteSignals model;
+        public readonly ThreePartyDiscreteSignals model;
 
         public int HiddenStatesCount => model.hiddenCount;
 
@@ -230,6 +230,51 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
 
         public double[] GetUnconditionalCourtSignalDistribution() =>
             GetUnconditionalSignalDistribution(CourtIndex);
+
+
+        // === Model taking into account accident occurrence ============================
+
+        /// P(plaintiffSignal | defendantSignal, accident, precautionLevel)
+        public double[] GetPlaintiffSignalDistributionGivenDefendantSignalAndAccident(
+            int defendantSignal,
+            int precautionLevel,
+            PrecautionImpactModel impactModel)
+        {
+            if (impactModel == null) throw new ArgumentNullException(nameof(impactModel));
+            if ((uint)defendantSignal >= NumDSignals) throw new ArgumentOutOfRangeException(nameof(defendantSignal));
+            if ((uint)precautionLevel >= impactModel.PrecautionLevels) throw new ArgumentOutOfRangeException(nameof(precautionLevel));
+
+            int hCount = HiddenStatesCount;
+            int pCount = NumPSignals;
+            double uniformPrior = 1.0 / hCount;
+
+            double[] numerators = new double[pCount];
+            double denominator = 0.0;
+
+            for (int h = 0; h < hCount; h++)
+            {
+                double weight =
+                    uniformPrior *
+                    GetDefendantSignalProbability(h, defendantSignal) *
+                    impactModel.GetAccidentProbability(h, precautionLevel);
+
+                if (weight == 0.0) continue;
+
+                double[] pSigGivenH = model.GetSignalDistributionGivenHidden(PlaintiffIndex, h); // length pCount
+                for (int p = 0; p < pCount; p++)
+                    numerators[p] += weight * pSigGivenH[p];
+
+                denominator += weight;
+            }
+
+            if (denominator == 0.0) return numerators;           // unreachable combination ⇒ all zeros
+
+            for (int p = 0; p < pCount; p++)                     // normalise
+                numerators[p] /= denominator;
+
+            return numerators;
+        }
+
 
         // === Utilities =====================================================================
 

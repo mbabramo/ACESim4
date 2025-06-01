@@ -59,7 +59,8 @@ namespace ACESim // Assuming the ACESim base namespace; adjust if needed
             options.DamagesMax = options.DamagesMin = CostOfAccident;
             options.NumDamagesStrengthPoints = 1;
             _impactModel = new PrecautionImpactModel(PrecautionPowerLevels, PrecautionLevels, ProbabilityAccidentNoActivity, ProbabilityAccidentNoPrecaution, MarginalPrecautionCost, CostOfAccident, null, PrecautionPowerFactor, PrecautionPowerFactor, LiabilityThreshold, ProbabilityAccidentWrongfulAttribution, null);
-            _signalModel = new PrecautionSignalModel(PrecautionPowerLevels, options.NumLiabilitySignals, options.NumLiabilitySignals, options.NumCourtLiabilitySignals, options.PLiabilityNoiseStdev, options.DLiabilityNoiseStdev, options.CourtLiabilityNoiseStdev, includeExtremes: false);
+            int numSamplesToMakeForCourtLiablityDetermination = 1000; // Note: This is different from NumCourtLiabilitySignals, which indicates the number of different branches that the court will receive and will thus generally be set to 2, for liability and no liability. Instead, this affects the fineness of the calculation of the probability of liability.
+            _signalModel = new PrecautionSignalModel(PrecautionPowerLevels, options.NumLiabilitySignals, options.NumLiabilitySignals, numSamplesToMakeForCourtLiablityDetermination, options.PLiabilityNoiseStdev, options.DLiabilityNoiseStdev, options.CourtLiabilityNoiseStdev, includeExtremes: false);
             _courtDecisionModel = new PrecautionCourtDecisionModel(_impactModel, _signalModel);
             _precautionPowerProbabilities = Enumerable.Range(1, PrecautionPowerLevels).Select(x => 1.0 / PrecautionPowerLevels).ToArray();
             if (Options.CollapseChanceDecisions)
@@ -176,6 +177,9 @@ namespace ACESim // Assuming the ACESim base namespace; adjust if needed
             if (litigGameDefinition.Options.NumDamagesStrengthPoints > 1)
                 throw new NotImplementedException(); // gameDefinition.CreateDamagesSignalsTables();
 
+            if (litigGameDefinition.Options.LoserPaysOnlyLargeMarginOfVictory || litigGameDefinition.Options.NumCourtLiabilitySignals != 2)
+                throw new NotImplementedException(); // we are generally implementing only 2 signals for the court (plaintiff wins and plaintiff loses) -- margin of victory fee shifting requires more.
+
             return list;
         }
 
@@ -281,7 +285,8 @@ namespace ACESim // Assuming the ACESim base namespace; adjust if needed
         {
             // Note: This is used ONLY when collapsing chance decisions. We know the accident occurred, and that depends
             // on the level of precaution chosen by the defendant, but that decision is solely a function of the defendant's
-            // liability signal, so it doesn't add any information to this signal calculation.
+            // liability signal, so it doesn't add any information to this signal calculation. However, whether an accident
+            // occurred also depends on the hidden state itself. 
             byte dSignal = (byte)dLiabilitySignal; // should not be null, because defendant gets signal first in this game
             return _pSignalProbabilities[dSignal - 1];
         }
@@ -310,9 +315,28 @@ namespace ACESim // Assuming the ACESim base namespace; adjust if needed
                 chosenPrecautionLevel);
         }
 
+        public double[] BayesianCalculations_GetCLiabilitySignalProbabilities(PrecautionNegligenceProgress gameProgress)
+        {
+            if (Options.CollapseChanceDecisions)
+            {
+                double[] pr = _courtDecisionModel.GetLiabilityOutcomeProbabilities(
+                     gameProgress.PLiabilitySignalDiscrete - 1,   // zero-based
+                     gameProgress.DLiabilitySignalDiscrete - 1,
+                     gameProgress.AccidentOccurs,
+                     gameProgress.RelativePrecautionLevel);
+
+                return pr;
+            }
+            else
+            {
+                double[] pr = _courtDecisionModel.GetLiabilityOutcomeProbabilities(gameProgress.LiabilityStrengthDiscrete - 1, gameProgress.RelativePrecautionLevel /* already zero based */);
+                return pr;
+            }
+        }
+
         public double[] BayesianCalculations_GetCLiabilitySignalProbabilities(byte pLiabilitySignal, byte dLiabilitySignal)
         {
-            throw new NotImplementedException();
+            throw new NotSupportedException(); // because above is implemented, this won't be called.
         }
 
         public double[] BayesianCalculations_GetPDamagesSignalProbabilities(byte? dDamagesSignal)

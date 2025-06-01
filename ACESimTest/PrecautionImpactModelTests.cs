@@ -2,6 +2,7 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using FluentAssertions;
 using ACESimBase.Games.LitigGame.PrecautionModel;
+using System.Linq;
 
 namespace ACESimTest
 {
@@ -305,6 +306,49 @@ namespace ACESimTest
 
             act.Should().Throw<ArgumentOutOfRangeException>();
         }
+
+        [TestMethod]
+        public void PlaintiffSignalDistributionGivenDefendantSignalAndAccidentMatchesEnumeration()
+        {
+            var impact = new PrecautionImpactModel(2, 2, 0.01, 0.25, 0.04, 1.0);
+            var signals = new PrecautionSignalModel(2, 2, 2, 2, 0.0, 0.0, 0.0);
+
+            const int dSig = 1;
+            const int k = 0;
+
+            double[] expected = new double[signals.NumPSignals];
+            double prior = 0.5;
+
+            for (int h = 0; h < 2; h++)
+            {
+                double weight = prior *
+                                signals.GetDefendantSignalProbability(h, dSig) *
+                                impact.GetAccidentProbability(h, k);
+
+                for (int p = 0; p < expected.Length; p++)
+                    expected[p] += weight * signals.model.GetSignalDistributionGivenHidden(PrecautionSignalModel.PlaintiffIndex, h)[p];
+            }
+
+            double total = expected.Sum();
+            for (int p = 0; p < expected.Length; p++) expected[p] /= total;
+
+            double[] actual = signals.GetPlaintiffSignalDistributionGivenDefendantSignalAndAccident(dSig, k, impact);
+
+            actual.Should().BeEquivalentTo(expected, opts => opts.WithStrictOrdering());
+        }
+
+        [TestMethod]
+        public void PlaintiffSignalDistributionGivenDefendantSignalAndAccidentThrowsOnOutOfRange()
+        {
+            var impact = new PrecautionImpactModel(2, 1, 0.01, 0.25, 0.04, 1.0);
+            var signals = new PrecautionSignalModel(2, 2, 1, 1, 0.0, 0.0, 0.0);
+
+            Action act = () => signals.GetPlaintiffSignalDistributionGivenDefendantSignalAndAccident(
+                                    defendantSignal: 99, precautionLevel: 0, impact);
+
+            act.Should().Throw<ArgumentOutOfRangeException>();
+        }
+
 
     }
 }

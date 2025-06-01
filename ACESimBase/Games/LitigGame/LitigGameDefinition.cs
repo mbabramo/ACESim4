@@ -785,7 +785,11 @@ namespace ACESim
             {
                 var myGameProgress = ((LitigGameProgress)gameProgress);
                 double[] probabilities;
-                if (Options.CollapseChanceDecisions)
+                if (Options.LitigGameDisputeGenerator is PrecautionNegligenceDisputeGenerator precautionGenerator)
+                {
+                    probabilities = precautionGenerator.BayesianCalculations_GetCLiabilitySignalProbabilities((PrecautionNegligenceProgress)myGameProgress);
+                }
+                else if (Options.CollapseChanceDecisions)
                     probabilities = Options.LitigGameDisputeGenerator.BayesianCalculations_GetCLiabilitySignalProbabilities(myGameProgress.PLiabilitySignalDiscrete, myGameProgress.DLiabilitySignalDiscrete);
                 else
                     probabilities = GetCLiabilitySignalProbabilities(myGameProgress.LiabilityStrengthDiscrete);
@@ -809,7 +813,7 @@ namespace ACESim
             {
                 var myGameProgress = ((PrecautionNegligenceProgress)gameProgress);
                 var myDisputeGenerator = (PrecautionNegligenceDisputeGenerator)Options.LitigGameDisputeGenerator;
-                double accidentProbability = myDisputeGenerator.GetAccidentProbability(myGameProgress.LiabilityStrengthDiscrete, myGameProgress.DLiabilitySignalDiscrete, myGameProgress.PLiabilitySignalDiscrete, (byte) myGameProgress.RelativePrecautionLevel);
+                double accidentProbability = myDisputeGenerator.GetAccidentProbability(myGameProgress.LiabilityStrengthDiscrete, myGameProgress.DLiabilitySignalDiscrete, (byte) myGameProgress.RelativePrecautionLevel);
                 return [1 - accidentProbability, accidentProbability];
             }
             else
