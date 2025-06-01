@@ -1,5 +1,6 @@
 ﻿using ACESimBase.Games.LitigGame.PrecautionModel;
 using ACESimBase.GameSolvingSupport.Symmetry;
+using ACESimBase.Util.ArrayManipulation;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -354,20 +355,44 @@ namespace ACESim // Assuming the ACESim base namespace; adjust if needed
             return [1.0];
         }
 
-        // DEBUG -- use GetHiddenPosteriorFromPath
-
         public void BayesianCalculations_WorkBackwardsFromSignals(LitigGameProgress gameProgress, byte pLiabilitySignal, byte dLiabilitySignal, byte? cLiabilitySignal, byte pDamagesSignal, byte dDamagesSignal, byte? cDamagesSignal, int randomSeed)
         {
-            throw new NotImplementedException();
+            Random r = new Random(randomSeed);
+            PrecautionNegligenceProgress precautionProgress = (PrecautionNegligenceProgress)gameProgress;
+            double[] precautionPowerDistribution = _courtDecisionModel.GetHiddenPosteriorFromPath(precautionProgress.PLiabilitySignalDiscrete - 1, precautionProgress.DLiabilitySignalDiscrete - 1, precautionProgress.AccidentOccurs, precautionProgress.RelativePrecautionLevel, precautionProgress.TrialOccurs ? precautionProgress.PWinsAtTrial : null);
+
+            // DEBUG -- handle wrongful attribution issue
+
+            byte precautionPowerIndex = ArrayUtilities.ChooseIndex_OneBasedByte(precautionPowerDistribution, r.NextDouble());
+            precautionProgress.LiabilityStrengthDiscrete = precautionPowerIndex;
+            precautionProgress.ResetPostGameInfo();
         }
 
         public bool GenerateConsistentGameProgressesWhenNotCollapsing => true;
 
         public List<(GameProgress progress, double weight)> BayesianCalculations_GenerateAllConsistentGameProgresses(byte pLiabilitySignal, byte dLiabilitySignal, byte? cLiabilitySignal, byte pDamagesSignal, byte dDamagesSignal, byte? cDamagesSignal, LitigGameProgress baseProgress)
         {
+            List<(GameProgress progress, double weight)> result = new();
+
+            if (!Options.CollapseChanceDecisions)
+            {
+                // DEBUG -- must add wrongful attribution splits
+                return new List<(GameProgress progress, double weight)>() { (baseProgress.DeepCopy(), 1.0) };
+            }
+
+            PrecautionNegligenceProgress precautionProgress = (PrecautionNegligenceProgress)baseProgress;
+            double[] precautionPowerDistribution = _courtDecisionModel.GetHiddenPosteriorFromPath(precautionProgress.PLiabilitySignalDiscrete - 1, precautionProgress.DLiabilitySignalDiscrete - 1, precautionProgress.AccidentOccurs, precautionProgress.RelativePrecautionLevel, precautionProgress.TrialOccurs ? precautionProgress.PWinsAtTrial : null);
+
             baseProgress.ResetPostGameInfo(); // reset this because we're going to figure out wrongful attribution here and that 
 
-            throw new NotImplementedException();
+            for (int i = 1; i <= precautionPowerDistribution.Length; i++)
+            {
+                var copy = baseProgress.DeepCopy();
+                copy.LiabilityStrengthDiscrete = i;
+                result.Add((copy, precautionPowerDistribution[i - 1]));
+            }
+
+            return result;
         }
     }
 }
