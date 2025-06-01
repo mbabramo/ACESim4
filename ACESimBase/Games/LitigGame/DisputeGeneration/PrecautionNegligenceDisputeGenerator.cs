@@ -354,6 +354,8 @@ namespace ACESim // Assuming the ACESim base namespace; adjust if needed
             return [1.0];
         }
 
+        // DEBUG -- use GetHiddenPosteriorFromPath
+
         public void BayesianCalculations_WorkBackwardsFromSignals(LitigGameProgress gameProgress, byte pLiabilitySignal, byte dLiabilitySignal, byte? cLiabilitySignal, byte pDamagesSignal, byte dDamagesSignal, byte? cDamagesSignal, int randomSeed)
         {
             throw new NotImplementedException();

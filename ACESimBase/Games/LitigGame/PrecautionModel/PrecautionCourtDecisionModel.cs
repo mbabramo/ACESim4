@@ -269,6 +269,44 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
             return new[] { 1.0 - liableProb, liableProb };
         }
 
+        /// Posterior P(hidden | pSig, dSig, accident, precaution, decision)
+        public double[] GetHiddenPosteriorFromPath(
+                int plaintiffSignal,
+                int defendantSignal,
+                bool accidentOccurred,
+                int precautionLevel,
+                bool? wasLiable)          // null = path ended in settlement
+        {
+            int H = signal.HiddenStatesCount;
+            var posterior = new double[H];
+            double total = 0.0;
+            double uniformPrior = 1.0 / H;
+
+            for (int h = 0; h < H; h++)
+            {
+                double w =
+                    uniformPrior *
+                    signal.GetPlaintiffSignalProbability(h, plaintiffSignal) *
+                    signal.GetDefendantSignalProbability(h, defendantSignal);
+
+                double pAcc = impact.GetAccidentProbability(h, precautionLevel);
+                w *= accidentOccurred ? pAcc : (1.0 - pAcc);
+
+                if (wasLiable.HasValue)        // incorporate the court outcome only if known
+                {
+                    double liableProb = liableProbGivenHidden[h][precautionLevel];
+                    w *= wasLiable.Value ? liableProb : (1.0 - liableProb);
+                }
+
+                posterior[h] = w;
+                total += w;
+            }
+
+            if (total == 0.0) return posterior;    // inconsistent evidence → all zeros
+            for (int h = 0; h < H; h++) posterior[h] /= total;
+            return posterior;
+        }
+
 
         // ---------------- Helpers ---------------------------
 
