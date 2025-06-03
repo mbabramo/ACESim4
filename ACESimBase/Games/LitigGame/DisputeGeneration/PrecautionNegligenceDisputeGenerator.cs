@@ -16,19 +16,20 @@ namespace ACESim // Assuming the ACESim base namespace; adjust if needed
     public class PrecautionNegligenceDisputeGenerator : ILitigGameDisputeGenerator
     {
         public LitigGameDefinition LitigGameDefinition { get; set; }
+        public LitigGameProgress CreateGameProgress(bool fullHistoryRequired) => new PrecautionNegligenceProgress(fullHistoryRequired);
 
         public LitigGameOptions Options => LitigGameDefinition.Options;
 
-        public string OptionsString => throw new NotImplementedException();
+        public string OptionsString => $"{nameof(CostOfAccident)}: {CostOfAccident} {nameof(MarginalPrecautionCost)}: {MarginalPrecautionCost} {nameof(PrecautionPowerLevels)}: {PrecautionPowerLevels} {nameof(PrecautionLevels)}: {PrecautionLevels} {nameof(PrecautionPowerFactor)}: {PrecautionPowerFactor} {nameof(ProbabilityAccidentNoActivity)}: {ProbabilityAccidentNoActivity} {nameof(ProbabilityAccidentNoPrecaution)}: {ProbabilityAccidentNoPrecaution} {nameof(ProbabilityAccidentWrongfulAttribution)}: {ProbabilityAccidentWrongfulAttribution} {nameof(LiabilityThreshold)}: {LiabilityThreshold} ";
 
         public double CostOfAccident = 1.0; // normalized harm in the event of an accident
+        public double MarginalPrecautionCost = 0.00001; // DEBUG -- try to pick one where the social optimum is roughly half way with a middling precaution power.
         public byte PrecautionPowerLevels = 10; // can be high if we're collapsing chance decisions, since this is the decision that gets collapsed
         public byte PrecautionLevels = 5;
         public double PrecautionPowerFactor = 0.8;
         public double ProbabilityAccidentNoActivity = 0.0;
         public double ProbabilityAccidentNoPrecaution = 0.0001;
         public double ProbabilityAccidentWrongfulAttribution = 0.000025;
-        public double MarginalPrecautionCost = 0.00001; // DEBUG -- try to pick one where the social optimum is roughly half way with a middling precaution power.
         public double LiabilityThreshold = 1.0; // liability if benefit/cost ratio for marginal forsaken precaution > 1
 
 
@@ -388,7 +389,7 @@ namespace ACESim // Assuming the ACESim base namespace; adjust if needed
             for (int i = 1; i <= precautionPowerDistribution.Length; i++)
             {
                 var copy = baseProgress.DeepCopy();
-                copy.LiabilityStrengthDiscrete = i;
+                copy.LiabilityStrengthDiscrete = (byte) i;
                 result.Add((copy, precautionPowerDistribution[i - 1]));
             }
 

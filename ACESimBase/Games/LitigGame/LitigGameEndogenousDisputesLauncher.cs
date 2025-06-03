@@ -17,6 +17,7 @@ namespace ACESim
 {
     public class LitigGameEndogenousDisputesLauncher : LitigGameLauncherBase
     {
+
         public override List<(string, string)> DefaultVariableValues
         {
             get
@@ -69,18 +70,21 @@ namespace ACESim
         public enum UnderlyingGame
         {
             AppropriationGame,
+            PrecautionNegligenceGame,
         }
 
-        public UnderlyingGame GameToPlay => UnderlyingGame.AppropriationGame;
+        public UnderlyingGame GameToPlay => UnderlyingGame.PrecautionNegligenceGame;
 
         public string MasterReportNamePrefix => GameToPlay switch
         {
             UnderlyingGame.AppropriationGame => "APP",
+            UnderlyingGame.PrecautionNegligenceGame => "PREC",
             _ => throw new NotImplementedException("Unknown game to play: " + GameToPlay.ToString()),
         };
 
         // We can use this to allow for multiple options sets. These can then run in parallel. But note that we can also have multiple runs with a single option set using different settings by using GameDefinition scenarios; this is useful when there is a long initialization and it makes sense to complete one set before starting the next set.
 
+        // DEBUG -- must not include margin of victory for precaution negligence game, unless we update the code to handle it.
         public override FeeShiftingRule[] FeeShiftingModes => new[] { FeeShiftingRule.English_LiabilityIssue, FeeShiftingRule.MarginOfVictory_LiabilityIssue, 
             // NO LONGER INCLUDED: FeeShiftingRule.Rule68_DamagesIssue, FeeShiftingRule.Rule68English_DamagesIssue 
         };
@@ -150,6 +154,7 @@ namespace ACESim
                 .ToList();
             return eachGameIndependently.Select(x => (GameOptions) x).ToList();
         }
+        private LitigGameOptions CreateGameOptions() => new LitigGameOptions();
 
         public override List<List<GameOptions>> GetSetsOfGameOptions(bool useAllPermutationsOfTransformations, bool includeBaselineValueForNoncritical)
         {
@@ -205,7 +210,7 @@ namespace ACESim
                     }
                     if (noncriticalTransformation != null && !replaced)
                         transformLists.Add(noncriticalTransformation);
-                    List<LitigGameOptions> noncriticalOptions = ApplyPermutationsOfTransformations(() => (LitigGameOptions)LitigGameOptionsGenerator.GetLitigGameOptions(), transformLists);
+                    List<LitigGameOptions> noncriticalOptions = ApplyPermutationsOfTransformations(() => (LitigGameOptions)CreateGameOptions(), transformLists);
                     List<(string, string)> defaultNonCriticalValues = DefaultVariableValues;
                     foreach (var optionSet in noncriticalOptions)
                     {

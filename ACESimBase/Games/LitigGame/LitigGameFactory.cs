@@ -43,7 +43,9 @@ namespace ACESim
         public GameProgress CreateNewGameProgress(GameDefinition gameDefinition, bool fullHistoryRequired, IterationID iterationID)
         {
             LitigGameDefinition litigGameDefinition = (LitigGameDefinition)gameDefinition;
-            GameProgress gameProgress = new LitigGameProgress(fullHistoryRequired)  { IterationID = iterationID };
+            GameProgress gameProgress;
+            gameProgress = litigGameDefinition.Options.LitigGameDisputeGenerator.CreateGameProgress(fullHistoryRequired);
+            gameProgress.IterationID = iterationID;
             return gameProgress;
         }
 

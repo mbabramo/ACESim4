@@ -16,6 +16,7 @@ namespace ACESim
 
         public LitigGameDefinition LitigGameDefinition { get; set; }
 
+        public LitigGameProgress CreateGameProgress(bool fullHistoryRequired) => new LitigGameProgress(fullHistoryRequired);
         public virtual void Setup(LitigGameDefinition gameDef)
         {
             LitigGameDefinition = gameDef;

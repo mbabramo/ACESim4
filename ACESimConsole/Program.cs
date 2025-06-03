@@ -27,12 +27,13 @@ namespace ACESim
             SelectEFGFileGame,
             SelectLeducGame,
             SelectMultiRoundCooperationGame,
-            SelectLitigGame,
+            SelectLitigGameEndog,
             SelectAdditiveEvidenceGame,
-            SelectDMSReplicationGame
+            SelectDMSReplicationGame,
+            SelectLitigGameCorrSig
         }
 
-        public static AvailableGames GameToPlay = AvailableGames.SelectLitigGame; 
+        public static AvailableGames GameToPlay = AvailableGames.SelectLitigGameEndog; 
         public static bool LaunchSingleOptionsSetOnly = true;
 
         [STAThread]
@@ -89,7 +90,12 @@ namespace ACESim
                     strategiesPath = Path.Combine(baseOutputDirectory, "Strategies");
                     launcher = new MultiRoundCooperationGameLauncher();
                     break;
-                case AvailableGames.SelectLitigGame:
+                case AvailableGames.SelectLitigGameCorrSig:
+                    baseOutputDirectory = "C:\\GitHub\\ACESim\\ACESim\\Games\\LitigGame";
+                    strategiesPath = Path.Combine(baseOutputDirectory, "Strategies");
+                    launcher = new LitigGameCorrelatedSignalsArticleLauncher();
+                    break;
+                case AvailableGames.SelectLitigGameEndog:
                     baseOutputDirectory = "C:\\GitHub\\ACESim\\ACESim\\Games\\LitigGame";
                     strategiesPath = Path.Combine(baseOutputDirectory, "Strategies");
                     launcher = new LitigGameEndogenousDisputesLauncher();

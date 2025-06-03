@@ -7,6 +7,8 @@ namespace ACESim
     {
         LitigGameDefinition LitigGameDefinition { get; set; }
 
+        LitigGameProgress CreateGameProgress(bool fullHistoryRequired);
+
         void Setup(LitigGameDefinition litigGameDefinition);
 
         List<Decision> GenerateDisputeDecisions(LitigGameDefinition gameDefinition);

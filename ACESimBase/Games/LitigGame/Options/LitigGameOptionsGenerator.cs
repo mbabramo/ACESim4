@@ -16,17 +16,19 @@ namespace ACESim
             EndogenousArticleBase,
             FeeShiftingBaseSmallTree,
             FeeShiftingBaseLargeTree,
-            AppropriationGame,
+            AppropriationGame, 
+            PrecautionNegligenceGame,
             SmallGame,
         }
 
-        // This choice has an effect only when in ACESimConsole mode (playing a single game).
-        static LitigGameOptionSetChoices LitigGameChoice => LitigGameOptionSetChoices.AppropriationGame;
+        // This choice has an effect only when in ACESimConsole mode (playing a single game). 
+        static LitigGameOptionSetChoices LitigGameChoice => LitigGameOptionSetChoices.PrecautionNegligenceGame;
 
         public static LitigGameOptions GetLitigGameOptions() => LitigGameChoice switch
         {
             LitigGameOptionSetChoices.EndogenousArticleBase => BaseBeforeApplyingEndogenousGenerator(),
             LitigGameOptionSetChoices.AppropriationGame => AppropriationGame(),
+            LitigGameOptionSetChoices.PrecautionNegligenceGame => PrecautionNegligenceGame(),
             LitigGameOptionSetChoices.FeeShiftingBaseSmallTree => FeeShiftingBase(true),
             LitigGameOptionSetChoices.FeeShiftingBaseLargeTree => FeeShiftingBase(false),
             LitigGameOptionSetChoices.SmallGame => SmallGame(),
@@ -146,5 +148,24 @@ namespace ACESim
             return options;
         }
 
-    }
+        public static LitigGameOptions PrecautionNegligenceGame()
+        {
+            var options = BaseBeforeApplyingEndogenousGenerator();
+
+            options.AllowAbandonAndDefaults = true;
+            options.NumLiabilitySignals = options.NumLiabilityStrengthPoints = options.NumOffers = 5;
+
+            var disputeGenerator = new PrecautionNegligenceDisputeGenerator();
+            disputeGenerator.PrecautionLevels = 5;
+            disputeGenerator.PrecautionPowerFactor = 0.8; // smaller -> precaution power level makes a bigger difference
+            disputeGenerator.PrecautionPowerFactor = 0.8;
+            disputeGenerator.ProbabilityAccidentNoActivity = 0.0;
+            disputeGenerator.ProbabilityAccidentNoPrecaution = 0.0001;
+            disputeGenerator.ProbabilityAccidentWrongfulAttribution = 0.000025;
+
+            options.LitigGameDisputeGenerator = disputeGenerator;
+            
+            return options;  
+        }
+    } 
 }
