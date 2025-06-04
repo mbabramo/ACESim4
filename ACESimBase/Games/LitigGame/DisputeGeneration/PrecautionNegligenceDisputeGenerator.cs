@@ -303,7 +303,7 @@ namespace ACESim // Assuming the ACESim base namespace; adjust if needed
                 throw new ArgumentOutOfRangeException(nameof(dLiabilitySignal));
 
             // Collapsed chance mode → integrate over hidden states.
-            if (precautionPowerLevel is null)
+            if (Options.CollapseChanceDecisions)
             {
                 return _impactModel.GetAccidentProbabilityGivenDSignalAndPrecautionLevel(
                     (int)dLiabilitySignal - 1,
@@ -360,7 +360,7 @@ namespace ACESim // Assuming the ACESim base namespace; adjust if needed
         {
             Random r = new Random(randomSeed);
             PrecautionNegligenceProgress precautionProgress = (PrecautionNegligenceProgress)gameProgress;
-            double[] precautionPowerDistribution = _courtDecisionModel.GetHiddenPosteriorFromPath(precautionProgress.PLiabilitySignalDiscrete - 1, precautionProgress.DLiabilitySignalDiscrete - 1, precautionProgress.AccidentOccurs, precautionProgress.RelativePrecautionLevel, precautionProgress.TrialOccurs ? precautionProgress.PWinsAtTrial : null);
+            double[] precautionPowerDistribution = precautionProgress.EngagesInActivity ? _courtDecisionModel.GetHiddenPosteriorFromPath(precautionProgress.PLiabilitySignalDiscrete - 1, precautionProgress.DLiabilitySignalDiscrete - 1, precautionProgress.AccidentOccurs, precautionProgress.RelativePrecautionLevel, precautionProgress.TrialOccurs ? precautionProgress.PWinsAtTrial : null) : _courtDecisionModel.GetHiddenPosteriorFromDefendantSignal(precautionProgress.DLiabilitySignalDiscrete - 1);
 
             // DEBUG -- handle wrongful attribution issue
 

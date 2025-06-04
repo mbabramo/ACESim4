@@ -441,6 +441,74 @@ namespace ACESimTest
             empirical.Should().BeApproximately(analytic, 0.01); // ≤2 % absolute error with 8 000 samples
         }
 
+        [TestMethod]
+        public void PosteriorFromDefendantSignalNormalisesCorrectly()
+        {
+            const int defendantSignal = 0;      // or any valid index
+            double[] posterior = courtNoisy.GetHiddenPosteriorFromDefendantSignal(defendantSignal);
+
+            double sum = posterior.Sum();
+            if (sum > 0.0)
+                sum.Should().BeApproximately(1.0, 1e-12);     // evidence possible
+            else
+                posterior.Should().AllBeEquivalentTo(0.0);    // evidence impossible
+        }
+        [TestMethod]
+        public void HiddenPosteriorFromDefendantSignalMatchesAnalyticComputation()
+        {
+            // ---------------- reflect into the signal model ---------------------------
+            var sigField = typeof(PrecautionCourtDecisionModel)
+                .GetField("signal", BindingFlags.NonPublic | BindingFlags.Instance);
+            var sigModel = (PrecautionSignalModel)sigField.GetValue(courtNoisy);
+
+            int hiddenCount = sigModel.HiddenStatesCount;
+            int dCount = sigModel.NumDSignals;
+
+            // -------------- choose a defendant signal with support on all states ------
+            int chosenDSig = -1;
+            for (int dSig = 0; dSig < dCount && chosenDSig < 0; dSig++)
+            {
+                bool hasSupportEverywhere = true;
+                for (int h = 0; h < hiddenCount; h++)
+                    if (sigModel.GetDefendantSignalProbability(h, dSig) < 1e-15)
+                    {
+                        hasSupportEverywhere = false;
+                        break;
+                    }
+                if (hasSupportEverywhere) chosenDSig = dSig;
+            }
+
+            if (chosenDSig < 0)
+                Assert.Inconclusive(
+                    "No defendant signal has non-zero likelihood under every hidden state; "
+                  + "posterior is undefined in that degenerate parameter regime.");
+
+            // -------------- analytic posterior ----------------------------------------
+            double uniformPrior = 1.0 / hiddenCount;
+            var expected = new double[hiddenCount];
+            double total = 0.0;
+
+            for (int h = 0; h < hiddenCount; h++)
+            {
+                expected[h] = uniformPrior *
+                              sigModel.GetDefendantSignalProbability(h, chosenDSig);
+                total += expected[h];
+            }
+            for (int h = 0; h < hiddenCount; h++) expected[h] /= total;
+
+            // -------------- model posterior -------------------------------------------
+            double[] actual =
+                courtNoisy.GetHiddenPosteriorFromDefendantSignal(chosenDSig);
+
+            // -------------- assertions -------------------------------------------------
+            actual.Length.Should().Be(hiddenCount);
+            for (int h = 0; h < hiddenCount; h++)
+                actual[h].Should().BeApproximately(expected[h], 1e-12,
+                    $"entry {h} should equal the analytic posterior");
+
+            actual.Sum().Should().BeApproximately(1.0, 1e-12,
+                "posterior must sum to one");
+        }
 
 
     }

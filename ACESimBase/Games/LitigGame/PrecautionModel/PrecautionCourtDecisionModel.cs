@@ -307,6 +307,46 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
             return posterior;
         }
 
+        /// <summary>
+        /// Posterior distribution over hidden precaution-power states when
+        ///  • the defendant observed <paramref name="defendantSignal"/> and decided
+        ///    not to engage in the activity,
+        ///  • therefore the plaintiff received no signal,
+        ///  • no accident occurred, and
+        ///  • the court never became involved.
+        /// </summary>
+        /// <param name="defendantSignal">The realised defendant signal index.</param>
+        /// <returns>
+        /// A length-H array whose entries sum to one (or to zero if the signal
+        /// index is impossible under every hidden state).
+        /// </returns>
+        public double[] GetHiddenPosteriorFromDefendantSignal(int defendantSignal)
+        {
+            int hiddenStates = signal.HiddenStatesCount;
+            var posterior = new double[hiddenStates];
+
+            double uniformPrior = 1.0 / hiddenStates;
+            double normalisingConstant = 0.0;
+
+            for (int h = 0; h < hiddenStates; h++)
+            {
+                double weight = uniformPrior *
+                                signal.GetDefendantSignalProbability(h, defendantSignal);
+
+                posterior[h] = weight;
+                normalisingConstant += weight;
+            }
+
+            if (normalisingConstant == 0.0)
+                return posterior;  // impossible signal – caller sees all zeros
+
+            for (int h = 0; h < hiddenStates; h++)
+                posterior[h] /= normalisingConstant;
+
+            return posterior;
+        }
+
+
 
         // ---------------- Helpers ---------------------------
 

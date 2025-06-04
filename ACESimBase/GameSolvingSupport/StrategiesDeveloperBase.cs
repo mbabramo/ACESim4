@@ -3754,7 +3754,7 @@ namespace ACESim
 
         #region General tree walk
 
-        public static bool TraceTreeWalk = false;
+        public static bool TraceTreeWalk = false; 
 
         public Back TreeWalk_Tree<Forward, Back>(ITreeNodeProcessor<Forward, Back> processor, Forward forward = default)
         {
