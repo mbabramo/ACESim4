@@ -152,11 +152,14 @@ namespace ACESim
         {
             var options = BaseBeforeApplyingEndogenousGenerator();
 
+            options.CollapseChanceDecisions = true; // DEBUG
+
             options.AllowAbandonAndDefaults = true;
             options.NumLiabilitySignals = options.NumLiabilityStrengthPoints = options.NumOffers = 5;
 
             var disputeGenerator = new PrecautionNegligenceDisputeGenerator();
-            disputeGenerator.PrecautionLevels = 5;
+            disputeGenerator.PrecautionPowerLevels = 3; // DEBUG 10;
+            disputeGenerator.PrecautionLevels = 3; // DEBUG 5;
             disputeGenerator.PrecautionPowerFactor = 0.8; // smaller -> precaution power level makes a bigger difference
             disputeGenerator.PrecautionPowerFactor = 0.8;
             disputeGenerator.ProbabilityAccidentNoActivity = 0.0;

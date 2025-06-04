@@ -278,7 +278,7 @@ namespace ACESim // Assuming the ACESim base namespace; adjust if needed
         public double[] BayesianCalculations_GetDLiabilitySignalProbabilities(byte? pLiabilitySignal)
         {
             // Defendant goes first, so we can just use the original liability signal tables.
-            if (pLiabilitySignal is not null)
+            if (pLiabilitySignal is not (null or 0))
                 throw new NotSupportedException(); // This should only be called in collapse decision mode, as the first signal to be computed
             return _dSignalProbabilities; // not conditioned on anything
         }
