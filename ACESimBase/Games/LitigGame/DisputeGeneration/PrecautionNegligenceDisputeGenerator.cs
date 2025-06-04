@@ -208,7 +208,7 @@ namespace ACESim // Assuming the ACESim base namespace; adjust if needed
                     break;
                 case (byte)LitigGameDecisions.TakePrecaution:
                     precautionProgress.RelativePrecautionLevel = action - 1;
-                    precautionProgress.OpportunityCost = action * MarginalPrecautionCost;
+                    // Note: we don't set the opportunity costs until after the game
                     break;
                 case (byte)LitigGameDecisions.Accident:
                     bool accidentOccurs = action == 1;
