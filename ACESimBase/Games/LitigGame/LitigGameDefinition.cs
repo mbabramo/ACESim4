@@ -693,131 +693,134 @@ namespace ACESim
 
         private double[] GetUnevenChanceActionProbabilities_Helper(byte decisionByteCode, GameProgress gameProgress)
         {
-            if (decisionByteCode == (byte)LitigGameDecisions.PrePrimaryActionChance)
+            switch (decisionByteCode)
             {
-                var myGameProgress = ((LitigGameProgress)gameProgress);
-                var probabilities = Options.LitigGameStandardDisputeGenerator.GetPrePrimaryChanceProbabilities(this);
-                if (Math.Abs(probabilities.Sum() - 1) > 1E-8)
-                    throw new Exception();
-                return probabilities;
-            }
-            else if (decisionByteCode == (byte)LitigGameDecisions.PostPrimaryActionChance)
-            {
-                var myGameProgress = ((LitigGameProgress)gameProgress);
-                var probabilities = Options.LitigGameStandardDisputeGenerator.GetPostPrimaryChanceProbabilities(this, myGameProgress.DisputeGeneratorActions);
-                if (Math.Abs(probabilities.Sum() - 1) > 1E-8)
-                    throw new Exception();
-                return probabilities;
-            }
-            else if (decisionByteCode == (byte) LitigGameDecisions.LiabilityStrength)
-            {
-                var myGameProgress = ((LitigGameProgress) gameProgress);
-                double[] probabilities;
-                if (Options.CollapseChanceDecisions)
-                    throw new Exception("Should not be called"); // Note: Could update this to call the appropriate dispute generator method, so long as this is called after everything else
-                else
-                    probabilities = Options.LitigGameDisputeGenerator.GetLiabilityStrengthProbabilities(this, myGameProgress.DisputeGeneratorActions);
-                if (Math.Abs(probabilities.Sum() - 1) > 1E-8)
-                    throw new Exception();
-                return probabilities;
-            }
-            else if (decisionByteCode == (byte)LitigGameDecisions.PLiabilitySignal)
-            {
-                var myGameProgress = ((LitigGameProgress)gameProgress);
-                double[] probabilities;
-                if (Options.CollapseChanceDecisions)
-                    probabilities = Options.LitigGameDisputeGenerator.BayesianCalculations_GetPLiabilitySignalProbabilities(myGameProgress.DLiabilitySignalDiscrete);
-                else
-                    probabilities = GetPLiabilitySignalProbabilities(myGameProgress.LiabilityStrengthDiscrete);
-                if (Math.Abs(probabilities.Sum() - 1) > 1E-8)
-                    throw new Exception();
-                return probabilities;
-            }
-            else if (decisionByteCode == (byte)LitigGameDecisions.DLiabilitySignal)
-            {
-                var myGameProgress = ((LitigGameProgress)gameProgress);
-                double[] probabilities;
-                if (Options.CollapseChanceDecisions)
-                    probabilities = Options.LitigGameDisputeGenerator.BayesianCalculations_GetDLiabilitySignalProbabilities(myGameProgress.PLiabilitySignalDiscrete);
-                else
-                    probabilities = GetDLiabilitySignalProbabilities(myGameProgress.LiabilityStrengthDiscrete);
-                if (Math.Abs(probabilities.Sum() - 1) > 1E-8)
-                    throw new Exception();
-                return probabilities;
-            }
-            else if (decisionByteCode == (byte)LitigGameDecisions.DamagesStrength)
-            {
-                var myGameProgress = ((LitigGameProgress)gameProgress);
-                double[] probabilities;
-                if (Options.CollapseChanceDecisions)
-                    throw new Exception("Should not be called"); // Note: Could update this to call the appropriate dispute generator method, so long as this is called after everything else
-                else
-                    probabilities = Options.LitigGameDisputeGenerator.GetDamagesStrengthProbabilities(this, myGameProgress.DisputeGeneratorActions);
-                if (Math.Abs(probabilities.Sum() - 1) > 1E-8)
-                    throw new Exception();
-                return probabilities;
-            }
-            else if (decisionByteCode == (byte)LitigGameDecisions.PDamagesSignal)
-            {
-                var myGameProgress = ((LitigGameProgress)gameProgress);
-                double[] probabilities;
-                if (Options.CollapseChanceDecisions)
-                    probabilities = Options.LitigGameDisputeGenerator.BayesianCalculations_GetPDamagesSignalProbabilities(myGameProgress.DDamagesSignalDiscrete);
-                else
-                    probabilities = GetPDamagesSignalProbabilities(myGameProgress.DamagesStrengthDiscrete);
-                if (Math.Abs(probabilities.Sum() - 1) > 1E-8)
-                    throw new Exception();
-                return probabilities;
-            }
-            else if (decisionByteCode == (byte)LitigGameDecisions.DDamagesSignal)
-            {
-                var myGameProgress = ((LitigGameProgress)gameProgress);
-                double[] probabilities;
-                if (Options.CollapseChanceDecisions)
-                    probabilities = Options.LitigGameDisputeGenerator.BayesianCalculations_GetDDamagesSignalProbabilities(myGameProgress.PDamagesSignalDiscrete);
-                else
-                    probabilities = GetDDamagesSignalProbabilities(myGameProgress.DamagesStrengthDiscrete);
-                if (Math.Abs(probabilities.Sum() - 1) > 1E-8)
-                    throw new Exception();
-                return probabilities;
-            }
-            else if (decisionByteCode == (byte)LitigGameDecisions.CourtDecisionLiability)
-            {
-                var myGameProgress = ((LitigGameProgress)gameProgress);
-                double[] probabilities;
-                if (Options.LitigGameDisputeGenerator is PrecautionNegligenceDisputeGenerator precautionGenerator)
+                case (byte)LitigGameDecisions.PrePrimaryActionChance:
                 {
-                    probabilities = precautionGenerator.BayesianCalculations_GetCLiabilitySignalProbabilities((PrecautionNegligenceProgress)myGameProgress);
+                    var myGameProgress = ((LitigGameProgress)gameProgress);
+                    var probabilities = Options.LitigGameStandardDisputeGenerator.GetPrePrimaryChanceProbabilities(this);
+                    if (Math.Abs(probabilities.Sum() - 1) > 1E-8)
+                        throw new Exception();
+                    return probabilities;
                 }
-                else if (Options.CollapseChanceDecisions)
-                    probabilities = Options.LitigGameDisputeGenerator.BayesianCalculations_GetCLiabilitySignalProbabilities(myGameProgress.PLiabilitySignalDiscrete, myGameProgress.DLiabilitySignalDiscrete);
-                else
-                    probabilities = GetCLiabilitySignalProbabilities(myGameProgress.LiabilityStrengthDiscrete);
-                if (Math.Abs(probabilities.Sum() - 1) > 1E-8)
-                    throw new Exception();
-                return probabilities;
+                case (byte)LitigGameDecisions.PostPrimaryActionChance:
+                {
+                    var myGameProgress = ((LitigGameProgress)gameProgress);
+                    var probabilities = Options.LitigGameStandardDisputeGenerator.GetPostPrimaryChanceProbabilities(this, myGameProgress.DisputeGeneratorActions);
+                    if (Math.Abs(probabilities.Sum() - 1) > 1E-8)
+                        throw new Exception();
+                    return probabilities;
+                }
+                case (byte)LitigGameDecisions.LiabilityStrength:
+                {
+                    var myGameProgress = ((LitigGameProgress)gameProgress);
+                    double[] probabilities;
+                    if (Options.CollapseChanceDecisions)
+                        throw new Exception("Should not be called");
+                    else
+                        probabilities = Options.LitigGameDisputeGenerator.GetLiabilityStrengthProbabilities(this, myGameProgress.DisputeGeneratorActions);
+                    if (Math.Abs(probabilities.Sum() - 1) > 1E-8)
+                        throw new Exception();
+                    return probabilities;
+                }
+                case (byte)LitigGameDecisions.PLiabilitySignal:
+                {
+                    var myGameProgress = ((LitigGameProgress)gameProgress);
+                    double[] probabilities;
+                    if (Options.CollapseChanceDecisions)
+                        probabilities = Options.LitigGameDisputeGenerator.BayesianCalculations_GetPLiabilitySignalProbabilities(myGameProgress.DLiabilitySignalDiscrete);
+                    else
+                        probabilities = GetPLiabilitySignalProbabilities(myGameProgress.LiabilityStrengthDiscrete);
+                    if (Math.Abs(probabilities.Sum() - 1) > 1E-8)
+                        throw new Exception();
+                    return probabilities;
+                }
+                case (byte)LitigGameDecisions.DLiabilitySignal:
+                {
+                    var myGameProgress = ((LitigGameProgress)gameProgress);
+                    double[] probabilities;
+                    if (Options.CollapseChanceDecisions)
+                        probabilities = Options.LitigGameDisputeGenerator.BayesianCalculations_GetDLiabilitySignalProbabilities(myGameProgress.PLiabilitySignalDiscrete);
+                    else
+                        probabilities = GetDLiabilitySignalProbabilities(myGameProgress.LiabilityStrengthDiscrete);
+                    if (Math.Abs(probabilities.Sum() - 1) > 1E-8)
+                        throw new Exception();
+                    return probabilities;
+                }
+                case (byte)LitigGameDecisions.DamagesStrength:
+                {
+                    var myGameProgress = ((LitigGameProgress)gameProgress);
+                    double[] probabilities;
+                    if (Options.CollapseChanceDecisions)
+                        throw new Exception("Should not be called");
+                    else
+                        probabilities = Options.LitigGameDisputeGenerator.GetDamagesStrengthProbabilities(this, myGameProgress.DisputeGeneratorActions);
+                    if (Math.Abs(probabilities.Sum() - 1) > 1E-8)
+                        throw new Exception();
+                    return probabilities;
+                }
+                case (byte)LitigGameDecisions.PDamagesSignal:
+                {
+                    var myGameProgress = ((LitigGameProgress)gameProgress);
+                    double[] probabilities;
+                    if (Options.CollapseChanceDecisions)
+                        probabilities = Options.LitigGameDisputeGenerator.BayesianCalculations_GetPDamagesSignalProbabilities(myGameProgress.DDamagesSignalDiscrete);
+                    else
+                        probabilities = GetPDamagesSignalProbabilities(myGameProgress.DamagesStrengthDiscrete);
+                    if (Math.Abs(probabilities.Sum() - 1) > 1E-8)
+                        throw new Exception();
+                    return probabilities;
+                }
+                case (byte)LitigGameDecisions.DDamagesSignal:
+                {
+                    var myGameProgress = ((LitigGameProgress)gameProgress);
+                    double[] probabilities;
+                    if (Options.CollapseChanceDecisions)
+                        probabilities = Options.LitigGameDisputeGenerator.BayesianCalculations_GetDDamagesSignalProbabilities(myGameProgress.PDamagesSignalDiscrete);
+                    else
+                        probabilities = GetDDamagesSignalProbabilities(myGameProgress.DamagesStrengthDiscrete);
+                    if (Math.Abs(probabilities.Sum() - 1) > 1E-8)
+                        throw new Exception();
+                    return probabilities;
+                }
+                case (byte)LitigGameDecisions.CourtDecisionLiability:
+                {
+                    var myGameProgress = ((LitigGameProgress)gameProgress);
+                    double[] probabilities;
+                    if (Options.LitigGameDisputeGenerator is PrecautionNegligenceDisputeGenerator precautionGenerator)
+                    {
+                        probabilities = precautionGenerator.BayesianCalculations_GetCLiabilitySignalProbabilities((PrecautionNegligenceProgress)myGameProgress);
+                    }
+                    else if (Options.CollapseChanceDecisions)
+                        probabilities = Options.LitigGameDisputeGenerator.BayesianCalculations_GetCLiabilitySignalProbabilities(myGameProgress.PLiabilitySignalDiscrete, myGameProgress.DLiabilitySignalDiscrete);
+                    else
+                        probabilities = GetCLiabilitySignalProbabilities(myGameProgress.LiabilityStrengthDiscrete);
+                    if (Math.Abs(probabilities.Sum() - 1) > 1E-8)
+                        throw new Exception();
+                    return probabilities;
+                }
+                case (byte)LitigGameDecisions.CourtDecisionDamages:
+                {
+                    var myGameProgress = ((LitigGameProgress)gameProgress);
+                    double[] probabilities;
+                    if (Options.CollapseChanceDecisions)
+                        probabilities = Options.LitigGameDisputeGenerator.BayesianCalculations_GetCDamagesSignalProbabilities(myGameProgress.PDamagesSignalDiscrete, myGameProgress.DDamagesSignalDiscrete);
+                    else
+                        probabilities = GetCDamagesSignalProbabilities(myGameProgress.DamagesStrengthDiscrete);
+                    if (Math.Abs(probabilities.Sum() - 1) > 1E-8)
+                        throw new Exception();
+                    return probabilities;
+                }
+                case (byte)LitigGameDecisions.Accident:
+                {
+                    var myGameProgress = ((PrecautionNegligenceProgress)gameProgress);
+                    var myDisputeGenerator = (PrecautionNegligenceDisputeGenerator)Options.LitigGameDisputeGenerator;
+                    double accidentProbability = myDisputeGenerator.GetAccidentProbability(myGameProgress.LiabilityStrengthDiscrete, myGameProgress.DLiabilitySignalDiscrete, (byte)myGameProgress.RelativePrecautionLevel);
+                    return new double[] { 1 - accidentProbability, accidentProbability };
+                }
+                default:
+                    throw new NotImplementedException(); // subclass should define if needed
             }
-            else if (decisionByteCode == (byte)LitigGameDecisions.CourtDecisionDamages)
-            {
-                var myGameProgress = ((LitigGameProgress)gameProgress);
-                double[] probabilities;
-                if (Options.CollapseChanceDecisions)
-                    probabilities = Options.LitigGameDisputeGenerator.BayesianCalculations_GetCDamagesSignalProbabilities(myGameProgress.PDamagesSignalDiscrete, myGameProgress.DDamagesSignalDiscrete);
-                else
-                    probabilities = GetCDamagesSignalProbabilities(myGameProgress.DamagesStrengthDiscrete);
-                if (Math.Abs(probabilities.Sum() - 1) > 1E-8)
-                    throw new Exception();
-                return probabilities;
-            }
-            else if (decisionByteCode == (byte)LitigGameDecisions.Accident)
-            {
-                var myGameProgress = ((PrecautionNegligenceProgress)gameProgress);
-                var myDisputeGenerator = (PrecautionNegligenceDisputeGenerator)Options.LitigGameDisputeGenerator;
-                double accidentProbability = myDisputeGenerator.GetAccidentProbability(myGameProgress.LiabilityStrengthDiscrete, myGameProgress.DLiabilitySignalDiscrete, (byte) myGameProgress.RelativePrecautionLevel);
-                return [1 - accidentProbability, accidentProbability];
-            }
-            else
-                throw new NotImplementedException(); // subclass should define if needed
         }
 
         public override bool SkipDecision(Decision decision, in GameHistory gameHistory)
