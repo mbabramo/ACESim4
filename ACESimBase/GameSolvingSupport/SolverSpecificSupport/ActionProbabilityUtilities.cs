@@ -100,6 +100,8 @@ namespace ACESimBase.GameSolvingSupport.SolverSpecificSupport
             }
             else
             { // not a chance node or a leaf node
+                if (gameStateForCurrentPlayer is FinalUtilitiesNode)
+                    throw new Exception("Final utilities node found, but game was not marked as complete."); // Possible cause: It could be that you have specified more branches than a decision really has.
                 InformationSetNode informationSetNode = (InformationSetNode)gameStateForCurrentPlayer;
                 if (alwaysDoAction != null)
                     SetProbabilitiesToAlwaysDoParticularAction(numPossibleActions, probabilities, (byte)alwaysDoAction);

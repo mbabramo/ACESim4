@@ -128,7 +128,7 @@ namespace ACESim // Assuming the ACESim base namespace; adjust if needed
             list.Add(new("Engage in Activity", "ENG", false,
                 (byte)LitigGamePlayers.Defendant,
                 new byte[] { (byte)LitigGamePlayers.Plaintiff, (byte)LitigGamePlayers.Defendant, (byte)LitigGamePlayers.AccidentChance, (byte)LitigGamePlayers.CourtLiabilityChance, (byte)LitigGamePlayers.Resolution },
-                Options.NumLiabilitySignals,
+                2, // engage or don't
                 (byte)LitigGameDecisions.EngageInActivity)
             {
                 StoreActionInGameCacheItem = litigGameDefinition.GameHistoryCacheIndex_EngagesInActivity,
@@ -136,7 +136,8 @@ namespace ACESim // Assuming the ACESim base namespace; adjust if needed
                 DistributedChanceDecision = false,
                 Unroll_Parallelize = true,
                 Unroll_Parallelize_Identical = false,
-                SymmetryMap = (SymmetryMapInput.NotCompatibleWithSymmetry, SymmetryMapOutput.CantBeSymmetric)
+                SymmetryMap = (SymmetryMapInput.NotCompatibleWithSymmetry, SymmetryMapOutput.CantBeSymmetric),
+                CanTerminateGame = true
             }); // 1 = yes, 2 = no
 
             list.Add(new("Precaution", "PREC", false,
@@ -166,7 +167,8 @@ namespace ACESim // Assuming the ACESim base namespace; adjust if needed
                 DistributedChanceDecision = false,
                 Unroll_Parallelize = true,
                 Unroll_Parallelize_Identical = false,
-                SymmetryMap = (SymmetryMapInput.NotCompatibleWithSymmetry, SymmetryMapOutput.CantBeSymmetric)
+                SymmetryMap = (SymmetryMapInput.NotCompatibleWithSymmetry, SymmetryMapOutput.CantBeSymmetric),
+                CanTerminateGame = true // only when probability of wrongful attribution is 0
 
             }); // 1 --> accident, 2 --> no accident
 
