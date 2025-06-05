@@ -384,9 +384,13 @@ namespace ACESim // Assuming the ACESim base namespace; adjust if needed
             }
 
             PrecautionNegligenceProgress precautionProgress = (PrecautionNegligenceProgress)baseProgress;
-            double[] precautionPowerDistribution = _courtDecisionModel.GetHiddenPosteriorFromPath(precautionProgress.PLiabilitySignalDiscrete - 1, precautionProgress.DLiabilitySignalDiscrete - 1, precautionProgress.AccidentOccurs, precautionProgress.RelativePrecautionLevel, precautionProgress.TrialOccurs ? precautionProgress.PWinsAtTrial : null);
+            double[] precautionPowerDistribution;
+            if (precautionProgress.EngagesInActivity)
+                precautionPowerDistribution = _courtDecisionModel.GetHiddenPosteriorFromPath(precautionProgress.PLiabilitySignalDiscrete - 1, precautionProgress.DLiabilitySignalDiscrete - 1, precautionProgress.AccidentOccurs, precautionProgress.RelativePrecautionLevel, precautionProgress.TrialOccurs ? precautionProgress.PWinsAtTrial : null);
+            else
+                precautionPowerDistribution = _courtDecisionModel.GetHiddenPosteriorFromDefendantSignal(precautionProgress.DLiabilitySignalDiscrete - 1);
 
-            baseProgress.ResetPostGameInfo(); // reset this because we're going to figure out wrongful attribution here and that 
+                baseProgress.ResetPostGameInfo(); // reset this because we're going to figure out wrongful attribution here and that 
 
             for (int i = 1; i <= precautionPowerDistribution.Length; i++)
             {
