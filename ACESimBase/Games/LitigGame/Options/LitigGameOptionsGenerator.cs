@@ -152,7 +152,7 @@ namespace ACESim
         {
             var options = BaseBeforeApplyingEndogenousGenerator();
 
-            options.CollapseChanceDecisions = true; // DEBUG
+            options.CollapseChanceDecisions = false; // DEBUG
 
             options.AllowAbandonAndDefaults = true;
             options.NumLiabilitySignals = options.NumLiabilityStrengthPoints = options.NumOffers = 5;

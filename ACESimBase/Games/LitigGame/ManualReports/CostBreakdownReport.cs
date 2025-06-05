@@ -87,43 +87,25 @@ namespace ACESimBase.Games.LitigGame.ManualReports
         // Public entrypoints
         // ---------------------------------------------------------------------
 
-        /// <summary>
-        /// Generate a cost breakdown using a specified right-axis maximum.
-        /// Useful when controlling the vertical scaling manually.
-        /// Returns both non-presentation and presentation mode results.
-        /// </summary>
-        /// <param name="raw">Raw data (progress, weight)</param>
-        /// <param name="rightAxisTop">Numeric top value of right y-axis</param>
-        /// <param name="presentation">Whether to use presentation styling</param>
-        /// <param name="splitRareHarmPanel">Whether to use the split-panel view</param>
-        /// <returns>List of strings: CSV, TikZ, CSV</returns>
         public static List<string> GenerateReports(
-            IEnumerable<(LitigGameProgress p, double w)> raw,
-            double rightAxisTop,
-            bool splitRareHarmPanel = true)
+    IEnumerable<(LitigGameProgress p, double w)> raw,
+    double rightAxisTop,
+    bool splitRareHarmPanel = true)
         {
             var slices = ToNormalizedSlices(raw, rightAxisTop);
-            var scale = splitRareHarmPanel
+            bool useSplit = splitRareHarmPanel && HasTwoPanels(slices);
+
+            var scale = useSplit
                 ? ComputeScaling(slices, rightAxisTop)
                 : ComputeSinglePanelScaling(slices, rightAxisTop);
 
             var options = raw.First().p == null ? null
                 : (LitigGameOptions)raw.First().p.GameDefinition.GameOptions;
 
-            return BuildOutputs(slices, scale, splitRareHarmPanel, "", options);
+            return BuildOutputs(slices, scale, useSplit, "", options);
         }
 
-        /// <summary>
-        /// Generate a cost breakdown report using a reference diagram
-        /// to enforce a shared area-per-unit scale.
-        /// This ensures visual comparability across multiple charts.
-        /// </summary>
-        /// <param name="raw">Raw data for the current chart</param>
-        /// <param name="reference">Reference data from an earlier chart</param>
-        /// <param name="referenceRightAxisTop">Right y-axis max used in reference</param>
-        /// <param name="presentation">Whether to use presentation styling</param>
-        /// <param name="splitRareHarmPanel">Whether to use split panel layout</param>
-        /// <returns>List of strings: CSV, TikZ, CSV</returns>
+        /// <inheritdoc cref="GenerateReports(IEnumerable{(LitigGameProgress,double)},IEnumerable{(LitigGameProgress,double)},double,bool)"/>
         public static List<string> GenerateReports(
             IEnumerable<(LitigGameProgress p, double w)> raw,
             IEnumerable<(LitigGameProgress p, double w)> reference,
@@ -132,7 +114,12 @@ namespace ACESimBase.Games.LitigGame.ManualReports
         {
             var slices = ToNormalizedSlices(raw, referenceRightAxisTop);
             var referenceSlices = ToNormalizedSlices(reference, referenceRightAxisTop);
-            var scale = splitRareHarmPanel
+
+            bool useSplit = splitRareHarmPanel
+                            && HasTwoPanels(slices)
+                            && HasTwoPanels(referenceSlices);
+
+            var scale = useSplit
                 ? ComputeScalingFromReference(
                       slices, referenceSlices, referenceRightAxisTop)
                 : ComputeSinglePanelScaling(slices, referenceRightAxisTop);
@@ -140,8 +127,9 @@ namespace ACESimBase.Games.LitigGame.ManualReports
             var options = raw.First().p == null ? null
                 : (LitigGameOptions)raw.First().p.GameDefinition.GameOptions;
 
-            return BuildOutputs(slices, scale, splitRareHarmPanel, "", options);
+            return BuildOutputs(slices, scale, useSplit, "", options);
         }
+ 
 
         #endregion
 
@@ -264,13 +252,37 @@ namespace ACESimBase.Games.LitigGame.ManualReports
             });
         }
 
-#endregion
+        #endregion
 
         #region Scaling
 
         // ---------------------------------------------------------------------
         // AxisScalingInfo – results of scaling computation
         // ---------------------------------------------------------------------
+
+        /// <summary>
+        /// True only if the slice set contains at least one “left-panel”
+        /// slice (no dispute costs) *and* at least one “right-panel” slice
+        /// (has dispute costs).  When this is false we fall back to the
+        /// simple one-panel layout.
+        /// </summary>
+        static bool HasTwoPanels(List<Slice> slices)
+        {
+            bool hasLeft = false;
+            bool hasRight = false;
+
+            foreach (var s in slices)
+            {
+                bool left = s.Harm + s.Filing + s.Answer +
+                            s.Bargaining + s.Trial == 0;
+                if (left) hasLeft = true;
+                else hasRight = true;
+
+                if (hasLeft && hasRight)
+                    return true;
+            }
+            return false;
+        }
 
         /// <summary>
         /// Encapsulates axis maxima and width scalings computed for a diagram.
