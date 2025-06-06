@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using static HDF.PInvoke.H5T;
 
 namespace ACESim // Assuming the ACESim base namespace; adjust if needed
 {
@@ -42,9 +43,8 @@ namespace ACESim // Assuming the ACESim base namespace; adjust if needed
         // Precomputed lookup tables
         private double[] _precautionPowerProbabilities; // Probability of each precaution level
         private double[] _dSignalProbabilities; // Probability of each defendant signal, when NOT conditioned on the precaution power level (in collapse chance mode)
-        private double[][] _pSignalProbabilities;
-        private double[] _accidentProbabilities;  // Probability of accident for each precaution level
-        private bool[] _breachByPrecaution;       // Whether each precaution level is below the legal standard (true = breach of duty)
+        private double[][] _pSignalProbabilitiesGivenDSignal;
+        private double[][] _pSignalProbabilitiesGivenPrecautionPower;
 
         /// <summary>
         /// Initializes a new PrecautionNegligenceDisputeGenerator with the given models and settings.
@@ -69,8 +69,9 @@ namespace ACESim // Assuming the ACESim base namespace; adjust if needed
             if (Options.CollapseChanceDecisions)
             {
                 _dSignalProbabilities = _signalModel.GetUnconditionalDefendantSignalDistribution();
-                _pSignalProbabilities = _signalModel.GetPlaintiffSignalDistributionGivenDefendantSignal();
-            }
+                _pSignalProbabilitiesGivenDSignal = _signalModel.GetPlaintiffSignalDistributionGivenDefendantSignal();
+                _pSignalProbabilitiesGivenPrecautionPower = _signalModel.GetPlaintiffSignalProbabilityTable();
+    }
         }
 
         public List<Decision> GenerateDisputeDecisions(LitigGameDefinition litigGameDefinition)
@@ -294,7 +295,7 @@ namespace ACESim // Assuming the ACESim base namespace; adjust if needed
             // liability signal, so it doesn't add any information to this signal calculation. However, whether an accident
             // occurred also depends on the hidden state itself. 
             byte dSignal = (byte)dLiabilitySignal; // should not be null, because defendant gets signal first in this game
-            return _pSignalProbabilities[dSignal - 1];
+            return _pSignalProbabilitiesGivenDSignal[dSignal - 1];
         }
 
         public double GetAccidentProbability(
@@ -361,19 +362,6 @@ namespace ACESim // Assuming the ACESim base namespace; adjust if needed
             return [1.0];
         }
 
-        public void BayesianCalculations_WorkBackwardsFromSignals(LitigGameProgress gameProgress, byte pLiabilitySignal, byte dLiabilitySignal, byte? cLiabilitySignal, byte pDamagesSignal, byte dDamagesSignal, byte? cDamagesSignal, int randomSeed)
-        {
-            Random r = new Random(randomSeed);
-            PrecautionNegligenceProgress precautionProgress = (PrecautionNegligenceProgress)gameProgress;
-            double[] precautionPowerDistribution = BayesianCalculationOfPrecautionPowerDistribution(precautionProgress);
-
-            // DEBUG -- handle wrongful attribution issue
-
-            byte precautionPowerIndex = ArrayUtilities.ChooseIndex_OneBasedByte(precautionPowerDistribution, r.NextDouble());
-            precautionProgress.LiabilityStrengthDiscrete = precautionPowerIndex;
-            precautionProgress.ResetPostGameInfo();
-        }
-
         private double[] BayesianCalculationOfPrecautionPowerDistribution(PrecautionNegligenceProgress precautionProgress)
         {
             double[] precautionPowerDistribution;
@@ -391,19 +379,51 @@ namespace ACESim // Assuming the ACESim base namespace; adjust if needed
             return precautionPowerDistribution;
         }
 
+        public void BayesianCalculations_WorkBackwardsFromSignals(LitigGameProgress gameProgress, byte pLiabilitySignal, byte dLiabilitySignal, byte? cLiabilitySignal, byte pDamagesSignal, byte dDamagesSignal, byte? cDamagesSignal, int randomSeed)
+        {
+            Random r = new Random(randomSeed);
+            PrecautionNegligenceProgress precautionProgress = (PrecautionNegligenceProgress)gameProgress;
+            double[] precautionPowerDistribution = BayesianCalculationOfPrecautionPowerDistribution(precautionProgress);
+
+            byte precautionPowerIndex = ArrayUtilities.ChooseIndex_OneBasedByte(precautionPowerDistribution, r.NextDouble());
+            precautionProgress.LiabilityStrengthDiscrete = precautionPowerIndex;
+
+            if (precautionProgress.AccidentOccurs)
+            {
+                // Note that plaintiff signal will be set, since the accident occurred.
+                double probabilityWrongfulCausalAttribution = _impactModel.GetWrongfulAttributionProbabilityGivenHiddenState(precautionProgress.LiabilityStrengthDiscrete - 1, precautionProgress.RelativePrecautionLevel);
+                precautionProgress.AccidentWronglyCausallyAttributedToDefendant = r.NextDouble() < probabilityWrongfulCausalAttribution;
+            }
+            else if (precautionProgress.PLiabilitySignalDiscrete == 0)
+            {
+                double[] pDist = _pSignalProbabilitiesGivenDSignal[precautionPowerIndex - 1];
+                precautionProgress.PLiabilitySignalDiscrete = ArrayUtilities.ChooseIndex_OneBasedByte(pDist, r.NextDouble());
+            }
+
+            precautionProgress.ResetPostGameInfo();
+        }
+
         public bool GenerateConsistentGameProgressesWhenNotCollapsing => true;
 
         public List<(GameProgress progress, double weight)> BayesianCalculations_GenerateAllConsistentGameProgresses(byte pLiabilitySignal, byte dLiabilitySignal, byte? cLiabilitySignal, byte pDamagesSignal, byte dDamagesSignal, byte? cDamagesSignal, LitigGameProgress baseProgress)
         {
-            List<(GameProgress progress, double weight)> result = new();
+
+            PrecautionNegligenceProgress precautionProgress = (PrecautionNegligenceProgress)baseProgress;
 
             if (!Options.CollapseChanceDecisions)
             {
-                // DEBUG -- must add wrongful attribution splits
-                return new List<(GameProgress progress, double weight)>() { (baseProgress.DeepCopy(), 1.0) };
+                // Even though we're not collapsing chance decisions, we only had a single chance node to determine
+                // whether an accident occurred, so we don't yet know whether an accident that occurred has been 
+                // wrongfully attributed to the defendant. We work out those calculations here.
+                if (ProbabilityAccidentWrongfulAttribution > 0)
+                {
+                    return DuplicateProgressWithAndWithoutWrongfulAttribution(precautionProgress, 1.0);
+                }
+                else
+                    return new List<(GameProgress progress, double weight)>() { (baseProgress.DeepCopy(), 1.0) };
             }
 
-            PrecautionNegligenceProgress precautionProgress = (PrecautionNegligenceProgress)baseProgress;
+            List<(GameProgress progress, double weight)> result = new();
 
             double[] precautionPowerDistribution = BayesianCalculationOfPrecautionPowerDistribution(precautionProgress);
 
@@ -411,12 +431,58 @@ namespace ACESim // Assuming the ACESim base namespace; adjust if needed
 
             for (int i = 1; i <= precautionPowerDistribution.Length; i++)
             {
-                var copy = baseProgress.DeepCopy();
+                var copy = (PrecautionNegligenceProgress) baseProgress.DeepCopy();
                 copy.LiabilityStrengthDiscrete = (byte) i;
-                result.Add((copy, precautionPowerDistribution[i - 1]));
+                double[] pDist = null;
+                if (precautionProgress.PLiabilitySignalDiscrete == 0)
+                {
+                    pDist = _pSignalProbabilitiesGivenDSignal[copy.LiabilityStrengthDiscrete - 1];
+                }
+                var withAndWithoutWrongfulAttribution = DuplicateProgressWithAndWithoutWrongfulAttribution(copy, precautionPowerDistribution[i - 1]);
+                foreach (var progressWithWeight in withAndWithoutWrongfulAttribution)
+                {
+                    if (pDist == null)
+                        result.Add(progressWithWeight);
+                    else
+                    { // make a different version for each possible p signal
+                        for (int j = 1; i <= pDist.Length; i++)
+                        {
+                            PrecautionNegligenceProgress withPSignal = (PrecautionNegligenceProgress) progressWithWeight.progress.DeepCopy();
+                            withPSignal.PLiabilitySignalDiscrete = (byte)j;
+                            double revisedWeight = progressWithWeight.weight * pDist[j - 1];
+                            result.Add((withPSignal, revisedWeight));
+                        }
+                    }
+                }
             }
 
             return result;
+        }
+
+        private List<(GameProgress progress, double weight)> DuplicateProgressWithAndWithoutWrongfulAttribution(PrecautionNegligenceProgress precautionProgress, double weight)
+        {
+            if (precautionProgress.AccidentOccurs)
+            {
+                double probabilityWrongfulCausalAttribution = _impactModel.GetWrongfulAttributionProbabilityGivenHiddenState(precautionProgress.LiabilityStrengthDiscrete - 1, precautionProgress.RelativePrecautionLevel);
+                var withWrongfulAttribution = (PrecautionNegligenceProgress)precautionProgress.DeepCopy();
+                withWrongfulAttribution.AccidentWronglyCausallyAttributedToDefendant = true;
+                withWrongfulAttribution.ResetPostGameInfo();
+                var withoutWrongfulAttribution = (PrecautionNegligenceProgress)precautionProgress.DeepCopy();
+                withoutWrongfulAttribution.AccidentWronglyCausallyAttributedToDefendant = false;
+                withoutWrongfulAttribution.ResetPostGameInfo();
+                return new List<(GameProgress progress, double weight)>()
+                {
+                    (withWrongfulAttribution, weight * probabilityWrongfulCausalAttribution),
+                    (withoutWrongfulAttribution, weight * (1.0 - probabilityWrongfulCausalAttribution))
+                };
+            }
+            else
+            {
+                return new List<(GameProgress progress, double weight)>()
+                {
+                    (precautionProgress, weight)
+                };
+            }
         }
     }
 }

@@ -1,8 +1,9 @@
-﻿using System;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+﻿using ACESimBase.Games.LitigGame.PrecautionModel;
 using FluentAssertions;
-using ACESimBase.Games.LitigGame.PrecautionModel;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
+using System;
 using System.Linq;
+using System.Reflection;
 
 namespace ACESimTest
 {
@@ -348,6 +349,93 @@ namespace ACESimTest
 
             act.Should().Throw<ArgumentOutOfRangeException>();
         }
+
+        [TestMethod]
+        public void WrongfulProbabilityGivenHiddenMatchesClosedForm()
+        {
+            // --------- reflect into private field precautionPowerFactors -------------
+            var ppField = typeof(PrecautionImpactModel)
+                .GetField("precautionPowerFactors", BindingFlags.NonPublic | BindingFlags.Instance);
+            var powerFactors = (double[])ppField.GetValue(impact);
+
+            const int h = 0;                   // pick any valid hidden state
+            const int k = 1;                   // any precaution level in range
+
+            double pCaused = impact.PAccidentNoPrecaution *
+                             Math.Pow(powerFactors[h], k);
+
+            double pWrongful = (1.0 - pCaused) * impact.PAccidentWrongfulAttribution;
+            double expected = pWrongful / (pCaused + pWrongful);
+
+            double actual =
+                impact.GetWrongfulAttributionProbabilityGivenHiddenState(h, k);
+
+            actual.Should().BeApproximately(expected, 1e-12);
+        }
+
+        [TestMethod]
+        public void PlaintiffSignalPosteriorMixtureIsCorrect()
+        {
+            //------------------------------------------------------------------
+            // 1 · Create a stand-alone signal model with the public constructor
+            //------------------------------------------------------------------
+            const int hiddenStates = 2;     // = numPrecautionPowerLevels
+            const int plaintiffSignals = 2;
+            const int defendantSignals = 2;
+            const int courtSignals = 3;
+
+            const double sigmaPlaintiff = 0.20;
+            const double sigmaDefendant = 0.25;
+            const double sigmaCourt = 0.30;
+
+            var sigModel = new PrecautionSignalModel(
+                numPrecautionPowerLevels: hiddenStates,
+                numPlaintiffSignals: plaintiffSignals,
+                numDefendantSignals: defendantSignals,
+                numCourtSignals: courtSignals,
+                sigmaPlaintiff: sigmaPlaintiff,
+                sigmaDefendant: sigmaDefendant,
+                sigmaCourt: sigmaCourt,
+                includeExtremes: true);   // same default your production code uses
+
+            //------------------------------------------------------------------
+            // 2 · Build a non-degenerate posterior over hidden states
+            //------------------------------------------------------------------
+            double[] posterior = { 0.35, 0.65 };              // must sum to 1
+
+            //------------------------------------------------------------------
+            // 3 · Analytic mixture  ∑ₕ posterior[h] · P(p | h)
+            //------------------------------------------------------------------
+            int P = plaintiffSignals;
+            var expected = new double[P];
+
+            for (int h = 0; h < hiddenStates; h++)
+                for (int p = 0; p < P; p++)
+                    expected[p] += posterior[h] *
+                                   sigModel.GetPlaintiffSignalProbability(h, p);
+
+            //------------------------------------------------------------------
+            // 4 · Call the helper under test
+            //------------------------------------------------------------------
+            double[] actual =
+                sigModel.GetPlaintiffSignalDistributionGivenPosterior(posterior);
+
+            //------------------------------------------------------------------
+            // 5 · Assertions
+            //------------------------------------------------------------------
+            for (int p = 0; p < P; p++)
+                actual[p].Should()
+                         .BeApproximately(expected[p], 1e-12,
+                             $"probability of plaintiffSignal = {p} should match analytic mixture");
+
+            actual.Sum().Should()
+                        .BeApproximately(1.0, 1e-12,
+                             "resulting distribution must be normalised");
+        }
+
+
+
+
 
 
     }

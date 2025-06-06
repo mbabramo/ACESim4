@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using ACESimBase.Util.DiscreteProbabilities;
 
 namespace ACESimBase.Games.LitigGame.PrecautionModel
@@ -230,6 +231,70 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
 
         public double[] GetUnconditionalCourtSignalDistribution() =>
             GetUnconditionalSignalDistribution(CourtIndex);
+
+
+        // === Unconditional calculation of plaintiff signal probability
+
+        /// <summary>
+        /// Fully enumerated distribution P(plaintiffSignal | hidden state).
+        /// Entry <c>p</c> is GetPlaintiffSignalProbability(hidden, p).
+        /// </summary>
+        public double[] GetPlaintiffSignalDistributionGivenHidden(int hidden)
+        {
+            if (hidden < 0 || hidden >= HiddenStatesCount)
+                throw new ArgumentOutOfRangeException(nameof(hidden));
+
+            var dist = new double[NumPSignals];
+            for (int p = 0; p < NumPSignals; p++)
+                dist[p] = GetPlaintiffSignalProbability(hidden, p);
+            return dist;
+        }
+
+        /// <summary>
+        /// Build and return the entire lookup table
+        ///     table[h][p] = P(plaintiffSignal = p | hidden = h).
+        /// Each row is produced by <see cref="GetPlaintiffSignalDistributionGivenHidden"/>.
+        /// </summary>
+        public double[][] GetPlaintiffSignalProbabilityTable()
+        {
+            var table = new double[HiddenStatesCount][];
+
+            for (int h = 0; h < HiddenStatesCount; h++)
+                table[h] = GetPlaintiffSignalDistributionGivenHidden(h);
+
+            return table;
+        }
+
+
+        /// <summary>
+        /// Mixture distribution P(plaintiffSignal | caller’s posterior over hidden states).
+        /// The posterior must be length = HiddenStatesCount and sum to 1.
+        /// </summary>
+        public double[] GetPlaintiffSignalDistributionGivenPosterior(double[] hiddenPosterior)
+        {
+            if (hiddenPosterior == null)
+                throw new ArgumentNullException(nameof(hiddenPosterior));
+            if (hiddenPosterior.Length != HiddenStatesCount)
+                throw new ArgumentException("Posterior length must equal HiddenStatesCount.", nameof(hiddenPosterior));
+
+            var dist = new double[NumPSignals];
+
+            for (int h = 0; h < HiddenStatesCount; h++)
+            {
+                double w = hiddenPosterior[h];
+                if (w == 0.0) continue;
+
+                for (int p = 0; p < NumPSignals; p++)
+                    dist[p] += w * GetPlaintiffSignalProbability(h, p);
+            }
+
+            // numerical guard: renormalise
+            double sum = dist.Sum();
+            if (sum == 0.0) return dist;          // impossible evidence path
+            for (int p = 0; p < NumPSignals; p++)
+                dist[p] /= sum;
+            return dist;
+        }
 
 
         // === Model taking into account accident occurrence ============================

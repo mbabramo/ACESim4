@@ -272,6 +272,37 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
             return denom == 0.0 ? 0.0 : numer / denom;
         }
 
+        /// <summary>
+        /// Probability that an observed accident is wrongfully attributed to the
+        /// defendant, given the *realised* hidden state h* and the precaution level.
+        /// The calculation conditions on the fact that an accident was observed.
+        /// </summary>
+        public double GetWrongfulAttributionProbabilityGivenHiddenState(
+            int hiddenState,
+            int precautionLevel)
+        {
+            ValidatePrecautionLevel(precautionLevel, allowHypothetical: false);
+
+            if (hiddenState < 0 || hiddenState >= HiddenCount)
+                throw new ArgumentOutOfRangeException(nameof(hiddenState));
+
+            // --- real-accident probability for this (h*, k) ---------------------------
+            double pCaused = accidentFuncOverride != null
+                ? accidentFuncOverride(hiddenState, precautionLevel)
+                : PAccidentNoPrecaution *
+                  Math.Pow(precautionPowerFactors[hiddenState], precautionLevel);
+
+            pCaused = Math.Clamp(pCaused, 0.0, 1.0);
+
+            // --- wrongful component & total accident probability ----------------------
+            double pWrongful = (1.0 - pCaused) * PAccidentWrongfulAttribution;
+            double pAccident = pCaused + pWrongful;
+
+            return pAccident == 0.0 ? 0.0 : pWrongful / pAccident;
+        }
+
+
+
 
         // ---------------------- Internal construction -----------------------------
 
