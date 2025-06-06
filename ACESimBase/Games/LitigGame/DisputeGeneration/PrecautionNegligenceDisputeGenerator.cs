@@ -22,6 +22,7 @@ namespace ACESim // Assuming the ACESim base namespace; adjust if needed
 
         public string OptionsString => $"{nameof(CostOfAccident)}: {CostOfAccident} {nameof(MarginalPrecautionCost)}: {MarginalPrecautionCost} {nameof(PrecautionPowerLevels)}: {PrecautionPowerLevels} {nameof(PrecautionLevels)}: {PrecautionLevels} {nameof(PrecautionPowerFactor)}: {PrecautionPowerFactor} {nameof(ProbabilityAccidentNoActivity)}: {ProbabilityAccidentNoActivity} {nameof(ProbabilityAccidentNoPrecaution)}: {ProbabilityAccidentNoPrecaution} {nameof(ProbabilityAccidentWrongfulAttribution)}: {ProbabilityAccidentWrongfulAttribution} {nameof(LiabilityThreshold)}: {LiabilityThreshold} ";
 
+        public double BenefitToDefendantOfActivity = 3.0; // back of the envelope suggests 0.00005 might make the defendant on the borderline of whether to engage in the activity. Set to much higher value to make it so that defendant always engages in the activity
         public double CostOfAccident = 1.0; // normalized harm in the event of an accident
         public double MarginalPrecautionCost = 0.00001; // DEBUG -- try to pick one where the social optimum is roughly half way with a middling precaution power.
         public byte PrecautionPowerLevels = 10; // can be high if we're collapsing chance decisions, since this is the decision that gets collapsed
@@ -157,7 +158,7 @@ namespace ACESim // Assuming the ACESim base namespace; adjust if needed
             list.Add(new("Accident", "ACC", true,
                 (byte)LitigGamePlayers.AccidentChance,
                 new byte[] { (byte)LitigGamePlayers.Plaintiff, (byte)LitigGamePlayers.Defendant, (byte)LitigGamePlayers.CourtLiabilityChance, (byte)LitigGamePlayers.Resolution },
-                (byte)2, /* no accident or accident */
+                (byte)2, /* accident or no accident */
                 (byte)LitigGameDecisions.Accident,
                 unevenChanceActions: true
                 )
@@ -194,7 +195,7 @@ namespace ACESim // Assuming the ACESim base namespace; adjust if needed
         }
 
         public bool MarkCompleteAfterEngageInActivity(LitigGameDefinition g, byte engagesInActivityCode) => engagesInActivityCode == 2;
-        public bool MarkCompleteAfterAccidentDecision(LitigGameDefinition g, byte accidentCode) => accidentCode == 2 && ProbabilityAccidentWrongfulAttribution == 0;
+        public bool MarkCompleteAfterAccidentDecision(LitigGameDefinition g, byte accidentCode) => accidentCode == 2 /* no accident */ && ProbabilityAccidentWrongfulAttribution == 0;
 
         public bool HandleUpdatingGameProgress(LitigGameProgress gameProgress, byte currentDecisionByteCode, byte action)
         {
@@ -253,9 +254,17 @@ namespace ACESim // Assuming the ACESim base namespace; adjust if needed
             return 0 - costs.harmCost - costs.opportunityCost;
         }
 
+        static HashSet<string> DEBUGQ = new HashSet<string>();
+
         public double[] GetLitigationIndependentWealthEffects(LitigGameDefinition gameDefinition, LitigGameStandardDisputeGeneratorActions disputeGeneratorActions, LitigGameProgress gameProgress)
         {
             var costs = GetOpportunityAndHarmCosts(gameDefinition, disputeGeneratorActions, gameProgress);
+            string DEBUG = $"{costs.opportunityCost}, {costs.harmCost}";
+            if (!DEBUGQ.Contains(DEBUG))
+            {
+                Debug.WriteLine(DEBUG);
+                DEBUGQ.Add(DEBUG);
+            }
             return [0 - costs.opportunityCost, 0 - costs.harmCost];
         }
 
@@ -264,10 +273,11 @@ namespace ACESim // Assuming the ACESim base namespace; adjust if needed
             PrecautionNegligenceProgress precautionProgress = (PrecautionNegligenceProgress)gameProgress;
 
             // recalculate this from scratch here, in case there have been changes based on post-game info beng reset
+            var activityForegoneCost = precautionProgress.EngagesInActivity ? 0 : BenefitToDefendantOfActivity;
             var precautionTaken = precautionProgress.RelativePrecautionLevel * MarginalPrecautionCost;
             var harmCost = precautionProgress.AccidentProperlyCausallyAttributedToDefendant ? CostOfAccident : 0; // an accident that is not causally attributable to the defendant is not counted as a cost here, since it's exogenous to the model.
 
-            return (precautionTaken, harmCost);
+            return (activityForegoneCost + precautionTaken, harmCost);
         }
 
         public bool SupportsSymmetry() => false;

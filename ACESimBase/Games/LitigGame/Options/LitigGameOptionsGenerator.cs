@@ -155,16 +155,17 @@ namespace ACESim
             options.CollapseChanceDecisions = false; // DEBUG
 
             options.AllowAbandonAndDefaults = true;
-            options.NumLiabilitySignals = options.NumLiabilityStrengthPoints = options.NumOffers = 5;
+            options.NumLiabilitySignals = options.NumLiabilityStrengthPoints = options.NumOffers = 2; // DEBUG
 
             var disputeGenerator = new PrecautionNegligenceDisputeGenerator();
-            disputeGenerator.PrecautionPowerLevels = 3; // DEBUG 10;
-            disputeGenerator.PrecautionLevels = 3; // DEBUG 5;
+            disputeGenerator.PrecautionPowerLevels = 2; // DEBUG 10; // DEBUG
+            disputeGenerator.PrecautionLevels = 2; // DEBUG 5; 
             disputeGenerator.PrecautionPowerFactor = 0.8; // smaller -> precaution power level makes a bigger difference
             disputeGenerator.PrecautionPowerFactor = 0.8;
             disputeGenerator.ProbabilityAccidentNoActivity = 0.0;
             disputeGenerator.ProbabilityAccidentNoPrecaution = 0.0001;
             disputeGenerator.ProbabilityAccidentWrongfulAttribution = 0.000025;
+            //disputeGenerator.MarginalPrecautionCost = 0.2; // DEBUG
 
             options.LitigGameDisputeGenerator = disputeGenerator;
             

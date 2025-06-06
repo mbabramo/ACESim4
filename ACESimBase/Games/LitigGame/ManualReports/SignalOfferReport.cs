@@ -95,10 +95,19 @@ namespace ACESimBase.Games.LitigGame.ManualReports
             (var pFunction, var pSignals) = useLiabilitySignals ? (pLiabilitySignalFunc, pLiabilitySignals) : (pDamagesSignalFunc, pDamagesSignals);
             (var dFunction, var dSignals) = useLiabilitySignals ? (dLiabilitySignalFunc, dLiabilitySignals) : (dDamagesSignalFunc, dDamagesSignals);
 
-            List<List<(string text, double darkness)>> pContents = new List<List<(string text, double darkness)>>(), dContents = new List<List<(string text, double darkness)>>();
+            // Fallback for missing / invalid plaintiff-side signals
+            if (pSignals == null || pSignals.Count == 0 || pSignals.All(x => x < 0))
+                pSignals = dSignals != null ? new List<double>(dSignals) : new List<double>();
+            if (pSignals.Count < numSignals && pSignals.Count > 0)
+            {
+                double lastValue = pSignals[pSignals.Count - 1];
+                while (pSignals.Count < numSignals)
+                    pSignals.Add(lastValue);
+            }
 
-            List<(string text, double darkness)> pRow = new List<(string text, double darkness)>();
-            List<(string text, double darkness)> dRow = new List<(string text, double darkness)>();
+            List<List<(string text, double darkness)>> pContents = new List<List<(string text, double darkness)>>(), dContents = new List<List<(string text, double darkness)>>();
+            List<(string text, double darkness)> pRow = new List<(string text, double darkness)>(), dRow = new List<(string text, double darkness)>();
+
             // header row
             pRow.Add(("", 0));
             dRow.Add(("", 0));
@@ -120,6 +129,7 @@ namespace ACESimBase.Games.LitigGame.ManualReports
             }
             pContents.Add(pRow);
             dContents.Add(dRow);
+
             // body rows
             for (int signalIndex = 0; signalIndex < numSignals; signalIndex++)
             {
@@ -128,7 +138,6 @@ namespace ACESimBase.Games.LitigGame.ManualReports
                 dRow = new List<(string text, double darkness)>() { (dSignals[signalIndex].ToSignificantFigures(2), 0) };
                 double pSignal = pSignals[signalIndex];
                 double dSignal = dSignals[signalIndex];
-
 
                 (string representation, double darknessValue) GetProportionString(Func<ISignalOfferReportGameProgress, bool> numeratorFunction, Func<ISignalOfferReportGameProgress, bool> denominatorFunction)
                 {
@@ -236,5 +245,8 @@ namespace ACESimBase.Games.LitigGame.ManualReports
             string doc = TikzHelper.GetStandaloneDocument(b.ToString(), new List<string>() { "xcolor" });
             return new List<string>() { doc };
         }
+
+
+
     }
 }
