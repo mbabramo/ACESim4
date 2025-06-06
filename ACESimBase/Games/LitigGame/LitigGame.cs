@@ -43,6 +43,10 @@ namespace ACESim
                     LitigGameProgress.LiabilityStrengthDiscrete = action;
                 break;
                 case (byte)LitigGameDecisions.PLiabilitySignal:
+                    if (((PrecautionNegligenceProgress)LitigGameProgress).AccidentOccurs == false)
+                    {
+                        var DEBUG = 0;
+                    }
                     LitigGameProgress.PLiabilitySignalDiscrete = action;
                     GameProgressLogger.Log(() => $"P: Liability Strength {LitigGameProgress.LiabilityStrengthDiscrete} => signal {LitigGameProgress.PLiabilitySignalDiscrete}");
                 break;

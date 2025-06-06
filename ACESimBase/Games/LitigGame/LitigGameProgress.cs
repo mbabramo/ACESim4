@@ -512,7 +512,8 @@ namespace ACESim
                 TrialOccurs = outcome.TrialOccurs;
                 NumChips = outcome.NumChips;
 
-                if (options.CollapseChanceDecisions)
+                bool doWorkBackwardsCalculations = false; // we need some way to get this to true if we are doing random paths instead of all paths
+                if (options.CollapseChanceDecisions && doWorkBackwardsCalculations)
                     options.LitigGameDisputeGenerator.BayesianCalculations_WorkBackwardsFromSignals(this, options.NumLiabilitySignals == 1 ? (byte) 1 : PLiabilitySignalDiscrete, options.NumLiabilitySignals == 1 ? (byte) 1 : DLiabilitySignalDiscrete, options.NumLiabilitySignals == 1 ? 1 : CLiabilitySignalDiscrete, options.NumDamagesSignals == 1 ? (byte) 1 : PDamagesSignalDiscrete, options.NumDamagesSignals == 1 ? (byte) 1 : DDamagesSignalDiscrete, options.NumDamagesSignals == 1 ? 1 : CDamagesSignalDiscrete, IterationID.IterationNumIntUnchecked);
             }
             else

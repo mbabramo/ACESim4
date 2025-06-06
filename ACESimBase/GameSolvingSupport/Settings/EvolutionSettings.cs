@@ -55,7 +55,7 @@ namespace ACESimBase.GameSolvingSupport.Settings
         public double PerturbationForBestResponseCalculation = 0.001;
         public int? MiniReportEveryPIterations = 1000;
         public bool MeasureRegretMatchingChanges = false;
-        public bool UseRandomPathsForReporting = false;
+        public bool UseRandomPathsForReporting = false; // NOTE: If doing this, then we may need to fix it so that doWorkBackwardsCalculations is true, but only when doing random paths. 
         public bool RoundOffLowProbabilitiesBeforeReporting = true;
         public bool RoundOffLowProbabilitiesBeforeAcceleratedBestResponse = true;
         public bool RecalculateScoreReachWhenCalculatingBestResponseImprovement = false;

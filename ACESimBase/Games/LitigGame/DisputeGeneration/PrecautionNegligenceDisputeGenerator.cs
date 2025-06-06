@@ -394,10 +394,13 @@ namespace ACESim // Assuming the ACESim base namespace; adjust if needed
                 double probabilityWrongfulCausalAttribution = _impactModel.GetWrongfulAttributionProbabilityGivenHiddenState(precautionProgress.LiabilityStrengthDiscrete - 1, precautionProgress.RelativePrecautionLevel);
                 precautionProgress.AccidentWronglyCausallyAttributedToDefendant = r.NextDouble() < probabilityWrongfulCausalAttribution;
             }
-            else if (precautionProgress.PLiabilitySignalDiscrete == 0)
+            else
             {
-                double[] pDist = _pSignalProbabilitiesGivenDSignal[precautionPowerIndex - 1];
-                precautionProgress.PLiabilitySignalDiscrete = ArrayUtilities.ChooseIndex_OneBasedByte(pDist, r.NextDouble());
+                if (precautionProgress.PLiabilitySignalDiscrete == 0)
+                {
+                    double[] pDist = _pSignalProbabilitiesGivenDSignal[precautionPowerIndex - 1];
+                    precautionProgress.PLiabilitySignalDiscrete = ArrayUtilities.ChooseIndex_OneBasedByte(pDist, r.NextDouble());
+                }
             }
 
             precautionProgress.ResetPostGameInfo();
@@ -445,7 +448,7 @@ namespace ACESim // Assuming the ACESim base namespace; adjust if needed
                         result.Add(progressWithWeight);
                     else
                     { // make a different version for each possible p signal
-                        for (int j = 1; i <= pDist.Length; i++)
+                        for (int j = 1; j <= pDist.Length; j++)
                         {
                             PrecautionNegligenceProgress withPSignal = (PrecautionNegligenceProgress) progressWithWeight.progress.DeepCopy();
                             withPSignal.PLiabilitySignalDiscrete = (byte)j;
