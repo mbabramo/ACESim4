@@ -265,7 +265,7 @@ namespace ACESim // Assuming the ACESim base namespace; adjust if needed
                 Debug.WriteLine(DEBUG);
                 DEBUGQ.Add(DEBUG);
             }
-            return [0 - costs.opportunityCost, 0 - costs.harmCost];
+            return [0 - costs.harmCost, 0 - costs.opportunityCost];
         }
 
         public (double opportunityCost, double harmCost) GetOpportunityAndHarmCosts(LitigGameDefinition gameDefinition, LitigGameStandardDisputeGeneratorActions disputeGeneratorActions, LitigGameProgress gameProgress)
