@@ -487,6 +487,7 @@ namespace ACESim
 
         public override void FinalProcessing()
         {
+            LitigGameProgress.ResetPostGameInfo();
             LitigGameProgress.CalculateGameOutcome();
 
             base.FinalProcessing();

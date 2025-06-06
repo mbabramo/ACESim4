@@ -191,11 +191,11 @@ namespace ACESim // Assuming the ACESim base namespace; adjust if needed
         public bool PotentialDisputeArises(LitigGameDefinition gameDef, LitigGameStandardDisputeGeneratorActions acts, LitigGameProgress gameProgress)
         {
             PrecautionNegligenceProgress precautionProgress = (PrecautionNegligenceProgress)gameProgress;
-            return precautionProgress.EngagesInActivity && (precautionProgress.AccidentOccurs || ProbabilityAccidentWrongfulAttribution > 0);
+            return precautionProgress.EngagesInActivity && precautionProgress.AccidentOccurs;
         }
 
         public bool MarkCompleteAfterEngageInActivity(LitigGameDefinition g, byte engagesInActivityCode) => engagesInActivityCode == 2;
-        public bool MarkCompleteAfterAccidentDecision(LitigGameDefinition g, byte accidentCode) => accidentCode == 2 /* no accident */ && ProbabilityAccidentWrongfulAttribution == 0;
+        public bool MarkCompleteAfterAccidentDecision(LitigGameDefinition g, byte accidentCode) => accidentCode == 2 /* no accident */; // Note that no accident means no accident of any kind, including a wrongfully attributed accident
 
         public bool HandleUpdatingGameProgress(LitigGameProgress gameProgress, byte currentDecisionByteCode, byte action)
         {
@@ -221,7 +221,7 @@ namespace ACESim // Assuming the ACESim base namespace; adjust if needed
                     // wrongfully attributed to the defendant. But when reporting, we would like to separate out the cases in 
                     // which there was and wasn't wrongful attribution, so that we can have graphics that separate out these
                     // two sets of cases. We can do that based on information later, taking into account the precaution level.
-                    if (!accidentOccurs && ProbabilityAccidentWrongfulAttribution == 0)
+                    if (!accidentOccurs)
                         gameProgress.GameComplete = true;
                     break;
                 default:
@@ -236,7 +236,7 @@ namespace ACESim // Assuming the ACESim base namespace; adjust if needed
             GameProgress gameProgress)
         {
             PrecautionNegligenceProgress precautionProgress = (PrecautionNegligenceProgress)gameProgress;
-            bool isTrulyLiable = _impactModel.IsTrulyLiable(precautionProgress.LiabilityStrengthDiscrete, precautionProgress.RelativePrecautionLevel);
+            bool isTrulyLiable = _impactModel.IsTrulyLiable(precautionProgress.LiabilityStrengthDiscrete - 1, precautionProgress.RelativePrecautionLevel);
             return isTrulyLiable;
         }
 
@@ -334,10 +334,11 @@ namespace ACESim // Assuming the ACESim base namespace; adjust if needed
             if (Options.CollapseChanceDecisions)
             {
                 double[] pr = _courtDecisionModel.GetLiabilityOutcomeProbabilities(
-                     gameProgress.PLiabilitySignalDiscrete - 1,   // zero-based
+                     gameProgress.PLiabilitySignalDiscrete - 1,   // make zero-based
                      gameProgress.DLiabilitySignalDiscrete - 1,
                      gameProgress.AccidentOccurs,
-                     gameProgress.RelativePrecautionLevel);
+                     gameProgress.RelativePrecautionLevel // already zero-based
+                     );
 
                 return pr;
             }
@@ -372,7 +373,7 @@ namespace ACESim // Assuming the ACESim base namespace; adjust if needed
         {
             Random r = new Random(randomSeed);
             PrecautionNegligenceProgress precautionProgress = (PrecautionNegligenceProgress)gameProgress;
-            double[] precautionPowerDistribution = precautionProgress.EngagesInActivity ? _courtDecisionModel.GetHiddenPosteriorFromPath(precautionProgress.PLiabilitySignalDiscrete - 1, precautionProgress.DLiabilitySignalDiscrete - 1, precautionProgress.AccidentOccurs, precautionProgress.RelativePrecautionLevel, precautionProgress.TrialOccurs ? precautionProgress.PWinsAtTrial : null) : _courtDecisionModel.GetHiddenPosteriorFromDefendantSignal(precautionProgress.DLiabilitySignalDiscrete - 1);
+            double[] precautionPowerDistribution = precautionProgress.EngagesInActivity ? _courtDecisionModel.GetHiddenPosteriorFromPath(precautionProgress.PLiabilitySignalDiscrete - 1, precautionProgress.DLiabilitySignalDiscrete - 1, precautionProgress.AccidentOccurs, precautionProgress.RelativePrecautionLevel /* already zero-based */, precautionProgress.TrialOccurs ? precautionProgress.PWinsAtTrial : null) : _courtDecisionModel.GetHiddenPosteriorFromDefendantSignal(precautionProgress.DLiabilitySignalDiscrete - 1);
 
             // DEBUG -- handle wrongful attribution issue
 
@@ -396,7 +397,7 @@ namespace ACESim // Assuming the ACESim base namespace; adjust if needed
             PrecautionNegligenceProgress precautionProgress = (PrecautionNegligenceProgress)baseProgress;
             double[] precautionPowerDistribution;
             if (precautionProgress.EngagesInActivity)
-                precautionPowerDistribution = _courtDecisionModel.GetHiddenPosteriorFromPath(precautionProgress.PLiabilitySignalDiscrete - 1, precautionProgress.DLiabilitySignalDiscrete - 1, precautionProgress.AccidentOccurs, precautionProgress.RelativePrecautionLevel, precautionProgress.TrialOccurs ? precautionProgress.PWinsAtTrial : null);
+                precautionPowerDistribution = _courtDecisionModel.GetHiddenPosteriorFromPath(precautionProgress.PLiabilitySignalDiscrete - 1, precautionProgress.DLiabilitySignalDiscrete - 1, precautionProgress.AccidentOccurs, precautionProgress.RelativePrecautionLevel /* already zero-based */, precautionProgress.TrialOccurs ? precautionProgress.PWinsAtTrial : null);
             else
                 precautionPowerDistribution = _courtDecisionModel.GetHiddenPosteriorFromDefendantSignal(precautionProgress.DLiabilitySignalDiscrete - 1);
 

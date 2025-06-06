@@ -92,6 +92,8 @@ namespace ACESimBase.Games.LitigGame.ManualReports
     double rightAxisTop,
     bool splitRareHarmPanel = true)
         {
+            var DEBUG = raw.Select(x => x.p.OpportunityCost).ToList();
+            var DEBUG2 = raw.Select(x => x.p.DisputeArises).ToList();
             var slices = ToNormalizedSlices(raw, rightAxisTop);
             bool useSplit = splitRareHarmPanel && HasTwoPanels(slices);
 

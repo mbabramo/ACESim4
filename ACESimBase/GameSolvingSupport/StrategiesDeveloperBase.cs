@@ -3194,6 +3194,9 @@ namespace ACESim
                 // play each path and then asynchronously consume the result, including the probability of the game path
                 List<byte> actions = completedGame.ShallowCopyToRefStruct().GetActionsToHere(Navigation);
                 (GameProgress progress, _) = player.PlayPath(actions, false);
+                var DEBUG = (PrecautionNegligenceProgress)progress;
+                var DEBUG2a = DEBUG._PostGameInfo;
+                var DEBUG2 = DEBUG.OpportunityCost;
                 // do the simple aggregation of utilities. note that this is different from the value returned by vanilla, since that uses regret matching, instead of average strategies.
                 double[] utilities = GetUtilities(in completedGame);
                 UtilityCalculationsArray.Add(utilities, probabilityOfPath);
@@ -3244,6 +3247,8 @@ namespace ACESim
                     }
                 }
             }
+            var DEBUG = SavedWeightedGameProgresses.Select(x => ((PrecautionNegligenceProgress)x.theProgress, x.weight)).ToList();
+            var DEBUG2 = DEBUG.Select(x => (x.Item1.AccidentOccurs, x.Item1.RelativePrecautionLevel, x.Item1.OpportunityCost)).ToList();
         }
 
         public ReportCollection GenerateReportFromSavedWeightedGameProgresses(bool clearSaved)

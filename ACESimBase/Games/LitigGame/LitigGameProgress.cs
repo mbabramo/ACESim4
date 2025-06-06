@@ -563,7 +563,7 @@ namespace ACESim
             DDamagesSignalUniform = o.NumDamagesSignals == 1 ? 0.5 : DDamagesSignalDiscrete * (1.0 / o.NumDamagesSignals);
 
             TotalExpensesIncurred = 0 - PChangeWealth - DChangeWealth;
-            if (!DisputeArises)
+            if (!DisputeArises && o.LitigGameDisputeGenerator is LitigGameExogenousDisputeGenerator)
             {
                 FalseNegativeShortfall = 0;
                 FalsePositiveExpenditures = 0;
