@@ -1230,7 +1230,7 @@ namespace ACESim
                 utilitiesStats.Add(compoundUtilities);
                 customStatsStats.Add(customStats);
                 if (printAndTimeEachCalculation)
-                    TabbedText.WriteLine($"Data input {utilIndex}: {principalComponentWeightsString} utilities: {compoundUtilities.ToSignificantFigures(4)} customStats (same for each post-warmup scenario): {customStats.ToSignificantFigures(4)}"); // same for each post-warmup scenario because here we are using the same principal component weights to detemrine strategy; the only thing that's changing is utilities.
+                    TabbedText.WriteLine($"Data input {utilIndex}: {principalComponentWeightsString} utilities: {compoundUtilities.ToSignificantFigures(6)} customStats (same for each post-warmup scenario): {customStats.ToSignificantFigures(6)}"); // same for each post-warmup scenario because here we are using the same principal component weights to detemrine strategy; the only thing that's changing is utilities.
             }
             TabbedText.WriteLine($"Average ms per each of {numUtilitiesToCalculateToBuildModel} utilities to calculate: {timeStats.Average().ToSignificantFigures(3)} (total time: {outerStopwatch.ElapsedMilliseconds})");
             TabbedText.WriteLine($"utilities {utilitiesStats.ToString()} custom stats {customStatsStats.ToString()}");
@@ -1259,7 +1259,7 @@ namespace ACESim
                 ultimateResult = (treeWalkResult.utilities, treeWalkResult.customResult.AsDoubleArray());
             }
             if (reportResults)
-                TabbedText.WriteLine($"({ultimateResult.utilities.ToSignificantFigures(4)}; customResults: {ultimateResult.customStats.ToSignificantFigures(4)} time {s.ElapsedMilliseconds} ms");
+                TabbedText.WriteLine($"({ultimateResult.utilities.ToSignificantFigures(6)}; customResults: {ultimateResult.customStats.ToSignificantFigures(6)} time {s.ElapsedMilliseconds} ms");
             return Task.FromResult(ultimateResult);
         }
 
@@ -3241,6 +3241,8 @@ namespace ACESim
                     }
                 }
             }
+            var DEBUG = SavedWeightedGameProgresses.Select(x => (x.weight, ((PrecautionNegligenceProgress)x.theProgress).PFinalWealth, ((PrecautionNegligenceProgress)x.theProgress).DFinalWealth)).ToList();
+            var DEBUG2 = DEBUG.Select(x => x.weight).Sum();
         }
 
         public ReportCollection GenerateReportFromSavedWeightedGameProgresses(bool clearSaved)

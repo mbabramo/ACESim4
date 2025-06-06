@@ -35,7 +35,7 @@ namespace ACESimBase.GameSolvingSupport.GameTree
 
         public string GetActionProbabilityString(int distributorChanceInputs) => string.Join(",", GetActionProbabilityStrings(distributorChanceInputs));
 
-        public IEnumerable<string> GetActionProbabilityStrings(int distributorChanceInputs = -1) => GetActionProbabilities(distributorChanceInputs).Select(x => x.ToSignificantFigures(4));
+        public IEnumerable<string> GetActionProbabilityStrings(int distributorChanceInputs = -1) => GetActionProbabilities(distributorChanceInputs).Select(x => x.ToSignificantFigures(6));
 
         public IEnumerable<double> GetActionProbabilities(int distributorChanceInputs = -1) => Enumerable.Range(1, Decision.NumPossibleActions).Select(action => GetActionProbability(action, distributorChanceInputs));
 

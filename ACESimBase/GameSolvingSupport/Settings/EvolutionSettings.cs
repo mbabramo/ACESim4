@@ -71,7 +71,7 @@ namespace ACESimBase.GameSolvingSupport.Settings
         // Sequence Form settings
         public int SequenceFormNumPriorsToUseToGenerateEquilibria = 50; // Potentially we may end up with this many equilibria, but often different priors lead to the same equilibrium
         public static int MaxIntegralUtility = 100_000; // We need to convert payoffs to integers with some desired range (e.g., 0 to 1,000,000). A greater range produces greater precision. Note that ECTA will further change the payoffs so that they're all negative. Note that in one experiment, switching from 1,000 to 10,000 on average doubled the amount of time required.
-        public static int RoundOffChanceDigits = 5; // Chance numbers will also be converted to rational numbers. The digits might be the same as above.
+        public static int RoundOffChanceDigits = 6; // Chance numbers will also be converted to rational numbers. The digits might be the same as above.
         public bool IdentifyPressureOnInformationSets = false; // currently called only for sequence form
         public bool ConfirmPerfectEquilibria = true; // for sequence form only
         public bool ThrowIfNotPerfectEquilibrium = true;

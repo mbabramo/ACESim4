@@ -290,19 +290,22 @@ namespace ACESim
         {
             LitigGameOutcome outcome = new LitigGameOutcome();
 
-            double[] changeWealthOutsideLitigation = gameDefinition.Options.LitigGameDisputeGenerator.GetLitigationIndependentWealthEffects(gameDefinition, disputeGeneratorActions, gameProgress);
+            LitigGameOptions options = gameDefinition.Options;
+            ILitigGameDisputeGenerator dispGen = options.LitigGameDisputeGenerator;
+
+            double[] changeWealthOutsideLitigation = dispGen.GetLitigationIndependentWealthEffects(gameDefinition, disputeGeneratorActions, gameProgress);
             double pWealthAfterPrimaryConduct = pInitialWealth + changeWealthOutsideLitigation[0];
             double dWealthAfterPrimaryConduct = dInitialWealth + changeWealthOutsideLitigation[1];
 
-            if (!pFiles || pAbandons)
+            if ((!pFiles && !options.SkipFileAndAnswerDecisions) || pAbandons)
             {
                 outcome.PChangeWealth = outcome.DChangeWealth = 0;
                 outcome.TrialOccurs = false;
             }
-            else if (!dAnswers || dDefaults)
+            else if ((!dAnswers && !options.SkipFileAndAnswerDecisions) || dDefaults)
             { // defendant pays full damages (but no trial costs)
-                outcome.PChangeWealth += gameDefinition.Options.DamagesMax * gameDefinition.Options.DamagesMultiplier;
-                outcome.DChangeWealth -= gameDefinition.Options.DamagesMax * gameDefinition.Options.DamagesMultiplier;
+                outcome.PChangeWealth += options.DamagesMax * options.DamagesMultiplier;
+                outcome.DChangeWealth -= options.DamagesMax * options.DamagesMultiplier;
                 outcome.TrialOccurs = false;
             }
             else if (settlementValue != null)
@@ -320,38 +323,38 @@ namespace ACESim
                 outcome.PWinsAtTrial = pWinsAtTrial;
             }
 
-            if (gameDefinition.Options.LitigGamePretrialDecisionGeneratorGenerator != null)
+            if (options.LitigGamePretrialDecisionGeneratorGenerator != null)
             {
-                gameDefinition.Options.LitigGamePretrialDecisionGeneratorGenerator.GetEffectOnPlayerWelfare(gameDefinition, outcome.TrialOccurs, pWinsAtTrial, gameDefinition.Options.DamagesMax * gameDefinition.Options.DamagesMultiplier, pretrialActions, out double effectOnP, out double effectOnD);
+                options.LitigGamePretrialDecisionGeneratorGenerator.GetEffectOnPlayerWelfare(gameDefinition, outcome.TrialOccurs, pWinsAtTrial, options.DamagesMax * options.DamagesMultiplier, pretrialActions, out double effectOnP, out double effectOnD);
                 outcome.PChangeWealth += effectOnP;
                 outcome.DChangeWealth += effectOnD;
             }
 
             double trialCostsMultiplier = 1.0;
-            if (gameDefinition.Options.LitigGameRunningSideBets != null)
+            if (options.LitigGameRunningSideBets != null)
             {
                 byte? roundOfAbandonment = (pAbandons || dDefaults) ? (byte?)bargainingRoundsComplete : null;
-                gameDefinition.Options.LitigGameRunningSideBets.GetEffectOnPlayerWelfare(gameDefinition, roundOfAbandonment, pAbandons, dDefaults, outcome.TrialOccurs, pWinsAtTrial, runningSideBetActions, out double effectOnP, out double effectOnD, out byte totalChipsThatCount);
+                options.LitigGameRunningSideBets.GetEffectOnPlayerWelfare(gameDefinition, roundOfAbandonment, pAbandons, dDefaults, outcome.TrialOccurs, pWinsAtTrial, runningSideBetActions, out double effectOnP, out double effectOnD, out byte totalChipsThatCount);
                 outcome.PChangeWealth += effectOnP;
                 outcome.DChangeWealth += effectOnD;
                 outcome.NumChips = totalChipsThatCount;
                 if (outcome.TrialOccurs)
-                    trialCostsMultiplier = gameDefinition.Options.LitigGameRunningSideBets.GetTrialCostsMultiplier(gameDefinition, totalChipsThatCount);
+                    trialCostsMultiplier = options.LitigGameRunningSideBets.GetTrialCostsMultiplier(gameDefinition, totalChipsThatCount);
             }
 
-            if (gameDefinition.Options.ShootoutSettlements)
+            if (options.ShootoutSettlements)
             {
-                if (gameDefinition.Options.IncludeAgreementToBargainDecisions)
+                if (options.IncludeAgreementToBargainDecisions)
                     throw new NotSupportedException(); // shootout settlements require bargaining
                 bool abandoned = (pAbandons || dDefaults);
-                bool abandonedAfterLastRound = abandoned && bargainingRoundsComplete == gameDefinition.Options.NumPotentialBargainingRounds;
-                bool applyShootout = outcome.TrialOccurs || (abandonedAfterLastRound && gameDefinition.Options.ShootoutsApplyAfterAbandonment) || (abandoned && gameDefinition.Options.ShootoutsApplyAfterAbandonment && gameDefinition.Options.ShootoutOfferValueIsAveraged);
+                bool abandonedAfterLastRound = abandoned && bargainingRoundsComplete == options.NumPotentialBargainingRounds;
+                bool applyShootout = outcome.TrialOccurs || (abandonedAfterLastRound && options.ShootoutsApplyAfterAbandonment) || (abandoned && options.ShootoutsApplyAfterAbandonment && options.ShootoutOfferValueIsAveraged);
                 if (applyShootout)
                 {
                     double shootoutOffer;
-                    if (gameDefinition.Options.BargainingRoundsSimultaneous)
+                    if (options.BargainingRoundsSimultaneous)
                     {
-                        if (gameDefinition.Options.ShootoutOfferValueIsAveraged)
+                        if (options.ShootoutOfferValueIsAveraged)
                         {
                             double averagePOffer = pOffers.Average();
                             double averageDOffer = dOffers.Average();
@@ -367,7 +370,7 @@ namespace ACESim
                     else
                     {
                         List<double> applicableOffers = new List<double>();
-                        if (gameDefinition.Options.ShootoutOfferValueIsAveraged)
+                        if (options.ShootoutOfferValueIsAveraged)
                         {
                             if (pOffers != null)
                                 applicableOffers.AddRange(pOffers);
@@ -383,28 +386,28 @@ namespace ACESim
                         }
                         shootoutOffer = applicableOffers.Average();
                     }
-                    double shootoutStrength = gameDefinition.Options.ShootoutStrength;
-                    double costToP = shootoutOffer * gameDefinition.Options.DamagesMax * gameDefinition.Options.DamagesMultiplier * shootoutStrength;
-                    double extraDamages = (dDefaults ? gameDefinition.Options.DamagesMax * gameDefinition.Options.DamagesMultiplier : (damagesAwarded ?? 0)) * shootoutStrength;
+                    double shootoutStrength = options.ShootoutStrength;
+                    double costToP = shootoutOffer * options.DamagesMax * options.DamagesMultiplier * shootoutStrength;
+                    double extraDamages = (dDefaults ? options.DamagesMax * options.DamagesMultiplier : (damagesAwarded ?? 0)) * shootoutStrength;
                     double netBenefitToP = extraDamages - costToP;
                     outcome.PChangeWealth += netBenefitToP;
                     outcome.DChangeWealth -= netBenefitToP;
                 }
             }
 
-            double costsMultiplier = gameDefinition.Options.CostsMultiplier;
+            double costsMultiplier = options.CostsMultiplier;
             double pFilingCostIncurred = 0;
             if (pFiles)
             {
-                pFilingCostIncurred = gameDefinition.Options.PFilingCost * costsMultiplier;
+                pFilingCostIncurred = options.PFilingCost * costsMultiplier;
                 if (!dAnswers)
-                    pFilingCostIncurred -= pFilingCostIncurred * gameDefinition.Options.PFilingCost_PortionSavedIfDDoesntAnswer;
+                    pFilingCostIncurred -= pFilingCostIncurred * options.PFilingCost_PortionSavedIfDDoesntAnswer;
             }
-            double dAnswerCostIncurred = dAnswers ? gameDefinition.Options.DAnswerCost * costsMultiplier : 0;
-            double pTrialCostsIncurred = outcome.TrialOccurs ? gameDefinition.Options.PTrialCosts * costsMultiplier * trialCostsMultiplier : 0;
-            double dTrialCostsIncurred = outcome.TrialOccurs ? gameDefinition.Options.DTrialCosts * costsMultiplier * trialCostsMultiplier : 0;
+            double dAnswerCostIncurred = dAnswers ? options.DAnswerCost * costsMultiplier : 0;
+            double pTrialCostsIncurred = outcome.TrialOccurs ? options.PTrialCosts * costsMultiplier * trialCostsMultiplier : 0;
+            double dTrialCostsIncurred = outcome.TrialOccurs ? options.DTrialCosts * costsMultiplier * trialCostsMultiplier : 0;
             double pBargainingCostsIncurred = 0, dBargainingCostsIncurred = 0;
-            if (gameDefinition.Options.RoundSpecificBargainingCosts is (double pCosts, double dCosts)[] roundSpecific)
+            if (options.RoundSpecificBargainingCosts is (double pCosts, double dCosts)[] roundSpecific)
             {
                 for (int i = 0; i < bargainingRoundsComplete; i++)
                 {
@@ -414,14 +417,14 @@ namespace ACESim
             }
             else
             {
-                pBargainingCostsIncurred = dBargainingCostsIncurred = gameDefinition.Options.PerPartyCostsLeadingUpToBargainingRound * costsMultiplier * bargainingRoundsComplete;
+                pBargainingCostsIncurred = dBargainingCostsIncurred = options.PerPartyCostsLeadingUpToBargainingRound * costsMultiplier * bargainingRoundsComplete;
             }
             double pCostsInitiallyIncurred = pFilingCostIncurred + pBargainingCostsIncurred + pTrialCostsIncurred;
             double dCostsInitiallyIncurred = dAnswerCostIncurred + dBargainingCostsIncurred + dTrialCostsIncurred;
             double pEffectOfExpenses = 0, dEffectOfExpenses = 0;
             bool loserPaysApplies = false;
             bool punishPlaintiffUnderRule68 = false;
-            if (gameDefinition.Options.Rule68 && outcome.TrialOccurs && outcome.PWinsAtTrial)
+            if (options.Rule68 && outcome.TrialOccurs && outcome.PWinsAtTrial)
             {
                 if (dOffers != null && dOffers.Any())
                 { // there might not be offers if there was a refusal to bargain or if plaintiff is giving an offer and defendant is replying
@@ -429,11 +432,11 @@ namespace ACESim
                     punishPlaintiffUnderRule68 = rule68Offer >= damagesAwarded; // NOTE: We are saying punish plaintiff if amount ends up being equal. But this will not occur if the only issue is liability.
                 }
             }
-            if (gameDefinition.Options.LoserPays && gameDefinition.Options.LoserPaysMultiple > 0)
+            if (options.LoserPays && options.LoserPaysMultiple > 0)
             {
-                loserPaysApplies = ((outcome.TrialOccurs && (!gameDefinition.Options.LoserPaysOnlyLargeMarginOfVictory || largeMarginAtTrial)) 
+                loserPaysApplies = ((outcome.TrialOccurs && (!options.LoserPaysOnlyLargeMarginOfVictory || largeMarginAtTrial)) 
                     || 
-                    (gameDefinition.Options.LoserPaysAfterAbandonment && (pAbandons || dDefaults)));
+                    options.LoserPaysAfterAbandonment && (pAbandons || dDefaults));
                 // NOTE: If punishPlaintiffUnderRule68, then plaintiff has won and usually would be entitled to fee shifting, but because of Rule 68, now defendant is entitled to fee shifting. So, loser pays still applies.
             }
             else
@@ -445,7 +448,7 @@ namespace ACESim
             }
             if (loserPaysApplies)
             { // British Rule and it applies (contested litigation and no settlement) -- or punishing plaintiff under Rule 68 despite American rule, in which case we still use the loser pays multiple
-                double loserPaysMultiple = gameDefinition.Options.LoserPaysMultiple;
+                double loserPaysMultiple = options.LoserPaysMultiple;
                 bool pLoses = (outcome.TrialOccurs && !pWinsAtTrial) || pAbandons;
                 if (pLoses || punishPlaintiffUnderRule68)
                 {
@@ -471,17 +474,17 @@ namespace ACESim
             outcome.DFinalWealth = dWealthAfterPrimaryConduct + outcome.DChangeWealth;
             double pPerceivedFinalWealth = outcome.PFinalWealth;
             double dPerceivedFinalWealth = outcome.DFinalWealth;
-            if (gameDefinition.Options.RegretAversion != 0)
+            if (options.RegretAversion != 0)
             {
                 if (pFinalWealthWithBestOffer > outcome.PFinalWealth)
-                    pPerceivedFinalWealth -= gameDefinition.Options.RegretAversion * ((double) pFinalWealthWithBestOffer - outcome.PFinalWealth);
+                    pPerceivedFinalWealth -= options.RegretAversion * ((double) pFinalWealthWithBestOffer - outcome.PFinalWealth);
                 if (dFinalWealthWithBestOffer > outcome.DFinalWealth)
-                    dPerceivedFinalWealth -= gameDefinition.Options.RegretAversion * ((double)dFinalWealthWithBestOffer - outcome.DFinalWealth);
+                    dPerceivedFinalWealth -= options.RegretAversion * ((double)dFinalWealthWithBestOffer - outcome.DFinalWealth);
             }
             outcome.PWelfare =
-                gameDefinition.Options.PUtilityCalculator.GetSubjectiveUtilityForWealthLevel(pPerceivedFinalWealth);
+                options.PUtilityCalculator.GetSubjectiveUtilityForWealthLevel(pPerceivedFinalWealth);
             outcome.DWelfare =
-                gameDefinition.Options.DUtilityCalculator.GetSubjectiveUtilityForWealthLevel(dPerceivedFinalWealth);
+                options.DUtilityCalculator.GetSubjectiveUtilityForWealthLevel(dPerceivedFinalWealth);
             return outcome;
         }
 
