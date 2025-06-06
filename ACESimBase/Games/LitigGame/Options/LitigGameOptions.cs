@@ -237,11 +237,11 @@ namespace ACESim
         /// <summary>
         /// The minimum amount of damages that a plaintiff might be awarded (ignoring any damages multiplier)
         /// </summary>
-        public double DamagesMin;
+        public double DamagesMin { get; set; }
         /// <summary>
         /// The maximum amount of damages that a plaintiff might be awarded (ignoring any damages multiplier)
         /// </summary>
-        public double DamagesMax;
+        public double DamagesMax { get; set; }
         /// <summary>
         /// A multiplier to be applied to damages awarded to the plaintiff. This can be used to model punitive damages or other multipliers. This does not count as the "correct" value in calculating false positive or false negative inaccuracy. 
         public double DamagesMultiplier = 1.0; 

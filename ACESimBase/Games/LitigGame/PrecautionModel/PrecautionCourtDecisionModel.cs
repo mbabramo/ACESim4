@@ -308,6 +308,44 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
         }
 
         /// <summary>
+        /// Posterior P(hidden | defendantSignal, no accident, precautionLevel).
+        /// Use when the activity was undertaken, no accident occurred, and the
+        /// game ended immediately.
+        /// </summary>
+        public double[] GetHiddenPosteriorFromNoAccidentScenario(
+            int defendantSignal,
+            int precautionLevel)
+        {
+            int H = signal.HiddenStatesCount;
+            var posterior = new double[H];
+
+            double uniformPrior = 1.0 / H;
+            double totalWeight = 0.0;
+
+            for (int h = 0; h < H; h++)
+            {
+                double w =
+                    uniformPrior *
+                    signal.GetDefendantSignalProbability(h, defendantSignal);
+
+                double pAcc = impact.GetAccidentProbability(h, precautionLevel);
+                w *= 1.0 - pAcc;                     // evidence: accident did NOT occur
+
+                posterior[h] = w;
+                totalWeight += w;
+            }
+
+            if (totalWeight == 0.0)
+                return posterior;                    // impossible evidence → all zeros
+
+            for (int h = 0; h < H; h++)
+                posterior[h] /= totalWeight;
+
+            return posterior;
+        }
+
+
+        /// <summary>
         /// Posterior distribution over hidden precaution-power states when
         ///  • the defendant observed <paramref name="defendantSignal"/> and decided
         ///    not to engage in the activity,

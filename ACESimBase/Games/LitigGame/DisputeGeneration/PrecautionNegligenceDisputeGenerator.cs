@@ -24,7 +24,7 @@ namespace ACESim // Assuming the ACESim base namespace; adjust if needed
 
         public double BenefitToDefendantOfActivity = 3.0; // back of the envelope suggests 0.00005 might make the defendant on the borderline of whether to engage in the activity. Set to much higher value to make it so that defendant always engages in the activity
         public double CostOfAccident = 1.0; // normalized harm in the event of an accident
-        public double MarginalPrecautionCost = 0.00001; // DEBUG -- try to pick one where the social optimum is roughly half way with a middling precaution power.
+        public double MarginalPrecautionCost = 0.00001;
         public byte PrecautionPowerLevels = 10; // can be high if we're collapsing chance decisions, since this is the decision that gets collapsed
         public byte PrecautionLevels = 5;
         public double PrecautionPowerFactor = 0.8;
@@ -101,7 +101,7 @@ namespace ACESim // Assuming the ACESim base namespace; adjust if needed
                 new byte[] { (byte)LitigGamePlayers.Defendant, (byte)LitigGamePlayers.AccidentChance, (byte)LitigGamePlayers.CourtLiabilityChance, (byte)LitigGamePlayers.Resolution },
                 Options.NumLiabilitySignals,
                 (byte)LitigGameDecisions.DLiabilitySignal,
-                unevenChanceActions: Options.CollapseChanceDecisions) // DEBUG 
+                unevenChanceActions: Options.CollapseChanceDecisions) 
             {
                 IsReversible = true,
                 DistributedChanceDecision = false,
@@ -254,17 +254,9 @@ namespace ACESim // Assuming the ACESim base namespace; adjust if needed
             return 0 - costs.harmCost - costs.opportunityCost;
         }
 
-        static HashSet<string> DEBUGQ = new HashSet<string>();
-
         public double[] GetLitigationIndependentWealthEffects(LitigGameDefinition gameDefinition, LitigGameStandardDisputeGeneratorActions disputeGeneratorActions, LitigGameProgress gameProgress)
         {
             var costs = GetOpportunityAndHarmCosts(gameDefinition, disputeGeneratorActions, gameProgress);
-            string DEBUG = $"{costs.opportunityCost}, {costs.harmCost}";
-            if (!DEBUGQ.Contains(DEBUG))
-            {
-                Debug.WriteLine(DEBUG);
-                DEBUGQ.Add(DEBUG);
-            }
             return [0 - costs.harmCost, 0 - costs.opportunityCost];
         }
 
@@ -373,13 +365,30 @@ namespace ACESim // Assuming the ACESim base namespace; adjust if needed
         {
             Random r = new Random(randomSeed);
             PrecautionNegligenceProgress precautionProgress = (PrecautionNegligenceProgress)gameProgress;
-            double[] precautionPowerDistribution = precautionProgress.EngagesInActivity ? _courtDecisionModel.GetHiddenPosteriorFromPath(precautionProgress.PLiabilitySignalDiscrete - 1, precautionProgress.DLiabilitySignalDiscrete - 1, precautionProgress.AccidentOccurs, precautionProgress.RelativePrecautionLevel /* already zero-based */, precautionProgress.TrialOccurs ? precautionProgress.PWinsAtTrial : null) : _courtDecisionModel.GetHiddenPosteriorFromDefendantSignal(precautionProgress.DLiabilitySignalDiscrete - 1);
+            double[] precautionPowerDistribution = BayesianCalculationOfPrecautionPowerDistribution(precautionProgress);
 
             // DEBUG -- handle wrongful attribution issue
 
             byte precautionPowerIndex = ArrayUtilities.ChooseIndex_OneBasedByte(precautionPowerDistribution, r.NextDouble());
             precautionProgress.LiabilityStrengthDiscrete = precautionPowerIndex;
             precautionProgress.ResetPostGameInfo();
+        }
+
+        private double[] BayesianCalculationOfPrecautionPowerDistribution(PrecautionNegligenceProgress precautionProgress)
+        {
+            double[] precautionPowerDistribution;
+            if (precautionProgress.EngagesInActivity)
+            {
+                if (precautionProgress.AccidentOccurs)
+                    precautionPowerDistribution = _courtDecisionModel.GetHiddenPosteriorFromPath(precautionProgress.PLiabilitySignalDiscrete - 1, precautionProgress.DLiabilitySignalDiscrete - 1, precautionProgress.AccidentOccurs, precautionProgress.RelativePrecautionLevel /* already zero-based */, precautionProgress.TrialOccurs ? precautionProgress.PWinsAtTrial : null);
+                else
+                {
+                    precautionPowerDistribution = _courtDecisionModel.GetHiddenPosteriorFromNoAccidentScenario(precautionProgress.DLiabilitySignalDiscrete - 1, precautionProgress.RelativePrecautionLevel /* already zero-based */);
+                }
+            }
+            else
+                precautionPowerDistribution = _courtDecisionModel.GetHiddenPosteriorFromDefendantSignal(precautionProgress.DLiabilitySignalDiscrete - 1);
+            return precautionPowerDistribution;
         }
 
         public bool GenerateConsistentGameProgressesWhenNotCollapsing => true;
@@ -395,13 +404,10 @@ namespace ACESim // Assuming the ACESim base namespace; adjust if needed
             }
 
             PrecautionNegligenceProgress precautionProgress = (PrecautionNegligenceProgress)baseProgress;
-            double[] precautionPowerDistribution;
-            if (precautionProgress.EngagesInActivity)
-                precautionPowerDistribution = _courtDecisionModel.GetHiddenPosteriorFromPath(precautionProgress.PLiabilitySignalDiscrete - 1, precautionProgress.DLiabilitySignalDiscrete - 1, precautionProgress.AccidentOccurs, precautionProgress.RelativePrecautionLevel /* already zero-based */, precautionProgress.TrialOccurs ? precautionProgress.PWinsAtTrial : null);
-            else
-                precautionPowerDistribution = _courtDecisionModel.GetHiddenPosteriorFromDefendantSignal(precautionProgress.DLiabilitySignalDiscrete - 1);
 
-                baseProgress.ResetPostGameInfo(); // reset this because we're going to figure out wrongful attribution here and that 
+            double[] precautionPowerDistribution = BayesianCalculationOfPrecautionPowerDistribution(precautionProgress);
+
+            baseProgress.ResetPostGameInfo(); // reset this because we're going to figure out wrongful attribution here
 
             for (int i = 1; i <= precautionPowerDistribution.Length; i++)
             {

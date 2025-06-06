@@ -510,6 +510,54 @@ namespace ACESimTest
                 "posterior must sum to one");
         }
 
+        [TestMethod]
+        public void HiddenPosteriorFromNoAccidentScenarioMatchesAnalyticComputation()
+        {
+            // reflect into the helper models
+            var sigField = typeof(PrecautionCourtDecisionModel)
+                .GetField("signal", BindingFlags.NonPublic | BindingFlags.Instance);
+            var impactField = typeof(PrecautionCourtDecisionModel)
+                .GetField("impact", BindingFlags.NonPublic | BindingFlags.Instance);
+
+            var sigModel = (PrecautionSignalModel)sigField.GetValue(courtNoisy);
+            var impact = (PrecautionImpactModel)impactField.GetValue(courtNoisy);
+
+            int hiddenCount = sigModel.HiddenStatesCount;
+            int dCount = sigModel.NumDSignals;
+            const int precautionLevel = 0;      // pick any valid k
+
+            // choose a defendant signal whose likelihood is >0 for every hidden state
+            int dSig = Enumerable.Range(0, dCount)
+                                 .First(ds => Enumerable.Range(0, hiddenCount)
+                                      .All(h => sigModel.GetDefendantSignalProbability(h, ds) > 0.0));
+
+            // analytic posterior
+            double prior = 1.0 / hiddenCount;
+            var expected = new double[hiddenCount];
+            double norm = 0.0;
+
+            for (int h = 0; h < hiddenCount; h++)
+            {
+                expected[h] = prior *
+                               sigModel.GetDefendantSignalProbability(h, dSig) *
+                               (1.0 - impact.GetAccidentProbability(h, precautionLevel));
+                norm += expected[h];
+            }
+            for (int h = 0; h < hiddenCount; h++) expected[h] /= norm;
+
+            // model posterior
+            double[] actual =
+                courtNoisy.GetHiddenPosteriorFromNoAccidentScenario(dSig, precautionLevel);
+
+            // assertions
+            actual.Length.Should().Be(hiddenCount);
+            for (int h = 0; h < hiddenCount; h++)
+                actual[h].Should().BeApproximately(expected[h], 1e-12);
+
+            actual.Sum().Should().BeApproximately(1.0, 1e-12);
+        }
+
+
 
     }
 

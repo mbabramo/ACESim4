@@ -18,12 +18,6 @@ namespace ACESim
             LitigGameStandardDisputeGeneratorActions disputeGeneratorActions,
             LitigGameProgress gameProgress);
 
-        //bool MarkComplete(
-        //    LitigGameDefinition gameDefinition,
-        //    GameProgress gameProgress,
-        //    Decision decisionJustTaken,
-        //    byte actionChosen); // DEBUG
-
         bool HandleUpdatingGameProgress(LitigGameProgress gameProgress, byte currentDecisionByteCode, byte action);
 
         bool IsTrulyLiable(

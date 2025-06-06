@@ -215,7 +215,7 @@ namespace ACESim
             return decisions;
         }
         
-        // DEBUG -- move all this to a class of its own
+        // TODO: move the tables to a class of their own
 
         private double[][] PLiabilitySignalsTable, DLiabilitySignalsTable, CLiabilitySignalsTable, PDamagesSignalsTable, DDamagesSignalsTable, CDamagesSignalsTable;
         public void CreateLiabilitySignalsTables()

@@ -152,10 +152,12 @@ namespace ACESim
         {
             var options = BaseBeforeApplyingEndogenousGenerator();
 
-            options.CollapseChanceDecisions = false; // DEBUG
+            options.CollapseChanceDecisions = false;
 
-            options.AllowAbandonAndDefaults = true;
+            options.AllowAbandonAndDefaults = false; // DEBUG
             options.NumLiabilitySignals = options.NumLiabilityStrengthPoints = options.NumOffers = 2; // DEBUG
+            options.SkipFileAndAnswerDecisions = true; // SUPERDEBUG DEBUG
+            options.NumPotentialBargainingRounds = 0;
 
             var disputeGenerator = new PrecautionNegligenceDisputeGenerator();
             disputeGenerator.PrecautionPowerLevels = 2; // DEBUG 10; // DEBUG

@@ -338,10 +338,8 @@ namespace ACESim
                 AdvanceToOrCompleteNextStep();
         }
 
-        static int DEBUGCount = 0;
         public void PlayPathAndStop(List<byte> actionsToPlay)
         {
-            DEBUGCount++;
             Progress.SetActionsToPlay(actionsToPlay);
             while (!Progress.GameComplete && (!Progress.HaveAdvancedToFirstStep || Progress.ActionsToPlayIndex < actionsToPlay.Count() - 1))
                 AdvanceToOrCompleteNextStep();
