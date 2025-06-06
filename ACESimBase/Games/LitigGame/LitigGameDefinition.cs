@@ -816,7 +816,7 @@ namespace ACESim
                     var myGameProgress = ((PrecautionNegligenceProgress)gameProgress);
                     var myDisputeGenerator = (PrecautionNegligenceDisputeGenerator)Options.LitigGameDisputeGenerator;
                     double accidentProbability = myDisputeGenerator.GetAccidentProbability(myGameProgress.LiabilityStrengthDiscrete, myGameProgress.DLiabilitySignalDiscrete, (byte)myGameProgress.RelativePrecautionLevel);
-                    return new double[] { 1 - accidentProbability, accidentProbability };
+                    return new double[] { accidentProbability, 1 - accidentProbability };
                 }
                 default:
                     throw new NotImplementedException(); // subclass should define if needed
