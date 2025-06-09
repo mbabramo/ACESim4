@@ -1,6 +1,7 @@
 ﻿using ACESimBase.Games.LitigGame.PrecautionModel;
 using ACESimBase.GameSolvingSupport.Symmetry;
 using ACESimBase.Util.ArrayManipulation;
+using Microsoft.ML.Tokenizers;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -43,8 +44,11 @@ namespace ACESim // Assuming the ACESim base namespace; adjust if needed
         // Precomputed lookup tables
         private double[] _precautionPowerProbabilities; // Probability of each precaution level
         private double[] _dSignalProbabilities; // Probability of each defendant signal, when NOT conditioned on the precaution power level (in collapse chance mode)
-        private double[][] _pSignalProbabilitiesGivenDSignal;
+
         private double[][] _pSignalProbabilitiesGivenPrecautionPower;
+        private double[][] _pSignalProbabilitiesGivenDSignalNoEngagement;
+        private double[][][] _pSignalProbabilitiesGivenDSignalAndPrecautionLevelAfterAccident;
+        private double[][][] _pSignalProbabilitiesGivenDSignalAndPrecautionLevelAfterNoAccident;
 
         /// <summary>
         /// Initializes a new PrecautionNegligenceDisputeGenerator with the given models and settings.
@@ -69,9 +73,11 @@ namespace ACESim // Assuming the ACESim base namespace; adjust if needed
             if (Options.CollapseChanceDecisions)
             {
                 _dSignalProbabilities = _signalModel.GetUnconditionalDefendantSignalDistribution();
-                _pSignalProbabilitiesGivenDSignal = _signalModel.GetPlaintiffSignalDistributionGivenDefendantSignal();
-                _pSignalProbabilitiesGivenPrecautionPower = _signalModel.GetPlaintiffSignalProbabilityTable();
-    }
+                _pSignalProbabilitiesGivenPrecautionPower = _signalModel.BuildPlaintiffSignalGivenHiddenTable();
+                _pSignalProbabilitiesGivenDSignalNoEngagement = _signalModel.BuildPlaintiffSignalDistributionGivenDefendantSignal();
+                _pSignalProbabilitiesGivenDSignalAndPrecautionLevelAfterAccident = _signalModel.BuildPlaintiffSignalDistributionGivenDefendantSignalAndPrecautionLevelAfterAccidentTable(_impactModel);
+                _pSignalProbabilitiesGivenDSignalAndPrecautionLevelAfterNoAccident = _signalModel.BuildPlaintiffSignalDistributionGivenDefendantSignalAndPrecautionLevelNoAccidentTable(_impactModel);
+            }
         }
 
         public List<Decision> GenerateDisputeDecisions(LitigGameDefinition litigGameDefinition)
@@ -288,14 +294,16 @@ namespace ACESim // Assuming the ACESim base namespace; adjust if needed
             return _dSignalProbabilities; // not conditioned on anything
         }
 
-        public double[] BayesianCalculations_GetPLiabilitySignalProbabilities(byte? dLiabilitySignal)
+        public double[] BayesianCalculations_GetPLiabilitySignalProbabilities(byte? dLiabilitySignal) => throw new NotSupportedException();
+
+        public double[] BayesianCalculations_GetPLiabilitySignalProbabilities(byte? dLiabilitySignal, byte chosenPrecautionLevel)
         {
-            // Note: This is used ONLY when collapsing chance decisions. We know the accident occurred, and that depends
-            // on the level of precaution chosen by the defendant, but that decision is solely a function of the defendant's
-            // liability signal, so it doesn't add any information to this signal calculation. However, whether an accident
-            // occurred also depends on the hidden state itself. 
+            // Note: This is used ONLY when collapsing chance decisions (because uneven chance probabilities
+            // are true in that case). We know the accident occurred, and this occurrence itself is a function of
+            // the level of precaution chosen by the defendant, as well as the hidden state (chosen precaution level)
+            // itself. So, both the defendant's signal AND the hidden state must be used.
             byte dSignal = (byte)dLiabilitySignal; // should not be null, because defendant gets signal first in this game
-            return _pSignalProbabilitiesGivenDSignal[dSignal - 1];
+            return _pSignalProbabilitiesGivenDSignalAndPrecautionLevelAfterAccident[dSignal - 1][chosenPrecautionLevel];
         }
 
         public double GetAccidentProbability(
@@ -396,10 +404,12 @@ namespace ACESim // Assuming the ACESim base namespace; adjust if needed
             }
             else
             {
-                if (precautionProgress.PLiabilitySignalDiscrete == 0)
+                // Plaintiff signal will not be set. We must set that.
+                if (precautionProgress.AccidentOccurs && precautionProgress.PLiabilitySignalDiscrete == 0)
                 {
-                    double[] pDist = _pSignalProbabilitiesGivenDSignal[precautionPowerIndex - 1];
-                    precautionProgress.PLiabilitySignalDiscrete = ArrayUtilities.ChooseIndex_OneBasedByte(pDist, r.NextDouble());
+                    double[] pDist = _pSignalProbabilitiesGivenPrecautionPower[precautionPowerIndex - 1];
+                    precautionProgress.PLiabilitySignalDiscrete =
+                        ArrayUtilities.ChooseIndex_OneBasedByte(pDist, r.NextDouble());
                 }
             }
 
@@ -434,14 +444,14 @@ namespace ACESim // Assuming the ACESim base namespace; adjust if needed
 
             for (int i = 1; i <= precautionPowerDistribution.Length; i++)
             {
-                var copy = (PrecautionNegligenceProgress) baseProgress.DeepCopy();
-                copy.LiabilityStrengthDiscrete = (byte) i;
+                var copy = (PrecautionNegligenceProgress)baseProgress.DeepCopy();
+                copy.LiabilityStrengthDiscrete = (byte)i;
                 double[] pDist = null;
                 if (precautionProgress.PLiabilitySignalDiscrete == 0)
                 {
-                    pDist = _pSignalProbabilitiesGivenDSignal[copy.LiabilityStrengthDiscrete - 1];
+                    pDist = _pSignalProbabilitiesGivenPrecautionPower[copy.LiabilityStrengthDiscrete - 1];
                 }
-                var withAndWithoutWrongfulAttribution = DuplicateProgressWithAndWithoutWrongfulAttribution(copy, precautionPowerDistribution[i - 1]);
+                var withAndWithoutWrongfulAttribution = DuplicateProgressWithAndWithoutWrongfulAttribution(copy, precautionPowerDistribution[i - 1]); // won't change anything if no accident occurs
                 foreach (var progressWithWeight in withAndWithoutWrongfulAttribution)
                 {
                     if (pDist == null)
@@ -450,7 +460,7 @@ namespace ACESim // Assuming the ACESim base namespace; adjust if needed
                     { // make a different version for each possible p signal
                         for (int j = 1; j <= pDist.Length; j++)
                         {
-                            PrecautionNegligenceProgress withPSignal = (PrecautionNegligenceProgress) progressWithWeight.progress.DeepCopy();
+                            PrecautionNegligenceProgress withPSignal = (PrecautionNegligenceProgress)progressWithWeight.progress.DeepCopy();
                             withPSignal.PLiabilitySignalDiscrete = (byte)j;
                             double revisedWeight = progressWithWeight.weight * pDist[j - 1];
                             result.Add((withPSignal, revisedWeight));
@@ -461,6 +471,7 @@ namespace ACESim // Assuming the ACESim base namespace; adjust if needed
 
             return result;
         }
+
 
         private List<(GameProgress progress, double weight)> DuplicateProgressWithAndWithoutWrongfulAttribution(PrecautionNegligenceProgress precautionProgress, double weight)
         {

@@ -728,7 +728,12 @@ namespace ACESim
                     var myGameProgress = ((LitigGameProgress)gameProgress);
                     double[] probabilities;
                     if (Options.CollapseChanceDecisions)
-                        probabilities = Options.LitigGameDisputeGenerator.BayesianCalculations_GetPLiabilitySignalProbabilities(myGameProgress.DLiabilitySignalDiscrete);
+                    {
+                        if (myGameProgress is PrecautionNegligenceProgress precautionProgress)
+                            probabilities = ((PrecautionNegligenceDisputeGenerator) Options.LitigGameDisputeGenerator).BayesianCalculations_GetPLiabilitySignalProbabilities(precautionProgress.DLiabilitySignalDiscrete, (byte) precautionProgress.RelativePrecautionLevel);
+                        else
+                            probabilities = Options.LitigGameDisputeGenerator.BayesianCalculations_GetPLiabilitySignalProbabilities(myGameProgress.DLiabilitySignalDiscrete);
+                    }
                     else
                         probabilities = GetPLiabilitySignalProbabilities(myGameProgress.LiabilityStrengthDiscrete);
                     if (Math.Abs(probabilities.Sum() - 1) > 1E-8)

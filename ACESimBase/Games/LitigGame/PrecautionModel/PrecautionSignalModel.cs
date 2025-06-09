@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Linq;
 using ACESimBase.Util.DiscreteProbabilities;
 
@@ -141,7 +142,7 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
 
         // === Conditional signal distributions – lookup-table overloads ======================
 
-        public double[][] GetPlaintiffSignalDistributionGivenDefendantSignal()
+        public double[][] BuildPlaintiffSignalDistributionGivenDefendantSignal()
         {
             var table = new double[NumDSignals][];
             for (int d = 0; d < NumDSignals; d++)
@@ -255,7 +256,7 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
         ///     table[h][p] = P(plaintiffSignal = p | hidden = h).
         /// Each row is produced by <see cref="GetPlaintiffSignalDistributionGivenHidden"/>.
         /// </summary>
-        public double[][] GetPlaintiffSignalProbabilityTable()
+        public double[][] BuildPlaintiffSignalGivenHiddenTable()
         {
             var table = new double[HiddenStatesCount][];
 
@@ -300,7 +301,7 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
         // === Model taking into account accident occurrence ============================
 
         /// P(plaintiffSignal | defendantSignal, accident, precautionLevel)
-        public double[] GetPlaintiffSignalDistributionGivenDefendantSignalAndAccident(
+        public double[] GetPlaintiffSignalDistributionGivenDefendantSignalAndPrecautionLevelAfterAccident(
             int defendantSignal,
             int precautionLevel,
             PrecautionImpactModel impactModel)
@@ -338,6 +339,84 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
                 numerators[p] /= denominator;
 
             return numerators;
+        }
+
+        public double[][][] BuildPlaintiffSignalDistributionGivenDefendantSignalAndPrecautionLevelAfterAccidentTable(PrecautionImpactModel impactModel)
+        {
+            if (impactModel is null) throw new ArgumentNullException(nameof(impactModel));
+            int precautionLevels = impactModel.PrecautionLevels;
+            var table = new double[NumDSignals][][];
+            for (int d = 0; d < NumDSignals; d++)
+            {
+                table[d] = new double[precautionLevels][];
+                for (int k = 0; k < precautionLevels; k++)
+                    table[d][k] = GetPlaintiffSignalDistributionGivenDefendantSignalAndPrecautionLevelAfterAccident(
+                        d, k, impactModel);
+            }
+            return table;
+        }
+
+        /// Returns P(plaintiffSignal | defendantSignal, precautionLevel, NO accident).
+        public double[] GetPlaintiffSignalDistributionGivenDefendantSignalAndPrecautionLevelNoAccident(
+            int defendantSignal,
+            int precautionLevel,
+            PrecautionImpactModel impactModel)
+        {
+            if (impactModel == null) throw new ArgumentNullException(nameof(impactModel));
+            if ((uint)defendantSignal >= NumDSignals) throw new ArgumentOutOfRangeException(nameof(defendantSignal));
+            if ((uint)precautionLevel >= impactModel.PrecautionLevels) throw new ArgumentOutOfRangeException(nameof(precautionLevel));
+
+            int hCount = HiddenStatesCount;
+            int pCount = NumPSignals;
+            double uniformPrior = 1.0 / hCount;
+
+            double[] numerators = new double[pCount];
+            double denominator = 0.0;
+
+            for (int h = 0; h < hCount; h++)
+            {
+                // posterior weight ∝ P(h) · P(DLS | h) · P(NO accident | h,k)
+                double pAcc = impactModel.GetAccidentProbability(h, precautionLevel);
+                double weight =
+                    uniformPrior *
+                    GetDefendantSignalProbability(h, defendantSignal) *
+                    (1.0 - pAcc);
+
+                if (weight == 0.0) continue;
+
+                double[] pSigGivenH = model.GetSignalDistributionGivenHidden(PlaintiffIndex, h);
+                for (int p = 0; p < pCount; p++)
+                    numerators[p] += weight * pSigGivenH[p];
+
+                denominator += weight;
+            }
+
+            if (denominator == 0.0) return numerators;   // unreachable evidence ⇒ all zeros
+
+            for (int p = 0; p < pCount; p++)
+                numerators[p] /= denominator;
+
+            return numerators;
+        }
+
+        /// Lookup-table version:
+        ///     table[d][k][p] = P(PLS = p | DLS = d, precaution = k, NO accident)
+        public double[][][] BuildPlaintiffSignalDistributionGivenDefendantSignalAndPrecautionLevelNoAccidentTable(
+            PrecautionImpactModel impactModel)
+        {
+            if (impactModel == null) throw new ArgumentNullException(nameof(impactModel));
+
+            int precautionLevels = impactModel.PrecautionLevels;
+            var table = new double[NumDSignals][][];
+
+            for (int d = 0; d < NumDSignals; d++)
+            {
+                table[d] = new double[precautionLevels][];
+                for (int k = 0; k < precautionLevels; k++)
+                    table[d][k] = GetPlaintiffSignalDistributionGivenDefendantSignalAndPrecautionLevelNoAccident(
+                        d, k, impactModel);
+            }
+            return table;
         }
 
 
