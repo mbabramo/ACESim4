@@ -373,21 +373,69 @@ namespace ACESim // Assuming the ACESim base namespace; adjust if needed
         private double[] BayesianCalculationOfPrecautionPowerDistribution(PrecautionNegligenceProgress precautionProgress)
         {
             double[] precautionPowerDistribution;
+
             if (precautionProgress.EngagesInActivity)
             {
                 if (precautionProgress.AccidentOccurs)
-                    precautionPowerDistribution = _courtDecisionModel.GetHiddenPosteriorFromPath(precautionProgress.PLiabilitySignalDiscrete - 1, precautionProgress.DLiabilitySignalDiscrete - 1, precautionProgress.AccidentOccurs, precautionProgress.RelativePrecautionLevel /* already zero-based */, precautionProgress.TrialOccurs ? precautionProgress.PWinsAtTrial : null);
+                {
+                    // --- build a posterior that uses the court’s latent signal, not only the binary verdict ---
+                    double[] courtSignalDistribution = null;
+
+                    if (precautionProgress.TrialOccurs)
+                    {
+                        courtSignalDistribution =
+                            precautionProgress.PWinsAtTrial
+                                ? _courtDecisionModel.GetCourtSignalDistributionGivenSignalsAndLiability(
+                                      precautionProgress.PLiabilitySignalDiscrete - 1,
+                                      precautionProgress.DLiabilitySignalDiscrete - 1,
+                                      precautionProgress.RelativePrecautionLevel)
+                                : _courtDecisionModel.GetCourtSignalDistributionGivenSignalsAndNoLiability(
+                                      precautionProgress.PLiabilitySignalDiscrete - 1,
+                                      precautionProgress.DLiabilitySignalDiscrete - 1,
+                                      precautionProgress.RelativePrecautionLevel);
+                    }
+
+                    precautionPowerDistribution =
+                        courtSignalDistribution == null
+                            // settled before any verdict → integrate over every possible court signal
+                            ? _courtDecisionModel.GetHiddenPosteriorFromPath(
+                                  precautionProgress.PLiabilitySignalDiscrete - 1,
+                                  precautionProgress.DLiabilitySignalDiscrete - 1,
+                                  true,
+                                  precautionProgress.RelativePrecautionLevel,
+                                  null)
+                            // verdict reached → weight by the conditional court-signal distribution
+                            : _courtDecisionModel.GetHiddenPosteriorFromSignalsAndCourtDistribution(
+                                  precautionProgress.PLiabilitySignalDiscrete - 1,
+                                  precautionProgress.DLiabilitySignalDiscrete - 1,
+                                  courtSignalDistribution);
+                }
                 else
                 {
-                    precautionPowerDistribution = _courtDecisionModel.GetHiddenPosteriorFromNoAccidentScenario(precautionProgress.DLiabilitySignalDiscrete - 1, precautionProgress.RelativePrecautionLevel /* already zero-based */);
+                    precautionPowerDistribution = _courtDecisionModel.GetHiddenPosteriorFromNoAccidentScenario(
+                        precautionProgress.DLiabilitySignalDiscrete - 1,
+                        precautionProgress.RelativePrecautionLevel);
                 }
             }
             else
-                precautionPowerDistribution = _courtDecisionModel.GetHiddenPosteriorFromDefendantSignal(precautionProgress.DLiabilitySignalDiscrete - 1);
+            {
+                precautionPowerDistribution = _courtDecisionModel.GetHiddenPosteriorFromDefendantSignal(
+                    precautionProgress.DLiabilitySignalDiscrete - 1);
+            }
+
             return precautionPowerDistribution;
         }
 
-        public void BayesianCalculations_WorkBackwardsFromSignals(LitigGameProgress gameProgress, byte pLiabilitySignal, byte dLiabilitySignal, byte? cLiabilitySignal, byte pDamagesSignal, byte dDamagesSignal, byte? cDamagesSignal, int randomSeed)
+
+        public void BayesianCalculations_WorkBackwardsFromSignals(
+            LitigGameProgress gameProgress,
+            byte pLiabilitySignal,
+            byte dLiabilitySignal,
+            byte? cLiabilitySignal,
+            byte pDamagesSignal,
+            byte dDamagesSignal,
+            byte? cDamagesSignal,
+            int randomSeed)
         {
             Random r = new Random(randomSeed);
             PrecautionNegligenceProgress precautionProgress = (PrecautionNegligenceProgress)gameProgress;
@@ -415,6 +463,8 @@ namespace ACESim // Assuming the ACESim base namespace; adjust if needed
 
             precautionProgress.ResetPostGameInfo();
         }
+
+
 
         public bool GenerateConsistentGameProgressesWhenNotCollapsing => true;
 
@@ -447,7 +497,7 @@ namespace ACESim // Assuming the ACESim base namespace; adjust if needed
                 var copy = (PrecautionNegligenceProgress)baseProgress.DeepCopy();
                 copy.LiabilityStrengthDiscrete = (byte)i;
                 double[] pDist = null;
-                if (precautionProgress.PLiabilitySignalDiscrete == 0)
+                if (!precautionProgress.AccidentOccurs && precautionProgress.PLiabilitySignalDiscrete == 0)
                 {
                     pDist = _pSignalProbabilitiesGivenPrecautionPower[copy.LiabilityStrengthDiscrete - 1];
                 }
@@ -471,6 +521,8 @@ namespace ACESim // Assuming the ACESim base namespace; adjust if needed
 
             return result;
         }
+
+
 
 
         private List<(GameProgress progress, double weight)> DuplicateProgressWithAndWithoutWrongfulAttribution(PrecautionNegligenceProgress precautionProgress, double weight)
