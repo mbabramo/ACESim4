@@ -148,30 +148,33 @@ namespace ACESim
             return options;
         }
 
-        public static LitigGameOptions PrecautionNegligenceGame()
+        public static LitigGameOptions PrecautionNegligenceGame(bool collapseChanceDecisions, bool allowQuitting, byte numSignalsAndOffers, byte numPotentialBargainingRounds, byte numPrecautionPowerLevels, byte precautionLevels)
         {
             var options = BaseBeforeApplyingEndogenousGenerator();
 
-            options.CollapseChanceDecisions = true; // DEBUG
+            options.CollapseChanceDecisions = collapseChanceDecisions;
 
-            options.AllowAbandonAndDefaults = false; // DEBUG
-            options.NumLiabilitySignals = options.NumLiabilityStrengthPoints = options.NumOffers = 2; // DEBUG
-            options.SkipFileAndAnswerDecisions = true; // SUPERDEBUG DEBUG
-            options.NumPotentialBargainingRounds = 0;
+            options.AllowAbandonAndDefaults = allowQuitting;
+            options.NumLiabilitySignals = options.NumLiabilityStrengthPoints = options.NumOffers = numSignalsAndOffers;
+            options.SkipFileAndAnswerDecisions = !allowQuitting;
+            options.NumPotentialBargainingRounds = numPotentialBargainingRounds;
 
             var disputeGenerator = new PrecautionNegligenceDisputeGenerator();
-            disputeGenerator.PrecautionPowerLevels = 2; // DEBUG 10; // DEBUG
-            disputeGenerator.PrecautionLevels = 2; // DEBUG 5; 
+            disputeGenerator.PrecautionPowerLevels = numPrecautionPowerLevels;
+            disputeGenerator.PrecautionLevels = numPrecautionPowerLevels;
             disputeGenerator.PrecautionPowerFactor = 0.8; // smaller -> precaution power level makes a bigger difference
             disputeGenerator.PrecautionPowerFactor = 0.8;
             disputeGenerator.ProbabilityAccidentNoActivity = 0.0;
             disputeGenerator.ProbabilityAccidentNoPrecaution = 0.0001;
             disputeGenerator.ProbabilityAccidentWrongfulAttribution = 0.000025;
-            //disputeGenerator.MarginalPrecautionCost = 0.2; // DEBUG
 
             options.LitigGameDisputeGenerator = disputeGenerator;
-            
-            return options;  
+
+            return options;
         }
+
+        static bool UseSimplifiedPrecautionNegligenceGame = true; // DEBUG
+        static bool CollapseDecisionsInSimplifiedPrecautionNegligenceGame = true; // DEBUG
+        public static LitigGameOptions PrecautionNegligenceGame() => UseSimplifiedPrecautionNegligenceGame ? PrecautionNegligenceGame(CollapseDecisionsInSimplifiedPrecautionNegligenceGame, false, 2, 0, 2, 2) : PrecautionNegligenceGame(true, true, 5, 1, 10, 5);
     } 
 }

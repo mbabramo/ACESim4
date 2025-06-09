@@ -125,7 +125,7 @@ namespace ACESimBase.GameSolvingSupport.Settings
             return combined;
         }
 
-        public IStrategiesDeveloper GetDeveloper(GameOptions options, string optionSetName)
+        public IStrategiesDeveloper GetDeveloper(GameOptions options, string optionSetName, EvolutionSettings evolutionSettings = null)
         {
             GameDefinition gameDefinition = GetGameDefinition();
             gameDefinition.Setup(options);
@@ -133,7 +133,8 @@ namespace ACESimBase.GameSolvingSupport.Settings
             if (GameProgressLogger.LoggingOn)
                 gameDefinition.PrintOutOrderingInformation();
             List<Strategy> starterStrategies = Strategy.GetStarterStrategies(gameDefinition);
-            var evolutionSettings = GetEvolutionSettings();
+            if (evolutionSettings == null)
+                evolutionSettings = GetEvolutionSettings();
             options.ModifyEvolutionSettings?.Invoke(evolutionSettings);
             NWayTreeStorageRoot<IGameState>.EnableUseDictionary = false; // evolutionSettings.ParallelOptimization == false; // this is based on some limited performance testing; with parallelism, this seems to slow us down. Maybe it's not worth using. It might just be because of the lock.
             NWayTreeStorageRoot<IGameState>.ParallelEnabled = evolutionSettings.ParallelOptimization;
@@ -594,9 +595,9 @@ namespace ACESimBase.GameSolvingSupport.Settings
         }
 
         // DEBUG
-        public async Task<IStrategiesDeveloper> GetInitializedDevelper(GameOptions options, string optionSetName)
+        public async Task<IStrategiesDeveloper> GetInitializedDevelper(GameOptions options, string optionSetName, EvolutionSettings evolutionSettings)
         {
-            var developer = GetDeveloper(options, optionSetName);
+            var developer = GetDeveloper(options, optionSetName, evolutionSettings);
             await developer.Initialize();
             return developer;
         }
