@@ -10,6 +10,7 @@ namespace ACESim
     public interface IStrategiesDeveloper : ISerializationPrep
     {
         List<Strategy> Strategies { get; set; }
+        Task Initialize();
         IStrategiesDeveloper DeepCopy();
         Task<ReportCollection> DevelopStrategies(string optionSetName, int? restrictToScenarioIndex, string masterReportName);
         Task<ReportCollection> RunAlgorithm(string optionSetName);

@@ -9,6 +9,7 @@ using ACESimBase.Util.Cloud;
 using ACESimBase.Util.Collections;
 using ACESimBase.Util.Debugging;
 using ACESimBase.Util.NWayTreeStorage;
+using ACESimBase.Util.Optimization;
 using ACESimBase.Util.Parallelization;
 using ACESimBase.Util.Serialization;
 using ACESimBase.Util.TaskManagement;
@@ -124,7 +125,7 @@ namespace ACESimBase.GameSolvingSupport.Settings
             return combined;
         }
 
-        public IStrategiesDeveloper GetInitializedDeveloper(GameOptions options, string optionSetName)
+        public IStrategiesDeveloper GetDeveloper(GameOptions options, string optionSetName)
         {
             GameDefinition gameDefinition = GetGameDefinition();
             gameDefinition.Setup(options);
@@ -471,7 +472,7 @@ namespace ACESimBase.GameSolvingSupport.Settings
                 if (LastDeveloperOnThread.ContainsKey(currentThreadID) && LastDeveloperOnThread[currentThreadID].optionSetIndex == optionSetIndex)
                     return LastDeveloperOnThread[currentThreadID].developer;
                 var optionSet = GetOptionsSets()[optionSetIndex];
-                LastDeveloperOnThread[currentThreadID] = (optionSetIndex, GetInitializedDeveloper(optionSet, optionSet.Name));
+                LastDeveloperOnThread[currentThreadID] = (optionSetIndex, GetDeveloper(optionSet, optionSet.Name));
                 var result = LastDeveloperOnThread[currentThreadID].developer;
                 if (!SaveLastDeveloperOnThread)
                     LastDeveloperOnThread = new Dictionary<int, (int optionSetIndex, IStrategiesDeveloper developer)>();
@@ -580,7 +581,7 @@ namespace ACESimBase.GameSolvingSupport.Settings
 
         private async Task<ReportCollection> ProcessSingleOptionSetLocally(GameOptions options, string masterReportName, string optionSetName, bool includeFirstLine, bool addOptionSetColumns)
         {
-            var developer = GetInitializedDeveloper(options, optionSetName);
+            var developer = GetDeveloper(options, optionSetName);
             developer.EvolutionSettings.GameNumber = StartGameNumber;
             ReportCollection result = new ReportCollection();
             for (int i = 0; i < NumRepetitions; i++)
@@ -590,6 +591,14 @@ namespace ACESimBase.GameSolvingSupport.Settings
                     result.Add(repetitionReport);
             }
             return result;
+        }
+
+        // DEBUG
+        public async Task<IStrategiesDeveloper> GetInitializedDevelper(GameOptions options, string optionSetName)
+        {
+            var developer = GetDeveloper(options, optionSetName);
+            await developer.Initialize();
+            return developer;
         }
 
         private async Task<(ReportCollection report, string optionSetName)> GetSingleRepetitionReportAndSave(string masterReportName, int optionSetIndex, int repetition, bool addOptionSetColumns, IStrategiesDeveloper developer, int? restrictToScenarioIndex, Action<string> logAction = null)
@@ -729,7 +738,7 @@ namespace ACESimBase.GameSolvingSupport.Settings
             var options = optionSets[optionSetIndex];
             string optionSetName = optionSets[optionSetIndex].Name;
             int numRepetitionsPerOptionSet = NumRepetitions;
-            var developer = GetInitializedDeveloper(options, optionSetName);
+            var developer = GetDeveloper(options, optionSetName);
             developer.EvolutionSettings.GameNumber = StartGameNumber;
             string[] combinedReports = new string[NumRepetitions];
             List<Task<string>> tasks = new List<Task<string>>();

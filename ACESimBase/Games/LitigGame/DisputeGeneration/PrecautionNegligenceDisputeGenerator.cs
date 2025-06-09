@@ -405,7 +405,7 @@ namespace ACESim // Assuming the ACESim base namespace; adjust if needed
             else
             {
                 // Plaintiff signal will not be set. We must set that.
-                if (precautionProgress.AccidentOccurs && precautionProgress.PLiabilitySignalDiscrete == 0)
+                if (!precautionProgress.AccidentOccurs && precautionProgress.PLiabilitySignalDiscrete == 0)
                 {
                     double[] pDist = _pSignalProbabilitiesGivenPrecautionPower[precautionPowerIndex - 1];
                     precautionProgress.PLiabilitySignalDiscrete =
