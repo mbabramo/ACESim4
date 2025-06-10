@@ -694,6 +694,10 @@ namespace ACESim
 
         private double[] GetUnevenChanceActionProbabilities_Helper(byte decisionByteCode, GameProgress gameProgress)
         {
+            // Dispute generator can handle special cases.
+            if (Options.LitigGameDisputeGenerator.GetUnevenChanceActionProbabilities(decisionByteCode, gameProgress) is double[] x)
+                return x;
+
             switch (decisionByteCode)
             {
                 case (byte)LitigGameDecisions.PrePrimaryActionChance:
@@ -730,10 +734,7 @@ namespace ACESim
                     double[] probabilities;
                     if (Options.CollapseChanceDecisions)
                     {
-                        if (myGameProgress is PrecautionNegligenceProgress precautionProgress)
-                            probabilities = ((PrecautionNegligenceDisputeGenerator) Options.LitigGameDisputeGenerator).BayesianCalculations_GetPLiabilitySignalProbabilities(precautionProgress.DLiabilitySignalDiscrete, (byte) precautionProgress.RelativePrecautionLevel);
-                        else
-                            probabilities = Options.LitigGameDisputeGenerator.BayesianCalculations_GetPLiabilitySignalProbabilities(myGameProgress.DLiabilitySignalDiscrete);
+                        probabilities = Options.LitigGameDisputeGenerator.BayesianCalculations_GetPLiabilitySignalProbabilities(myGameProgress.DLiabilitySignalDiscrete);
                     }
                     else
                         probabilities = GetPLiabilitySignalProbabilities(myGameProgress.LiabilityStrengthDiscrete);
@@ -793,11 +794,7 @@ namespace ACESim
                 {
                     var myGameProgress = ((LitigGameProgress)gameProgress);
                     double[] probabilities;
-                    if (Options.LitigGameDisputeGenerator is PrecautionNegligenceDisputeGenerator precautionGenerator)
-                    {
-                        probabilities = precautionGenerator.BayesianCalculations_GetCLiabilitySignalProbabilities((PrecautionNegligenceProgress)myGameProgress);
-                    }
-                    else if (Options.CollapseChanceDecisions)
+                    if (Options.CollapseChanceDecisions)
                         probabilities = Options.LitigGameDisputeGenerator.BayesianCalculations_GetCLiabilitySignalProbabilities(myGameProgress.PLiabilitySignalDiscrete, myGameProgress.DLiabilitySignalDiscrete);
                     else
                         probabilities = GetCLiabilitySignalProbabilities(myGameProgress.LiabilityStrengthDiscrete);
@@ -816,13 +813,6 @@ namespace ACESim
                     if (Math.Abs(probabilities.Sum() - 1) > 1E-8)
                         throw new Exception();
                     return probabilities;
-                }
-                case (byte)LitigGameDecisions.Accident:
-                {
-                    var myGameProgress = ((PrecautionNegligenceProgress)gameProgress);
-                    var myDisputeGenerator = (PrecautionNegligenceDisputeGenerator)Options.LitigGameDisputeGenerator;
-                    double accidentProbability = myDisputeGenerator.GetAccidentProbability(myGameProgress.LiabilityStrengthDiscrete, myGameProgress.DLiabilitySignalDiscrete, (byte)myGameProgress.RelativePrecautionLevel);
-                    return new double[] { accidentProbability, 1 - accidentProbability };
                 }
                 default:
                     throw new NotImplementedException(); // subclass should define if needed

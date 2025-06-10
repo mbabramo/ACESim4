@@ -56,8 +56,11 @@ namespace ACESim
 
         string GetActionString(byte action, byte decisionByteCode);
 
+        double[] GetUnevenChanceActionProbabilities(byte decisionByteCode, GameProgress gameProgress) => null;
 
         /* ─────── Inversion support (mirrors Exogenous generator) ─────── */
+
+        // TODO: Get rid of all this and just use the uneven chance action probabilities.
 
         double[] BayesianCalculations_GetPLiabilitySignalProbabilities(byte? dLiabilitySignal);
         double[] BayesianCalculations_GetDLiabilitySignalProbabilities(byte? pLiabilitySignal);

@@ -35,6 +35,7 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
 
         // ----------------------------------------------------------------  cached light vectors/tables
         double[] dSignalProb;            // P(D-signal)
+        double[][] dSignalGivenHidden;      // [h][d]
         double[][] pSignalGivenHidden;     // [h][p]
         double[][] pSignalGivenD_NoAct;    // [d][p]
         double[][][] pSignalGivenD_Acc;      // [d][k][p]
@@ -99,6 +100,9 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
             pSignalGivenHidden = Enumerable.Range(0, impact.HiddenCount)
                                            .Select(h => signal.GetPlaintiffSignalDistributionGivenHidden(h))
                                            .ToArray();
+            dSignalGivenHidden =Enumerable.Range(0, impact.HiddenCount)
+                                          .Select(h => signal.GetDefendantSignalDistributionGivenHidden(h))
+                                          .ToArray();
             pSignalGivenD_NoAct = Enumerable.Range(0, signal.NumDSignals)
                                             .Select(d => signal.GetPlaintiffSignalDistributionGivenDefendantSignal(d))
                                             .ToArray();
@@ -157,7 +161,7 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
                              (byte)LitigGamePlayers.CourtLiabilityChance, (byte)LitigGamePlayers.Resolution },
                 g.Options.NumLiabilitySignals,
                 (byte)LitigGameDecisions.DLiabilitySignal,
-                unevenChanceActions: collapse)
+                unevenChanceActions: true)
             {
                 IsReversible = true,
                 DistributedChanceDecision = false,
@@ -171,7 +175,7 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
                              (byte)LitigGamePlayers.CourtLiabilityChance, (byte)LitigGamePlayers.Resolution },
                 g.Options.NumLiabilitySignals,
                 (byte)LitigGameDecisions.PLiabilitySignal,
-                unevenChanceActions: collapse)
+                unevenChanceActions: true)
             {
                 IsReversible = true,
                 DistributedChanceDecision = false,
@@ -298,10 +302,55 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
         }
 
         // ----------------------------------------------------------------  BAYESIAN HELPERS
+        public double[] GetUnevenChanceActionProbabilities(byte decisionByteCode, GameProgress gameProgress)
+        {
+            // Special handling in this method. Other decisions are handled by default in LitigGameDefinition,
+            // often by calling methods here.
+            PrecautionNegligenceProgress precautionProgress = (PrecautionNegligenceProgress)gameProgress;
+            switch (decisionByteCode)
+            {
+                case (byte)LitigGameDecisions.DLiabilitySignal:
+                    {
+                        if (Options.CollapseChanceDecisions)
+                            return dSignalProb;                           // unconditional P(D-signal) 
+
+                        byte trueLiabilityStrength = precautionProgress.LiabilityStrengthDiscrete;
+                        return dSignalGivenHidden[trueLiabilityStrength - 1];
+                    }
+                case (byte)LitigGameDecisions.PLiabilitySignal:
+                    {
+                        double[] probabilities;
+                        if (Options.CollapseChanceDecisions)
+                        {
+                            probabilities = ((PrecautionNegligenceDisputeGenerator)Options.LitigGameDisputeGenerator).BayesianCalculations_GetPLiabilitySignalProbabilities(precautionProgress.DLiabilitySignalDiscrete, (byte)precautionProgress.RelativePrecautionLevel);
+                        }
+                        else
+                        {
+                            byte trueLiabilityStrength = precautionProgress.LiabilityStrengthDiscrete;
+                            probabilities = pSignalGivenHidden[trueLiabilityStrength - 1];
+                        }
+                        return probabilities;
+                    }
+                case (byte)LitigGameDecisions.CourtDecisionLiability:
+                    {
+                        double[] probabilities = BayesianCalculations_GetCLiabilitySignalProbabilities(precautionProgress);
+                        return probabilities;
+                    }
+
+                case (byte)LitigGameDecisions.Accident:
+                    {
+                        var myGameProgress = ((PrecautionNegligenceProgress)gameProgress);
+                        var myDisputeGenerator = (PrecautionNegligenceDisputeGenerator)Options.LitigGameDisputeGenerator;
+                        double accidentProbability = myDisputeGenerator.GetAccidentProbability(myGameProgress.LiabilityStrengthDiscrete, myGameProgress.DLiabilitySignalDiscrete, (byte)myGameProgress.RelativePrecautionLevel);
+                        return new double[] { accidentProbability, 1 - accidentProbability };
+                    }
+                default:
+                    return null;
+            }
+        }
+
         public double[] BayesianCalculations_GetPLiabilitySignalProbabilities(byte? dSignal)
-            => dSignal is null or 0
-               ? throw new NotSupportedException()
-               : pSignalGivenD_NoAct[dSignal.Value - 1];
+            => throw new NotSupportedException();
         public double[] BayesianCalculations_GetDLiabilitySignalProbabilities(byte? pLiabilitySignal)
         {
             // Defendant draws first; plaintiff signal must be unknown or zero.
