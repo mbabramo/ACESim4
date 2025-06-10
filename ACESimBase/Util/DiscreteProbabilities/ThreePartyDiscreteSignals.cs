@@ -185,10 +185,16 @@ namespace ACESimBase.Util.DiscreteProbabilities
                 denom += val;
             }
             if (denom == 0.0)
-                throw new InvalidOperationException("Joint posterior has zero total probability.");
-
-            for (int h = 0; h < H; h++)
-                posteriorH[h] /= denom;
+            {
+                // joint probabilities don't occur. just assume each possibility equally likely.
+                for (int h = 0; h < H; h++)
+                    posteriorH[h] = 1.0 / (double)H;
+            }
+            else
+            {
+                for (int h = 0; h < H; h++)
+                    posteriorH[h] /= denom;
+            }
 
             // --- Mix over hidden to obtain the desired conditional distribution ---
             int S_target = signalCounts[targetPartyIndex];
