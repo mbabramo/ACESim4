@@ -50,6 +50,9 @@ namespace ACESimTest
             regularResults.Sum(x => x.probability).Should().BeApproximately(1.0, tolerance);
             collapsedResults.Sum(x => x.probability).Should().BeApproximately(1.0, tolerance);
 
+            var DEBUG2 = regularResults.GroupBy(x => (x.progress.PLiabilitySignalDiscrete, x.progress.DLiabilitySignalDiscrete)).Select(x => (x.Key, x.Sum(y => y.probability))).ToList();
+            var DEBUG3 = collapsedResults.GroupBy(x => (x.progress.PLiabilitySignalDiscrete, x.progress.DLiabilitySignalDiscrete)).Select(x => (x.Key, x.Sum(y => y.probability))).ToList();
+
             var signalValues = GetDistinctValues(regularResults, x => x.PLiabilitySignalDiscrete).OrderBy(x => x).ToList();
             foreach (var pSignalValue in signalValues)
             {
@@ -78,11 +81,18 @@ namespace ACESimTest
         {
             var finalResults = new List<(double probability, PrecautionNegligenceProgress progress)>();
             var initialResults = await GetProgressForEveryGamePathAsync(options);
+
+            var DEBUG2 = initialResults.GroupBy(x => (x.progress.PLiabilitySignalDiscrete, x.progress.DLiabilitySignalDiscrete)).Select(x => (x.Key, x.Sum(y => y.probability))).ToList();
             double initialProbabilitySum = initialResults.Sum(x => x.probability);
             var disputeGenerator = (PrecautionNegligenceDisputeGenerator)options.LitigGameDisputeGenerator;
             foreach (var initialResult in initialResults)
             {
                 var consistentProgresses = disputeGenerator.BayesianCalculations_GenerateAllConsistentGameProgresses(initialResult.progress.PLiabilitySignalDiscrete, initialResult.progress.DLiabilitySignalDiscrete, initialResult.progress.CLiabilitySignalDiscrete, initialResult.progress.PDamagesSignalDiscrete, initialResult.progress.DDamagesSignalDiscrete, initialResult.progress.CDamagesSignalDiscrete, initialResult.progress);
+                var DEBUG = consistentProgresses.Any(x => ((PrecautionNegligenceProgress)x.progress).PLiabilitySignalDiscrete == 0);
+                if (DEBUG)
+                {
+                    var DEBUG3 = 0;
+                }
                 finalResults.AddRange(consistentProgresses.Select(x => (x.weight * initialResult.probability, (PrecautionNegligenceProgress) x.progress)));
             }
             double finalProbabilitySum = finalResults.Sum(x => x.probability);

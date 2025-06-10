@@ -335,13 +335,34 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
         public double[] BayesianCalculations_GetDDamagesSignalProbabilities(byte? pDamages) => [1.0];
         public double[] BayesianCalculations_GetCDamagesSignalProbabilities(byte pDamages, byte dDamages) => [1.0];
 
-        public void BayesianCalculations_WorkBackwardsFromSignals(LitigGameProgress prog,
-            byte pSig, byte dSig, byte? cSig,
-            byte pDam, byte dDam, byte? cDam, int seed)
+
+
+        public bool GenerateConsistentGameProgressesWhenNotCollapsing => true;
+
+        public void BayesianCalculations_WorkBackwardsFromSignals(
+    LitigGameProgress prog,
+    byte pSig, byte dSig, byte? cSig,
+    byte pDam, byte dDam, byte? cDam, int seed)
         {
             var pr = (PrecautionNegligenceProgress)prog;
             var rng = new Random(seed);
 
+            // ----------------------------------------------------  infer plaintiff signal if still unset
+            if (pSig == 0)
+            {
+                if (!pr.EngagesInActivity)
+                {
+                    double[] pDist = pSignalGivenD_NoAct[dSig - 1];                // :contentReference[oaicite:6]{index=6}
+                    pSig = (byte)ArrayUtilities.ChooseIndex_OneBasedByte(pDist, rng.NextDouble());
+                }
+                else if (!pr.AccidentOccurs)
+                {
+                    double[] pDist = pSignalGivenD_NoAcc[dSig - 1][pr.RelativePrecautionLevel];   // :contentReference[oaicite:7]{index=7}
+                    pSig = (byte)ArrayUtilities.ChooseIndex_OneBasedByte(pDist, rng.NextDouble());
+                }
+            }
+
+            // ----------------------------------------------------  posterior over hidden state
             double[] posterior = pr switch
             {
                 { EngagesInActivity: true, AccidentOccurs: true, TrialOccurs: true, PWinsAtTrial: true } =>
@@ -353,7 +374,8 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
                                                      pr.RelativePrecautionLevel, null),
                 { EngagesInActivity: true, AccidentOccurs: false } =>
                     postNoAccident[dSig - 1][pr.RelativePrecautionLevel],
-                _ => postDefSignal[dSig - 1]
+                _ =>
+                    postDefSignal[dSig - 1]
             };
 
             pr.LiabilityStrengthDiscrete =
@@ -361,24 +383,30 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
 
             if (pr.AccidentOccurs)
             {
-                double probWrong =
-                    risk.GetWrongfulAttributionProbabilityGivenSignals(
-                        dSig - 1, pSig - 1, pr.RelativePrecautionLevel);
+                double probWrong = risk.GetWrongfulAttributionProbabilityGivenSignals(
+                                       dSig - 1, pSig - 1, pr.RelativePrecautionLevel);
                 pr.AccidentWronglyCausallyAttributedToDefendant = rng.NextDouble() < probWrong;
             }
+
+            // ----------------------------------------------------  store realised signals
+            pr.PLiabilitySignalDiscrete = pSig;
+            pr.DLiabilitySignalDiscrete = dSig;
+            if (cSig.HasValue)
+                pr.CLiabilitySignalDiscrete = cSig.Value;
 
             pr.ResetPostGameInfo();
         }
 
-        public bool GenerateConsistentGameProgressesWhenNotCollapsing => true;
-
-        public List<(GameProgress progress, double weight)> BayesianCalculations_GenerateAllConsistentGameProgresses(
-            byte pSig, byte dSig, byte? cSig, byte pDam, byte dDam, byte? cDam, LitigGameProgress baseProg)
+        public List<(GameProgress progress, double weight)>
+            BayesianCalculations_GenerateAllConsistentGameProgresses(
+                byte pSig, byte dSig, byte? cSig,
+                byte pDam, byte dDam, byte? cDam,
+                LitigGameProgress baseProg)
         {
             var p = (PrecautionNegligenceProgress)baseProg;
             var list = new List<(GameProgress, double)>();
 
-            // posterior over hidden
+            // ----------------------------------------------------  posterior over hidden state
             double[] posterior = p.AccidentOccurs switch
             {
                 true when p.TrialOccurs && p.PWinsAtTrial =>
@@ -394,16 +422,57 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
                     postDefSignal[dSig - 1]
             };
 
+            // ----------------------------------------------------  plaintiff signal still unknown?
+            bool needP = pSig == 0 && !p.AccidentOccurs;
+            if (needP)
+            {
+                double[] pDist = p.EngagesInActivity
+                    ? pSignalGivenD_NoAcc[dSig - 1][p.RelativePrecautionLevel]    
+                    : pSignalGivenD_NoAct[dSig - 1];                             
+
+                for (int ps = 1; ps <= pDist.Length; ps++)
+                {
+                    double pWeight = pDist[ps - 1];
+                    if (pWeight == 0.0) continue;
+
+                    for (int h = 0; h < posterior.Length; h++)
+                    {
+                        double weight = posterior[h] * pWeight;
+                        if (weight == 0.0) continue;
+
+                        var cp = (PrecautionNegligenceProgress)p.DeepCopy();
+                        cp.LiabilityStrengthDiscrete = (byte)(h + 1);
+                        cp.PLiabilitySignalDiscrete = (byte)ps;
+                        cp.DLiabilitySignalDiscrete = dSig;
+                        if (cSig.HasValue)
+                            cp.CLiabilitySignalDiscrete = cSig.Value;
+
+                        list.AddRange(DuplicateProgressWithAndWithoutWrongfulAttribution(cp, weight));
+                    }
+                }
+                return list;
+            }
+
+            // ----------------------------------------------------  plaintiff signal already known
             for (int h = 0; h < posterior.Length; h++)
             {
-                if (posterior[h] == 0.0) continue;
+                double weight = posterior[h];
+                if (weight == 0.0) continue;
 
                 var cp = (PrecautionNegligenceProgress)p.DeepCopy();
                 cp.LiabilityStrengthDiscrete = (byte)(h + 1);
-                list.AddRange(DuplicateProgressWithAndWithoutWrongfulAttribution(cp, posterior[h]));
+                cp.PLiabilitySignalDiscrete = pSig;
+                cp.DLiabilitySignalDiscrete = dSig;
+                if (cSig.HasValue)
+                    cp.CLiabilitySignalDiscrete = cSig.Value;
+
+                list.AddRange(DuplicateProgressWithAndWithoutWrongfulAttribution(cp, weight));
             }
+
             return list;
         }
+
+
 
         List<(GameProgress progress, double weight)> DuplicateProgressWithAndWithoutWrongfulAttribution(
             PrecautionNegligenceProgress pr, double weight)
