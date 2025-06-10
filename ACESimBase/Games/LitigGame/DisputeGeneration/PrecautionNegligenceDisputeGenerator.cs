@@ -1,113 +1,142 @@
-﻿using ACESimBase.Games.LitigGame.PrecautionModel;
+﻿using ACESim;
 using ACESimBase.GameSolvingSupport.Symmetry;
 using ACESimBase.Util.ArrayManipulation;
-using Microsoft.ML.Tokenizers;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
-using static HDF.PInvoke.H5T;
 
-namespace ACESim // Assuming the ACESim base namespace; adjust if needed
+namespace ACESimBase.Games.LitigGame.PrecautionModel
 {
     /// <summary>
-    /// Dispute generator for a negligence case with precaution investment and accident chance.
-    /// Simulates the sequence from precaution choice through accident, engagement, settlement, and trial.
-    /// Supports full simulation mode (explicit chance nodes for accident/trial) and collapsed chance mode (integrated probabilities).
+    /// Dispute generator for the precaution-negligence scenario.
+    /// Heavy probability tables now come directly from the refactored models;
+    /// this class performs no run-time “Build*” calls.
     /// </summary>
-    public class PrecautionNegligenceDisputeGenerator : ILitigGameDisputeGenerator
+    public sealed class PrecautionNegligenceDisputeGenerator : ILitigGameDisputeGenerator
     {
-        public LitigGameDefinition LitigGameDefinition { get; set; }
-        public LitigGameProgress CreateGameProgress(bool fullHistoryRequired) => new PrecautionNegligenceProgress(fullHistoryRequired);
-
-        public LitigGameOptions Options => LitigGameDefinition.Options;
-
-        public string OptionsString => $"{nameof(CostOfAccident)}: {CostOfAccident} {nameof(MarginalPrecautionCost)}: {MarginalPrecautionCost} {nameof(PrecautionPowerLevels)}: {PrecautionPowerLevels} {nameof(PrecautionLevels)}: {PrecautionLevels} {nameof(PrecautionPowerFactor)}: {PrecautionPowerFactor} {nameof(ProbabilityAccidentNoActivity)}: {ProbabilityAccidentNoActivity} {nameof(ProbabilityAccidentNoPrecaution)}: {ProbabilityAccidentNoPrecaution} {nameof(ProbabilityAccidentWrongfulAttribution)}: {ProbabilityAccidentWrongfulAttribution} {nameof(LiabilityThreshold)}: {LiabilityThreshold} ";
-
-        public double BenefitToDefendantOfActivity = 3.0; // back of the envelope suggests 0.00005 might make the defendant on the borderline of whether to engage in the activity. Set to much higher value to make it so that defendant always engages in the activity
-        public double CostOfAccident = 1.0; // normalized harm in the event of an accident
+        // ----------------------------------------------------------------  public configuration
+        public double BenefitToDefendantOfActivity = 3.0;
+        public double CostOfAccident = 1.0;
         public double MarginalPrecautionCost = 0.00001;
-        public byte PrecautionPowerLevels = 10; // can be high if we're collapsing chance decisions, since this is the decision that gets collapsed
+        public byte PrecautionPowerLevels = 10;
         public byte PrecautionLevels = 5;
         public double PrecautionPowerFactor = 0.8;
         public double ProbabilityAccidentNoActivity = 0.0;
         public double ProbabilityAccidentNoPrecaution = 0.0001;
         public double ProbabilityAccidentWrongfulAttribution = 0.000025;
-        public double LiabilityThreshold = 1.0; // liability if benefit/cost ratio for marginal forsaken precaution > 1
+        public double LiabilityThreshold = 1.0;
+        int numSamplesToMakeForCourtLiablityDetermination = 1000; // Note: This is different from NumCourtLiabilitySignals, which indicates the number of different branches that the court will receive and will thus generally be set to 2, for liability and no liability. Instead, this affects the fineness of the calculation of the probability of liability.
 
+        // ----------------------------------------------------------------  linked models
+        PrecautionImpactModel impact;
+        PrecautionSignalModel signal;
+        PrecautionRiskModel risk;
+        PrecautionCourtDecisionModel court;
 
-        // Models for domain-specific logic
-        private PrecautionImpactModel _impactModel;
-        private PrecautionSignalModel _signalModel;
-        private PrecautionCourtDecisionModel _courtDecisionModel;
+        // ----------------------------------------------------------------  cached light vectors/tables
+        double[] dSignalProb;            // P(D-signal)
+        double[][] pSignalGivenHidden;     // [h][p]
+        double[][] pSignalGivenD_NoAct;    // [d][p]
+        double[][][] pSignalGivenD_Acc;      // [d][k][p]
+        double[][][] pSignalGivenD_NoAcc;    // [d][k][p]
 
-        // Precomputed lookup tables
-        private double[] _precautionPowerProbabilities; // Probability of each precaution level
-        private double[] _dSignalProbabilities; // Probability of each defendant signal, when NOT conditioned on the precaution power level (in collapse chance mode)
+        double[][][][] courtDistLiable;        // [p][d][k][c]
+        double[][][][] courtDistNoLiable;      // [p][d][k][c]
+        double[][][][] postAccLiable;          // [p][d][k][h]
+        double[][][][] postAccNoLiable;        // [p][d][k][h]
+        double[][][] postNoAccident;         // [d][k][h]
+        double[][] postDefSignal;          // [d][h]
 
-        private double[][] _pSignalProbabilitiesGivenPrecautionPower;
-        private double[][] _pSignalProbabilitiesGivenDSignalNoEngagement;
-        private double[][][] _pSignalProbabilitiesGivenDSignalAndPrecautionLevelAfterAccident;
-        private double[][][] _pSignalProbabilitiesGivenDSignalAndPrecautionLevelAfterNoAccident;
-        private double[][][][] _courtSignalProbabilitiesGivenLiability;
-        private double[][][][] _courtSignalProbabilitiesGivenNoLiability;
-        private double[][][][] _posteriorGivenAccidentAndLiability;
-        private double[][][][] _posteriorGivenAccidentAndNoLiability;
-        private double[][][] _posteriorGivenNoAccident;
-        private double[][] _posteriorGivenDefendantSignal;
+        // ----------------------------------------------------------------  ILitigGameDisputeGenerator plumbing
+        public LitigGameDefinition LitigGameDefinition { get; set; }
+        public LitigGameOptions Options => LitigGameDefinition.Options;
 
+        public LitigGameProgress CreateGameProgress(bool fullHistoryRequired) =>
+            new PrecautionNegligenceProgress(fullHistoryRequired);
 
-        /// <summary>
-        /// Initializes a new PrecautionNegligenceDisputeGenerator with the given models and settings.
-        /// </summary>
-        /// <param name="impactModel">Model mapping precaution level to accident probability (and possibly related parameters).</param>
-        /// <param name="signalModel">Model for generating private precaution signals for each party.</param>
-        /// <param name="courtDecisionModel">Model defining the court's liability threshold and decision logic.</param>
-        /// <param name="collapseChanceDecisions">If true, use collapsed chance mode; if false, use full simulation mode.</param>
-        /// <param name="enableSettlement">If true, include a settlement negotiation stage before trial.</param>
-        /// <param name="random">Optional random number generator for chance events (useful for simulation runs).</param>
-        public void Setup(LitigGameDefinition myGameDefinition)
+        public string OptionsString =>
+            $"{nameof(CostOfAccident)}={CostOfAccident}  {nameof(MarginalPrecautionCost)}={MarginalPrecautionCost}";
+
+        public string GetGeneratorName() => "PrecautionNegligence";
+        public bool SupportsSymmetry() => false;
+        public string GetActionString(byte action, byte decisionByteCode) => action.ToString();
+
+        // ----------------------------------------------------------------  SETUP (creates & links models)
+        public void Setup(LitigGameDefinition gameDefinition)
         {
-            LitigGameDefinition = myGameDefinition;
-            var options = LitigGameDefinition.Options;
-            options.DamagesMax = options.DamagesMin = CostOfAccident;
-            options.NumDamagesStrengthPoints = 1;
-            _impactModel = new PrecautionImpactModel(PrecautionPowerLevels, PrecautionLevels, ProbabilityAccidentNoActivity, ProbabilityAccidentNoPrecaution, MarginalPrecautionCost, CostOfAccident, null, PrecautionPowerFactor, PrecautionPowerFactor, LiabilityThreshold, ProbabilityAccidentWrongfulAttribution, null);
-            int numSamplesToMakeForCourtLiablityDetermination = 1000; // Note: This is different from NumCourtLiabilitySignals, which indicates the number of different branches that the court will receive and will thus generally be set to 2, for liability and no liability. Instead, this affects the fineness of the calculation of the probability of liability.
-            _signalModel = new PrecautionSignalModel(PrecautionPowerLevels, options.NumLiabilitySignals, options.NumLiabilitySignals, numSamplesToMakeForCourtLiablityDetermination, options.PLiabilityNoiseStdev, options.DLiabilityNoiseStdev, options.CourtLiabilityNoiseStdev, includeExtremes: false);
-            _courtDecisionModel = new PrecautionCourtDecisionModel(_impactModel, _signalModel);
-            _precautionPowerProbabilities = Enumerable.Range(1, PrecautionPowerLevels).Select(x => 1.0 / PrecautionPowerLevels).ToArray();
-            if (Options.CollapseChanceDecisions)
+            LitigGameDefinition = gameDefinition;
+            var opt = gameDefinition.Options;
+
+            // Impact → Signal → Risk → Court
+            impact = new PrecautionImpactModel(
+                precautionPowerLevels: PrecautionPowerLevels,
+                precautionLevels: PrecautionLevels,
+                pAccidentNoActivity: ProbabilityAccidentNoActivity,
+                pAccidentNoPrecaution: ProbabilityAccidentNoPrecaution,
+                marginalPrecautionCost: MarginalPrecautionCost,
+                harmCost: CostOfAccident,
+                precautionPowerFactors: null,
+                precautionPowerFactorLeastEffective: PrecautionPowerFactor,
+                precautionPowerFactorMostEffective: PrecautionPowerFactor,
+                liabilityThreshold: LiabilityThreshold,
+                pAccidentWrongfulAttribution: ProbabilityAccidentWrongfulAttribution);
+
+            signal = new PrecautionSignalModel(
+                numPrecautionPowerLevels: PrecautionPowerLevels,
+                numPlaintiffSignals: opt.NumLiabilitySignals,
+                numDefendantSignals: opt.NumLiabilitySignals,
+                numCourtSignals: numSamplesToMakeForCourtLiablityDetermination,
+                sigmaPlaintiff: opt.PLiabilityNoiseStdev,
+                sigmaDefendant: opt.DLiabilityNoiseStdev,
+                sigmaCourt: opt.CourtLiabilityNoiseStdev,
+                includeExtremes: false);
+
+            risk = new PrecautionRiskModel(impact, signal);
+            court = new PrecautionCourtDecisionModel(impact, signal);
+
+            // quick vectors
+            dSignalProb = signal.GetUnconditionalSignalDistribution(PrecautionSignalModel.DefendantIndex);
+            pSignalGivenHidden = Enumerable.Range(0, impact.HiddenCount)
+                                           .Select(h => signal.GetPlaintiffSignalDistributionGivenHidden(h))
+                                           .ToArray();
+            pSignalGivenD_NoAct = Enumerable.Range(0, signal.NumDSignals)
+                                            .Select(d => signal.GetPlaintiffSignalDistributionGivenDefendantSignal(d))
+                                            .ToArray();
+
+            // plaintiff-signal tables conditional on D-signal & accident
+            int D = signal.NumDSignals;
+            int K = impact.PrecautionLevels;
+            pSignalGivenD_Acc = new double[D][][];
+            pSignalGivenD_NoAcc = new double[D][][];
+            for (int d = 0; d < D; d++)
             {
-                _dSignalProbabilities = _signalModel.GetUnconditionalDefendantSignalDistribution();
-                _pSignalProbabilitiesGivenPrecautionPower = _signalModel.BuildPlaintiffSignalGivenHiddenTable();
-                _pSignalProbabilitiesGivenDSignalNoEngagement = _signalModel.BuildPlaintiffSignalDistributionGivenDefendantSignal();
-                _pSignalProbabilitiesGivenDSignalAndPrecautionLevelAfterAccident = _signalModel.BuildPlaintiffSignalDistributionGivenDefendantSignalAndPrecautionLevelAfterAccidentTable(_impactModel);
-                _pSignalProbabilitiesGivenDSignalAndPrecautionLevelAfterNoAccident = _signalModel.BuildPlaintiffSignalDistributionGivenDefendantSignalAndPrecautionLevelNoAccidentTable(_impactModel);
-                _courtSignalProbabilitiesGivenLiability =
-    _courtDecisionModel.BuildTablesForCourtSignalDistributionBasedOnPAndDSignalsAndPrecautionLevel_GivenLiability();
-
-                _courtSignalProbabilitiesGivenNoLiability =
-                    _courtDecisionModel.BuildTablesForCourtSignalDistributionBasedOnPAndDSignalsAndPrecautionLevel_GivenNoLiability();
-                _posteriorGivenAccidentAndLiability =
-    _courtDecisionModel.BuildHiddenPosteriorFromCourtSignalDistributionTable(_courtSignalProbabilitiesGivenLiability);
-
-                _posteriorGivenAccidentAndNoLiability =
-                    _courtDecisionModel.BuildHiddenPosteriorFromCourtSignalDistributionTable(_courtSignalProbabilitiesGivenNoLiability);
-
-                _posteriorGivenNoAccident = _courtDecisionModel.BuildHiddenPosteriorFromNoAccidentTable();
-                _posteriorGivenDefendantSignal = _courtDecisionModel.BuildHiddenPosteriorFromDefendantSignalTable();
-
+                pSignalGivenD_Acc[d] = new double[K][];
+                pSignalGivenD_NoAcc[d] = new double[K][];
+                for (int k = 0; k < K; k++)
+                {
+                    pSignalGivenD_Acc[d][k] = risk.GetPlaintiffSignalDistGivenDefendantAfterAccident(d, k);
+                    pSignalGivenD_NoAcc[d][k] = risk.GetPlaintiffSignalDistGivenDefendantNoAccident(d, k);
+                }
             }
+
+            // court-signal & hidden-posterior tables
+            courtDistLiable = court.CourtSignalDistGivenLiabilityTable;
+            courtDistNoLiable = court.CourtSignalDistGivenNoLiabilityTable;
+            postAccLiable = court.HiddenPosteriorAccidentLiabilityTable;
+            postAccNoLiable = court.HiddenPosteriorAccidentNoLiabilityTable;
+            postNoAccident = court.HiddenPosteriorNoAccidentTable;
+            postDefSignal = court.HiddenPosteriorDefendantSignalTable;
         }
 
-        public List<Decision> GenerateDisputeDecisions(LitigGameDefinition litigGameDefinition)
+        // ----------------------------------------------------------------  GAME-TREE CONSTRUCTION
+        public List<Decision> GenerateDisputeDecisions(LitigGameDefinition g)
         {
-            var list = new List<Decision>();
-            bool collapse = litigGameDefinition.Options.CollapseChanceDecisions;
+            var r = new List<Decision>();
+            bool collapse = g.Options.CollapseChanceDecisions;
 
+            // liability-strength (hidden) only in full-tree mode
             if (!collapse)
-                list.Add(new(
+                r.Add(new(
                     "Precaution Power", "PPow", true,
                     (byte)LitigGamePlayers.LiabilityStrengthChance,
                     new byte[] { (byte)LitigGamePlayers.CourtLiabilityChance, (byte)LitigGamePlayers.Resolution },
@@ -115,440 +144,285 @@ namespace ACESim // Assuming the ACESim base namespace; adjust if needed
                     (byte)LitigGameDecisions.LiabilityStrength,
                     unevenChanceActions: false)
                 {
-                    StoreActionInGameCacheItem = litigGameDefinition.GameHistoryCacheIndex_LiabilityStrength,
+                    StoreActionInGameCacheItem = g.GameHistoryCacheIndex_LiabilityStrength,
                     IsReversible = true,
-                    DistributedChanceDecision = false, // using collapse chance instead
-                    Unroll_Parallelize = true,
-                    Unroll_Parallelize_Identical = false,
-                    SymmetryMap = (SymmetryMapInput.NotCompatibleWithSymmetry, SymmetryMapOutput.CantBeSymmetric)
-                }
-                );
+                    DistributedChanceDecision = false,
+                    Unroll_Parallelize = true
+                });
 
-            list.Add(new("Defendant Signal", "DLS", true,
+            // defendant signal
+            r.Add(new("Defendant Signal", "DLS", true,
                 (byte)LitigGamePlayers.DLiabilitySignalChance,
-                new byte[] { (byte)LitigGamePlayers.Defendant, (byte)LitigGamePlayers.AccidentChance, (byte)LitigGamePlayers.CourtLiabilityChance, (byte)LitigGamePlayers.Resolution },
-                Options.NumLiabilitySignals,
+                new byte[] { (byte)LitigGamePlayers.Defendant, (byte)LitigGamePlayers.AccidentChance,
+                             (byte)LitigGamePlayers.CourtLiabilityChance, (byte)LitigGamePlayers.Resolution },
+                g.Options.NumLiabilitySignals,
                 (byte)LitigGameDecisions.DLiabilitySignal,
-                unevenChanceActions: Options.CollapseChanceDecisions) 
+                unevenChanceActions: collapse)
             {
                 IsReversible = true,
                 DistributedChanceDecision = false,
-                Unroll_Parallelize = true,
-                Unroll_Parallelize_Identical = false,
-                SymmetryMap = (SymmetryMapInput.NotCompatibleWithSymmetry, SymmetryMapOutput.CantBeSymmetric)
+                Unroll_Parallelize = true
             });
 
-            var plaintiffSignalDecision = new Decision("Plaintiff Signal", "PLS", true,
+            // plaintiff signal (position depends on collapse mode)
+            var plsDecision = new Decision("Plaintiff Signal", "PLS", true,
                 (byte)LitigGamePlayers.PLiabilitySignalChance,
-                new byte[] { (byte)LitigGamePlayers.Plaintiff, (byte)LitigGamePlayers.AccidentChance, (byte)LitigGamePlayers.CourtLiabilityChance, (byte)LitigGamePlayers.Resolution },
-                Options.NumLiabilitySignals,
+                new byte[] { (byte)LitigGamePlayers.Plaintiff, (byte)LitigGamePlayers.AccidentChance,
+                             (byte)LitigGamePlayers.CourtLiabilityChance, (byte)LitigGamePlayers.Resolution },
+                g.Options.NumLiabilitySignals,
                 (byte)LitigGameDecisions.PLiabilitySignal,
-                unevenChanceActions: Options.CollapseChanceDecisions) 
+                unevenChanceActions: collapse)
             {
                 IsReversible = true,
                 DistributedChanceDecision = false,
-                Unroll_Parallelize = true,
-                Unroll_Parallelize_Identical = false,
-                SymmetryMap = (SymmetryMapInput.NotCompatibleWithSymmetry, SymmetryMapOutput.CantBeSymmetric)
+                Unroll_Parallelize = true
             };
-            if (!Options.CollapseChanceDecisions)
-                list.Add(plaintiffSignalDecision); // when not collapsing chance decisions, we want the game tree to be as straightforward as possible, and don't want to worry about Bayesian calculations. So, we give the plaintiff it's signal (conditional on the underlying precaution power level) early.
+            if (!collapse) r.Add(plsDecision);
 
-            list.Add(new("Engage in Activity", "ENG", false,
+            // engage in activity
+            r.Add(new("Engage in Activity", "ENG", false,
                 (byte)LitigGamePlayers.Defendant,
-                new byte[] { (byte)LitigGamePlayers.Plaintiff, (byte)LitigGamePlayers.Defendant, (byte)LitigGamePlayers.AccidentChance, (byte)LitigGamePlayers.CourtLiabilityChance, (byte)LitigGamePlayers.Resolution },
-                2, // engage or don't
+                new byte[] { (byte)LitigGamePlayers.Plaintiff, (byte)LitigGamePlayers.Defendant,
+                             (byte)LitigGamePlayers.AccidentChance, (byte)LitigGamePlayers.CourtLiabilityChance,
+                             (byte)LitigGamePlayers.Resolution },
+                2,
                 (byte)LitigGameDecisions.EngageInActivity)
             {
-                StoreActionInGameCacheItem = litigGameDefinition.GameHistoryCacheIndex_EngagesInActivity,
+                StoreActionInGameCacheItem = g.GameHistoryCacheIndex_EngagesInActivity,
                 IsReversible = true,
-                DistributedChanceDecision = false,
-                Unroll_Parallelize = true,
-                Unroll_Parallelize_Identical = false,
-                SymmetryMap = (SymmetryMapInput.NotCompatibleWithSymmetry, SymmetryMapOutput.CantBeSymmetric),
                 CanTerminateGame = true
-            }); // 1 = yes, 2 = no
+            });
 
-            list.Add(new("Precaution", "PREC", false,
+            // precaution level
+            r.Add(new("Precaution", "PREC", false,
                 (byte)LitigGamePlayers.Defendant,
-                new byte[] { (byte)LitigGamePlayers.Plaintiff, (byte)LitigGamePlayers.Defendant, (byte)LitigGamePlayers.AccidentChance, (byte)LitigGamePlayers.CourtLiabilityChance, (byte)LitigGamePlayers.Resolution },
+                new byte[] { (byte)LitigGamePlayers.Plaintiff, (byte)LitigGamePlayers.Defendant,
+                             (byte)LitigGamePlayers.AccidentChance, (byte)LitigGamePlayers.CourtLiabilityChance,
+                             (byte)LitigGamePlayers.Resolution },
                 PrecautionLevels,
                 (byte)LitigGameDecisions.TakePrecaution)
             {
-                StoreActionInGameCacheItem = litigGameDefinition.GameHistoryCacheIndex_PrecautionLevel,
-                IsReversible = true,
-                DistributedChanceDecision = false,
-                Unroll_Parallelize = true,
-                Unroll_Parallelize_Identical = false,
-                SymmetryMap = (SymmetryMapInput.NotCompatibleWithSymmetry, SymmetryMapOutput.CantBeSymmetric)
-            }); // 1 = no precaution, ...
+                StoreActionInGameCacheItem = g.GameHistoryCacheIndex_PrecautionLevel,
+                IsReversible = true
+            });
 
-            list.Add(new("Accident", "ACC", true,
+            // accident
+            r.Add(new("Accident", "ACC", true,
                 (byte)LitigGamePlayers.AccidentChance,
-                new byte[] { (byte)LitigGamePlayers.Plaintiff, (byte)LitigGamePlayers.Defendant, (byte)LitigGamePlayers.CourtLiabilityChance, (byte)LitigGamePlayers.Resolution },
-                (byte)2, /* accident or no accident */
+                new byte[] { (byte)LitigGamePlayers.Plaintiff, (byte)LitigGamePlayers.Defendant,
+                             (byte)LitigGamePlayers.CourtLiabilityChance, (byte)LitigGamePlayers.Resolution },
+                2,
                 (byte)LitigGameDecisions.Accident,
-                unevenChanceActions: true
-                )
+                unevenChanceActions: true)
             {
-                StoreActionInGameCacheItem = litigGameDefinition.GameHistoryCacheIndex_Accident,
+                StoreActionInGameCacheItem = g.GameHistoryCacheIndex_Accident,
                 IsReversible = true,
-                DistributedChanceDecision = false,
-                Unroll_Parallelize = true,
-                Unroll_Parallelize_Identical = false,
-                SymmetryMap = (SymmetryMapInput.NotCompatibleWithSymmetry, SymmetryMapOutput.CantBeSymmetric),
-                CanTerminateGame = true // only when probability of wrongful attribution is 0
+                CanTerminateGame = true
+            });
 
-            }); // 1 --> accident, 2 --> no accident
+            if (collapse) r.Add(plsDecision);      // plaintiff signal only after accident/no-accident
 
-
-            if (Options.CollapseChanceDecisions)
-                list.Add(plaintiffSignalDecision); // when collapsing chance decisions, we can add the plaintiff's signal here, so we don't need to even deal with it if no accident occurs. We'll have to deal with the Bayesian calculations.
-
-            // The liability signals tables are used when NOT collapsing decisions. This logic is already built in, so we don't need to enhance it.
-            litigGameDefinition.CreateLiabilitySignalsTables();
-            if (litigGameDefinition.Options.NumDamagesStrengthPoints > 1)
-                throw new NotImplementedException(); // gameDefinition.CreateDamagesSignalsTables();
-
-            if (litigGameDefinition.Options.LoserPaysOnlyLargeMarginOfVictory || litigGameDefinition.Options.NumCourtLiabilitySignals != 2)
-                throw new NotImplementedException(); // we are generally implementing only 2 signals for the court (plaintiff wins and plaintiff loses) -- margin of victory fee shifting requires more.
-
-            return list;
+            g.CreateLiabilitySignalsTables();
+            return r;
         }
 
-        public bool PotentialDisputeArises(LitigGameDefinition gameDef, LitigGameStandardDisputeGeneratorActions acts, LitigGameProgress gameProgress)
+        // ----------------------------------------------------------------  BASIC ACCESSORS
+        public bool PotentialDisputeArises(LitigGameDefinition g, LitigGameStandardDisputeGeneratorActions acts,
+                                           LitigGameProgress prog)
+            => ((PrecautionNegligenceProgress)prog).EngagesInActivity &&
+               ((PrecautionNegligenceProgress)prog).AccidentOccurs;
+
+        public bool MarkCompleteAfterEngageInActivity(LitigGameDefinition g, byte code) => code == 2;
+        public bool MarkCompleteAfterAccidentDecision(LitigGameDefinition g, byte code) => code == 2;
+
+        public bool HandleUpdatingGameProgress(LitigGameProgress progress, byte decision, byte action)
         {
-            PrecautionNegligenceProgress precautionProgress = (PrecautionNegligenceProgress)gameProgress;
-            return precautionProgress.EngagesInActivity && precautionProgress.AccidentOccurs;
-        }
-
-        public bool MarkCompleteAfterEngageInActivity(LitigGameDefinition g, byte engagesInActivityCode) => engagesInActivityCode == 2;
-        public bool MarkCompleteAfterAccidentDecision(LitigGameDefinition g, byte accidentCode) => accidentCode == 2 /* no accident */; // Note that no accident means no accident of any kind, including a wrongfully attributed accident
-
-        public bool HandleUpdatingGameProgress(LitigGameProgress gameProgress, byte currentDecisionByteCode, byte action)
-        {
-            PrecautionNegligenceProgress precautionProgress = (PrecautionNegligenceProgress)gameProgress;
-
-            switch (currentDecisionByteCode)
+            var p = (PrecautionNegligenceProgress)progress;
+            switch ((LitigGameDecisions)decision)
             {
-                case (byte)LitigGameDecisions.EngageInActivity:
-                    bool engagesInActivity = action == 1;
-                    precautionProgress.EngagesInActivity = engagesInActivity;
-                    if (!engagesInActivity)
-                        gameProgress.GameComplete = true;
+                case LitigGameDecisions.EngageInActivity:
+                    p.EngagesInActivity = action == 1;
+                    progress.GameComplete = !p.EngagesInActivity;
                     break;
-                case (byte)LitigGameDecisions.TakePrecaution:
-                    precautionProgress.RelativePrecautionLevel = action - 1;
-                    // Note: we don't set the opportunity costs until after the game
+                case LitigGameDecisions.TakePrecaution:
+                    p.RelativePrecautionLevel = action - 1;
                     break;
-                case (byte)LitigGameDecisions.Accident:
-                    bool accidentOccurs = action == 1;
-                    precautionProgress.AccidentOccurs = accidentOccurs;
-                    // We're not going to set HarmCost yet --> instead, we'll do that when we generate consistent game progresses.
-                    // The reason for this is that if there is an accident, there is some probability that the accident was
-                    // wrongfully attributed to the defendant. But when reporting, we would like to separate out the cases in 
-                    // which there was and wasn't wrongful attribution, so that we can have graphics that separate out these
-                    // two sets of cases. We can do that based on information later, taking into account the precaution level.
-                    if (!accidentOccurs)
-                        gameProgress.GameComplete = true;
+                case LitigGameDecisions.Accident:
+                    p.AccidentOccurs = action == 1;
+                    progress.GameComplete = !p.AccidentOccurs;
                     break;
-                default:
-                    return false;
+                default: return false;
             }
             return true;
         }
 
-        public bool IsTrulyLiable(
-            LitigGameDefinition gameDefinition,
-            LitigGameStandardDisputeGeneratorActions disputeGeneratorActions,
-            GameProgress gameProgress)
+        public bool IsTrulyLiable(LitigGameDefinition g, LitigGameStandardDisputeGeneratorActions a,
+                                  GameProgress prog)
         {
-            PrecautionNegligenceProgress precautionProgress = (PrecautionNegligenceProgress)gameProgress;
-            bool isTrulyLiable = _impactModel.IsTrulyLiable(precautionProgress.LiabilityStrengthDiscrete - 1, precautionProgress.RelativePrecautionLevel);
-            return isTrulyLiable;
+            var p = (PrecautionNegligenceProgress)prog;
+            return impact.IsTrulyLiable(p.LiabilityStrengthDiscrete - 1, p.RelativePrecautionLevel);
         }
 
-        public double[] GetLiabilityStrengthProbabilities(
-            LitigGameDefinition gameDefinition,
-            LitigGameStandardDisputeGeneratorActions disputeGeneratorActions) => _precautionPowerProbabilities;
+        public double[] GetLiabilityStrengthProbabilities(LitigGameDefinition g,
+                                                          LitigGameStandardDisputeGeneratorActions a)
+            => Enumerable.Repeat(1.0 / PrecautionPowerLevels, PrecautionPowerLevels).ToArray();
 
-        public double[] GetDamagesStrengthProbabilities(
-            LitigGameDefinition gameDefinition,
-            LitigGameStandardDisputeGeneratorActions disputeGeneratorActions) => [1.0];
+        public double[] GetDamagesStrengthProbabilities(LitigGameDefinition g,
+                                                        LitigGameStandardDisputeGeneratorActions a) => [1.0];
 
-        public double GetLitigationIndependentSocialWelfare(LitigGameDefinition gameDefinition, LitigGameStandardDisputeGeneratorActions disputeGeneratorActions, LitigGameProgress gameProgress)
+        public double GetLitigationIndependentSocialWelfare(LitigGameDefinition g,
+                                                             LitigGameStandardDisputeGeneratorActions a,
+                                                             LitigGameProgress prog)
         {
-            var costs = GetOpportunityAndHarmCosts(gameDefinition, disputeGeneratorActions, gameProgress);
-            return 0 - costs.harmCost - costs.opportunityCost;
+            var (opp, harm) = GetOpportunityAndHarmCosts(g, a, prog);
+            return -opp - harm;
         }
 
-        public double[] GetLitigationIndependentWealthEffects(LitigGameDefinition gameDefinition, LitigGameStandardDisputeGeneratorActions disputeGeneratorActions, LitigGameProgress gameProgress)
+        public double[] GetLitigationIndependentWealthEffects(LitigGameDefinition g,
+                                                              LitigGameStandardDisputeGeneratorActions a,
+                                                              LitigGameProgress prog)
         {
-            var costs = GetOpportunityAndHarmCosts(gameDefinition, disputeGeneratorActions, gameProgress);
-            return [0 - costs.harmCost, 0 - costs.opportunityCost];
+            var (opp, harm) = GetOpportunityAndHarmCosts(g, a, prog);
+            return [-harm, -opp];
         }
 
-        public (double opportunityCost, double harmCost) GetOpportunityAndHarmCosts(LitigGameDefinition gameDefinition, LitigGameStandardDisputeGeneratorActions disputeGeneratorActions, LitigGameProgress gameProgress)
+        public (double opportunityCost, double harmCost) GetOpportunityAndHarmCosts(LitigGameDefinition g,
+                                                                     LitigGameStandardDisputeGeneratorActions a,
+                                                                     LitigGameProgress prog)
         {
-            PrecautionNegligenceProgress precautionProgress = (PrecautionNegligenceProgress)gameProgress;
-
-            // recalculate this from scratch here, in case there have been changes based on post-game info beng reset
-            var activityForegoneCost = precautionProgress.EngagesInActivity ? 0 : BenefitToDefendantOfActivity;
-            var precautionTaken = precautionProgress.RelativePrecautionLevel * MarginalPrecautionCost;
-            var harmCost = precautionProgress.AccidentProperlyCausallyAttributedToDefendant ? CostOfAccident : 0; // an accident that is not causally attributable to the defendant is not counted as a cost here, since it's exogenous to the model.
-
-            return (activityForegoneCost + precautionTaken, harmCost);
+            var p = (PrecautionNegligenceProgress)prog;
+            double opp = p.EngagesInActivity ? 0 : BenefitToDefendantOfActivity;
+            opp += p.RelativePrecautionLevel * MarginalPrecautionCost;
+            double harm = p.AccidentProperlyCausallyAttributedToDefendant ? CostOfAccident : 0;
+            return (opp, harm);
         }
 
-        public bool SupportsSymmetry() => false;
-
-        public string GetGeneratorName() => "PrecautionNegligence";
-
-        public string GetActionString(byte action, byte decisionByteCode) => action.ToString();
-
-
+        // ----------------------------------------------------------------  BAYESIAN HELPERS
+        public double[] BayesianCalculations_GetPLiabilitySignalProbabilities(byte? dSignal)
+            => dSignal is null or 0
+               ? throw new NotSupportedException()
+               : pSignalGivenD_NoAct[dSignal.Value - 1];
         public double[] BayesianCalculations_GetDLiabilitySignalProbabilities(byte? pLiabilitySignal)
         {
-            // Defendant goes first, so we can just use the original liability signal tables.
-            if (pLiabilitySignal is not (null or 0))
-                throw new NotSupportedException(); // This should only be called in collapse decision mode, as the first signal to be computed
-            return _dSignalProbabilities; // not conditioned on anything
+            // Defendant draws first; plaintiff signal must be unknown or zero.
+            if (pLiabilitySignal is > 0)
+                throw new NotSupportedException("Plaintiff signal must be null or 0 at this stage.");
+
+            return dSignalProb;   // unconditional P(D-signal)
         }
 
-        public double[] BayesianCalculations_GetPLiabilitySignalProbabilities(byte? dLiabilitySignal) => throw new NotSupportedException();
+        public double[] BayesianCalculations_GetPLiabilitySignalProbabilities(byte? dSignal, byte level)
+            => pSignalGivenD_Acc[dSignal!.Value - 1][level];
 
-        public double[] BayesianCalculations_GetPLiabilitySignalProbabilities(byte? dLiabilitySignal, byte chosenPrecautionLevel)
+        public double GetAccidentProbability(byte? power, byte dSignal, byte level)
+            => risk.GetAccidentProbabilityGivenDefendantSignal(dSignal - 1, level);
+
+        public double[] BayesianCalculations_GetCLiabilitySignalProbabilities(
+            PrecautionNegligenceProgress p)
         {
-            // Note: This is used ONLY when collapsing chance decisions (because uneven chance probabilities
-            // are true in that case). We know the accident occurred, and this occurrence itself is a function of
-            // the level of precaution chosen by the defendant, as well as the hidden state (chosen precaution level)
-            // itself. So, both the defendant's signal AND the hidden state must be used.
-            byte dSignal = (byte)dLiabilitySignal; // should not be null, because defendant gets signal first in this game
-            return _pSignalProbabilitiesGivenDSignalAndPrecautionLevelAfterAccident[dSignal - 1][chosenPrecautionLevel];
+            int k = p.RelativePrecautionLevel;
+            if (p.AccidentOccurs)
+                return court.GetLiabilityOutcomeProbabilities(
+                    p.PLiabilitySignalDiscrete - 1, p.DLiabilitySignalDiscrete - 1, true, k);
+            return court.GetLiabilityOutcomeProbabilities(
+                p.DLiabilitySignalDiscrete - 1, k);
         }
 
-        public double GetAccidentProbability(
-            byte? precautionPowerLevel,
-            byte dLiabilitySignal,
-            byte chosenPrecautionLevel // zero-based, unlike others
-            )
-        {
-            if ((uint)(dLiabilitySignal - 1) >= _signalModel.NumDSignals)
-                throw new ArgumentOutOfRangeException(nameof(dLiabilitySignal));
+        public double[] BayesianCalculations_GetCLiabilitySignalProbabilities(byte pSig, byte dSig)
+            => court.GetLiabilityOutcomeProbabilities(pSig - 1, dSig - 1, true, 0);
 
-            // Collapsed chance mode → integrate over hidden states.
-            if (Options.CollapseChanceDecisions)
+        public double[] BayesianCalculations_GetPDamagesSignalProbabilities(byte? dDamages) => [1.0];
+        public double[] BayesianCalculations_GetDDamagesSignalProbabilities(byte? pDamages) => [1.0];
+        public double[] BayesianCalculations_GetCDamagesSignalProbabilities(byte pDamages, byte dDamages) => [1.0];
+
+        public void BayesianCalculations_WorkBackwardsFromSignals(LitigGameProgress prog,
+            byte pSig, byte dSig, byte? cSig,
+            byte pDam, byte dDam, byte? cDam, int seed)
+        {
+            var pr = (PrecautionNegligenceProgress)prog;
+            var rng = new Random(seed);
+
+            double[] posterior = pr switch
             {
-                return _impactModel.GetAccidentProbabilityGivenDSignalAndPrecautionLevel(
-                    (int)dLiabilitySignal - 1,
-                    chosenPrecautionLevel,
-                    _signalModel);
+                { EngagesInActivity: true, AccidentOccurs: true, TrialOccurs: true, PWinsAtTrial: true } =>
+                    postAccLiable[pSig - 1][dSig - 1][pr.RelativePrecautionLevel],
+                { EngagesInActivity: true, AccidentOccurs: true, TrialOccurs: true, PWinsAtTrial: false } =>
+                    postAccNoLiable[pSig - 1][dSig - 1][pr.RelativePrecautionLevel],
+                { EngagesInActivity: true, AccidentOccurs: true } =>
+                    court.GetHiddenPosteriorFromPath(pSig - 1, dSig - 1, true,
+                                                     pr.RelativePrecautionLevel, null),
+                { EngagesInActivity: true, AccidentOccurs: false } =>
+                    postNoAccident[dSig - 1][pr.RelativePrecautionLevel],
+                _ => postDefSignal[dSig - 1]
+            };
+
+            pr.LiabilityStrengthDiscrete =
+                (byte)ArrayUtilities.ChooseIndex_OneBasedByte(posterior, rng.NextDouble());
+
+            if (pr.AccidentOccurs)
+            {
+                double probWrong =
+                    risk.GetWrongfulAttributionProbabilityGivenSignals(
+                        dSig - 1, pSig - 1, pr.RelativePrecautionLevel);
+                pr.AccidentWronglyCausallyAttributedToDefendant = rng.NextDouble() < probWrong;
             }
 
-            // Full tree mode → hidden state is known, signals add no extra information.
-            return _impactModel.GetAccidentProbability(
-                (int)precautionPowerLevel.Value - 1,
-                chosenPrecautionLevel);
+            pr.ResetPostGameInfo();
         }
-
-        public double[] BayesianCalculations_GetCLiabilitySignalProbabilities(PrecautionNegligenceProgress gameProgress)
-        {
-            if (Options.CollapseChanceDecisions)
-            {
-                double[] pr = _courtDecisionModel.GetLiabilityOutcomeProbabilities(
-                     gameProgress.PLiabilitySignalDiscrete - 1,   // make zero-based
-                     gameProgress.DLiabilitySignalDiscrete - 1,
-                     gameProgress.AccidentOccurs,
-                     gameProgress.RelativePrecautionLevel // already zero-based
-                     );
-
-                return pr;
-            }
-            else
-            {
-                double[] pr = _courtDecisionModel.GetLiabilityOutcomeProbabilities(gameProgress.LiabilityStrengthDiscrete - 1, gameProgress.RelativePrecautionLevel /* already zero based */);
-                return pr;
-            }
-        }
-
-        public double[] BayesianCalculations_GetCLiabilitySignalProbabilities(byte pLiabilitySignal, byte dLiabilitySignal)
-        {
-            throw new NotSupportedException(); // because above is implemented, this won't be called.
-        }
-
-        public double[] BayesianCalculations_GetPDamagesSignalProbabilities(byte? dDamagesSignal)
-        {
-            return [1.0];
-        }
-
-        public double[] BayesianCalculations_GetDDamagesSignalProbabilities(byte? pDamagesSignal)
-        {
-            return [1.0];
-        }
-
-        public double[] BayesianCalculations_GetCDamagesSignalProbabilities(byte pDamagesSignal, byte dDamagesSignal)
-        {
-            return [1.0];
-        }
-
-        private double[] BayesianCalculationOfPrecautionPowerDistribution(PrecautionNegligenceProgress precautionProgress)
-        {
-            int p = precautionProgress.PLiabilitySignalDiscrete - 1;
-            int d = precautionProgress.DLiabilitySignalDiscrete - 1;
-            int k = precautionProgress.RelativePrecautionLevel;
-
-            if (precautionProgress.EngagesInActivity)
-            {
-                if (precautionProgress.AccidentOccurs)
-                {
-                    if (precautionProgress.TrialOccurs)
-                    {
-                        return precautionProgress.PWinsAtTrial
-                            ? _posteriorGivenAccidentAndLiability[p][d][k]
-                            : _posteriorGivenAccidentAndNoLiability[p][d][k];
-                    }
-                    else
-                    {
-                        // No trial (e.g. settlement) → use integrated version across full signal space
-                        return _courtDecisionModel.GetHiddenPosteriorFromPath(p, d, true, k, null);
-                    }
-                }
-                else
-                {
-                    return _posteriorGivenNoAccident[d][k];
-                }
-            }
-            else
-            {
-                return _posteriorGivenDefendantSignal[d];
-            }
-        }
-
-        public void BayesianCalculations_WorkBackwardsFromSignals(
-            LitigGameProgress gameProgress,
-            byte pLiabilitySignal,
-            byte dLiabilitySignal,
-            byte? cLiabilitySignal,
-            byte pDamagesSignal,
-            byte dDamagesSignal,
-            byte? cDamagesSignal,
-            int randomSeed)
-        {
-            Random r = new Random(randomSeed);
-            PrecautionNegligenceProgress precautionProgress = (PrecautionNegligenceProgress)gameProgress;
-            double[] precautionPowerDistribution = BayesianCalculationOfPrecautionPowerDistribution(precautionProgress);
-
-            byte precautionPowerIndex = ArrayUtilities.ChooseIndex_OneBasedByte(precautionPowerDistribution, r.NextDouble());
-            precautionProgress.LiabilityStrengthDiscrete = precautionPowerIndex;
-
-            if (precautionProgress.AccidentOccurs)
-            {
-                // Note that plaintiff signal will be set, since the accident occurred.
-                double probabilityWrongfulCausalAttribution = _impactModel.GetWrongfulAttributionProbabilityGivenHiddenState(precautionProgress.LiabilityStrengthDiscrete - 1, precautionProgress.RelativePrecautionLevel);
-                precautionProgress.AccidentWronglyCausallyAttributedToDefendant = r.NextDouble() < probabilityWrongfulCausalAttribution;
-            }
-            else
-            {
-                // Plaintiff signal will not be set. We must set that.
-                if (!precautionProgress.AccidentOccurs && precautionProgress.PLiabilitySignalDiscrete == 0)
-                {
-                    double[] pDist = _pSignalProbabilitiesGivenPrecautionPower[precautionPowerIndex - 1];
-                    precautionProgress.PLiabilitySignalDiscrete =
-                        ArrayUtilities.ChooseIndex_OneBasedByte(pDist, r.NextDouble());
-                }
-            }
-
-            precautionProgress.ResetPostGameInfo();
-        }
-
-
 
         public bool GenerateConsistentGameProgressesWhenNotCollapsing => true;
 
-        public List<(GameProgress progress, double weight)> BayesianCalculations_GenerateAllConsistentGameProgresses(byte pLiabilitySignal, byte dLiabilitySignal, byte? cLiabilitySignal, byte pDamagesSignal, byte dDamagesSignal, byte? cDamagesSignal, LitigGameProgress baseProgress)
+        public List<(GameProgress progress, double weight)> BayesianCalculations_GenerateAllConsistentGameProgresses(
+            byte pSig, byte dSig, byte? cSig, byte pDam, byte dDam, byte? cDam, LitigGameProgress baseProg)
         {
+            var p = (PrecautionNegligenceProgress)baseProg;
+            var list = new List<(GameProgress, double)>();
 
-            PrecautionNegligenceProgress precautionProgress = (PrecautionNegligenceProgress)baseProgress;
-
-            if (!Options.CollapseChanceDecisions)
+            // posterior over hidden
+            double[] posterior = p.AccidentOccurs switch
             {
-                // Even though we're not collapsing chance decisions, we only had a single chance node to determine
-                // whether an accident occurred, so we don't yet know whether an accident that occurred has been 
-                // wrongfully attributed to the defendant. We work out those calculations here.
-                if (ProbabilityAccidentWrongfulAttribution > 0)
-                {
-                    return DuplicateProgressWithAndWithoutWrongfulAttribution(precautionProgress, 1.0);
-                }
-                else
-                    return new List<(GameProgress progress, double weight)>() { (baseProgress.DeepCopy(), 1.0) };
-            }
+                true when p.TrialOccurs && p.PWinsAtTrial =>
+                    postAccLiable[pSig - 1][dSig - 1][p.RelativePrecautionLevel],
+                true when p.TrialOccurs && !p.PWinsAtTrial =>
+                    postAccNoLiable[pSig - 1][dSig - 1][p.RelativePrecautionLevel],
+                true =>
+                    court.GetHiddenPosteriorFromPath(pSig - 1, dSig - 1, true,
+                                                     p.RelativePrecautionLevel, null),
+                false when p.EngagesInActivity =>
+                    postNoAccident[dSig - 1][p.RelativePrecautionLevel],
+                _ =>
+                    postDefSignal[dSig - 1]
+            };
 
-            List<(GameProgress progress, double weight)> result = new();
-
-            double[] precautionPowerDistribution = BayesianCalculationOfPrecautionPowerDistribution(precautionProgress);
-
-            baseProgress.ResetPostGameInfo(); // reset this because we're going to figure out wrongful attribution here
-
-            for (int i = 1; i <= precautionPowerDistribution.Length; i++)
+            for (int h = 0; h < posterior.Length; h++)
             {
-                var copy = (PrecautionNegligenceProgress)baseProgress.DeepCopy();
-                copy.LiabilityStrengthDiscrete = (byte)i;
-                double[] pDist = null;
-                if (!precautionProgress.AccidentOccurs && precautionProgress.PLiabilitySignalDiscrete == 0)
-                {
-                    pDist = _pSignalProbabilitiesGivenPrecautionPower[copy.LiabilityStrengthDiscrete - 1];
-                }
-                var withAndWithoutWrongfulAttribution = DuplicateProgressWithAndWithoutWrongfulAttribution(copy, precautionPowerDistribution[i - 1]); // won't change anything if no accident occurs
-                foreach (var progressWithWeight in withAndWithoutWrongfulAttribution)
-                {
-                    if (pDist == null)
-                        result.Add(progressWithWeight);
-                    else
-                    { // make a different version for each possible p signal
-                        for (int j = 1; j <= pDist.Length; j++)
-                        {
-                            PrecautionNegligenceProgress withPSignal = (PrecautionNegligenceProgress)progressWithWeight.progress.DeepCopy();
-                            withPSignal.PLiabilitySignalDiscrete = (byte)j;
-                            double revisedWeight = progressWithWeight.weight * pDist[j - 1];
-                            result.Add((withPSignal, revisedWeight));
-                        }
-                    }
-                }
+                if (posterior[h] == 0.0) continue;
+
+                var cp = (PrecautionNegligenceProgress)p.DeepCopy();
+                cp.LiabilityStrengthDiscrete = (byte)(h + 1);
+                list.AddRange(DuplicateProgressWithAndWithoutWrongfulAttribution(cp, posterior[h]));
             }
-
-            if (Math.Abs(result.Sum(x => x.weight) - 1.0) > 1E-12)
-                throw new Exception("DEBUG");
-
-            return result;
+            return list;
         }
 
-
-
-
-        private List<(GameProgress progress, double weight)> DuplicateProgressWithAndWithoutWrongfulAttribution(PrecautionNegligenceProgress precautionProgress, double weight)
+        List<(GameProgress progress, double weight)> DuplicateProgressWithAndWithoutWrongfulAttribution(
+            PrecautionNegligenceProgress pr, double weight)
         {
-            if (precautionProgress.AccidentOccurs)
-            {
-                double probabilityWrongfulCausalAttribution = _impactModel.GetWrongfulAttributionProbabilityGivenHiddenState(precautionProgress.LiabilityStrengthDiscrete - 1, precautionProgress.RelativePrecautionLevel);
-                var withWrongfulAttribution = (PrecautionNegligenceProgress)precautionProgress.DeepCopy();
-                withWrongfulAttribution.AccidentWronglyCausallyAttributedToDefendant = true;
-                withWrongfulAttribution.ResetPostGameInfo();
-                var withoutWrongfulAttribution = (PrecautionNegligenceProgress)precautionProgress.DeepCopy();
-                withoutWrongfulAttribution.AccidentWronglyCausallyAttributedToDefendant = false;
-                withoutWrongfulAttribution.ResetPostGameInfo();
-                return new List<(GameProgress progress, double weight)>()
-                {
-                    (withWrongfulAttribution, weight * probabilityWrongfulCausalAttribution),
-                    (withoutWrongfulAttribution, weight * (1.0 - probabilityWrongfulCausalAttribution))
-                };
-            }
-            else
-            {
-                return new List<(GameProgress progress, double weight)>()
-                {
-                    (precautionProgress, weight)
-                };
-            }
+            if (!pr.AccidentOccurs)
+                return [(pr, weight)];
+
+            double probWrong = risk.GetWrongfulAttributionProbabilityGivenSignals(
+                pr.DLiabilitySignalDiscrete - 1, pr.PLiabilitySignalDiscrete - 1, pr.RelativePrecautionLevel);
+
+            var wrong = (PrecautionNegligenceProgress)pr.DeepCopy();
+            wrong.AccidentWronglyCausallyAttributedToDefendant = true;
+            wrong.ResetPostGameInfo();
+
+            var right = (PrecautionNegligenceProgress)pr.DeepCopy();
+            right.AccidentWronglyCausallyAttributedToDefendant = false;
+            right.ResetPostGameInfo();
+
+            return [(wrong, weight * probWrong), (right, weight * (1.0 - probWrong))];
         }
     }
 }

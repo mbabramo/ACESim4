@@ -1,33 +1,50 @@
 ﻿using System;
-using ACESimBase.Util.DiscreteProbabilities;
+using System.Linq;
 
 namespace ACESimBase.Games.LitigGame.PrecautionModel
 {
     /// <summary>
-    /// Determines court liability outcomes using expected benefit / cost of the first untaken precaution.
-    /// Requires a PrecautionImpactModel (true accident dynamics) and a PrecautionSignalModel (court's information).
-    /// All indices are zero‑based.
+    /// Determines liability and related probabilities.  All heavy work is done
+    /// once in the constructor; public members read from cached tables.
     /// </summary>
     public sealed class PrecautionCourtDecisionModel
     {
-        // References
+        // ------------------------------------------------------------------  refs
         readonly PrecautionImpactModel impact;
         readonly PrecautionSignalModel signal;
 
-        // Dimensions
-        readonly int numCourtSamplesForCalculatingLiability;
-        readonly int numPrecautionLevels;
+        // ------------------------------------------------------------------  dims
+        readonly int C;   // court-signal count
+        readonly int K;   // precaution levels
+        readonly int P;   // plaintiff signals
+        readonly int D;   // defendant signals
+        readonly int H;   // hidden states
 
-        // Precomputed tables
-        readonly double[][] expRiskReduction;  // [signal][precaution]
-        readonly double[][] expBenefit;        // [signal][precaution]
-        readonly double[][] benefitCostRatio;  // [signal][precaution]
-        readonly bool[][] liable;            // [signal][precaution]
-        double[][] liableProbGivenHidden;   // [hidden][precaution]
+        // ------------------------------------------------------------------  core tables
+        readonly double[][] expRiskReduction;   // [c][k]
+        readonly double[][] expBenefit;         // [c][k]
+        readonly double[][] benefitCostRatio;   // [c][k]
+        readonly bool[][] liable;             // [c][k]
+        readonly double[][] liableProbGivenHidden; // [h][k]
 
-        /// <summary>
-        /// Build a court‑decision model.
-        /// </summary>
+        // ------------------------------------------------------------------  extended tables
+        readonly double[][][][] courtDistLiable;        // [p][d][k][c]
+        readonly double[][][][] courtDistNoLiable;      // [p][d][k][c]
+
+        readonly double[][][][] hiddenPostAccLiable;    // [p][d][k][h]
+        readonly double[][][][] hiddenPostAccNoLiable;  // [p][d][k][h]
+        readonly double[][][] hiddenPostNoAccident;   // [d][k][h]
+        readonly double[][] hiddenPostDefSignal;    // [d][h]
+
+        // Exposed read-only properties (needed by generator)
+        public double[][][][] CourtSignalDistGivenLiabilityTable => courtDistLiable;
+        public double[][][][] CourtSignalDistGivenNoLiabilityTable => courtDistNoLiable;
+        public double[][][][] HiddenPosteriorAccidentLiabilityTable => hiddenPostAccLiable;
+        public double[][][][] HiddenPosteriorAccidentNoLiabilityTable => hiddenPostAccNoLiable;
+        public double[][][] HiddenPosteriorNoAccidentTable => hiddenPostNoAccident;
+        public double[][] HiddenPosteriorDefendantSignalTable => hiddenPostDefSignal;
+
+        // ==================================================================  ctor
         public PrecautionCourtDecisionModel(
             PrecautionImpactModel impactModel,
             PrecautionSignalModel signalModel)
@@ -35,281 +52,89 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
             impact = impactModel ?? throw new ArgumentNullException(nameof(impactModel));
             signal = signalModel ?? throw new ArgumentNullException(nameof(signalModel));
 
-            numPrecautionLevels = impactModel.PrecautionLevels;
-            numCourtSamplesForCalculatingLiability = signalModel.GetHiddenPosteriorFromCourtSignal(0).Length == 0
-                ? throw new InvalidOperationException("Signal model appears unconfigured for court signals.")
-                : signalModel.GetCourtSignalDistributionGivenDefendantSignal(0).Length; // quick way to fetch count
+            C = signal.NumCSignals;
+            K = impact.PrecautionLevels;
+            P = signal.NumPSignals;
+            D = signal.NumDSignals;
+            H = signal.HiddenStatesCount;
 
-            // Precompute decision metrics
-            expRiskReduction = new double[numCourtSamplesForCalculatingLiability][];
-            expBenefit = new double[numCourtSamplesForCalculatingLiability][];
-            benefitCostRatio = new double[numCourtSamplesForCalculatingLiability][];
-            liable = new bool[numCourtSamplesForCalculatingLiability][];
+            expRiskReduction = new double[C][];
+            expBenefit = new double[C][];
+            benefitCostRatio = new double[C][];
+            liable = new bool[C][];
 
-            for (int s = 0; s < numCourtSamplesForCalculatingLiability; s++)
-            {
-                var posterior = signal.GetHiddenPosteriorFromCourtSignal(s); // length = hiddenCount, sums to 1
-                expRiskReduction[s] = new double[numPrecautionLevels];
-                expBenefit[s] = new double[numPrecautionLevels];
-                benefitCostRatio[s] = new double[numPrecautionLevels];
-                liable[s] = new bool[numPrecautionLevels];
+            BuildBenefitAndLiabilityTables();
+            liableProbGivenHidden = BuildLiableProbTable();
 
-                for (int k = 0; k < numPrecautionLevels; k++)
-                {
-                    // Expected risk reduction from k -> k+1 (if k is max‑1, still allowed; if k==max, delta=0)
-                    double expectedDelta = 0;
-                    for (int h = 0; h < posterior.Length; h++)
-                    {
-                        double delta = impact.GetRiskReduction(h, k);
-                        expectedDelta += delta * posterior[h];
-                    }
-                    expRiskReduction[s][k] = expectedDelta; // already normalized via posterior
-                    double benefit = expectedDelta * impactModel.HarmCost;
-                    expBenefit[s][k] = benefit;
-                    double ratio = impactModel.MarginalPrecautionCost == 0 ? double.PositiveInfinity : benefit / impactModel.MarginalPrecautionCost;
-                    benefitCostRatio[s][k] = ratio;
-                    liable[s][k] = ratio >= impactModel.LiabilityThreshold; // cannot be liable if no further precaution exists
-                }
-            }
-            BuildLiableProbTable();
-        }
-        void BuildLiableProbTable()
-        {
-            int hiddenCount = signal.HiddenStatesCount;
-            liableProbGivenHidden = new double[hiddenCount][];
-            for (int h = 0; h < hiddenCount; h++)
-            {
-                liableProbGivenHidden[h] = new double[numPrecautionLevels];
-                double[] courtDist = signal.GetCourtSignalDistributionGivenHidden(h);
-                for (int k = 0; k < numPrecautionLevels; k++)
-                    for (int s = 0; s < numCourtSamplesForCalculatingLiability; s++)
-                        if (liable[s][k])
-                            liableProbGivenHidden[h][k] += courtDist[s];
-            }
+            courtDistLiable = BuildCourtSignalConditionalTables(liableWanted: true);
+            courtDistNoLiable = BuildCourtSignalConditionalTables(liableWanted: false);
+
+            hiddenPostAccLiable = BuildHiddenPosteriorFromCourtDistTable(courtDistLiable);
+            hiddenPostAccNoLiable = BuildHiddenPosteriorFromCourtDistTable(courtDistNoLiable);
+            hiddenPostNoAccident = BuildHiddenPosteriorNoAccidentTable();
+            hiddenPostDefSignal = BuildHiddenPosteriorDefSignalTable();
         }
 
-        // ---------------- Public API ------------------------
-
-        /// <summary>
-        /// Expected benefit of first untaken precaution given court signal and chosen precaution.
-        /// </summary>
+        // ==================================================================  public deterministic metrics
         public double GetExpectedBenefit(int courtSignal, int precautionLevel)
         {
-            ValidateIndices(courtSignal, precautionLevel);
+            Validate(courtSignal, precautionLevel);
             return expBenefit[courtSignal][precautionLevel];
         }
 
-        /// <summary>
-        /// Benefit/cost ratio for first untaken precaution.
-        /// </summary>
         public double GetBenefitCostRatio(int courtSignal, int precautionLevel)
         {
-            ValidateIndices(courtSignal, precautionLevel);
+            Validate(courtSignal, precautionLevel);
             return benefitCostRatio[courtSignal][precautionLevel];
         }
 
-        /// <summary>
-        /// Court's liability decision (true = liable) for given court signal and precaution level.
-        /// </summary>
         public bool IsLiable(int courtSignal, int precautionLevel)
         {
-            ValidateIndices(courtSignal, precautionLevel);
+            Validate(courtSignal, precautionLevel);
             return liable[courtSignal][precautionLevel];
         }
-        public double GetLiabilityProbability(double[] courtSignalDistribution, int precautionLevel)
-        {
-            if (courtSignalDistribution == null || courtSignalDistribution.Length != numCourtSamplesForCalculatingLiability)
-                throw new ArgumentException(nameof(courtSignalDistribution));
-            ValidateIndices(0, precautionLevel); // ensure precautionLevel is in range
 
-            double liabilityProb = 0.0;
-            for (int s = 0; s < numCourtSamplesForCalculatingLiability; s++)
-            {
-                if (IsLiable(s, precautionLevel))
-                {
-                    liabilityProb += courtSignalDistribution[s];
-                }
-                // (If not liable for signal s, contribute 0)
-            }
-            return liabilityProb;
+        // ==================================================================  public conditional court-signal dists
+        public double[] GetCourtSignalDistributionGivenSignalsAndLiability(int pSig, int dSig, int precautionLevel)
+        {
+            ValidatePdK(pSig, dSig, precautionLevel);
+            return courtDistLiable[pSig][dSig][precautionLevel];
         }
 
-        public double[] GetCourtSignalDistributionGivenSignalsAndLiability(
-            int plaintiffSignal, int defendantSignal, int precautionLevel)
+        public double[] GetCourtSignalDistributionGivenSignalsAndNoLiability(int pSig, int dSig, int precautionLevel)
         {
-            double[] baseDist = signal.GetCourtSignalDistributionGivenPlaintiffAndDefendantSignals(
-                                    plaintiffSignal, defendantSignal);
-            double[] filtered = new double[baseDist.Length];
-            double total = 0.0;
-
-            for (int s = 0; s < baseDist.Length; s++)
-            {
-                if (IsLiable(s, precautionLevel))
-                {
-                    filtered[s] = baseDist[s];
-                    total += baseDist[s];
-                }
-            }
-            if (total == 0.0) throw new Exception("DEBUG"); // return filtered;           // all zeros ⇒ liability impossible
-            for (int s = 0; s < filtered.Length; s++)    // renormalize
-                filtered[s] /= total;
-            return filtered;
+            ValidatePdK(pSig, dSig, precautionLevel);
+            return courtDistNoLiable[pSig][dSig][precautionLevel];
         }
 
-        public double[] GetCourtSignalDistributionGivenSignalsAndNoLiability(
-            int plaintiffSignal, int defendantSignal, int precautionLevel)
+        // ==================================================================  public outcome probs
+        public double[] GetLiabilityOutcomeProbabilities(int hiddenState, int precautionLevel)
+            => new[] { 1.0 - liableProbGivenHidden[hiddenState][precautionLevel],
+                        liableProbGivenHidden[hiddenState][precautionLevel] };
+
+        public double[] GetLiabilityOutcomeProbabilities(int pSig, int dSig, bool accident, int precautionLevel)
         {
-            double[] baseDist = signal.GetCourtSignalDistributionGivenPlaintiffAndDefendantSignals(
-                                    plaintiffSignal, defendantSignal);
-            double[] filtered = new double[baseDist.Length];
-            double total = 0.0;
+            ValidatePdK(pSig, dSig, precautionLevel);
 
-            for (int s = 0; s < baseDist.Length; s++)
-            {
-                if (!IsLiable(s, precautionLevel))
-                {
-                    filtered[s] = baseDist[s];
-                    total += baseDist[s];
-                }
-            }
-            if (total == 0.0)
-                throw new Exception("DEBUG"); // all zeros ⇒ no-liability impossible
-            for (int s = 0; s < filtered.Length; s++)    // renormalize
-                filtered[s] /= total;
-            return filtered;
-        }
-
-        public double[][][][] BuildTablesForCourtSignalDistributionBasedOnPAndDSignalsAndPrecautionLevel_GivenLiability()
-        {
-            int P = signal.NumPSignals;
-            int D = signal.NumDSignals;
-            int K = numPrecautionLevels;
-            int S = numCourtSamplesForCalculatingLiability;
-
-            var table = new double[P][][][];
-
-            for (int p = 0; p < P; p++)
-            {
-                table[p] = new double[D][][];
-                for (int d = 0; d < D; d++)
-                {
-                    table[p][d] = new double[K][];
-                    for (int k = 0; k < K; k++)
-                        table[p][d][k] = GetCourtSignalDistributionGivenSignalsAndLiability(p, d, k);
-                }
-            }
-
-            return table;
-        }
-
-        public double[][][][] BuildTablesForCourtSignalDistributionBasedOnPAndDSignalsAndPrecautionLevel_GivenNoLiability()
-        {
-            int P = signal.NumPSignals;
-            int D = signal.NumDSignals;
-            int K = numPrecautionLevels;
-            int S = numCourtSamplesForCalculatingLiability;
-
-            var table = new double[P][][][];
-
-            for (int p = 0; p < P; p++)
-            {
-                table[p] = new double[D][][];
-                for (int d = 0; d < D; d++)
-                {
-                    table[p][d] = new double[K][];
-                    for (int k = 0; k < K; k++)
-                        table[p][d][k] = GetCourtSignalDistributionGivenSignalsAndNoLiability(p, d, k);
-                }
-            }
-
-            return table;
-        }
-
-
-        public double[] GetHiddenPosteriorFromSignalsAndCourtDistribution(
-            int plaintiffSignal, int defendantSignal, double[] courtSignalDistribution)
-        {
-            if (courtSignalDistribution == null || courtSignalDistribution.Length == 0)
-                throw new ArgumentException(nameof(courtSignalDistribution));
-
-            int H = signal.HiddenStatesCount;
-            double[] postP = signal.GetHiddenPosteriorFromPlaintiffSignal(plaintiffSignal);
-            double[] postD = signal.GetHiddenPosteriorFromDefendantSignal(defendantSignal);
-            double[] unnorm = new double[H];
-
-            // combine plaintiff & defendant evidence (uniform prior assumed)
-            for (int h = 0; h < H; h++)
-                unnorm[h] = postP[h] * postD[h];
-
-            // incorporate court-signal distribution as soft evidence
-            for (int h = 0; h < H; h++)
-            {
-                if (unnorm[h] == 0.0) continue;
-                double[] courtGivenH = signal.GetCourtSignalDistributionGivenHidden(h);
-                double likelihood = 0.0;
-                for (int s = 0; s < courtGivenH.Length; s++)
-                    likelihood += courtGivenH[s] * courtSignalDistribution[s];
-                unnorm[h] *= likelihood;
-            }
-
-            double total = 0.0;
-            for (int h = 0; h < H; h++) total += unnorm[h];
-            if (total == 0.0) return new double[H];      // inconsistent evidence ⇒ all zeros
-
-            double[] posterior = new double[H];
-            for (int h = 0; h < H; h++) posterior[h] = unnorm[h] / total;
-            return posterior;
-        }
-
-        public double[] GetLiabilityOutcomeProbabilities(
-            int hiddenState,
-            int precautionLevel) => [ 1.0 - liableProbGivenHidden[hiddenState][precautionLevel],
-               liableProbGivenHidden[hiddenState][precautionLevel]];
-
-        /// <summary>
-        /// Returns { P(no-liability) , P(liability) } given the two private signals,
-        /// the accident outcome, and the defendant’s precaution level.
-        /// Works in both expanded and collapsed-chance game trees.
-        /// All indices are zero-based.
-        /// </summary>
-        public double[] GetLiabilityOutcomeProbabilities(
-            int plaintiffSignal,
-            int defendantSignal,
-            bool accidentOccurred,
-            int precautionLevel)
-        {
-            ValidateIndices(0, precautionLevel); // check precaution range
-            if ((uint)plaintiffSignal >= signal.NumPSignals)
-                throw new ArgumentOutOfRangeException(nameof(plaintiffSignal));
-            if ((uint)defendantSignal >= signal.NumDSignals)
-                throw new ArgumentOutOfRangeException(nameof(defendantSignal));
-
-            // -------- posterior over hidden states ----------
-            int H = signal.HiddenStatesCount;
             double uniformPrior = 1.0 / H;
             double[] posterior = new double[H];
             double total = 0.0;
 
             for (int h = 0; h < H; h++)
             {
-                double w =
-                    uniformPrior *
-                    signal.GetPlaintiffSignalProbability(h, plaintiffSignal) *
-                    signal.GetDefendantSignalProbability(h, defendantSignal);
+                double w = uniformPrior *
+                           signal.GetPlaintiffSignalProbability(h, pSig) *
+                           signal.GetDefendantSignalProbability(h, dSig);
 
                 double pAcc = impact.GetAccidentProbability(h, precautionLevel);
-                w *= accidentOccurred ? pAcc : (1.0 - pAcc);
+                w *= accident ? pAcc : 1.0 - pAcc;
 
                 posterior[h] = w;
                 total += w;
             }
-
-            if (total == 0.0)           // unreachable evidence ⇒ uninformed prior
-                return new[] { 0.5, 0.5 };
-
+            if (total == 0.0) return new[] { 0.5, 0.5 };
             for (int h = 0; h < H; h++) posterior[h] /= total;
 
-            // -------- integrate court decision ----------
             double liableProb = 0.0;
             for (int h = 0; h < H; h++)
                 liableProb += posterior[h] * liableProbGivenHidden[h][precautionLevel];
@@ -317,129 +142,133 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
             return new[] { 1.0 - liableProb, liableProb };
         }
 
-        /// Posterior P(hidden | pSig, dSig, accident, precaution, decision)
+        /// <summary>
+        /// Posterior P(hidden | signals & path).
+        /// If <paramref name="accidentOccurred"/> is false the path skipped court;
+        /// if true and <paramref name="wasLiable"/> is null, the court verdict is unknown
+        /// (e.g., settlement), so we mix the liable/no-liable posteriors by their
+        /// probability.  All cases are served from cached tables—no new integration.
+        /// </summary>
         public double[] GetHiddenPosteriorFromPath(
-                int plaintiffSignal,
-                int defendantSignal,
-                bool accidentOccurred,
-                int precautionLevel,
-                bool? wasLiable)          // null = path ended in settlement
-        {
-            int H = signal.HiddenStatesCount;
-            var posterior = new double[H];
-            double total = 0.0;
-            double uniformPrior = 1.0 / H;
-
-            for (int h = 0; h < H; h++)
-            {
-                double w =
-                    uniformPrior *
-                    signal.GetPlaintiffSignalProbability(h, plaintiffSignal) *
-                    signal.GetDefendantSignalProbability(h, defendantSignal);
-
-                double pAcc = impact.GetAccidentProbability(h, precautionLevel);
-                w *= accidentOccurred ? pAcc : (1.0 - pAcc);
-
-                if (wasLiable.HasValue)        // incorporate the court outcome only if known
-                {
-                    double liableProb = liableProbGivenHidden[h][precautionLevel];
-                    w *= wasLiable.Value ? liableProb : (1.0 - liableProb);
-                }
-
-                posterior[h] = w;
-                total += w;
-            }
-
-            if (total == 0.0) return posterior;    // inconsistent evidence → all zeros
-            for (int h = 0; h < H; h++) posterior[h] /= total;
-            return posterior;
-        }
-
-        /// <summary>
-        /// Posterior P(hidden | defendantSignal, no accident, precautionLevel).
-        /// Use when the activity was undertaken, no accident occurred, and the
-        /// game ended immediately.
-        /// </summary>
-        public double[] GetHiddenPosteriorFromNoAccidentScenario(
+            int plaintiffSignal,
             int defendantSignal,
-            int precautionLevel)
+            bool accidentOccurred,
+            int precautionLevel,
+            bool? wasLiable)
         {
-            int H = signal.HiddenStatesCount;
-            var posterior = new double[H];
+            ValidatePdK(plaintiffSignal, defendantSignal, precautionLevel);
 
-            double uniformPrior = 1.0 / H;
-            double totalWeight = 0.0;
+            // ---------------- no accident occurred ----------------------------------
+            if (!accidentOccurred)
+                return hiddenPostNoAccident[defendantSignal][precautionLevel];
 
-            for (int h = 0; h < H; h++)
-            {
-                double w =
-                    uniformPrior *
-                    signal.GetDefendantSignalProbability(h, defendantSignal);
+            // ---------------- accident + verdict known ------------------------------
+            if (wasLiable.HasValue)
+                return wasLiable.Value
+                    ? hiddenPostAccLiable[plaintiffSignal][defendantSignal][precautionLevel]
+                    : hiddenPostAccNoLiable[plaintiffSignal][defendantSignal][precautionLevel];
 
-                double pAcc = impact.GetAccidentProbability(h, precautionLevel);
-                w *= 1.0 - pAcc;                     // evidence: accident did NOT occur
+            // ---------------- accident + verdict unknown (e.g., settlement) ---------
+            double[] liabPost = hiddenPostAccLiable[plaintiffSignal][defendantSignal][precautionLevel];
+            double[] nLiabPost = hiddenPostAccNoLiable[plaintiffSignal][defendantSignal][precautionLevel];
 
-                posterior[h] = w;
-                totalWeight += w;
-            }
+            double liableProb = GetLiabilityOutcomeProbabilities(
+                                    plaintiffSignal, defendantSignal, true, precautionLevel)[1];
 
-            if (totalWeight == 0.0)
-                return posterior;                    // impossible evidence → all zeros
-
-            for (int h = 0; h < H; h++)
-                posterior[h] /= totalWeight;
-
-            return posterior;
+            var mix = new double[liabPost.Length];
+            for (int h = 0; h < mix.Length; h++)
+                mix[h] = liableProb * liabPost[h] + (1.0 - liableProb) * nLiabPost[h];
+            return mix;
         }
 
 
-        /// <summary>
-        /// Posterior distribution over hidden precaution-power states when
-        ///  • the defendant observed <paramref name="defendantSignal"/> and decided
-        ///    not to engage in the activity,
-        ///  • therefore the plaintiff received no signal,
-        ///  • no accident occurred, and
-        ///  • the court never became involved.
-        /// </summary>
-        /// <param name="defendantSignal">The realised defendant signal index.</param>
-        /// <returns>
-        /// A length-H array whose entries sum to one (or to zero if the signal
-        /// index is impossible under every hidden state).
-        /// </returns>
-        public double[] GetHiddenPosteriorFromDefendantSignal(int defendantSignal)
+        // ==================================================================  internal core builders
+        void BuildBenefitAndLiabilityTables()
         {
-            int hiddenStates = signal.HiddenStatesCount;
-            var posterior = new double[hiddenStates];
-
-            double uniformPrior = 1.0 / hiddenStates;
-            double normalisingConstant = 0.0;
-
-            for (int h = 0; h < hiddenStates; h++)
+            for (int cSig = 0; cSig < C; cSig++)
             {
-                double weight = uniformPrior *
-                                signal.GetDefendantSignalProbability(h, defendantSignal);
+                double[] postH = signal.GetHiddenPosteriorFromCourtSignal(cSig);
+                expRiskReduction[cSig] = new double[K];
+                expBenefit[cSig] = new double[K];
+                benefitCostRatio[cSig] = new double[K];
+                liable[cSig] = new bool[K];
 
-                posterior[h] = weight;
-                normalisingConstant += weight;
+                for (int k = 0; k < K; k++)
+                {
+                    double delta = 0.0;
+                    for (int h = 0; h < H; h++)
+                        delta += impact.GetRiskReduction(h, k) * postH[h];
+
+                    expRiskReduction[cSig][k] = delta;
+                    double benefit = delta * impact.HarmCost;
+                    expBenefit[cSig][k] = benefit;
+
+                    double ratio = impact.MarginalPrecautionCost == 0
+                                   ? double.PositiveInfinity
+                                   : benefit / impact.MarginalPrecautionCost;
+
+                    benefitCostRatio[cSig][k] = ratio;
+                    liable[cSig][k] = ratio >= impact.LiabilityThreshold;
+                }
             }
-
-            if (normalisingConstant == 0.0)
-                return posterior;  // impossible signal – caller sees all zeros
-
-            for (int h = 0; h < hiddenStates; h++)
-                posterior[h] /= normalisingConstant;
-
-            return posterior;
         }
 
-        public double[][][][] BuildHiddenPosteriorFromCourtSignalDistributionTable(double[][][][] courtSignalDistributionTable)
+        double[][] BuildLiableProbTable()
         {
-            int P = signal.NumPSignals;
-            int D = signal.NumDSignals;
-            int K = numPrecautionLevels;
+            var table = new double[H][];
+            for (int h = 0; h < H; h++)
+            {
+                table[h] = new double[K];
+                double[] courtGivenH = signal.GetCourtSignalDistributionGivenHidden(h);
 
+                for (int k = 0; k < K; k++)
+                    for (int cSig = 0; cSig < C; cSig++)
+                        if (liable[cSig][k])
+                            table[h][k] += courtGivenH[cSig];
+            }
+            return table;
+        }
+
+        double[][][][] BuildCourtSignalConditionalTables(bool liableWanted)
+        {
             var table = new double[P][][][];
+            for (int p = 0; p < P; p++)
+            {
+                table[p] = new double[D][][];
+                for (int d = 0; d < D; d++)
+                {
+                    table[p][d] = new double[K][];
+                    double[] baseDist = signal.GetCourtSignalDistributionGivenPlaintiffAndDefendantSignals(p, d);
 
+                    for (int k = 0; k < K; k++)
+                    {
+                        double[] slice = new double[C];
+                        double tot = 0.0;
+                        for (int cSig = 0; cSig < C; cSig++)
+                        {
+                            bool cond = liable[cSig][k];
+                            if (cond == liableWanted)
+                            {
+                                slice[cSig] = baseDist[cSig];
+                                tot += slice[cSig];
+                            }
+                        }
+                        if (tot == 0.0) table[p][d][k] = slice;          // impossible path
+                        else
+                        {
+                            for (int cSig = 0; cSig < C; cSig++)
+                                slice[cSig] /= tot;
+                            table[p][d][k] = slice;
+                        }
+                    }
+                }
+            }
+            return table;
+        }
+
+        double[][][][] BuildHiddenPosteriorFromCourtDistTable(double[][][][] courtDistTable)
+        {
+            var table = new double[P][][][];
             for (int p = 0; p < P; p++)
             {
                 table[p] = new double[D][][];
@@ -448,50 +277,107 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
                     table[p][d] = new double[K][];
                     for (int k = 0; k < K; k++)
                     {
-                        double[] courtDist = courtSignalDistributionTable[p][d][k];
+                        double[] courtDist = courtDistTable[p][d][k];
                         table[p][d][k] = GetHiddenPosteriorFromSignalsAndCourtDistribution(p, d, courtDist);
                     }
                 }
             }
-
             return table;
         }
 
-        public double[][][] BuildHiddenPosteriorFromNoAccidentTable()
+        public double[] GetHiddenPosteriorFromSignalsAndCourtDistribution(int pSig, int dSig, double[] courtDist)
         {
-            int D = signal.NumDSignals;
-            int K = numPrecautionLevels;
+            double uniformPrior = 1.0 / H;
+            double[] unnorm = new double[H];
+            double total = 0.0;
 
-            var table = new double[D][][];
+            for (int h = 0; h < H; h++)
+            {
+                double w = uniformPrior *
+                           signal.GetPlaintiffSignalProbability(h, pSig) *
+                           signal.GetDefendantSignalProbability(h, dSig);
 
+                double likelihood = 0.0;
+                double[] courtGivenH = signal.GetCourtSignalDistributionGivenHidden(h);
+                for (int c = 0; c < C; c++)
+                    likelihood += courtGivenH[c] * courtDist[c];
+
+                unnorm[h] = w * likelihood;
+                total += unnorm[h];
+            }
+            if (total == 0.0) return unnorm;
+            for (int h = 0; h < H; h++) unnorm[h] /= total;
+            return unnorm;
+        }
+
+        double[][][] BuildHiddenPosteriorNoAccidentTable()
+        {
+            var table = new double[D][][];   // [d][k][h]
             for (int d = 0; d < D; d++)
             {
                 table[d] = new double[K][];
                 for (int k = 0; k < K; k++)
                     table[d][k] = GetHiddenPosteriorFromNoAccidentScenario(d, k);
             }
-
             return table;
         }
 
-        public double[][] BuildHiddenPosteriorFromDefendantSignalTable()
+        public double[] GetHiddenPosteriorFromNoAccidentScenario(int dSig, int precautionLevel)
         {
-            int D = signal.NumDSignals;
-            var table = new double[D][];
+            double[] posterior = new double[H];
+            double total = 0.0;
+            double uniformPrior = 1.0 / H;
 
+            for (int h = 0; h < H; h++)
+            {
+                double w = uniformPrior *
+                           signal.GetDefendantSignalProbability(h, dSig) *
+                           (1.0 - impact.GetAccidentProbability(h, precautionLevel));
+
+                posterior[h] = w;
+                total += w;
+            }
+            if (total == 0.0) return posterior;
+            for (int h = 0; h < H; h++) posterior[h] /= total;
+            return posterior;
+        }
+
+        double[][] BuildHiddenPosteriorDefSignalTable()
+        {
+            var table = new double[D][];
             for (int d = 0; d < D; d++)
                 table[d] = GetHiddenPosteriorFromDefendantSignal(d);
-
             return table;
         }
 
-
-        // ---------------- Helpers ---------------------------
-
-        void ValidateIndices(int signal, int precautionLevel)
+        public double[] GetHiddenPosteriorFromDefendantSignal(int dSig)
         {
-            if ((uint)signal >= numCourtSamplesForCalculatingLiability) throw new ArgumentOutOfRangeException(nameof(signal));
-            if ((uint)precautionLevel >= numPrecautionLevels) throw new ArgumentOutOfRangeException(nameof(precautionLevel));
+            double[] posterior = new double[H];
+            double total = 0.0;
+            double uniformPrior = 1.0 / H;
+
+            for (int h = 0; h < H; h++)
+            {
+                double w = uniformPrior * signal.GetDefendantSignalProbability(h, dSig);
+                posterior[h] = w;
+                total += w;
+            }
+            if (total == 0.0) return posterior;
+            for (int h = 0; h < H; h++) posterior[h] /= total;
+            return posterior;
+        }
+
+        // ==================================================================  validation helpers
+        void Validate(int cSig, int k)
+        {
+            if ((uint)cSig >= C) throw new ArgumentOutOfRangeException(nameof(cSig));
+            if ((uint)k >= K) throw new ArgumentOutOfRangeException(nameof(k));
+        }
+        void ValidatePdK(int p, int d, int k)
+        {
+            if ((uint)p >= P) throw new ArgumentOutOfRangeException(nameof(p));
+            if ((uint)d >= D) throw new ArgumentOutOfRangeException(nameof(d));
+            if ((uint)k >= K) throw new ArgumentOutOfRangeException(nameof(k));
         }
     }
 }

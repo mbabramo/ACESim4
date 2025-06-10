@@ -7,6 +7,7 @@ using ACESim.Util;
 using ACESim.Util.DiscreteProbabilities;
 using ACESimBase.Games.LitigGame;
 using ACESimBase.Games.LitigGame.ManualReports;
+using ACESimBase.Games.LitigGame.PrecautionModel;
 using ACESimBase.GameSolvingSupport.GameTree;
 using ACESimBase.GameSolvingSupport.Settings;
 using ACESimBase.GameSolvingSupport.Symmetry;

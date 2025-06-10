@@ -1,13 +1,15 @@
 ﻿using System;
 using System.Diagnostics;
-using System.Linq;
 using ACESimBase.Util.DiscreteProbabilities;
 
 namespace ACESimBase.Games.LitigGame.PrecautionModel
 {
     /// <summary>
-    /// Domain-specific wrapper around <see cref="ThreePartyDiscreteSignals"/> that labels the three parties
-    /// as Plaintiff (0), Defendant (1), and Court (2) for use in litigation simulations.
+    /// Domain-specific wrapper around <see cref="ThreePartyDiscreteSignals"/>.
+    /// After refactor, *all* heavy table-building is executed in the constructor; public
+    /// accessors merely retrieve cached results.  Cross-model computations that also
+    /// require <see cref="PrecautionImpactModel"/> will migrate to PrecautionRiskModel
+    /// and are therefore removed here.
     /// </summary>
     public sealed class PrecautionSignalModel
     {
@@ -16,14 +18,33 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
         public const int DefendantIndex = 1;
         public const int CourtIndex = 2;
 
-        public readonly ThreePartyDiscreteSignals model;
+        readonly ThreePartyDiscreteSignals model;
 
+        // ---------------- Pre-computed tables ----------------
+        readonly double[][] hiddenPosteriorFromP;       // [pSignal][hidden]
+        readonly double[][] hiddenPosteriorFromD;       // [dSignal][hidden]
+        readonly double[][] hiddenPosteriorFromC;       // [cSignal][hidden]
+        readonly double[][][] hiddenPosteriorFromPD;     // [p][d][hidden]
+
+        // Conditional signal distributions (single-party given one other party)
+        readonly double[][] plaintiffGivenDefendant;     // [d][p]
+        readonly double[][] plaintiffGivenCourt;         // [c][p]
+        readonly double[][] defendantGivenPlaintiff;     // [p][d]
+        readonly double[][] defendantGivenCourt;         // [c][d]
+        readonly double[][] courtGivenPlaintiff;         // [p][c]
+        readonly double[][] courtGivenDefendant;         // [d][c]
+        readonly double[][][] courtGivenPD;              // [p][d][c]
+        readonly double[][] courtGivenHidden;            // [hidden][c]
+
+        // ---------------- Public dimensions ------------------
         public int HiddenStatesCount => model.hiddenCount;
-
         public int NumPSignals => model.signalCounts[PlaintiffIndex];
         public int NumDSignals => model.signalCounts[DefendantIndex];
         public int NumCSignals => model.signalCounts[CourtIndex];
 
+        //-----------------------------------------------------------------------
+        // Constructor – does *all* heavy table building
+        //-----------------------------------------------------------------------
         public PrecautionSignalModel(
             int numPrecautionPowerLevels,
             int numPlaintiffSignals,
@@ -37,397 +58,205 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
             int[] signalCounts = { numPlaintiffSignals, numDefendantSignals, numCourtSignals };
             double[] sigmas = { sigmaPlaintiff, sigmaDefendant, sigmaCourt };
             model = new ThreePartyDiscreteSignals(numPrecautionPowerLevels, signalCounts, sigmas, includeExtremes);
+
+            // ---- Build posterior-over-hidden tables ----
+            hiddenPosteriorFromP = BuildHiddenPosteriorFromSignalTable(PlaintiffIndex, NumPSignals);
+            hiddenPosteriorFromD = BuildHiddenPosteriorFromSignalTable(DefendantIndex, NumDSignals);
+            hiddenPosteriorFromC = BuildHiddenPosteriorFromSignalTable(CourtIndex, NumCSignals);
+            hiddenPosteriorFromPD = BuildHiddenPosteriorFromPDTable();
+
+            // ---- Build conditional signal distributions ----
+            (plaintiffGivenDefendant, plaintiffGivenCourt) = BuildPlaintiffSignalConditionalTables();
+            (defendantGivenPlaintiff, defendantGivenCourt) = BuildDefendantSignalConditionalTables();
+            (courtGivenPlaintiff, courtGivenDefendant, courtGivenPD, courtGivenHidden) = BuildCourtSignalConditionalTables();
         }
 
-        // === Generation ====================================================================
-
-        public (int plaintiffSignal, int defendantSignal, int courtSignal) GenerateSignals(
-            int hiddenValue,
-            Random rng = null)
+        //-----------------------------------------------------------------------
+        // Public API – Posteriors over hidden states
+        //-----------------------------------------------------------------------
+        public double[] GetHiddenPosteriorFromPlaintiffSignal(int plaintiffSignal)
         {
-            var (s0, s1, s2) = model.GenerateSignalsFromHidden(hiddenValue, rng);
-            return (s0, s1, s2);
+            ValidateSignalIndex(plaintiffSignal, NumPSignals, nameof(plaintiffSignal));
+            return hiddenPosteriorFromP[plaintiffSignal];
         }
 
-        // === Hidden posteriors – scalar variants ===========================================
-
-        public double[] GetHiddenPosteriorFromPlaintiffSignal(int plaintiffSignal) =>
-            model.GetHiddenDistributionGivenSignal(PlaintiffIndex, plaintiffSignal);
-
-        public double[] GetHiddenPosteriorFromDefendantSignal(int defendantSignal) =>
-            model.GetHiddenDistributionGivenSignal(DefendantIndex, defendantSignal);
-
-        public double[] GetHiddenPosteriorFromCourtSignal(int courtSignal) =>
-            model.GetHiddenDistributionGivenSignal(CourtIndex, courtSignal);
-
-        public double[] GetHiddenPosteriorFromPlaintiffAndDefendantSignals(
-            int plaintiffSignal,
-            int defendantSignal) =>
-            model.GetHiddenDistributionGivenTwoSignals(
-                PlaintiffIndex, plaintiffSignal,
-                DefendantIndex, defendantSignal);
-
-        // === Hidden posteriors – lookup-table overloads =====================================
-
-        public double[][] GetHiddenPosteriorFromPlaintiffSignal()
+        public double[] GetHiddenPosteriorFromDefendantSignal(int defendantSignal)
         {
-            var table = new double[NumPSignals][];
-            for (int p = 0; p < NumPSignals; p++)
-                table[p] = GetHiddenPosteriorFromPlaintiffSignal(p);
+            ValidateSignalIndex(defendantSignal, NumDSignals, nameof(defendantSignal));
+            return hiddenPosteriorFromD[defendantSignal];
+        }
+
+        public double[] GetHiddenPosteriorFromCourtSignal(int courtSignal)
+        {
+            ValidateSignalIndex(courtSignal, NumCSignals, nameof(courtSignal));
+            return hiddenPosteriorFromC[courtSignal];
+        }
+
+        public double[] GetHiddenPosteriorFromPlaintiffAndDefendantSignals(int plaintiffSignal, int defendantSignal)
+        {
+            ValidateSignalIndex(plaintiffSignal, NumPSignals, nameof(plaintiffSignal));
+            ValidateSignalIndex(defendantSignal, NumDSignals, nameof(defendantSignal));
+            return hiddenPosteriorFromPD[plaintiffSignal][defendantSignal];
+        }
+
+        //-----------------------------------------------------------------------
+        // Public API – Conditional signal distributions (single slice access)
+        //-----------------------------------------------------------------------
+        public double[] GetPlaintiffSignalDistributionGivenDefendantSignal(int defendantSignal)
+        {
+            ValidateSignalIndex(defendantSignal, NumDSignals, nameof(defendantSignal));
+            return plaintiffGivenDefendant[defendantSignal];
+        }
+
+        public double[] GetPlaintiffSignalDistributionGivenCourtSignal(int courtSignal)
+        {
+            ValidateSignalIndex(courtSignal, NumCSignals, nameof(courtSignal));
+            return plaintiffGivenCourt[courtSignal];
+        }
+
+        public double[] GetDefendantSignalDistributionGivenPlaintiffSignal(int plaintiffSignal)
+        {
+            ValidateSignalIndex(plaintiffSignal, NumPSignals, nameof(plaintiffSignal));
+            return defendantGivenPlaintiff[plaintiffSignal];
+        }
+
+        public double[] GetDefendantSignalDistributionGivenCourtSignal(int courtSignal)
+        {
+            ValidateSignalIndex(courtSignal, NumCSignals, nameof(courtSignal));
+            return defendantGivenCourt[courtSignal];
+        }
+
+        public double[] GetCourtSignalDistributionGivenPlaintiffSignal(int plaintiffSignal)
+        {
+            ValidateSignalIndex(plaintiffSignal, NumPSignals, nameof(plaintiffSignal));
+            return courtGivenPlaintiff[plaintiffSignal];
+        }
+
+        public double[] GetCourtSignalDistributionGivenDefendantSignal(int defendantSignal)
+        {
+            ValidateSignalIndex(defendantSignal, NumDSignals, nameof(defendantSignal));
+            return courtGivenDefendant[defendantSignal];
+        }
+
+        public double[] GetCourtSignalDistributionGivenPlaintiffAndDefendantSignals(int plaintiffSignal, int defendantSignal)
+        {
+            ValidateSignalIndex(plaintiffSignal, NumPSignals, nameof(plaintiffSignal));
+            ValidateSignalIndex(defendantSignal, NumDSignals, nameof(defendantSignal));
+            return courtGivenPD[plaintiffSignal][defendantSignal];
+        }
+
+        public double[] GetCourtSignalDistributionGivenHidden(int hiddenIndex)
+        {
+            if ((uint)hiddenIndex >= HiddenStatesCount) throw new ArgumentOutOfRangeException(nameof(hiddenIndex));
+            return courtGivenHidden[hiddenIndex];
+        }
+        public double[] GetPlaintiffSignalDistributionGivenHidden(int hiddenIndex)
+        {
+            if ((uint)hiddenIndex >= HiddenStatesCount)
+                throw new ArgumentOutOfRangeException(nameof(hiddenIndex));
+            return model.GetSignalDistributionGivenHidden(PlaintiffIndex, hiddenIndex);
+        }
+
+        public double[] GetDefendantSignalDistributionGivenHidden(int hiddenIndex)
+        {
+            if ((uint)hiddenIndex >= HiddenStatesCount)
+                throw new ArgumentOutOfRangeException(nameof(hiddenIndex));
+            return model.GetSignalDistributionGivenHidden(DefendantIndex, hiddenIndex);
+        }
+
+
+        //-----------------------------------------------------------------------
+        // Public helpers – unconditional distributions & sampling
+        //-----------------------------------------------------------------------
+        public double[] GetUnconditionalSignalDistribution(int partyIndex) => model.GetUnconditionalSignalDistribution(partyIndex);
+
+        public (int plaintiffSignal, int defendantSignal, int courtSignal) GenerateSignals(int hiddenValue, Random rng = null) => model.GenerateSignalsFromHidden(hiddenValue, rng);
+
+        public double GetPlaintiffSignalProbability(int hiddenIndex, int plaintiffSignal) => model.GetSignalDistributionGivenHidden(PlaintiffIndex, hiddenIndex)[plaintiffSignal];
+        public double GetDefendantSignalProbability(int hiddenIndex, int defendantSignal) => model.GetSignalDistributionGivenHidden(DefendantIndex, hiddenIndex)[defendantSignal];
+
+        //-----------------------------------------------------------------------
+        // ---------  Builders (private) – executed once in constructor ----------
+        //-----------------------------------------------------------------------
+
+        double[][] BuildHiddenPosteriorFromSignalTable(int partyIdx, int numSignals)
+        {
+            var table = new double[numSignals][];
+            for (int s = 0; s < numSignals; s++)
+                table[s] = model.GetHiddenDistributionGivenSignal(partyIdx, s);
             return table;
         }
 
-        public double[][] GetHiddenPosteriorFromDefendantSignal()
-        {
-            var table = new double[NumDSignals][];
-            for (int d = 0; d < NumDSignals; d++)
-                table[d] = GetHiddenPosteriorFromDefendantSignal(d);
-            return table;
-        }
-
-        public double[][] GetHiddenPosteriorFromCourtSignal()
-        {
-            var table = new double[NumCSignals][];
-            for (int c = 0; c < NumCSignals; c++)
-                table[c] = GetHiddenPosteriorFromCourtSignal(c);
-            return table;
-        }
-
-        /// <summary>
-        /// Lookup-table for P(hidden | plaintiffSignal, defendantSignal) over all combinations.
-        /// First index → plaintiffSignal, second → defendantSignal.
-        /// </summary>
-        public double[][][] GetHiddenPosteriorFromPlaintiffAndDefendantSignals()
+        double[][][] BuildHiddenPosteriorFromPDTable()
         {
             var table = new double[NumPSignals][][];
             for (int p = 0; p < NumPSignals; p++)
             {
                 table[p] = new double[NumDSignals][];
                 for (int d = 0; d < NumDSignals; d++)
-                    table[p][d] = GetHiddenPosteriorFromPlaintiffAndDefendantSignals(p, d);
+                    table[p][d] = model.GetHiddenDistributionGivenTwoSignals(PlaintiffIndex, p, DefendantIndex, d);
             }
             return table;
         }
 
-
-
-        // === Conditional signal distributions – scalar variants ============================
-
-        public double[] GetPlaintiffSignalDistributionGivenDefendantSignal(int defendantSignal) =>
-            model.GetSignalDistributionGivenSignal(PlaintiffIndex, DefendantIndex, defendantSignal);
-
-        public double[] GetPlaintiffSignalDistributionGivenCourtSignal(int courtSignal) =>
-            model.GetSignalDistributionGivenSignal(PlaintiffIndex, CourtIndex, courtSignal);
-
-        public double[] GetDefendantSignalDistributionGivenPlaintiffSignal(int plaintiffSignal) =>
-            model.GetSignalDistributionGivenSignal(DefendantIndex, PlaintiffIndex, plaintiffSignal);
-
-        public double[] GetDefendantSignalDistributionGivenCourtSignal(int courtSignal) =>
-            model.GetSignalDistributionGivenSignal(DefendantIndex, CourtIndex, courtSignal);
-
-        public double[] GetCourtSignalDistributionGivenPlaintiffSignal(int plaintiffSignal) =>
-            model.GetSignalDistributionGivenSignal(CourtIndex, PlaintiffIndex, plaintiffSignal);
-
-        public double[] GetCourtSignalDistributionGivenDefendantSignal(int defendantSignal) =>
-            model.GetSignalDistributionGivenSignal(CourtIndex, DefendantIndex, defendantSignal);
-
-        public double[] GetCourtSignalDistributionGivenPlaintiffAndDefendantSignals(
-            int plaintiffSignal,
-            int defendantSignal) =>
-            model.GetSignalDistributionGivenTwoSignals(
-                targetPartyIndex: CourtIndex,
-                givenPartyIndex1: PlaintiffIndex, givenSignalValue1: plaintiffSignal,
-                givenPartyIndex2: DefendantIndex, givenSignalValue2: defendantSignal);
-
-        public double[] GetCourtSignalDistributionGivenHidden(int hiddenIndex) =>
-            model.GetSignalDistributionGivenHidden(CourtIndex, hiddenIndex);
-
-        // === Conditional signal distributions – lookup-table overloads ======================
-
-        public double[][] BuildPlaintiffSignalDistributionGivenDefendantSignal()
+        (double[][] plaintiffGivenDefendant, double[][] plaintiffGivenCourt) BuildPlaintiffSignalConditionalTables()
         {
-            var table = new double[NumDSignals][];
+            var pgd = new double[NumDSignals][];
+            var pgc = new double[NumCSignals][];
             for (int d = 0; d < NumDSignals; d++)
-                table[d] = GetPlaintiffSignalDistributionGivenDefendantSignal(d);
-            return table;
-        }
-
-        public double[][] GetPlaintiffSignalDistributionGivenCourtSignal()
-        {
-            var table = new double[NumCSignals][];
+                pgd[d] = model.GetSignalDistributionGivenSignal(PlaintiffIndex, DefendantIndex, d);
             for (int c = 0; c < NumCSignals; c++)
-                table[c] = GetPlaintiffSignalDistributionGivenCourtSignal(c);
-            return table;
+                pgc[c] = model.GetSignalDistributionGivenSignal(PlaintiffIndex, CourtIndex, c);
+            return (pgd, pgc);
         }
 
-        public double[][] GetDefendantSignalDistributionGivenPlaintiffSignal()
+        (double[][] defendantGivenPlaintiff, double[][] defendantGivenCourt) BuildDefendantSignalConditionalTables()
         {
-            var table = new double[NumPSignals][];
+            var dgp = new double[NumPSignals][];
+            var dgc = new double[NumCSignals][];
             for (int p = 0; p < NumPSignals; p++)
-                table[p] = GetDefendantSignalDistributionGivenPlaintiffSignal(p);
-            return table;
-        }
-
-        public double[][] GetDefendantSignalDistributionGivenCourtSignal()
-        {
-            var table = new double[NumCSignals][];
+                dgp[p] = model.GetSignalDistributionGivenSignal(DefendantIndex, PlaintiffIndex, p);
             for (int c = 0; c < NumCSignals; c++)
-                table[c] = GetDefendantSignalDistributionGivenCourtSignal(c);
-            return table;
+                dgc[c] = model.GetSignalDistributionGivenSignal(DefendantIndex, CourtIndex, c);
+            return (dgp, dgc);
         }
 
-        public double[][] GetCourtSignalDistributionGivenPlaintiffSignal()
+        (double[][] courtGivenPlaintiff, double[][] courtGivenDefendant, double[][][] courtGivenPD, double[][] courtGivenHidden)
+            BuildCourtSignalConditionalTables()
         {
-            var table = new double[NumPSignals][];
+            var cgp = new double[NumPSignals][];
+            var cgd = new double[NumDSignals][];
+            var cgpD = new double[NumPSignals][][];
+            var cgh = new double[HiddenStatesCount][];
+
+            // single-condition tables
             for (int p = 0; p < NumPSignals; p++)
-                table[p] = GetCourtSignalDistributionGivenPlaintiffSignal(p);
-            return table;
-        }
-
-        public double[][] GetCourtSignalDistributionGivenDefendantSignal()
-        {
-            var table = new double[NumDSignals][];
+                cgp[p] = model.GetSignalDistributionGivenSignal(CourtIndex, PlaintiffIndex, p);
             for (int d = 0; d < NumDSignals; d++)
-                table[d] = GetCourtSignalDistributionGivenDefendantSignal(d);
-            return table;
-        }
-
-        /// <summary>
-        /// Lookup-table for P(courtSignal | plaintiffSignal, defendantSignal) over all combinations.
-        /// First index → plaintiffSignal, second → defendantSignal.
-        /// </summary>
-        public double[][][] GetCourtSignalDistributionGivenPlaintiffAndDefendantSignals()
-        {
-            var table = new double[NumPSignals][][];
+                cgd[d] = model.GetSignalDistributionGivenSignal(CourtIndex, DefendantIndex, d);
+            // double-condition table
             for (int p = 0; p < NumPSignals; p++)
             {
-                table[p] = new double[NumDSignals][];
+                cgpD[p] = new double[NumDSignals][];
                 for (int d = 0; d < NumDSignals; d++)
-                    table[p][d] = GetCourtSignalDistributionGivenPlaintiffAndDefendantSignals(p, d);
+                    cgpD[p][d] = model.GetSignalDistributionGivenTwoSignals(
+                        targetPartyIndex: CourtIndex,
+                        givenPartyIndex1: PlaintiffIndex, givenSignalValue1: p,
+                        givenPartyIndex2: DefendantIndex, givenSignalValue2: d);
             }
-            return table;
-        }
-
-        public double[][] GetCourtSignalDistributionGivenHidden()
-        {
-            var table = new double[HiddenStatesCount][];
+            // hidden-condition table
             for (int h = 0; h < HiddenStatesCount; h++)
-                table[h] = GetCourtSignalDistributionGivenHidden(h);
-            return table;
+                cgh[h] = model.GetSignalDistributionGivenHidden(CourtIndex, h);
+
+            return (cgp, cgd, cgpD, cgh);
         }
 
-        // === Unconditional signal distributions – scalar variants ============================
-
-        /// <summary>
-        /// P(plaintiffSignal), P(defendantSignal), or P(courtSignal) – unconditional
-        /// on hidden state. Wrapper around ThreePartyDiscreteSignals.
-        /// </summary>
-        public double[] GetUnconditionalSignalDistribution(int partyIndex) =>
-            model.GetUnconditionalSignalDistribution(partyIndex);
-
-        // Convenience shortcuts
-        public double[] GetUnconditionalPlaintiffSignalDistribution() =>
-            GetUnconditionalSignalDistribution(PlaintiffIndex);
-
-        public double[] GetUnconditionalDefendantSignalDistribution() =>
-            GetUnconditionalSignalDistribution(DefendantIndex);
-
-        public double[] GetUnconditionalCourtSignalDistribution() =>
-            GetUnconditionalSignalDistribution(CourtIndex);
-
-
-        // === Unconditional calculation of plaintiff signal probability
-
-        /// <summary>
-        /// Fully enumerated distribution P(plaintiffSignal | hidden state).
-        /// Entry <c>p</c> is GetPlaintiffSignalProbability(hidden, p).
-        /// </summary>
-        public double[] GetPlaintiffSignalDistributionGivenHidden(int hidden)
+        //-----------------------------------------------------------------------
+        // Utilities
+        //-----------------------------------------------------------------------
+        static void ValidateSignalIndex(int idx, int max, string paramName)
         {
-            if (hidden < 0 || hidden >= HiddenStatesCount)
-                throw new ArgumentOutOfRangeException(nameof(hidden));
-
-            var dist = new double[NumPSignals];
-            for (int p = 0; p < NumPSignals; p++)
-                dist[p] = GetPlaintiffSignalProbability(hidden, p);
-            return dist;
+            if ((uint)idx >= max) throw new ArgumentOutOfRangeException(paramName);
         }
-
-        /// <summary>
-        /// Build and return the entire lookup table
-        ///     table[h][p] = P(plaintiffSignal = p | hidden = h).
-        /// Each row is produced by <see cref="GetPlaintiffSignalDistributionGivenHidden"/>.
-        /// </summary>
-        public double[][] BuildPlaintiffSignalGivenHiddenTable()
-        {
-            var table = new double[HiddenStatesCount][];
-
-            for (int h = 0; h < HiddenStatesCount; h++)
-                table[h] = GetPlaintiffSignalDistributionGivenHidden(h);
-
-            return table;
-        }
-
-
-        /// <summary>
-        /// Mixture distribution P(plaintiffSignal | caller’s posterior over hidden states).
-        /// The posterior must be length = HiddenStatesCount and sum to 1.
-        /// </summary>
-        public double[] GetPlaintiffSignalDistributionGivenPosterior(double[] hiddenPosterior)
-        {
-            if (hiddenPosterior == null)
-                throw new ArgumentNullException(nameof(hiddenPosterior));
-            if (hiddenPosterior.Length != HiddenStatesCount)
-                throw new ArgumentException("Posterior length must equal HiddenStatesCount.", nameof(hiddenPosterior));
-
-            var dist = new double[NumPSignals];
-
-            for (int h = 0; h < HiddenStatesCount; h++)
-            {
-                double w = hiddenPosterior[h];
-                if (w == 0.0) continue;
-
-                for (int p = 0; p < NumPSignals; p++)
-                    dist[p] += w * GetPlaintiffSignalProbability(h, p);
-            }
-
-            // numerical guard: renormalise
-            double sum = dist.Sum();
-            if (sum == 0.0) return dist;          // impossible evidence path
-            for (int p = 0; p < NumPSignals; p++)
-                dist[p] /= sum;
-            return dist;
-        }
-
-
-        // === Model taking into account accident occurrence ============================
-
-        /// P(plaintiffSignal | defendantSignal, accident, precautionLevel)
-        public double[] GetPlaintiffSignalDistributionGivenDefendantSignalAndPrecautionLevelAfterAccident(
-            int defendantSignal,
-            int precautionLevel,
-            PrecautionImpactModel impactModel)
-        {
-            if (impactModel == null) throw new ArgumentNullException(nameof(impactModel));
-            if ((uint)defendantSignal >= NumDSignals) throw new ArgumentOutOfRangeException(nameof(defendantSignal));
-            if ((uint)precautionLevel >= impactModel.PrecautionLevels) throw new ArgumentOutOfRangeException(nameof(precautionLevel));
-
-            int hCount = HiddenStatesCount;
-            int pCount = NumPSignals;
-            double uniformPrior = 1.0 / hCount;
-
-            double[] numerators = new double[pCount];
-            double denominator = 0.0;
-
-            for (int h = 0; h < hCount; h++)
-            {
-                double weight =
-                    uniformPrior *
-                    GetDefendantSignalProbability(h, defendantSignal) *
-                    impactModel.GetAccidentProbability(h, precautionLevel);
-
-                if (weight == 0.0) continue;
-
-                double[] pSigGivenH = model.GetSignalDistributionGivenHidden(PlaintiffIndex, h); // length pCount
-                for (int p = 0; p < pCount; p++)
-                    numerators[p] += weight * pSigGivenH[p];
-
-                denominator += weight;
-            }
-
-            if (denominator == 0.0) return numerators;           // unreachable combination ⇒ all zeros
-
-            for (int p = 0; p < pCount; p++)                     // normalise
-                numerators[p] /= denominator;
-
-            return numerators;
-        }
-
-        public double[][][] BuildPlaintiffSignalDistributionGivenDefendantSignalAndPrecautionLevelAfterAccidentTable(PrecautionImpactModel impactModel)
-        {
-            if (impactModel is null) throw new ArgumentNullException(nameof(impactModel));
-            int precautionLevels = impactModel.PrecautionLevels;
-            var table = new double[NumDSignals][][];
-            for (int d = 0; d < NumDSignals; d++)
-            {
-                table[d] = new double[precautionLevels][];
-                for (int k = 0; k < precautionLevels; k++)
-                    table[d][k] = GetPlaintiffSignalDistributionGivenDefendantSignalAndPrecautionLevelAfterAccident(
-                        d, k, impactModel);
-            }
-            return table;
-        }
-
-        /// Returns P(plaintiffSignal | defendantSignal, precautionLevel, NO accident).
-        public double[] GetPlaintiffSignalDistributionGivenDefendantSignalAndPrecautionLevelNoAccident(
-            int defendantSignal,
-            int precautionLevel,
-            PrecautionImpactModel impactModel)
-        {
-            if (impactModel == null) throw new ArgumentNullException(nameof(impactModel));
-            if ((uint)defendantSignal >= NumDSignals) throw new ArgumentOutOfRangeException(nameof(defendantSignal));
-            if ((uint)precautionLevel >= impactModel.PrecautionLevels) throw new ArgumentOutOfRangeException(nameof(precautionLevel));
-
-            int hCount = HiddenStatesCount;
-            int pCount = NumPSignals;
-            double uniformPrior = 1.0 / hCount;
-
-            double[] numerators = new double[pCount];
-            double denominator = 0.0;
-
-            for (int h = 0; h < hCount; h++)
-            {
-                // posterior weight ∝ P(h) · P(DLS | h) · P(NO accident | h,k)
-                double pAcc = impactModel.GetAccidentProbability(h, precautionLevel);
-                double weight =
-                    uniformPrior *
-                    GetDefendantSignalProbability(h, defendantSignal) *
-                    (1.0 - pAcc);
-
-                if (weight == 0.0) continue;
-
-                double[] pSigGivenH = model.GetSignalDistributionGivenHidden(PlaintiffIndex, h);
-                for (int p = 0; p < pCount; p++)
-                    numerators[p] += weight * pSigGivenH[p];
-
-                denominator += weight;
-            }
-
-            if (denominator == 0.0) return numerators;   // unreachable evidence ⇒ all zeros
-
-            for (int p = 0; p < pCount; p++)
-                numerators[p] /= denominator;
-
-            return numerators;
-        }
-
-        /// Lookup-table version:
-        ///     table[d][k][p] = P(PLS = p | DLS = d, precaution = k, NO accident)
-        public double[][][] BuildPlaintiffSignalDistributionGivenDefendantSignalAndPrecautionLevelNoAccidentTable(
-            PrecautionImpactModel impactModel)
-        {
-            if (impactModel == null) throw new ArgumentNullException(nameof(impactModel));
-
-            int precautionLevels = impactModel.PrecautionLevels;
-            var table = new double[NumDSignals][][];
-
-            for (int d = 0; d < NumDSignals; d++)
-            {
-                table[d] = new double[precautionLevels][];
-                for (int k = 0; k < precautionLevels; k++)
-                    table[d][k] = GetPlaintiffSignalDistributionGivenDefendantSignalAndPrecautionLevelNoAccident(
-                        d, k, impactModel);
-            }
-            return table;
-        }
-
-
-        // === Utilities =====================================================================
-
-        public double GetPlaintiffSignalProbability(int hiddenIndex, int plaintiffSignal) =>
-            model.GetSignalDistributionGivenHidden(PlaintiffIndex, hiddenIndex)[plaintiffSignal];
-
-        public double GetDefendantSignalProbability(int hiddenIndex, int defendantSignal) =>
-            model.GetSignalDistributionGivenHidden(DefendantIndex, hiddenIndex)[defendantSignal];
     }
 }

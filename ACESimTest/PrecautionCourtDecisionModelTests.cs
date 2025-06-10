@@ -232,11 +232,11 @@ namespace ACESimTest
             // σ≈0 ⇒ every signal is perfectly informative; the court must
             // find liability at k=0 and must not at k=1.
             var probsNegligent = courtDeterministic
-                .GetLiabilityOutcomeProbabilities(plaintiffSignal: 0, defendantSignal: 0,
-                                                  accidentOccurred: true, precautionLevel: 0);
+                .GetLiabilityOutcomeProbabilities(pSig: 0, dSig: 0,
+                                                  accident: true, precautionLevel: 0);
             var probsSafe = courtDeterministic
-                .GetLiabilityOutcomeProbabilities(plaintiffSignal: 0, defendantSignal: 0,
-                                                  accidentOccurred: true, precautionLevel: 1);
+                .GetLiabilityOutcomeProbabilities(pSig: 0, dSig: 0,
+                                                  accident: true, precautionLevel: 1);
 
             probsNegligent[1].Should().BeApproximately(1.0, 1e-6);  // liable
             probsNegligent[0].Should().BeApproximately(0.0, 1e-6);
