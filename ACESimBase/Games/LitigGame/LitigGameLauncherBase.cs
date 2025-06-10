@@ -366,9 +366,10 @@ namespace ACESimBase.Games.LitigGame
 
         #region Helper method for test classes
         public static LitigGameProgress PlayLitigGameOnce(LitigGameOptions options,
-            Func<Decision, GameProgress, byte> actionsOverride)
+            Func<Decision, GameProgress, byte> actionsOverride, LitigGameDefinition gameDefinition = null)
         {
-            LitigGameDefinition gameDefinition = new LitigGameDefinition();
+            if (gameDefinition == null)
+                gameDefinition = new LitigGameDefinition();
             gameDefinition.Setup(options);
             List<Strategy> starterStrategies = Strategy.GetStarterStrategies(gameDefinition);
 

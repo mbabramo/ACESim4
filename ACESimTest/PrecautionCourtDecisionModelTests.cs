@@ -26,7 +26,7 @@ namespace ACESimTest
                 precautionLevels: 2,
                 pAccidentNoActivity: 0.01,
                 pAccidentNoPrecaution: 0.25,
-                marginalPrecautionCost: 0.04,
+                marginalPrecautionCost: 0.07,
                 harmCost: 1.0,
                 precautionPowerFactorLeastEffective: 0.8,
                 precautionPowerFactorMostEffective: 0.6,
@@ -36,9 +36,26 @@ namespace ACESimTest
             var detSignals = new PrecautionSignalModel(2, 2, 2, 2, 1e-4, 1e-4, 1e-4);
             courtDeterministic = new PrecautionCourtDecisionModel(impact, detSignals);
 
-            // noisy signals (σ = 0.2)
-            var noisySignals = new PrecautionSignalModel(2, 2, 2, 2, 0.2, 0.2, 0.2);
+            // noisy signals (σ = 0.2)... Note that we use many court signals to ensure that there will always be some possibility of liability / no-liability
+            const int numCourtSignals = 100; // DEBUG
+            var noisySignals = new PrecautionSignalModel(2, 2, 2, numCourtSignals, 0.2, 0.2, 0.2);
             courtNoisy = new PrecautionCourtDecisionModel(impact, noisySignals);
+
+            // DEBUG
+            int countNonLiable = 0;
+            for (int s = 0; s < numCourtSignals; s++)
+            {
+                if (!courtNoisy.IsLiable(s, 0))
+                    countNonLiable++;
+            }
+            System.Diagnostics.Debug.WriteLine($"Non-liable court signals at level 0: {countNonLiable}");
+            for (int s = 0; s < numCourtSignals; s += numCourtSignals / 100)  // limit to first 100 to avoid console spam
+            {
+                var post = courtNoisy.GetExpectedBenefit(s, 0);
+                var ratio = courtNoisy.GetBenefitCostRatio(s, 0);
+                var liable = courtNoisy.IsLiable(s, 0);
+                System.Diagnostics.Debug.WriteLine($"s = {s}: ratio = {ratio:F3}, liable = {liable}");
+            }
         }
 
         // ------------------------------------------------------------------
@@ -69,8 +86,9 @@ namespace ACESimTest
             r0.Should().BeGreaterOrEqualTo(r1 - 1e-9);
 
             courtNoisy.IsLiable(signal, 0).Should().Be(r0 >= 1.0);
-            courtNoisy.IsLiable(signal, 1).Should().BeFalse();   // max precaution never liable
+            courtNoisy.IsLiable(signal, 1).Should().Be(r1 >= 1.0);   // liability still depends on benefit-cost ratio
         }
+
 
         [TestMethod]
         public void ExpectedBenefitMatchesRatioTimesCost()
@@ -557,6 +575,34 @@ namespace ACESimTest
             actual.Sum().Should().BeApproximately(1.0, 1e-12);
         }
 
+        [TestMethod]
+        public void LiabilityCanOccurAtMaxPrecautionIfNextBenefitJustifiesIt()
+        {
+            // Configure model such that next-level benefit is above threshold at max level
+            var impactModified = new PrecautionImpactModel(
+                precautionPowerLevels: 2,
+                precautionLevels: 2,
+                pAccidentNoActivity: 0.01,
+                pAccidentNoPrecaution: 0.25,
+                marginalPrecautionCost: 0.01, // lower cost to raise benefit/cost ratio
+                harmCost: 1.0,
+                precautionPowerFactorLeastEffective: 0.8,
+                precautionPowerFactorMostEffective: 0.6,
+                liabilityThreshold: 1.0);
+
+            var signals = new PrecautionSignalModel(2, 2, 2, 2, 1e-4, 1e-4, 1e-4); // deterministic signals
+            var model = new PrecautionCourtDecisionModel(impactModified, signals);
+
+            // At precaution level 1 (max), compute liability status
+            for (int s = 0; s < 2; s++)
+            {
+                double ratio = model.GetBenefitCostRatio(s, 1);
+                bool shouldBeLiable = ratio >= 1.0;
+
+                model.IsLiable(s, 1).Should().Be(shouldBeLiable,
+                    $"signal {s} at max precaution should be liable if ratio {ratio:F2} ≥ threshold");
+            }
+        }
 
 
     }

@@ -68,7 +68,7 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
                     expBenefit[s][k] = benefit;
                     double ratio = impactModel.MarginalPrecautionCost == 0 ? double.PositiveInfinity : benefit / impactModel.MarginalPrecautionCost;
                     benefitCostRatio[s][k] = ratio;
-                    liable[s][k] = ratio >= impactModel.LiabilityThreshold && k < numPrecautionLevels - 1; // cannot be liable if no further precaution exists
+                    liable[s][k] = ratio >= impactModel.LiabilityThreshold; // cannot be liable if no further precaution exists
                 }
             }
             BuildLiableProbTable();
@@ -150,7 +150,7 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
                     total += baseDist[s];
                 }
             }
-            if (total == 0.0) return filtered;           // all zeros ⇒ liability impossible
+            if (total == 0.0) throw new Exception("DEBUG"); // return filtered;           // all zeros ⇒ liability impossible
             for (int s = 0; s < filtered.Length; s++)    // renormalize
                 filtered[s] /= total;
             return filtered;
@@ -172,11 +172,59 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
                     total += baseDist[s];
                 }
             }
-            if (total == 0.0) return filtered;           // all zeros ⇒ no-liability impossible
+            if (total == 0.0)
+                throw new Exception("DEBUG"); // all zeros ⇒ no-liability impossible
             for (int s = 0; s < filtered.Length; s++)    // renormalize
                 filtered[s] /= total;
             return filtered;
         }
+
+        public double[][][][] BuildTablesForCourtSignalDistributionBasedOnPAndDSignalsAndPrecautionLevel_GivenLiability()
+        {
+            int P = signal.NumPSignals;
+            int D = signal.NumDSignals;
+            int K = numPrecautionLevels;
+            int S = numCourtSamplesForCalculatingLiability;
+
+            var table = new double[P][][][];
+
+            for (int p = 0; p < P; p++)
+            {
+                table[p] = new double[D][][];
+                for (int d = 0; d < D; d++)
+                {
+                    table[p][d] = new double[K][];
+                    for (int k = 0; k < K; k++)
+                        table[p][d][k] = GetCourtSignalDistributionGivenSignalsAndLiability(p, d, k);
+                }
+            }
+
+            return table;
+        }
+
+        public double[][][][] BuildTablesForCourtSignalDistributionBasedOnPAndDSignalsAndPrecautionLevel_GivenNoLiability()
+        {
+            int P = signal.NumPSignals;
+            int D = signal.NumDSignals;
+            int K = numPrecautionLevels;
+            int S = numCourtSamplesForCalculatingLiability;
+
+            var table = new double[P][][][];
+
+            for (int p = 0; p < P; p++)
+            {
+                table[p] = new double[D][][];
+                for (int d = 0; d < D; d++)
+                {
+                    table[p][d] = new double[K][];
+                    for (int k = 0; k < K; k++)
+                        table[p][d][k] = GetCourtSignalDistributionGivenSignalsAndNoLiability(p, d, k);
+                }
+            }
+
+            return table;
+        }
+
 
         public double[] GetHiddenPosteriorFromSignalsAndCourtDistribution(
             int plaintiffSignal, int defendantSignal, double[] courtSignalDistribution)
@@ -384,6 +432,58 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
             return posterior;
         }
 
+        public double[][][][] BuildHiddenPosteriorFromCourtSignalDistributionTable(double[][][][] courtSignalDistributionTable)
+        {
+            int P = signal.NumPSignals;
+            int D = signal.NumDSignals;
+            int K = numPrecautionLevels;
+
+            var table = new double[P][][][];
+
+            for (int p = 0; p < P; p++)
+            {
+                table[p] = new double[D][][];
+                for (int d = 0; d < D; d++)
+                {
+                    table[p][d] = new double[K][];
+                    for (int k = 0; k < K; k++)
+                    {
+                        double[] courtDist = courtSignalDistributionTable[p][d][k];
+                        table[p][d][k] = GetHiddenPosteriorFromSignalsAndCourtDistribution(p, d, courtDist);
+                    }
+                }
+            }
+
+            return table;
+        }
+
+        public double[][][] BuildHiddenPosteriorFromNoAccidentTable()
+        {
+            int D = signal.NumDSignals;
+            int K = numPrecautionLevels;
+
+            var table = new double[D][][];
+
+            for (int d = 0; d < D; d++)
+            {
+                table[d] = new double[K][];
+                for (int k = 0; k < K; k++)
+                    table[d][k] = GetHiddenPosteriorFromNoAccidentScenario(d, k);
+            }
+
+            return table;
+        }
+
+        public double[][] BuildHiddenPosteriorFromDefendantSignalTable()
+        {
+            int D = signal.NumDSignals;
+            var table = new double[D][];
+
+            for (int d = 0; d < D; d++)
+                table[d] = GetHiddenPosteriorFromDefendantSignal(d);
+
+            return table;
+        }
 
 
         // ---------------- Helpers ---------------------------

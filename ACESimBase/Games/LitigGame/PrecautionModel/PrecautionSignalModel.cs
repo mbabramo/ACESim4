@@ -109,6 +109,8 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
             return table;
         }
 
+
+
         // === Conditional signal distributions – scalar variants ============================
 
         public double[] GetPlaintiffSignalDistributionGivenDefendantSignal(int defendantSignal) =>

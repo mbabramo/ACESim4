@@ -1,4 +1,5 @@
 ﻿using ACESim;
+using ACESimBase.Games.LitigGame;
 using ACESimBase.Games.LitigGame.PrecautionModel;
 using ACESimBase.GameSolvingSupport.GameTree;
 using ACESimBase.GameSolvingSupport.Settings;
@@ -6,6 +7,7 @@ using FluentAssertions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
@@ -15,16 +17,109 @@ namespace ACESimTest
     [TestClass]
     public class PrecautionNegligenceDisputeGeneratorTests
     {
+        const double tolerance = 1E-12;
+
         [TestMethod]
-        public async Task CollapsingDecisionsIsEquivalent()
+        public async Task CollapsingDecisionsGivesEquivalentUtilities()
         {
             var regular = LitigGameOptionsGenerator.PrecautionNegligenceGame(false, false, 2, 0, 2, 2);
             double[] regularUtilities = await GetUtilitiesWithRandomInformationSets(regular, "Regular");
 
             var collapsed = LitigGameOptionsGenerator.PrecautionNegligenceGame(true, false, 2, 0, 2, 2);
-            double[] collapsedUtilities = await GetUtilitiesWithRandomInformationSets(regular, "Collapse");
+            double[] collapsedUtilities = await GetUtilitiesWithRandomInformationSets(collapsed, "Collapse");
 
-            regularUtilities.Should().Equal(collapsedUtilities); // Note: Each execution should produce different runs (because string.GetHashCode()) is not consistent across runs, but they should match regardless.
+            regularUtilities.Should().Equal(
+                collapsedUtilities,
+                (actualValue, expectedValue) =>
+                    Math.Abs(actualValue - expectedValue) <= tolerance
+            );
+            // Note: Each execution should produce different runs (because string.GetHashCode()) is not consistent across runs, but they should match regardless.
+        }
+
+        [TestMethod]
+        public async Task CollapsingDecisionsAggregatesProperly()
+        {
+            var regular = LitigGameOptionsGenerator.PrecautionNegligenceGame(false, false, 2, 0, 2, 2);
+            List<(double probability, PrecautionNegligenceProgress progress)> regularResults = await GetConsistentProgressForEveryGamePathAsync(regular);
+
+            var collapsed = LitigGameOptionsGenerator.PrecautionNegligenceGame(true, false, 2, 0, 2, 2);
+            List<(double probability, PrecautionNegligenceProgress progress)> collapsedResults = await GetConsistentProgressForEveryGamePathAsync(collapsed);
+
+            var DEBUG = collapsedResults.Where(x => x.probability > 0.00001).Select(x => (x.probability, x.progress.AccidentOccurs, x.progress.PLiabilitySignalDiscrete, x.progress.DLiabilitySignalDiscrete)).ToList();
+
+            regularResults.Sum(x => x.probability).Should().BeApproximately(1.0, tolerance);
+            collapsedResults.Sum(x => x.probability).Should().BeApproximately(1.0, tolerance);
+
+            var signalValues = GetDistinctValues(regularResults, x => x.PLiabilitySignalDiscrete).OrderBy(x => x).ToList();
+            foreach (var pSignalValue in signalValues)
+            {
+                foreach (var dSignalValue in signalValues)
+                {
+                    var results = FilterBoth(x => x.PLiabilitySignalDiscrete == pSignalValue && x.DLiabilitySignalDiscrete == dSignalValue);
+                    results.regular.Sum(x => x.probability).Should().BeApproximately(results.collapsed.Sum(x => x.probability), tolerance);
+                }
+            }
+
+            // local helper functions
+            HashSet<T> GetDistinctValues<T>(List<(double probability, PrecautionNegligenceProgress progress)> results, Func<PrecautionNegligenceProgress, T> predicate) => new HashSet<T>(results.Select(x => predicate(x.progress)));
+            List<(double probability, PrecautionNegligenceProgress progress)> Filter(List<(double probability, PrecautionNegligenceProgress progress)> results, Func<PrecautionNegligenceProgress, bool> filterFunc) => results.Where(x => filterFunc(x.progress)).ToList();
+            (List<(double probability, PrecautionNegligenceProgress progress)> regular, List<(double probability, PrecautionNegligenceProgress progress)> collapsed) FilterBoth(Func<PrecautionNegligenceProgress, bool> filterFunc) => (Filter(regularResults, filterFunc), Filter(collapsedResults, filterFunc));
+
+        }
+
+        /// <summary>
+        /// Enumerates every decision-/chance-path in the current game definition,
+        /// replays the game once for each path (using the action delegate derived
+        /// from that path), generates all game progresses consistent with that outcome,
+        /// and returns each associated with its corresponding probability.
+        /// </summary>
+        private static async Task<List<(double probability, PrecautionNegligenceProgress progress)>>
+            GetConsistentProgressForEveryGamePathAsync(LitigGameOptions options)
+        {
+            var finalResults = new List<(double probability, PrecautionNegligenceProgress progress)>();
+            var initialResults = await GetProgressForEveryGamePathAsync(options);
+            double initialProbabilitySum = initialResults.Sum(x => x.probability);
+            var disputeGenerator = (PrecautionNegligenceDisputeGenerator)options.LitigGameDisputeGenerator;
+            foreach (var initialResult in initialResults)
+            {
+                var consistentProgresses = disputeGenerator.BayesianCalculations_GenerateAllConsistentGameProgresses(initialResult.progress.PLiabilitySignalDiscrete, initialResult.progress.DLiabilitySignalDiscrete, initialResult.progress.CLiabilitySignalDiscrete, initialResult.progress.PDamagesSignalDiscrete, initialResult.progress.DDamagesSignalDiscrete, initialResult.progress.CDamagesSignalDiscrete, initialResult.progress);
+                finalResults.AddRange(consistentProgresses.Select(x => (x.weight * initialResult.probability, (PrecautionNegligenceProgress) x.progress)));
+            }
+            double finalProbabilitySum = finalResults.Sum(x => x.probability);
+            initialProbabilitySum.Should().BeApproximately(finalProbabilitySum, tolerance);
+            return finalResults;
+        }
+
+        /// <summary>
+        /// Enumerates every decision-/chance-path in the current game definition,
+        /// replays the game once for each path (using the action delegate derived
+        /// from that path), and returns the reach probability together with the
+        /// resulting LitigGameProgress.
+        /// </summary>
+        private static async Task<List<(double probability, PrecautionNegligenceProgress progress)>>
+            GetProgressForEveryGamePathAsync(LitigGameOptions options)
+        {
+            var developer = await GetGeneralizedVanilla(options, "PathEnumeration");
+
+            // Walk the tree and collect all paths with their probabilities.
+            var pathRecorder = new RecordGamePathsProcessor();
+            developer.TreeWalk_Tree(pathRecorder);
+
+            var results = new List<(double probability, PrecautionNegligenceProgress progress)>();
+
+            foreach (var path in pathRecorder.Paths)
+            {
+                // Convert the recorded path to the delegate expected by the game player.
+                var actionsOverride = DefineActions.GamePathToActionFunction(path);
+
+                // Replay the game once under these fixed actions.
+                PrecautionNegligenceProgress progress = (PrecautionNegligenceProgress) LitigGameLauncherBase.PlayLitigGameOnce(
+                    options, actionsOverride);
+
+                results.Add((path.Probability, progress));
+            }
+
+            return results;
         }
 
         private static async Task<double[]> GetUtilitiesWithRandomInformationSets(LitigGameOptions regular, string optionsName)

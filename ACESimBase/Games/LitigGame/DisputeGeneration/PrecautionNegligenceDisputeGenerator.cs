@@ -49,6 +49,13 @@ namespace ACESim // Assuming the ACESim base namespace; adjust if needed
         private double[][] _pSignalProbabilitiesGivenDSignalNoEngagement;
         private double[][][] _pSignalProbabilitiesGivenDSignalAndPrecautionLevelAfterAccident;
         private double[][][] _pSignalProbabilitiesGivenDSignalAndPrecautionLevelAfterNoAccident;
+        private double[][][][] _courtSignalProbabilitiesGivenLiability;
+        private double[][][][] _courtSignalProbabilitiesGivenNoLiability;
+        private double[][][][] _posteriorGivenAccidentAndLiability;
+        private double[][][][] _posteriorGivenAccidentAndNoLiability;
+        private double[][][] _posteriorGivenNoAccident;
+        private double[][] _posteriorGivenDefendantSignal;
+
 
         /// <summary>
         /// Initializes a new PrecautionNegligenceDisputeGenerator with the given models and settings.
@@ -77,6 +84,20 @@ namespace ACESim // Assuming the ACESim base namespace; adjust if needed
                 _pSignalProbabilitiesGivenDSignalNoEngagement = _signalModel.BuildPlaintiffSignalDistributionGivenDefendantSignal();
                 _pSignalProbabilitiesGivenDSignalAndPrecautionLevelAfterAccident = _signalModel.BuildPlaintiffSignalDistributionGivenDefendantSignalAndPrecautionLevelAfterAccidentTable(_impactModel);
                 _pSignalProbabilitiesGivenDSignalAndPrecautionLevelAfterNoAccident = _signalModel.BuildPlaintiffSignalDistributionGivenDefendantSignalAndPrecautionLevelNoAccidentTable(_impactModel);
+                _courtSignalProbabilitiesGivenLiability =
+    _courtDecisionModel.BuildTablesForCourtSignalDistributionBasedOnPAndDSignalsAndPrecautionLevel_GivenLiability();
+
+                _courtSignalProbabilitiesGivenNoLiability =
+                    _courtDecisionModel.BuildTablesForCourtSignalDistributionBasedOnPAndDSignalsAndPrecautionLevel_GivenNoLiability();
+                _posteriorGivenAccidentAndLiability =
+    _courtDecisionModel.BuildHiddenPosteriorFromCourtSignalDistributionTable(_courtSignalProbabilitiesGivenLiability);
+
+                _posteriorGivenAccidentAndNoLiability =
+                    _courtDecisionModel.BuildHiddenPosteriorFromCourtSignalDistributionTable(_courtSignalProbabilitiesGivenNoLiability);
+
+                _posteriorGivenNoAccident = _courtDecisionModel.BuildHiddenPosteriorFromNoAccidentTable();
+                _posteriorGivenDefendantSignal = _courtDecisionModel.BuildHiddenPosteriorFromDefendantSignalTable();
+
             }
         }
 
@@ -372,60 +393,36 @@ namespace ACESim // Assuming the ACESim base namespace; adjust if needed
 
         private double[] BayesianCalculationOfPrecautionPowerDistribution(PrecautionNegligenceProgress precautionProgress)
         {
-            double[] precautionPowerDistribution;
+            int p = precautionProgress.PLiabilitySignalDiscrete - 1;
+            int d = precautionProgress.DLiabilitySignalDiscrete - 1;
+            int k = precautionProgress.RelativePrecautionLevel;
 
             if (precautionProgress.EngagesInActivity)
             {
                 if (precautionProgress.AccidentOccurs)
                 {
-                    // --- build a posterior that uses the court’s latent signal, not only the binary verdict ---
-                    double[] courtSignalDistribution = null;
-
                     if (precautionProgress.TrialOccurs)
                     {
-                        courtSignalDistribution =
-                            precautionProgress.PWinsAtTrial
-                                ? _courtDecisionModel.GetCourtSignalDistributionGivenSignalsAndLiability(
-                                      precautionProgress.PLiabilitySignalDiscrete - 1,
-                                      precautionProgress.DLiabilitySignalDiscrete - 1,
-                                      precautionProgress.RelativePrecautionLevel)
-                                : _courtDecisionModel.GetCourtSignalDistributionGivenSignalsAndNoLiability(
-                                      precautionProgress.PLiabilitySignalDiscrete - 1,
-                                      precautionProgress.DLiabilitySignalDiscrete - 1,
-                                      precautionProgress.RelativePrecautionLevel);
+                        return precautionProgress.PWinsAtTrial
+                            ? _posteriorGivenAccidentAndLiability[p][d][k]
+                            : _posteriorGivenAccidentAndNoLiability[p][d][k];
                     }
-
-                    precautionPowerDistribution =
-                        courtSignalDistribution == null
-                            // settled before any verdict → integrate over every possible court signal
-                            ? _courtDecisionModel.GetHiddenPosteriorFromPath(
-                                  precautionProgress.PLiabilitySignalDiscrete - 1,
-                                  precautionProgress.DLiabilitySignalDiscrete - 1,
-                                  true,
-                                  precautionProgress.RelativePrecautionLevel,
-                                  null)
-                            // verdict reached → weight by the conditional court-signal distribution
-                            : _courtDecisionModel.GetHiddenPosteriorFromSignalsAndCourtDistribution(
-                                  precautionProgress.PLiabilitySignalDiscrete - 1,
-                                  precautionProgress.DLiabilitySignalDiscrete - 1,
-                                  courtSignalDistribution);
+                    else
+                    {
+                        // No trial (e.g. settlement) → use integrated version across full signal space
+                        return _courtDecisionModel.GetHiddenPosteriorFromPath(p, d, true, k, null);
+                    }
                 }
                 else
                 {
-                    precautionPowerDistribution = _courtDecisionModel.GetHiddenPosteriorFromNoAccidentScenario(
-                        precautionProgress.DLiabilitySignalDiscrete - 1,
-                        precautionProgress.RelativePrecautionLevel);
+                    return _posteriorGivenNoAccident[d][k];
                 }
             }
             else
             {
-                precautionPowerDistribution = _courtDecisionModel.GetHiddenPosteriorFromDefendantSignal(
-                    precautionProgress.DLiabilitySignalDiscrete - 1);
+                return _posteriorGivenDefendantSignal[d];
             }
-
-            return precautionPowerDistribution;
         }
-
 
         public void BayesianCalculations_WorkBackwardsFromSignals(
             LitigGameProgress gameProgress,
@@ -518,6 +515,9 @@ namespace ACESim // Assuming the ACESim base namespace; adjust if needed
                     }
                 }
             }
+
+            if (Math.Abs(result.Sum(x => x.weight) - 1.0) > 1E-12)
+                throw new Exception("DEBUG");
 
             return result;
         }
