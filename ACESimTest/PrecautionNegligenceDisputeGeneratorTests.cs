@@ -63,6 +63,15 @@ namespace ACESimTest
             regularResults.Sum(x => x.probability).Should().BeApproximately(1.0, tolerance);
             collapsedResults.Sum(x => x.probability).Should().BeApproximately(1.0, tolerance);
 
+            // first, confirm equivalence for all signals taken together (for all as a whole, plus some subsets)
+            ConfirmEquivalence(x => true);
+            ConfirmEquivalence(x => x.EngagesInActivity);
+            ConfirmEquivalence(x => x.AccidentOccurs);
+            ConfirmEquivalence(x => x.AccidentWronglyCausallyAttributedToDefendant);
+            ConfirmEquivalence(x => x.TrialOccurs);
+            ConfirmEquivalence(x => x.PWinsAtTrial);
+
+            // second, confirm equivalence for subsets defined by the combination of signals
             var signalValues = GetDistinctValues(regularResults, x => x.PLiabilitySignalDiscrete).OrderBy(x => x).ToList();
             foreach (var pSignalValue in signalValues)
             {
@@ -94,6 +103,9 @@ namespace ACESimTest
                     x => x.TotalExpensesIncurred,
                     x => x.PWelfare,
                     x => x.DWelfare,
+                    x => x.PLiabilitySignalDiscrete,
+                    x => x.DLiabilitySignalDiscrete,
+                    x => x.PLiabilitySignalDiscrete - x.DLiabilitySignalDiscrete,
                     x => x.LiabilityStrengthDiscrete,
                     x => x.RelativePrecautionLevel,
                     x => x.IsTrulyLiable ? 1.0 : 0,
