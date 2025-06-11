@@ -110,6 +110,7 @@ namespace ACESim
         }
 
         private LitigGameProgress MyGP(GameProgress gp) => gp as LitigGameProgress;
+        private PrecautionNegligenceProgress MyPNP(GameProgress gp) => gp as PrecautionNegligenceProgress;
 
         private static string PlaintiffName = "P";
         private static string DefendantName = "D";

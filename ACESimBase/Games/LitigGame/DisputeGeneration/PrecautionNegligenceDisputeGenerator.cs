@@ -14,13 +14,13 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
     /// </summary>
     public sealed class PrecautionNegligenceDisputeGenerator : ILitigGameDisputeGenerator
     {
-        // ----------------------------------------------------------------  public configuration
+        // ----------------------------------------------------------------  public configuration -- OVERRIDDEN BY LITIGGAMEOPTIONSGENERATOR
         public double BenefitToDefendantOfActivity = 3.0;
         public double CostOfAccident = 1.0;
         public double MarginalPrecautionCost = 0.00001;
         public byte PrecautionPowerLevels = 10;
         public byte PrecautionLevels = 5;
-        public double PrecautionPowerFactor = 0.8;
+        public double PrecautionPowerFactor = 0.5;
         public double ProbabilityAccidentNoActivity = 0.0;
         public double ProbabilityAccidentNoPrecaution = 0.0001;
         public double ProbabilityAccidentWrongfulAttribution = 0.000025;

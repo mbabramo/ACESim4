@@ -169,6 +169,8 @@ namespace ACESim
                                     ColumnVariableOptions.AbsOfMean => Math.Abs(StatCollectors[i].Average()),
                                     _ => throw new Exception()
                                 };
+                                if (value != null && Math.Abs(value.Value) < 1E-15)
+                                    value = 0;
                             }
                         }
                         if (c == 0)

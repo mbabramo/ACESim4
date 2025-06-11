@@ -1,3 +1,4 @@
+using ACESimBase.Games.LitigGame.PrecautionModel;
 using ACESimBase.Util.Reporting;
 using ACESimBase.Util.Statistical;
 using System;
@@ -58,12 +59,25 @@ namespace ACESim
                 //new SimpleReportColumnVariable("PWelfare", (GameProgress gp) => MyGP(gp).PWelfare),
                 //new SimpleReportColumnVariable("DWelfare", (GameProgress gp) => MyGP(gp).DWelfare),
                 new SimpleReportColumnFilter("All", (GameProgress gp) => true, SimpleReportColumnFilterOptions.ProportionOfAll),
-                new SimpleReportColumnFilter("NoDispute", (GameProgress gp) => !MyGP(gp).DisputeArises, SimpleReportColumnFilterOptions.ProportionOfAll),
-                new SimpleReportColumnFilter("DisputeArises", (GameProgress gp) => MyGP(gp).DisputeArises, SimpleReportColumnFilterOptions.ProportionOfAll),
+                new SimpleReportColumnFilter("NoDispute", (GameProgress gp) => !MyGP(gp).DisputeArises, SimpleReportColumnFilterOptions.ProportionOfRow),
+                new SimpleReportColumnFilter("DisputeArises", (GameProgress gp) => MyGP(gp).DisputeArises, SimpleReportColumnFilterOptions.ProportionOfRow),
                 new SimpleReportColumnVariable("LitigQuality", (GameProgress gp) => MyGP(gp).LiabilityStrengthUniform),
                 new SimpleReportColumnFilter("PFiles", (GameProgress gp) => MyGP(gp).PFiles, SimpleReportColumnFilterOptions.ProportionOfRow),
                 new SimpleReportColumnFilter("DAnswers", (GameProgress gp) => MyGP(gp).DAnswers, SimpleReportColumnFilterOptions.ProportionOfRow),
             };
+            if (Options.LitigGameDisputeGenerator is PrecautionNegligenceDisputeGenerator precautionNegligenceDisputeGenerator)
+            {
+                colItems.AddRange(new List<SimpleReportColumnItem>()
+                {
+                    new SimpleReportColumnFilter("Activity", (GameProgress gp) => MyPNP(gp).EngagesInActivity, SimpleReportColumnFilterOptions.ProportionOfRow),
+                    new SimpleReportColumnFilter("Accident", (GameProgress gp) => MyPNP(gp).AccidentOccurs, SimpleReportColumnFilterOptions.ProportionOfRow),
+                    new SimpleReportColumnFilter("WrongAttrib", (GameProgress gp) => MyPNP(gp).AccidentWronglyCausallyAttributedToDefendant, SimpleReportColumnFilterOptions.ProportionOfRow),
+                    new SimpleReportColumnVariable("PrecPower", (GameProgress gp) => MyPNP(gp).LiabilityStrengthDiscrete),
+                    new SimpleReportColumnVariable("PrecLevel", (GameProgress gp) => MyPNP(gp).RelativePrecautionLevel),
+                }
+                );
+            }
+
             for (byte b = 1; b <= Options.NumPotentialBargainingRounds; b++)
             {
                 byte bargainingRoundNum = b; // needed for closure -- otherwise b below will always be max value.
@@ -240,6 +254,15 @@ namespace ACESim
                     new SimpleReportFilter("DWins", (GameProgress gp) => MyGP(gp).DWinsAtTrial),
                     new SimpleReportFilter("Abandoned", (GameProgress gp) => MyGP(gp).PAbandons || MyGP(gp).DDefaults),
                 };
+
+                if (Options.LitigGameDisputeGenerator is PrecautionNegligenceDisputeGenerator pngDG)
+                {
+                    for (byte b = 1; b <= pngDG.PrecautionPowerLevels; b++)
+                    {
+                        byte bcopy = b; // avoid closure
+                        rows.Add(new SimpleReportFilter("PrecPower" + b.ToString(), (GameProgress gp) => MyPNP(gp).LiabilityStrengthDiscrete == bcopy));
+                    }
+                }
                 for (int b = 1; b <= Options.NumPotentialBargainingRounds; b++)
                 {
                     int b2 = b; // avoid closure
@@ -272,7 +295,7 @@ namespace ACESim
                 }
                 rows.Add(new SimpleReportFilter("Truly Liable", (GameProgress gp) => MyGP(gp).IsTrulyLiable));
                 rows.Add(new SimpleReportFilter("Truly Not Liable", (GameProgress gp) => !MyGP(gp).IsTrulyLiable));
-                rows.Add(new SimpleReportFilter("AllCount", (GameProgress gp) => true) { UseSum = true });
+                // rows.Add(new SimpleReportFilter("AllCount", (GameProgress gp) => true) { UseSum = true });
                 bool useCounts = false;
                 string countString = useCounts ? " Count" : "";
                 AddRowsForLiabilityStrengthAndSignalDistributions("", true, useCounts, rows, gp => true);

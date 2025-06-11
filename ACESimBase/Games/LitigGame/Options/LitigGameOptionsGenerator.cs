@@ -163,8 +163,8 @@ namespace ACESim
             var disputeGenerator = new PrecautionNegligenceDisputeGenerator();
             disputeGenerator.PrecautionPowerLevels = numPrecautionPowerLevels;
             disputeGenerator.PrecautionLevels = numPrecautionPowerLevels;
-            disputeGenerator.PrecautionPowerFactor = 0.8; // smaller -> precaution power level makes a bigger difference
-            disputeGenerator.PrecautionPowerFactor = 0.8;
+            disputeGenerator.MarginalPrecautionCost = 0.00001;
+            disputeGenerator.PrecautionPowerFactor = 0.5; // smaller -> precaution power level makes a bigger difference
             disputeGenerator.ProbabilityAccidentNoActivity = 0.0;
             disputeGenerator.ProbabilityAccidentNoPrecaution = 0.0001;
             disputeGenerator.ProbabilityAccidentWrongfulAttribution = 0.000025;
@@ -174,8 +174,8 @@ namespace ACESim
             return options;
         }
 
-        static bool UseSimplifiedPrecautionNegligenceGame = true; // DEBUG
-        static bool CollapseDecisionsInSimplifiedPrecautionNegligenceGame = true; // DEBUG
+        static bool UseSimplifiedPrecautionNegligenceGame = false;
+        static bool CollapseDecisionsInSimplifiedPrecautionNegligenceGame = true;
         public static LitigGameOptions PrecautionNegligenceGame() => UseSimplifiedPrecautionNegligenceGame ? PrecautionNegligenceGame(CollapseDecisionsInSimplifiedPrecautionNegligenceGame, false, 2, 0, 2, 2) : PrecautionNegligenceGame(true, true, 5, 1, 10, 5);
     } 
 }
