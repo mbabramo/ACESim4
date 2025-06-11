@@ -45,6 +45,7 @@ namespace ACESimBase.GameSolvingSupport.GameTree
         public string InformationSetContentsString => string.Join(",", InformationSetContents.Select(x => $"{x}").ToArray());
         public List<(byte decisionIndex, byte information)> LabeledInformationSet;
         public string InformationSetWithLabels(GameDefinition gd) => string.Join(";", LabeledInformationSet.Select(x => $"{gd.DecisionsExecutionOrder[x.decisionIndex].Name}: {x.information}"));
+        public string InformationSetWithAlphabeticalLabels(GameDefinition gd) => string.Join(";", LabeledInformationSet.OrderBy(x => gd.DecisionsExecutionOrder[x.decisionIndex].Name).Select(x => $"{gd.DecisionsExecutionOrder[x.decisionIndex].Name}: {x.information}"));
         public byte[] InformationSetContentsSinceParent => ParentInformationSet == null ? InformationSetContents : InformationSetContents.Skip(ParentInformationSet.InformationSetContents.Length).ToArray();
         public string InformationSetContentsSinceParentString => string.Join(",", InformationSetContentsSinceParent);
         public byte DecisionByteCode => Decision.DecisionByteCode;

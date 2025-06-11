@@ -4,6 +4,7 @@ using ACESimBase.Games.LitigGame.PrecautionModel;
 using ACESimBase.GameSolvingSupport.GameTree;
 using ACESimBase.GameSolvingSupport.Settings;
 using ACESimBase.Util.Collections;
+using ACESimBase.Util.Debugging;
 using ACESimBase.Util.Statistical;
 using FluentAssertions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -23,13 +24,18 @@ namespace ACESimTest
         const double tolerance = 1E-12;
 
         [TestMethod]
-        public async Task CollapsingDecisionsGivesEquivalentUtilities()
+        [DataRow(false, false)]
+        [DataRow(false, true)]
+        [DataRow(true, false)]
+        [DataRow(true, true)]
+        public async Task CollapsingDecisionsGivesEquivalentUtilities(bool randomInformationSets, bool largerTree)
         {
-            var regular = LitigGameOptionsGenerator.PrecautionNegligenceGame(false, false, 2, 0, 2, 2);
-            double[] regularUtilities = await GetUtilitiesWithRandomInformationSets(regular, "Regular");
+            byte branching = largerTree ? (byte)3 : (byte)2; // signals, precaution powers, and precaution levels
+            var regular = LitigGameOptionsGenerator.PrecautionNegligenceGame(false, false, branching, 1, branching, branching);
+            double[] regularUtilities = await GetUtilities(regular, "Regular", randomInformationSets);
 
-            var collapsed = LitigGameOptionsGenerator.PrecautionNegligenceGame(true, false, 2, 0, 2, 2);
-            double[] collapsedUtilities = await GetUtilitiesWithRandomInformationSets(collapsed, "Collapse");
+            var collapsed = LitigGameOptionsGenerator.PrecautionNegligenceGame(true, false, branching, 1, branching, branching);
+            double[] collapsedUtilities = await GetUtilities(collapsed, "Collapse", randomInformationSets);
 
             regularUtilities.Should().Equal(
                 collapsedUtilities,
@@ -40,14 +46,18 @@ namespace ACESimTest
         }
 
         [TestMethod]
-        [DataRow(false)]
-        [DataRow(true)]
-        public async Task CollapsingDecisionsAggregatesProperly(bool randomInformationSets)
+        [DataRow(false, false)]
+        [DataRow(false, true)]
+        [DataRow(true, false)]
+        [DataRow(true, true)]
+        public async Task CollapsingDecisionsAggregatesProperly(bool randomInformationSets, bool largerTree)
         {
-            var regular = LitigGameOptionsGenerator.PrecautionNegligenceGame(false, false, 3, 0, 3, 3);
+            byte branching = largerTree ? (byte) 3 : (byte) 2; // signals, precaution powers, and precaution levels
+
+            var regular = LitigGameOptionsGenerator.PrecautionNegligenceGame(false, false, branching, 1, branching, branching);
             List<(double probability, PrecautionNegligenceProgress progress)> regularResults = await GetConsistentProgressForEveryGamePathAsync(regular, randomInformationSets);
 
-            var collapsed = LitigGameOptionsGenerator.PrecautionNegligenceGame(true, false, 3, 0, 3, 3);
+            var collapsed = LitigGameOptionsGenerator.PrecautionNegligenceGame(true, false, branching, 1, branching, branching);
             List<(double probability, PrecautionNegligenceProgress progress)> collapsedResults = await GetConsistentProgressForEveryGamePathAsync(collapsed, randomInformationSets);
 
             regularResults.Sum(x => x.probability).Should().BeApproximately(1.0, tolerance);
@@ -165,13 +175,22 @@ namespace ACESimTest
             return results;
         }
 
-        private static async Task<double[]> GetUtilitiesWithRandomInformationSets(LitigGameOptions regular, string optionsName)
+        private static async Task<double[]> GetUtilities(LitigGameOptions options, string optionsName, bool randomInformationSets)
         {
-            var developer = await GetGeneralizedVanilla(regular, optionsName);
-            Dictionary<string, double[]> informationSetProbabilities = RandomizeInformationSetProbabilities(developer);
+            var developer = await GetGeneralizedVanilla(options, optionsName);
+            if (randomInformationSets)
+                RandomizeInformationSetProbabilities(developer);
             var treeWalker = new CalculateUtilitiesAtEachInformationSet();
             double[] overallUtilities = developer.TreeWalk_Tree(treeWalker);
             return overallUtilities;
+        }
+
+        private static string PrintedGameTree(GeneralizedVanilla developer)
+        {
+            int initialAccumulatedTextLength = TabbedText.AccumulatedText.Length;
+            developer.PrintGameTree(); 
+            string afterPrintingGameTree = TabbedText.AccumulatedText.ToString()[initialAccumulatedTextLength..];
+            return afterPrintingGameTree;
         }
 
         private static Dictionary<string, double[]> RandomizeInformationSetProbabilities(GeneralizedVanilla developer)
@@ -181,12 +200,16 @@ namespace ACESimTest
             foreach (var informationSet in informationSets)
             {
                 var numPossibleActions = informationSet.NumPossibleActions;
-                string id = $"{informationSet.PlayerIndex},{informationSet.DecisionIndex}:{informationSet.InformationSetContentsString}";
+                // the goal here is to make sure that we randomize information sets the same, whether dealing with the regular decision or the collapsed decision. But with the collapsed game, the information set items come in a different order (with p's signal sometimes coming at end, when reconstructing the game). So, we use a hash code of a string that presents the decision labels alphabetically.
+                string id = $"P{informationSet.PlayerIndex},D{informationSet.DecisionByteCode}:{informationSet.InformationSetWithAlphabeticalLabels(developer.GameDefinition)}";
                 int hashCode = (id).GetHashCode();
                 double[] probabilities = CreateNormalizedRandomDistribution(numPossibleActions, hashCode);
                 informationSet.SetCurrentProbabilities(probabilities);
                 informationSetProbabilities[id] = probabilities;
             }
+
+            var map = informationSetProbabilities.Select(x => (x.Key, String.Join(",", x.Value))).OrderBy(x => x).ToList();
+            var combined = String.Join("\n", map);
 
             return informationSetProbabilities;
         }

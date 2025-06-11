@@ -175,7 +175,7 @@ namespace ACESim
         }
 
         static bool UseSimplifiedPrecautionNegligenceGame = true; // DEBUG
-        static bool CollapseDecisionsInSimplifiedPrecautionNegligenceGame = false; // DEBUG
+        static bool CollapseDecisionsInSimplifiedPrecautionNegligenceGame = true; // DEBUG
         public static LitigGameOptions PrecautionNegligenceGame() => UseSimplifiedPrecautionNegligenceGame ? PrecautionNegligenceGame(CollapseDecisionsInSimplifiedPrecautionNegligenceGame, false, 2, 0, 2, 2) : PrecautionNegligenceGame(true, true, 5, 1, 10, 5);
     } 
 }

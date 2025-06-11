@@ -3241,8 +3241,6 @@ namespace ACESim
                     }
                 }
             }
-            var DEBUG = SavedWeightedGameProgresses.Select(x => (x.weight, ((PrecautionNegligenceProgress)x.theProgress).PFinalWealth, ((PrecautionNegligenceProgress)x.theProgress).DFinalWealth)).ToList();
-            var DEBUG2 = DEBUG.Select(x => x.weight).Sum();
         }
 
         public ReportCollection GenerateReportFromSavedWeightedGameProgresses(bool clearSaved)
