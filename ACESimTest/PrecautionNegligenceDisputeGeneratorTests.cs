@@ -3,6 +3,8 @@ using ACESimBase.Games.LitigGame;
 using ACESimBase.Games.LitigGame.PrecautionModel;
 using ACESimBase.GameSolvingSupport.GameTree;
 using ACESimBase.GameSolvingSupport.Settings;
+using ACESimBase.Util.Collections;
+using ACESimBase.Util.Statistical;
 using FluentAssertions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
@@ -11,6 +13,7 @@ using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
+using static Microsoft.CodeAnalysis.CSharp.SyntaxTokenParser;
 
 namespace ACESimTest
 {
@@ -37,29 +40,30 @@ namespace ACESimTest
         }
 
         [TestMethod]
-        public async Task CollapsingDecisionsAggregatesProperly()
+        [DataRow(false)]
+        [DataRow(true)]
+        public async Task CollapsingDecisionsAggregatesProperly(bool randomInformationSets)
         {
-            var regular = LitigGameOptionsGenerator.PrecautionNegligenceGame(false, false, 2, 0, 2, 2);
-            List<(double probability, PrecautionNegligenceProgress progress)> regularResults = await GetConsistentProgressForEveryGamePathAsync(regular);
+            var regular = LitigGameOptionsGenerator.PrecautionNegligenceGame(false, false, 3, 0, 3, 3);
+            List<(double probability, PrecautionNegligenceProgress progress)> regularResults = await GetConsistentProgressForEveryGamePathAsync(regular, randomInformationSets);
 
-            var collapsed = LitigGameOptionsGenerator.PrecautionNegligenceGame(true, false, 2, 0, 2, 2);
-            List<(double probability, PrecautionNegligenceProgress progress)> collapsedResults = await GetConsistentProgressForEveryGamePathAsync(collapsed);
-
-            var DEBUG = collapsedResults.Where(x => x.probability > 0.00001).Select(x => (x.probability, x.progress.AccidentOccurs, x.progress.PLiabilitySignalDiscrete, x.progress.DLiabilitySignalDiscrete)).ToList();
+            var collapsed = LitigGameOptionsGenerator.PrecautionNegligenceGame(true, false, 3, 0, 3, 3);
+            List<(double probability, PrecautionNegligenceProgress progress)> collapsedResults = await GetConsistentProgressForEveryGamePathAsync(collapsed, randomInformationSets);
 
             regularResults.Sum(x => x.probability).Should().BeApproximately(1.0, tolerance);
             collapsedResults.Sum(x => x.probability).Should().BeApproximately(1.0, tolerance);
-
-            var DEBUG2 = regularResults.GroupBy(x => (x.progress.PLiabilitySignalDiscrete, x.progress.DLiabilitySignalDiscrete)).Select(x => (x.Key, x.Sum(y => y.probability))).ToList();
-            var DEBUG3 = collapsedResults.GroupBy(x => (x.progress.PLiabilitySignalDiscrete, x.progress.DLiabilitySignalDiscrete)).Select(x => (x.Key, x.Sum(y => y.probability))).ToList();
 
             var signalValues = GetDistinctValues(regularResults, x => x.PLiabilitySignalDiscrete).OrderBy(x => x).ToList();
             foreach (var pSignalValue in signalValues)
             {
                 foreach (var dSignalValue in signalValues)
                 {
-                    var results = FilterBoth(x => x.PLiabilitySignalDiscrete == pSignalValue && x.DLiabilitySignalDiscrete == dSignalValue);
-                    results.regular.Sum(x => x.probability).Should().BeApproximately(results.collapsed.Sum(x => x.probability), tolerance);
+                    ConfirmEquivalence(x => x.PLiabilitySignalDiscrete == pSignalValue && x.DLiabilitySignalDiscrete == dSignalValue);
+                    ConfirmEquivalence(x => x.PLiabilitySignalDiscrete == pSignalValue && x.DLiabilitySignalDiscrete == dSignalValue && x.EngagesInActivity);
+                    ConfirmEquivalence(x => x.PLiabilitySignalDiscrete == pSignalValue && x.DLiabilitySignalDiscrete == dSignalValue && x.AccidentOccurs);
+                    ConfirmEquivalence(x => x.PLiabilitySignalDiscrete == pSignalValue && x.DLiabilitySignalDiscrete == dSignalValue && x.AccidentWronglyCausallyAttributedToDefendant);
+                    ConfirmEquivalence(x => x.PLiabilitySignalDiscrete == pSignalValue && x.DLiabilitySignalDiscrete == dSignalValue && x.TrialOccurs);
+                    ConfirmEquivalence(x => x.PLiabilitySignalDiscrete == pSignalValue && x.DLiabilitySignalDiscrete == dSignalValue && x.PWinsAtTrial);
                 }
             }
 
@@ -67,6 +71,39 @@ namespace ACESimTest
             HashSet<T> GetDistinctValues<T>(List<(double probability, PrecautionNegligenceProgress progress)> results, Func<PrecautionNegligenceProgress, T> predicate) => new HashSet<T>(results.Select(x => predicate(x.progress)));
             List<(double probability, PrecautionNegligenceProgress progress)> Filter(List<(double probability, PrecautionNegligenceProgress progress)> results, Func<PrecautionNegligenceProgress, bool> filterFunc) => results.Where(x => filterFunc(x.progress)).ToList();
             (List<(double probability, PrecautionNegligenceProgress progress)> regular, List<(double probability, PrecautionNegligenceProgress progress)> collapsed) FilterBoth(Func<PrecautionNegligenceProgress, bool> filterFunc) => (Filter(regularResults, filterFunc), Filter(collapsedResults, filterFunc));
+            void ConfirmEquivalence(Func<PrecautionNegligenceProgress, bool> filterFunc)
+            {
+                ConfirmEquivalentProbabilities(filterFunc);
+                int funcIndex = 0; // to help identify func in event of test failure
+                foreach (Func<PrecautionNegligenceProgress, double?> func in new Func<PrecautionNegligenceProgress, double?>[]
+                {
+                    x => x.HarmCost,
+                    x => x.OpportunityCost,
+                    x => x.BenefitCostRatio,
+                    x => x.DamagesAwarded,
+                    x => x.TotalExpensesIncurred,
+                    x => x.PWelfare,
+                    x => x.DWelfare,
+                })
+                {
+                    ConfirmEquivalentValues(filterFunc, func);
+                    funcIndex++;
+                }
+            }
+            void ConfirmEquivalentProbabilities(Func<PrecautionNegligenceProgress, bool> filterFunc)
+            {
+                var filtered = FilterBoth(filterFunc);
+                double regularSum = filtered.regular.Sum(x => x.probability);
+                double collapsedSum = filtered.collapsed.Sum(x => x.probability);
+                regularSum.Should().BeApproximately(collapsedSum, tolerance);
+            }
+            void ConfirmEquivalentValues(Func<PrecautionNegligenceProgress, bool> filterFunc, Func<PrecautionNegligenceProgress, double?> valueFunc)
+            {
+                var filtered = FilterBoth(filterFunc);
+                double? regularResult = filtered.regular.WeightedAverage(x => valueFunc(x.progress), x => x.probability);
+                double? collapsedResult = filtered.collapsed.WeightedAverage(x => valueFunc(x.progress), x => x.probability);
+                regularResult.Should().BeApproximately(collapsedResult, tolerance);
+            }
 
         }
 
@@ -77,22 +114,16 @@ namespace ACESimTest
         /// and returns each associated with its corresponding probability.
         /// </summary>
         private static async Task<List<(double probability, PrecautionNegligenceProgress progress)>>
-            GetConsistentProgressForEveryGamePathAsync(LitigGameOptions options)
+            GetConsistentProgressForEveryGamePathAsync(LitigGameOptions options, bool randomInformationSets)
         {
             var finalResults = new List<(double probability, PrecautionNegligenceProgress progress)>();
-            var initialResults = await GetProgressForEveryGamePathAsync(options);
+            var initialResults = await GetProgressForEveryGamePathAsync(options, randomInformationSets);
 
-            var DEBUG2 = initialResults.GroupBy(x => (x.progress.PLiabilitySignalDiscrete, x.progress.DLiabilitySignalDiscrete)).Select(x => (x.Key, x.Sum(y => y.probability))).ToList();
             double initialProbabilitySum = initialResults.Sum(x => x.probability);
             var disputeGenerator = (PrecautionNegligenceDisputeGenerator)options.LitigGameDisputeGenerator;
             foreach (var initialResult in initialResults)
             {
                 var consistentProgresses = disputeGenerator.BayesianCalculations_GenerateAllConsistentGameProgresses(initialResult.progress.PLiabilitySignalDiscrete, initialResult.progress.DLiabilitySignalDiscrete, initialResult.progress.CLiabilitySignalDiscrete, initialResult.progress.PDamagesSignalDiscrete, initialResult.progress.DDamagesSignalDiscrete, initialResult.progress.CDamagesSignalDiscrete, initialResult.progress);
-                var DEBUG = consistentProgresses.Any(x => ((PrecautionNegligenceProgress)x.progress).PLiabilitySignalDiscrete == 0);
-                if (DEBUG)
-                {
-                    var DEBUG3 = 0;
-                }
                 finalResults.AddRange(consistentProgresses.Select(x => (x.weight * initialResult.probability, (PrecautionNegligenceProgress) x.progress)));
             }
             double finalProbabilitySum = finalResults.Sum(x => x.probability);
@@ -107,9 +138,11 @@ namespace ACESimTest
         /// resulting LitigGameProgress.
         /// </summary>
         private static async Task<List<(double probability, PrecautionNegligenceProgress progress)>>
-            GetProgressForEveryGamePathAsync(LitigGameOptions options)
+            GetProgressForEveryGamePathAsync(LitigGameOptions options, bool randomInformationSets)
         {
             var developer = await GetGeneralizedVanilla(options, "PathEnumeration");
+            if (randomInformationSets)
+                RandomizeInformationSetProbabilities(developer);
 
             // Walk the tree and collect all paths with their probabilities.
             var pathRecorder = new RecordGamePathsProcessor();
@@ -135,13 +168,13 @@ namespace ACESimTest
         private static async Task<double[]> GetUtilitiesWithRandomInformationSets(LitigGameOptions regular, string optionsName)
         {
             var developer = await GetGeneralizedVanilla(regular, optionsName);
-            Dictionary<string, double[]> informationSetProbabilities = SetInformationSetProbabilities(developer);
+            Dictionary<string, double[]> informationSetProbabilities = RandomizeInformationSetProbabilities(developer);
             var treeWalker = new CalculateUtilitiesAtEachInformationSet();
             double[] overallUtilities = developer.TreeWalk_Tree(treeWalker);
             return overallUtilities;
         }
 
-        private static Dictionary<string, double[]> SetInformationSetProbabilities(GeneralizedVanilla developer)
+        private static Dictionary<string, double[]> RandomizeInformationSetProbabilities(GeneralizedVanilla developer)
         {
             var informationSets = developer.InformationSets;
             Dictionary<string, double[]> informationSetProbabilities = new();

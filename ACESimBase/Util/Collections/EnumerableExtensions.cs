@@ -7,6 +7,36 @@ namespace ACESimBase.Util.Collections
 {
     public static class EnumerableExtensions
     {
+        public static double? WeightedAverage<TSource>(
+            this IEnumerable<TSource> source,
+            Func<TSource, double?> valueSelector,
+            Func<TSource, double> weightSelector)
+        {
+            if (source is null) throw new ArgumentNullException(nameof(source));
+            if (valueSelector is null) throw new ArgumentNullException(nameof(valueSelector));
+            if (weightSelector is null) throw new ArgumentNullException(nameof(weightSelector));
+
+            double weightedSum = 0;
+            double weightTotal = 0;
+
+            foreach (var item in source)
+            {
+                double? value = valueSelector(item);
+                if (!value.HasValue) continue;         // skip nulls
+
+                double weight = weightSelector(item);
+                weightedSum += value.Value * weight;
+                weightTotal += weight;
+            }
+
+            if (weightTotal == 0)
+                return null;
+
+            return weightedSum / weightTotal;
+        }
+
+
+
         public static IEnumerable<T> GetNth<T>(this IEnumerable<T> list, int n)
         {
             if (n <= 0) throw new ArgumentOutOfRangeException(nameof(n), n, null);
