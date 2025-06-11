@@ -520,6 +520,9 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
                 list.AddRange(DuplicateProgressWithAndWithoutWrongfulAttribution(cp, weight));
             }
 
+            foreach (var item in list)
+                ((PrecautionNegligenceProgress)item.Item1).ResetPostGameInfo();
+
             return list;
         }
 

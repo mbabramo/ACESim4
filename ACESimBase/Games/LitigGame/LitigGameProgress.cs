@@ -539,13 +539,10 @@ namespace ACESim
         public void CalculatePostGameInfo()
         {
             LitigGameOptions o = LitigGameDefinition.Options;
-            if (!o.CollapseChanceDecisions)
-            {
-                if (!o.LitigGameDisputeGenerator.PotentialDisputeArises(LitigGameDefinition, DisputeGeneratorActions, this))
-                    IsTrulyLiable = false;
-                else
-                    IsTrulyLiable = o.LitigGameDisputeGenerator.IsTrulyLiable(LitigGameDefinition, DisputeGeneratorActions, this);
-            }
+            if (!o.LitigGameDisputeGenerator.PotentialDisputeArises(LitigGameDefinition, DisputeGeneratorActions, this))
+                IsTrulyLiable = false;
+            else
+                IsTrulyLiable = o.LitigGameDisputeGenerator.IsTrulyLiable(LitigGameDefinition, DisputeGeneratorActions, this);
             LiabilityStrengthUniform = Game.ConvertActionToUniformDistributionDraw(LiabilityStrengthDiscrete, o.NumLiabilityStrengthPoints, false);
             // If one or both parties have perfect information, then they can get their information about litigation quality now, since they don't need a signal. Note that we also specify in the game definition that the litigation quality should become part of their information set.
             if (o.PLiabilityNoiseStdev == 0)
