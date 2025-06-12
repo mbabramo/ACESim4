@@ -14,7 +14,6 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
         public int HiddenCount { get; }
         public int PrecautionLevels { get; }           // Levels defendant may choose: 0 .. (PrecautionLevels‑1)
         public int TotalLevelsForRisk { get; }         // = PrecautionLevels + 1 (includes hypothetical next level)
-        public double PAccidentNoActivity { get; }
         public double PAccidentNoPrecaution { get; }
         public double PAccidentWrongfulAttribution { get; }
         public double MarginalPrecautionCost { get; }
@@ -37,7 +36,6 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
         public PrecautionImpactModel(
             int precautionPowerLevels,
             int precautionLevels,
-            double pAccidentNoActivity,
             double pAccidentNoPrecaution,
             double marginalPrecautionCost,
             double harmCost,
@@ -50,8 +48,7 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
         {
             if (precautionPowerLevels <= 0) throw new ArgumentException(nameof(precautionPowerLevels));
             if (precautionLevels <= 0) throw new ArgumentException(nameof(precautionLevels));
-            if (pAccidentNoActivity < 0 || pAccidentNoActivity > 1) throw new ArgumentException(nameof(pAccidentNoActivity));
-            if (pAccidentNoPrecaution < pAccidentNoActivity || pAccidentNoPrecaution > 1) throw new ArgumentException(nameof(pAccidentNoPrecaution));
+            if (pAccidentNoPrecaution > 1) throw new ArgumentException(nameof(pAccidentNoPrecaution));
             if (marginalPrecautionCost <= 0) throw new ArgumentException(nameof(marginalPrecautionCost));
             if (harmCost <= 0) throw new ArgumentException(nameof(harmCost));
             if (liabilityThreshold <= 0) throw new ArgumentException(nameof(liabilityThreshold));
@@ -61,7 +58,6 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
             HiddenCount = precautionPowerLevels;
             PrecautionLevels = precautionLevels;
             TotalLevelsForRisk = precautionLevels + 1; // include hypothetical next level
-            PAccidentNoActivity = pAccidentNoActivity;
             PAccidentNoPrecaution = pAccidentNoPrecaution;
             MarginalPrecautionCost = marginalPrecautionCost;
             HarmCost = harmCost;

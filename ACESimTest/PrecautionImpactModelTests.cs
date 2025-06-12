@@ -26,12 +26,11 @@ namespace ACESimTest
             impact = new PrecautionImpactModel(
                 precautionPowerLevels: 2,
                 precautionLevels: 2,
-                pAccidentNoActivity: 0.01,
                 pAccidentNoPrecaution: 0.25,
                 marginalPrecautionCost: 0.04,
                 harmCost: 1.0,
-                precautionPowerFactorLeastEffective: 0.8, // hidden 0
-                precautionPowerFactorMostEffective: 0.6, // hidden 1
+                precautionPowerFactorLeastEffective: 0.8,
+                precautionPowerFactorMostEffective: 0.6, // hidden 0
                 liabilityThreshold: 1.0);
         }
 
@@ -136,18 +135,6 @@ namespace ACESimTest
             actual.Should().BeApproximately(expected, 1e-12);
         }
 
-        // ---------------------------------------------------------------------
-        // Baseline check
-        // ---------------------------------------------------------------------
-        [TestMethod]
-        public void AccidentRiskAboveBaseline()
-        {
-            double baseline = impact.PAccidentNoActivity;
-            for (int h = 0; h < 2; h++)
-                for (int k = 0; k <= 2; k++)
-                    impact.GetAccidentProbability(h, k)
-                          .Should().BeGreaterOrEqualTo(baseline - 1e-9);
-        }
 
         // ---------------------------------------------------------------------
         // Error handling
@@ -158,7 +145,6 @@ namespace ACESimTest
             Action act = () => new PrecautionImpactModel(
                 precautionPowerLevels: 2,
                 precautionLevels: 0,
-                pAccidentNoActivity: 0.01,
                 pAccidentNoPrecaution: 0.25,
                 marginalPrecautionCost: 0.04,
                 harmCost: 1.0,

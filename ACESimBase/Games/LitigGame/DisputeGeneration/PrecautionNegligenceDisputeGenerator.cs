@@ -21,7 +21,6 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
         public byte PrecautionPowerLevels = 10;
         public byte PrecautionLevels = 5;
         public double PrecautionPowerFactor = 0.5;
-        public double ProbabilityAccidentNoActivity = 0.0;
         public double ProbabilityAccidentNoPrecaution = 0.0001;
         public double ProbabilityAccidentWrongfulAttribution = 0.000025;
         public double LiabilityThreshold = 1.0;
@@ -72,7 +71,6 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
             impact = new PrecautionImpactModel(
                 precautionPowerLevels: PrecautionPowerLevels,
                 precautionLevels: PrecautionLevels,
-                pAccidentNoActivity: ProbabilityAccidentNoActivity,
                 pAccidentNoPrecaution: ProbabilityAccidentNoPrecaution,
                 marginalPrecautionCost: MarginalPrecautionCost,
                 harmCost: CostOfAccident,

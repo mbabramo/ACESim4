@@ -46,7 +46,6 @@ namespace ACESimTest
             impact = new PrecautionImpactModel(
                 precautionPowerLevels: HiddenStates,
                 precautionLevels: PrecautionLevels,
-                pAccidentNoActivity: PAccidentNoActivity,
                 pAccidentNoPrecaution: PAccidentNoPrecaution,
                 marginalPrecautionCost: MarginalPrecautionCost,
                 harmCost: HarmCost,
@@ -127,7 +126,6 @@ namespace ACESimTest
             var impact2 = new PrecautionImpactModel(
                 precautionPowerLevels: HiddenStates,
                 precautionLevels: PrecautionLevels,
-                pAccidentNoActivity: PAccidentNoActivity,
                 pAccidentNoPrecaution: PAccidentNoPrecaution,
                 marginalPrecautionCost: MarginalPrecautionCost,
                 harmCost: HarmCost,
@@ -404,7 +402,6 @@ namespace ACESimTest
             var impactModified = new PrecautionImpactModel(
                 precautionPowerLevels: HiddenStates,
                 precautionLevels: PrecautionLevels,
-                pAccidentNoActivity: PAccidentNoActivity,
                 pAccidentNoPrecaution: PAccidentNoPrecaution,
                 marginalPrecautionCost: 0.01,
                 harmCost: HarmCost,

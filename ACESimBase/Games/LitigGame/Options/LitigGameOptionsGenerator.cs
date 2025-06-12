@@ -165,7 +165,6 @@ namespace ACESim
             disputeGenerator.PrecautionLevels = numPrecautionPowerLevels;
             disputeGenerator.MarginalPrecautionCost = 0.00001;
             disputeGenerator.PrecautionPowerFactor = 0.5; // smaller -> precaution power level makes a bigger difference
-            disputeGenerator.ProbabilityAccidentNoActivity = 0.0;
             disputeGenerator.ProbabilityAccidentNoPrecaution = 0.0001;
             disputeGenerator.ProbabilityAccidentWrongfulAttribution = 0.000025;
 
