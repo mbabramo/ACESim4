@@ -20,15 +20,16 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
         public double MarginalPrecautionCost = 0.00001;
 
         public byte PrecautionPowerLevels = 10;
-        public byte PrecautionLevels = 5;
+        public byte RelativePrecautionLevels = 5;
 
         // calibration parameters for the P(t,p) curve
-        public double PMinLow = 0.00008;
-        public double PMinHigh = 0.00002;
-        public double AlphaLow = 2;
-        public double AlphaHigh = 1.5;
+
 
         public double ProbabilityAccidentNoPrecaution = 0.0001;  // pMax
+        public double ProbabilityAccidentMaxPrecaution_LowPower = 0.00008;
+        public double ProbabilityAccidentMaxPrecaution_HighPower = 0.00002;
+        public double AlphaLowPower = 2;
+        public double AlphaHighPower = 1.5;
         public double ProbabilityAccidentWrongfulAttribution = 0.000025;
         public double LiabilityThreshold = 1.0;
         int numSamplesToMakeForCourtLiablityDetermination = 1000;
@@ -63,7 +64,7 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
             new PrecautionNegligenceProgress(fullHistoryRequired);
 
         public string OptionsString =>
-            $"{nameof(CostOfAccident)}={CostOfAccident}  {nameof(MarginalPrecautionCost)}={MarginalPrecautionCost}";
+            $"{nameof(CostOfAccident)} {CostOfAccident}  {nameof(MarginalPrecautionCost)} {MarginalPrecautionCost} {nameof(PrecautionPowerLevels)} {PrecautionPowerLevels} {nameof(RelativePrecautionLevels)} {RelativePrecautionLevels} {nameof(ProbabilityAccidentNoPrecaution)} {ProbabilityAccidentNoPrecaution} {nameof(ProbabilityAccidentMaxPrecaution_LowPower)} {ProbabilityAccidentMaxPrecaution_LowPower} {nameof(ProbabilityAccidentMaxPrecaution_HighPower)} {ProbabilityAccidentMaxPrecaution_HighPower} {nameof(AlphaLowPower)} {AlphaLowPower} {nameof(AlphaHighPower)} {AlphaHighPower} ";
 
         public string GetGeneratorName() => "PrecautionNegligence";
         public bool SupportsSymmetry() => false;
@@ -78,12 +79,12 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
             // ----------------- Model chain -----------------
             impact = new PrecautionImpactModel(
                 precautionPowerLevels: PrecautionPowerLevels,
-                precautionLevels: PrecautionLevels,
+                precautionLevels: RelativePrecautionLevels,
                 pAccidentNoPrecaution: ProbabilityAccidentNoPrecaution,   // pMax
-                pMinLow: PMinLow,
-                pMinHigh: PMinHigh,
-                alphaLow: AlphaLow,
-                alphaHigh: AlphaHigh,
+                pMinLow: ProbabilityAccidentMaxPrecaution_LowPower,
+                pMinHigh: ProbabilityAccidentMaxPrecaution_HighPower,
+                alphaLow: AlphaLowPower,
+                alphaHigh: AlphaHighPower,
                 marginalPrecautionCost: MarginalPrecautionCost,
                 harmCost: CostOfAccident,
                 liabilityThreshold: LiabilityThreshold,
@@ -211,7 +212,7 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
                              (byte)LitigGamePlayers.PLiabilitySignalChance,
                              (byte)LitigGamePlayers.AccidentChance, (byte)LitigGamePlayers.CourtLiabilityChance,
                              (byte)LitigGamePlayers.Resolution },
-                PrecautionLevels,
+                RelativePrecautionLevels,
                 (byte)LitigGameDecisions.TakePrecaution)
             {
                 StoreActionInGameCacheItem = g.GameHistoryCacheIndex_PrecautionLevel,
