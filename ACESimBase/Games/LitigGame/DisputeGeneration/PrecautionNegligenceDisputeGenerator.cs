@@ -18,13 +18,21 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
         public double BenefitToDefendantOfActivity = 3.0;
         public double CostOfAccident = 1.0;
         public double MarginalPrecautionCost = 0.00001;
+
         public byte PrecautionPowerLevels = 10;
         public byte PrecautionLevels = 5;
-        public double PrecautionPowerFactor = 0.5;
-        public double ProbabilityAccidentNoPrecaution = 0.0001;
+
+        // calibration parameters for the P(t,p) curve
+        public double PMinLow = 0.00005;
+        public double PMinHigh = 0.000005;
+        public double AlphaLow = 0.8;
+        public double AlphaHigh = 2.0;
+
+        public double ProbabilityAccidentNoPrecaution = 0.0001;  // pMax
         public double ProbabilityAccidentWrongfulAttribution = 0.000025;
         public double LiabilityThreshold = 1.0;
-        int numSamplesToMakeForCourtLiablityDetermination = 1000; // Note: This is different from NumCourtLiabilitySignals, which indicates the number of different branches that the court will receive and will thus generally be set to 2, for liability and no liability. Instead, this affects the fineness of the calculation of the probability of liability.
+        int numSamplesToMakeForCourtLiablityDetermination = 1000;
+
 
         // ----------------------------------------------------------------  linked models
         PrecautionImpactModel impact;
@@ -67,16 +75,17 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
             LitigGameDefinition = gameDefinition;
             var opt = gameDefinition.Options;
 
-            // Impact → Signal → Risk → Court
+            // ----------------- Model chain -----------------
             impact = new PrecautionImpactModel(
                 precautionPowerLevels: PrecautionPowerLevels,
                 precautionLevels: PrecautionLevels,
-                pAccidentNoPrecaution: ProbabilityAccidentNoPrecaution,
+                pAccidentNoPrecaution: ProbabilityAccidentNoPrecaution,   // pMax
+                pMinLow: PMinLow,
+                pMinHigh: PMinHigh,
+                alphaLow: AlphaLow,
+                alphaHigh: AlphaHigh,
                 marginalPrecautionCost: MarginalPrecautionCost,
                 harmCost: CostOfAccident,
-                precautionPowerFactors: null,
-                precautionPowerFactorLeastEffective: PrecautionPowerFactor,
-                precautionPowerFactorMostEffective: PrecautionPowerFactor,
                 liabilityThreshold: LiabilityThreshold,
                 pAccidentWrongfulAttribution: ProbabilityAccidentWrongfulAttribution);
 
@@ -93,19 +102,18 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
             risk = new PrecautionRiskModel(impact, signal);
             court = new PrecautionCourtDecisionModel(impact, signal);
 
-            // quick vectors
+            // ----------------- Cached light tables -----------------
             dSignalProb = signal.GetUnconditionalSignalDistribution(PrecautionSignalModel.DefendantIndex);
             pSignalGivenHidden = Enumerable.Range(0, impact.HiddenCount)
                                            .Select(h => signal.GetPlaintiffSignalDistributionGivenHidden(h))
                                            .ToArray();
-            dSignalGivenHidden =Enumerable.Range(0, impact.HiddenCount)
-                                          .Select(h => signal.GetDefendantSignalDistributionGivenHidden(h))
-                                          .ToArray();
+            dSignalGivenHidden = Enumerable.Range(0, impact.HiddenCount)
+                                           .Select(h => signal.GetDefendantSignalDistributionGivenHidden(h))
+                                           .ToArray();
             pSignalGivenD_NoAct = Enumerable.Range(0, signal.NumDSignals)
                                             .Select(d => signal.GetPlaintiffSignalDistributionGivenDefendantSignal(d))
                                             .ToArray();
 
-            // plaintiff-signal tables conditional on D-signal & accident
             int D = signal.NumDSignals;
             int K = impact.PrecautionLevels;
             pSignalGivenD_Acc = new double[D][][];
@@ -121,7 +129,6 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
                 }
             }
 
-            // court-signal & hidden-posterior tables
             courtDistLiable = court.CourtSignalDistGivenLiabilityTable;
             courtDistNoLiable = court.CourtSignalDistGivenNoLiabilityTable;
             postAccLiable = court.HiddenPosteriorAccidentLiabilityTable;
@@ -129,6 +136,7 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
             postNoAccident = court.HiddenPosteriorNoAccidentTable;
             postDefSignal = court.HiddenPosteriorDefendantSignalTable;
         }
+
 
         // ----------------------------------------------------------------  GAME-TREE CONSTRUCTION
         public List<Decision> GenerateDisputeDecisions(LitigGameDefinition g)

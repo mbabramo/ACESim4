@@ -78,19 +78,22 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
         // ==================================================================  public deterministic metrics
         public double GetExpectedBenefit(int courtSignal, int precautionLevel)
         {
-            Validate(courtSignal, precautionLevel);
+            ValidateCourtSignal(courtSignal);
+            ValidatePrecautionLevel(courtSignal, precautionLevel);
             return expBenefit[courtSignal][precautionLevel];
         }
 
         public double GetBenefitCostRatio(int courtSignal, int precautionLevel)
         {
-            Validate(courtSignal, precautionLevel);
+            ValidateCourtSignal(courtSignal);
+            ValidatePrecautionLevel(courtSignal, precautionLevel);
             return benefitCostRatio[courtSignal][precautionLevel];
         }
 
         public bool IsLiable(int courtSignal, int precautionLevel)
         {
-            Validate(courtSignal, precautionLevel);
+            ValidateCourtSignal(courtSignal);
+            ValidatePrecautionLevel(courtSignal, precautionLevel);
             return liable[courtSignal][precautionLevel];
         }
 
@@ -185,33 +188,39 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
         // ==================================================================  internal core builders
         void BuildBenefitAndLiabilityTables()
         {
-            for (int cSig = 0; cSig < C; cSig++)
+            for (int courtSignal = 0; courtSignal < C; courtSignal++)
             {
-                double[] postH = signal.GetHiddenPosteriorFromCourtSignal(cSig);
-                expRiskReduction[cSig] = new double[K];
-                expBenefit[cSig] = new double[K];
-                benefitCostRatio[cSig] = new double[K];
-                liable[cSig] = new bool[K];
+                // Posterior P(hidden | court-signal) – cached in the signal model.
+                double[] hiddenPosterior = signal.GetHiddenPosteriorFromCourtSignal(courtSignal);
 
-                for (int k = 0; k < K; k++)
+                expRiskReduction[courtSignal] = new double[K];
+                expBenefit[courtSignal] = new double[K];
+                benefitCostRatio[courtSignal] = new double[K];
+                liable[courtSignal] = new bool[K];
+
+                for (int precautionLevel = 0; precautionLevel < K; precautionLevel++)
                 {
+                    // ---- Expected risk reduction for this (courtSignal, k) pair ----
                     double delta = 0.0;
                     for (int h = 0; h < H; h++)
-                        delta += impact.GetRiskReduction(h, k) * postH[h];
+                        delta += impact.GetRiskReduction(h, precautionLevel) * hiddenPosterior[h];
+                    expRiskReduction[courtSignal][precautionLevel] = delta;
 
-                    expRiskReduction[cSig][k] = delta;
+                    // ---- Monetise that reduction & compute the cost/benefit ratio ----
                     double benefit = delta * impact.HarmCost;
-                    expBenefit[cSig][k] = benefit;
+                    expBenefit[courtSignal][precautionLevel] = benefit;
 
-                    double ratio = impact.MarginalPrecautionCost == 0
-                                   ? double.PositiveInfinity
-                                   : benefit / impact.MarginalPrecautionCost;
+                    double ratio = impact.MarginalPrecautionCost == 0.0
+                        ? double.PositiveInfinity
+                        : benefit / impact.MarginalPrecautionCost;
+                    benefitCostRatio[courtSignal][precautionLevel] = ratio;
 
-                    benefitCostRatio[cSig][k] = ratio;
-                    liable[cSig][k] = ratio >= impact.LiabilityThreshold;
+                    // ---- Court’s liability finding (strict inequality avoids ties) ----
+                    liable[courtSignal][precautionLevel] = ratio > impact.LiabilityThreshold;
                 }
             }
         }
+
 
         double[][] BuildLiableProbTable()
         {
@@ -232,39 +241,57 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
         double[][][][] BuildCourtSignalConditionalTables(bool liableWanted)
         {
             var table = new double[P][][][];
+
+            // unconditional P(courtSignal | plaintiffSignal, defendantSignal)
             for (int p = 0; p < P; p++)
             {
                 table[p] = new double[D][][];
+
                 for (int d = 0; d < D; d++)
                 {
                     table[p][d] = new double[K][];
-                    double[] baseDist = signal.GetCourtSignalDistributionGivenPlaintiffAndDefendantSignals(p, d);
+                    double[] baseDistribution =
+                        signal.GetCourtSignalDistributionGivenPlaintiffAndDefendantSignals(p, d); // sums to 1
 
                     for (int k = 0; k < K; k++)
                     {
                         double[] slice = new double[C];
-                        double tot = 0.0;
+                        double mass = 0.0;
+
+                        // keep only those court signals whose verdict matches the flag
                         for (int cSig = 0; cSig < C; cSig++)
                         {
-                            bool cond = liable[cSig][k];
-                            if (cond == liableWanted)
+                            if (liable[cSig][k] == liableWanted)
                             {
-                                slice[cSig] = baseDist[cSig];
-                                tot += slice[cSig];
+                                slice[cSig] = baseDistribution[cSig];
+                                mass += slice[cSig];
                             }
                         }
-                        if (tot == 0.0) table[p][d][k] = slice;          // impossible path
+
+                        // if none matched, fall back to a uniform distribution
+                        if (mass == 0.0)
+                        {
+                            double uniform = 1.0 / C;
+                            for (int cSig = 0; cSig < C; cSig++)
+                                slice[cSig] = uniform;
+                        }
                         else
                         {
+                            // renormalise the retained probabilities
                             for (int cSig = 0; cSig < C; cSig++)
-                                slice[cSig] /= tot;
-                            table[p][d][k] = slice;
+                                slice[cSig] /= mass;
                         }
+
+                        table[p][d][k] = slice;
                     }
                 }
             }
+
             return table;
         }
+
+
+
 
         double[][][][] BuildHiddenPosteriorFromCourtDistTable(double[][][][] courtDistTable)
         {
@@ -368,9 +395,15 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
         }
 
         // ==================================================================  validation helpers
-        void Validate(int cSig, int k)
+        void ValidateCourtSignal(int courtSignal)
         {
-            if ((uint)cSig >= C) throw new ArgumentOutOfRangeException(nameof(cSig));
+            if (courtSignal < 0 || courtSignal >= C)
+                throw new ArgumentOutOfRangeException(nameof(courtSignal));
+        }
+
+
+        void ValidatePrecautionLevel(int cSig, int k)
+        {
             if ((uint)k >= K) throw new ArgumentOutOfRangeException(nameof(k));
         }
         void ValidatePdK(int p, int d, int k)

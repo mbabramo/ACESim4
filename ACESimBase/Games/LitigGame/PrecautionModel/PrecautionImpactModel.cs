@@ -21,14 +21,20 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
         public double LiabilityThreshold { get; }
 
         // -------------------- Internal data ---------------------------
-        readonly double[] precautionPowerFactors;               // length HiddenCount, each in (0,1]
-        readonly double[][] accidentProb;                       // [hidden][level] for level 0..TotalLevelsForRisk‑1
-        readonly double[][] riskReduction;                      // [hidden][level] = accidentProb[h][k] - accidentProb[h][k+1]
-        readonly bool[][] trueLiability;                        // ground‑truth negligence flags
-        readonly double[] accidentProbMarginal;                 // [level] marginal over hidden
-        readonly double[] trueLiabilityProb;                    // [level] probability of negligence over hidden
+        // -------------------- Internal data ---------------------------
+        readonly double _pMinLow;
+        readonly double _pMinHigh;
+        readonly double _alphaLow;
+        readonly double _alphaHigh;
 
-        readonly Func<int, int, double> accidentFuncOverride;   // optional custom probability function
+        readonly double[][] accidentProb;
+        readonly double[][] riskReduction;
+        readonly bool[][] trueLiability;
+        readonly double[] accidentProbMarginal;
+        readonly double[] trueLiabilityProb;
+
+        readonly Func<int, int, double> accidentFuncOverride;
+
 
         //-----------------------------------------------------------------------
         // Constructor
@@ -37,18 +43,21 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
             int precautionPowerLevels,
             int precautionLevels,
             double pAccidentNoPrecaution,
+            double pMinLow,
+            double pMinHigh,
+            double alphaLow,
+            double alphaHigh,
             double marginalPrecautionCost,
             double harmCost,
-            double[] precautionPowerFactors = null,
-            double precautionPowerFactorLeastEffective = 0.9,
-            double precautionPowerFactorMostEffective = 0.5,
             double liabilityThreshold = 1.0,
             double pAccidentWrongfulAttribution = 0.0,
             Func<int, int, double> accidentProbabilityOverride = null)
         {
             if (precautionPowerLevels <= 0) throw new ArgumentException(nameof(precautionPowerLevels));
             if (precautionLevels <= 0) throw new ArgumentException(nameof(precautionLevels));
-            if (pAccidentNoPrecaution > 1) throw new ArgumentException(nameof(pAccidentNoPrecaution));
+            if (pAccidentNoPrecaution <= 0 || pAccidentNoPrecaution > 1) throw new ArgumentException(nameof(pAccidentNoPrecaution));
+            if (pMinLow < 0 || pMinHigh < 0 || pMinHigh > pMinLow) throw new ArgumentException("pMinHigh must be ≤ pMinLow and both ≥ 0.");
+            if (alphaLow <= 0 || alphaHigh <= 0) throw new ArgumentException("α values must be positive.");
             if (marginalPrecautionCost <= 0) throw new ArgumentException(nameof(marginalPrecautionCost));
             if (harmCost <= 0) throw new ArgumentException(nameof(harmCost));
             if (liabilityThreshold <= 0) throw new ArgumentException(nameof(liabilityThreshold));
@@ -57,33 +66,20 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
 
             HiddenCount = precautionPowerLevels;
             PrecautionLevels = precautionLevels;
-            TotalLevelsForRisk = precautionLevels + 1; // include hypothetical next level
-            PAccidentNoPrecaution = pAccidentNoPrecaution;
+            TotalLevelsForRisk = precautionLevels + 1;
+
+            PAccidentNoPrecaution = pAccidentNoPrecaution;      // pMax
+            _pMinLow = pMinLow;
+            _pMinHigh = pMinHigh;
+            _alphaLow = alphaLow;
+            _alphaHigh = alphaHigh;
             MarginalPrecautionCost = marginalPrecautionCost;
             HarmCost = harmCost;
             LiabilityThreshold = liabilityThreshold;
             PAccidentWrongfulAttribution = pAccidentWrongfulAttribution;
 
-            // Set up precaution‑power factors (effectiveness multipliers per hidden state)
-            if (precautionPowerFactors != null)
-            {
-                if (precautionPowerFactors.Length != precautionPowerLevels)
-                    throw new ArgumentException("precautionPowerFactors length must equal hiddenCount");
-                if (precautionPowerFactors.Any(f => f <= 0 || f > 1))
-                    throw new ArgumentException("All precaution power factors must be in (0,1]");
-                this.precautionPowerFactors = precautionPowerFactors.ToArray();
-            }
-            else
-            {
-                this.precautionPowerFactors = new double[precautionPowerLevels];
-                double start = precautionPowerFactorLeastEffective, end = precautionPowerFactorMostEffective;
-                for (int h = 0; h < precautionPowerLevels; h++)
-                    this.precautionPowerFactors[h] = start - (start - end) * h / Math.Max(1, precautionPowerLevels - 1);
-            }
-
             accidentFuncOverride = accidentProbabilityOverride;
 
-            // ---- Build core tables (each build followed immediately by its accessor) ----
             accidentProb = BuildAccidentProbTable();
             riskReduction = BuildRiskReductionTable();
             trueLiability = BuildTrueLiabilityTable();
@@ -91,7 +87,20 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
             trueLiabilityProb = BuildTrueLiabilityProbTable();
         }
 
+
         // ------------- Public API ---------------------------------------------------
+
+        double PMin(double p) => _pMinLow + (_pMinHigh - _pMinLow) * p;
+        double Alpha(double p) => _alphaLow + (_alphaHigh - _alphaLow) * p;
+
+        double CausedAccidentProbability(int h, int k)
+        {
+            double p = (h + 1.0) / (HiddenCount + 1.0);
+            double t = k / (double)PrecautionLevels;
+            double pMin = PMin(p);
+            double alpha = Alpha(p);
+            return pMin + (PAccidentNoPrecaution - pMin) * Math.Pow(1.0 - t, alpha);
+        }
 
         public double GetAccidentProbability(int hiddenIndex, int precautionLevel)
         {
@@ -128,42 +137,41 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
             ValidatePrecautionLevel(precautionLevel, allowHypothetical: false);
 
             double uniformPrior = 1.0 / HiddenCount;
-            double sumWrongful = 0.0, sumTotal = 0.0;
+            double sumWrongful = 0.0;
+            double sumTotal = 0.0;
 
             for (int h = 0; h < HiddenCount; h++)
             {
                 double pCaused = accidentFuncOverride != null
                     ? accidentFuncOverride(h, precautionLevel)
-                    : PAccidentNoPrecaution * Math.Pow(precautionPowerFactors[h], precautionLevel);
-
-                pCaused = Math.Max(0, Math.Min(1, pCaused));
+                    : CausedAccidentProbability(h, precautionLevel);
 
                 double pWrongful = (1.0 - pCaused) * PAccidentWrongfulAttribution;
-                double pTotal = accidentProb[h][precautionLevel];
+                double pTotal = pCaused + pWrongful;
 
                 sumWrongful += uniformPrior * pWrongful;
                 sumTotal += uniformPrior * pTotal;
             }
 
-            return sumTotal > 0 ? sumWrongful / sumTotal : 0.0;
+            return sumTotal == 0.0 ? 0.0 : sumWrongful / sumTotal;
         }
+
 
         public double GetWrongfulAttributionProbabilityGivenHiddenState(int hiddenState, int precautionLevel)
         {
             ValidatePrecautionLevel(precautionLevel, allowHypothetical: false);
-            if (hiddenState < 0 || hiddenState >= HiddenCount)
-                throw new ArgumentOutOfRangeException(nameof(hiddenState));
+            if (hiddenState < 0 || hiddenState >= HiddenCount) throw new ArgumentOutOfRangeException(nameof(hiddenState));
 
             double pCaused = accidentFuncOverride != null
                 ? accidentFuncOverride(hiddenState, precautionLevel)
-                : PAccidentNoPrecaution * Math.Pow(precautionPowerFactors[hiddenState], precautionLevel);
+                : CausedAccidentProbability(hiddenState, precautionLevel);
 
-            pCaused = Math.Clamp(pCaused, 0.0, 1.0);
             double pWrongful = (1.0 - pCaused) * PAccidentWrongfulAttribution;
             double pAccident = pCaused + pWrongful;
 
             return pAccident == 0.0 ? 0.0 : pWrongful / pAccident;
         }
+
 
         // ---------------------- Internal construction -----------------------------
 
@@ -177,15 +185,15 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
                 {
                     double pCaused = accidentFuncOverride != null
                         ? accidentFuncOverride(h, k)
-                        : PAccidentNoPrecaution * Math.Pow(precautionPowerFactors[h], k);
+                        : CausedAccidentProbability(h, k);
 
-                    pCaused = Math.Max(0, Math.Min(1, pCaused));
                     double pWrongful = (1.0 - pCaused) * PAccidentWrongfulAttribution;
-                    arr[h][k] = Math.Max(0, Math.Min(1, pCaused + pWrongful));
+                    arr[h][k] = Math.Clamp(pCaused + pWrongful, 0.0, 1.0);
                 }
             }
             return arr;
         }
+
 
         double[][] BuildRiskReductionTable()
         {
@@ -195,21 +203,21 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
                 arr[h] = new double[PrecautionLevels];
                 for (int k = 0; k < PrecautionLevels; k++)
                 {
-                    double pCaused_k = accidentFuncOverride != null
+                    double p0 = accidentFuncOverride != null
                         ? accidentFuncOverride(h, k)
-                        : PAccidentNoPrecaution * Math.Pow(precautionPowerFactors[h], k);
+                        : CausedAccidentProbability(h, k);
 
-                    double pCaused_k1 = accidentFuncOverride != null
+                    double p1 = accidentFuncOverride != null
                         ? accidentFuncOverride(h, k + 1)
-                        : PAccidentNoPrecaution * Math.Pow(precautionPowerFactors[h], k + 1);
+                        : CausedAccidentProbability(h, k + 1);
 
-                    double delta = pCaused_k - pCaused_k1;
-                    if (delta < 0) delta = 0;
-                    arr[h][k] = delta;
+                    double delta = p0 - p1;
+                    arr[h][k] = delta < 0 ? 0 : delta;
                 }
             }
             return arr;
         }
+
 
         bool[][] BuildTrueLiabilityTable()
         {

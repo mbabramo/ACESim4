@@ -160,6 +160,7 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
         {
             var table = new double[P][][];
             double uniformPrior = 1.0 / H;
+
             for (int p = 0; p < P; p++)
             {
                 table[p] = new double[D][];
@@ -171,19 +172,19 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
                         double numer = 0.0, denom = 0.0;
                         for (int h = 0; h < H; h++)
                         {
-                            double pP = signal.GetPlaintiffSignalProbability(h, p);
-                            double pD = signal.GetDefendantSignalProbability(h, d);
-                            double joint = uniformPrior * pP * pD;
+                            double weight =
+                                uniformPrior *
+                                signal.GetPlaintiffSignalProbability(h, p) *
+                                signal.GetDefendantSignalProbability(h, d);
 
-                            double pCaused = impact.GetAccidentProbability(h, k) -
-                                             impact.PAccidentWrongfulAttribution * (1.0 - impact.GetAccidentProbability(h, k)); // reverse engineering pCaused from total; safe because formula matches BuildAccidentProb
+                            double pAccident = impact.GetAccidentProbability(h, k);
+                            if (pAccident == 0.0) continue;
 
-                            pCaused = Math.Clamp(pCaused, 0.0, 1.0);
-                            double pWrongful = (1.0 - pCaused) * impact.PAccidentWrongfulAttribution;
-                            double pAccident = pCaused + pWrongful;
+                            double wrongfulRatio =
+                                impact.GetWrongfulAttributionProbabilityGivenHiddenState(h, k);
 
-                            numer += joint * pWrongful;
-                            denom += joint * pAccident;
+                            numer += weight * pAccident * wrongfulRatio;  // joint wrongful
+                            denom += weight * pAccident;                  // joint accident
                         }
                         table[p][d][k] = denom == 0.0 ? 0.0 : numer / denom;
                     }
@@ -191,6 +192,7 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
             }
             return table;
         }
+
 
         double[][][] BuildPlaintiffSignalGivenDefendantAfterAccidentTable()
         {
