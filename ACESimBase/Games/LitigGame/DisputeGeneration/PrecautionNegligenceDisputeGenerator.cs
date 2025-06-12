@@ -23,10 +23,10 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
         public byte PrecautionLevels = 5;
 
         // calibration parameters for the P(t,p) curve
-        public double PMinLow = 0.00005;
-        public double PMinHigh = 0.000005;
-        public double AlphaLow = 0.8;
-        public double AlphaHigh = 2.0;
+        public double PMinLow = 0.00008;
+        public double PMinHigh = 0.00002;
+        public double AlphaLow = 2;
+        public double AlphaHigh = 1.5;
 
         public double ProbabilityAccidentNoPrecaution = 0.0001;  // pMax
         public double ProbabilityAccidentWrongfulAttribution = 0.000025;
@@ -371,8 +371,24 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
         public double[] BayesianCalculations_GetPLiabilitySignalProbabilities(byte? dSignal, byte level)
             => pSignalGivenD_Acc[dSignal!.Value - 1][level];
 
-        public double GetAccidentProbability(byte? power, byte dSignal, byte level)
-            => risk.GetAccidentProbabilityGivenDefendantSignal(dSignal - 1, level);
+        // choose the correct accident probability depending on whether the hidden
+        // precaution‑power has already been realised (power > 0) or is still latent
+        double GetAccidentProbability(byte? precautionPowerDiscrete,
+                                      byte defendantSignalDiscrete,
+                                      byte relativePrecautionLevel)
+        {
+            // Hidden state known: use the per‑state accident chance from the impact model.
+            if (precautionPowerDiscrete.HasValue && precautionPowerDiscrete.Value != 0)
+                return impact.GetAccidentProbability(
+                    precautionPowerDiscrete.Value - 1,           // zero‑based index
+                    relativePrecautionLevel);
+
+            // Hidden state latent (collapsed tree): use the average conditional on D‑signal.
+            return risk.GetAccidentProbabilityGivenDefendantSignal(
+                defendantSignalDiscrete - 1,                     // zero‑based index
+                relativePrecautionLevel);
+        }
+
 
         public double[] BayesianCalculations_GetCLiabilitySignalProbabilities(
             PrecautionNegligenceProgress p)
