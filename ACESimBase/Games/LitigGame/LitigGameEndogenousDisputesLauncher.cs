@@ -99,29 +99,26 @@ namespace ACESim
 
         public override List<GameOptions> GetOptionsSets()
         {
-            List<GameOptions> optionSets = new List<GameOptions>();
+            // honour console runs that deliberately want one set
+            if (LaunchSingleOptionsSetOnly)
+                return new List<GameOptions>
+                {
+                    LitigGameOptionsGenerator.GetLitigGameOptions()
+                };
 
-            AddToOptionsSetsWithName(optionSets, "singleoptionset", LitigGameOptionsGenerator.GetLitigGameOptions());
+            var optionSets = new List<GameOptions>();
 
-            optionSets = optionSets.OrderBy(x => x.Name).ToList();
+            // this call comes from PermutationalLauncher and
+            // enumerates every transformation defined in GetSetsOfGameOptions()
+            AddToOptionsSets(optionSets);
 
-            bool simplify = false; // Enable for debugging purposes to speed up execution without going all the way to "fast" option
-            if (simplify)
-                foreach (var optionSet in optionSets)
-                    optionSet.Simplify();
+            // optional post-processing already present in the original
+            if (LimitToTaskIDs is { Length: > 0 })
+                optionSets = LimitToTaskIDs.Select(id => optionSets[id]).ToList();
 
-            if (LimitToTaskIDs != null)
-            {
-                List<GameOptions> replacements = new List<GameOptions>();
-                foreach (int idToKeep in LimitToTaskIDs)
-                    replacements.Add(optionSets[idToKeep]);
-                optionSets = replacements;
-            }
-
-            var optionSetNames = optionSets.Select(x => x.Name).OrderBy(x => x).Distinct().ToList();
-
-            return optionSets;
+            return optionSets.OrderBy(o => o.Name).ToList();
         }
+
 
         void AddToOptionsSetsWithName(List<GameOptions> list, string name, GameOptions options)
         {
