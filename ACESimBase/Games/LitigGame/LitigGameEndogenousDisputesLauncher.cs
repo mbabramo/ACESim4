@@ -139,7 +139,6 @@ namespace ACESim
                 .ToList();
             return eachGameIndependently.Select(x => (GameOptions) x).ToList();
         }
-        private LitigGameOptions CreateGameOptions() => new LitigGameOptions();
 
         public override List<List<GameOptions>> GetSetsOfGameOptions(bool useAllPermutationsOfTransformations, bool includeBaselineValueForNoncritical)
         {
@@ -195,7 +194,7 @@ namespace ACESim
                     }
                     if (noncriticalTransformation != null && !replaced)
                         transformLists.Add(noncriticalTransformation);
-                    List<LitigGameOptions> noncriticalOptions = ApplyPermutationsOfTransformations(() => (LitigGameOptions)CreateGameOptions(), transformLists);
+                    List<LitigGameOptions> noncriticalOptions = ApplyPermutationsOfTransformations(LitigGameOptionsGenerator.GetLitigGameOptions, transformLists);
                     List<(string, string)> defaultNonCriticalValues = DefaultVariableValues;
                     foreach (var optionSet in noncriticalOptions)
                     {

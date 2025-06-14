@@ -88,29 +88,6 @@ namespace ACESim
 
         public override GameDefinition GetGameDefinition() => new LitigGameDefinition();
 
-        private enum OptionSetChoice
-        {
-            JustOneOption,
-            Fast,
-            ShootoutPermutations,
-            VariousUncertainties,
-            VariedAlgorithms,
-            Custom2,
-            ShootoutGameVariations,
-            BluffingVariations,
-            KlermanEtAl,
-            KlermanEtAl_MultipleStrengthPoints,
-            KlermanEtAl_Options,
-            KlermanEtAl_DamagesUncertainty,
-            Simple1BR,
-            Simple2BR,
-            FeeShiftingArticle,
-            FeeShiftingArticleBaselineOnly,
-        }
-        OptionSetChoice OptionSetChosen = OptionSetChoice.FeeShiftingArticle;  // <<-- Choose option set here
-
-
-        
 
         public override GameOptions GetDefaultSingleGameOptions()
         {
@@ -121,14 +98,7 @@ namespace ACESim
         {
             List<GameOptions> optionSets = new List<GameOptions>();
 
-            switch (OptionSetChosen)
-            {
-                case OptionSetChoice.FeeShiftingArticle:
-                    AddFeeShiftingArticleGames(optionSets);
-                    break;
-                default: throw new NotImplementedException();
-
-            }
+            AddFeeShiftingArticleGames(optionSets);
 
             optionSets = optionSets.OrderBy(x => x.Name).ToList();
 
