@@ -22,18 +22,6 @@ namespace ACESim
 {
     class Program
     {
-        public enum AvailableGames
-        {
-            SelectEFGFileGame,
-            SelectLeducGame,
-            SelectMultiRoundCooperationGame,
-            SelectLitigGameEndog,
-            SelectAdditiveEvidenceGame,
-            SelectDMSReplicationGame,
-            SelectLitigGameCorrSig
-        }
-
-        public static AvailableGames GameToPlay = AvailableGames.SelectLitigGameEndog; 
         public static bool LaunchSingleOptionsSetOnly = true;
 
         [STAThread]
@@ -70,49 +58,7 @@ namespace ACESim
             Stopwatch s = new Stopwatch();
             s.Start();
 
-            string baseOutputDirectory;
-            string strategiesPath;
-            Launcher launcher = null;
-            switch (GameToPlay)
-            {
-                case AvailableGames.SelectEFGFileGame:
-                    baseOutputDirectory = "C:\\GitHub\\ACESim\\ACESim\\Games\\EFGFileGame";
-                    strategiesPath = Path.Combine(baseOutputDirectory, "Strategies");
-                    launcher = new EFGFileGameLauncher();
-                    break;
-                case AvailableGames.SelectLeducGame:
-                    baseOutputDirectory = "C:\\GitHub\\ACESim\\ACESim\\Games\\LeducGame";
-                    strategiesPath = Path.Combine(baseOutputDirectory, "Strategies");
-                    launcher = new LeducGameLauncher();
-                    break;
-                case AvailableGames.SelectMultiRoundCooperationGame:
-                    baseOutputDirectory = "C:\\GitHub\\ACESim\\ACESim\\Games\\MultiRoundCooperationGame";
-                    strategiesPath = Path.Combine(baseOutputDirectory, "Strategies");
-                    launcher = new MultiRoundCooperationGameLauncher();
-                    break;
-                case AvailableGames.SelectLitigGameCorrSig:
-                    baseOutputDirectory = "C:\\GitHub\\ACESim\\ACESim\\Games\\LitigGame";
-                    strategiesPath = Path.Combine(baseOutputDirectory, "Strategies");
-                    launcher = new LitigGameCorrelatedSignalsArticleLauncher();
-                    break;
-                case AvailableGames.SelectLitigGameEndog:
-                    baseOutputDirectory = "C:\\GitHub\\ACESim\\ACESim\\Games\\LitigGame";
-                    strategiesPath = Path.Combine(baseOutputDirectory, "Strategies");
-                    launcher = new LitigGameEndogenousDisputesLauncher();
-                    break;
-                case AvailableGames.SelectAdditiveEvidenceGame:
-                    baseOutputDirectory = "C:\\GitHub\\ACESim\\ACESim\\Games\\AdditiveEvidenceGame";
-                    strategiesPath = Path.Combine(baseOutputDirectory, "Strategies");
-                    launcher = new AdditiveEvidenceGameLauncher();
-                    break;
-
-                case AvailableGames.SelectDMSReplicationGame:
-                    baseOutputDirectory = "C:\\GitHub\\ACESim\\ACESim\\Games\\AdditiveEvidenceGame";
-                    strategiesPath = Path.Combine(baseOutputDirectory, "Strategies");
-                    launcher = new DMSReplicationGameLauncher();
-                    break;
-
-            }
+            var launcher = Launcher.GetLauncher();
             launcher.LaunchSingleOptionsSetOnly = LaunchSingleOptionsSetOnly;
             ReportCollection launchResult = await launcher.Launch();
             TextCopy.ClipboardService.SetText(launchResult?.standardReport ?? "");

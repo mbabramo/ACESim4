@@ -1,6 +1,7 @@
 ﻿using ACESim;
 using ACESimBase.Games.AdditiveEvidenceGame;
 using ACESimBase.Games.DMSReplicationGame;
+using ACESimBase.Games.EFGFileGame;
 using ACESimBase.GameSolvingAlgorithms;
 using ACESimBase.GameSolvingSupport.GameTree;
 using ACESimBase.GameSolvingSupport.PostIterationUpdater;
@@ -35,7 +36,7 @@ namespace ACESimBase.GameSolvingSupport.Settings
         public int? AlwaysDoTaskID = null;  // set this to a task to replay a particular task (either over and over again, using ACESimDistributed, or just once, using ACESimConsole).
         public int[] LimitToTaskIDs = null; // new int[] { 12625, 12635, }; // set this to non-null to repeat specific IDs (e.g., from failures) from a distributed action set.
 
-        public const int VanillaIterations = 1000 // Note: Also used for GeneralizedVanilla, DeepCFR
+        public const int VanillaIterations = 1000; // Note: Also used for GeneralizedVanilla, DeepCFR
         public const int VanillaReportEveryNIterations = VanillaIterations;  // EffectivelyNever
         public int? SuppressReportBeforeIteration = null;
         public int VanillaBestResponseEveryMIterations => Math.Min(100, VanillaIterations);
@@ -66,9 +67,71 @@ namespace ACESimBase.GameSolvingSupport.Settings
         public bool CombineResultsOfAllOptionSetsAfterExecution = false;
         const int EffectivelyNever = EvolutionSettings.EffectivelyNever;
 
+        public string BaseOutputDirectory;
+        public string StrategiesPath;
+
+
+        public enum AvailableGames
+        {
+            SelectEFGFileGame,
+            SelectLeducGame,
+            SelectMultiRoundCooperationGame,
+            SelectLitigGameEndog,
+            SelectAdditiveEvidenceGame,
+            SelectDMSReplicationGame,
+            SelectLitigGameCorrSig
+        }
+
+        public static AvailableGames GeneralGameToPlay = AvailableGames.SelectLitigGameEndog; // Note: More specific game options may be available in the launcher.
+
         public static Launcher GetLauncher()
         {
-            return new LitigGameEndogenousDisputesLauncher(); 
+            string baseOutputDirectory = null;
+            string strategiesPath = null;
+            Launcher launcher = null;
+            switch (GeneralGameToPlay)
+            {
+                case AvailableGames.SelectEFGFileGame:
+                    baseOutputDirectory = "C:\\GitHub\\ACESim\\ACESim\\Games\\EFGFileGame";
+                    strategiesPath = Path.Combine(baseOutputDirectory, "Strategies");
+                    launcher = new EFGFileGameLauncher();
+                    break;
+                case AvailableGames.SelectLeducGame:
+                    baseOutputDirectory = "C:\\GitHub\\ACESim\\ACESim\\Games\\LeducGame";
+                    strategiesPath = Path.Combine(baseOutputDirectory, "Strategies");
+                    launcher = new LeducGameLauncher();
+                    break;
+                case AvailableGames.SelectMultiRoundCooperationGame:
+                    baseOutputDirectory = "C:\\GitHub\\ACESim\\ACESim\\Games\\MultiRoundCooperationGame";
+                    strategiesPath = Path.Combine(baseOutputDirectory, "Strategies");
+                    launcher = new MultiRoundCooperationGameLauncher();
+                    break;
+                case AvailableGames.SelectLitigGameCorrSig:
+                    baseOutputDirectory = "C:\\GitHub\\ACESim\\ACESim\\Games\\LitigGame";
+                    strategiesPath = Path.Combine(baseOutputDirectory, "Strategies");
+                    launcher = new LitigGameCorrelatedSignalsArticleLauncher();
+                    break;
+                case AvailableGames.SelectLitigGameEndog:
+                    baseOutputDirectory = "C:\\GitHub\\ACESim\\ACESim\\Games\\LitigGame";
+                    strategiesPath = Path.Combine(baseOutputDirectory, "Strategies");
+                    launcher = new LitigGameEndogenousDisputesLauncher();
+                    break;
+                case AvailableGames.SelectAdditiveEvidenceGame:
+                    baseOutputDirectory = "C:\\GitHub\\ACESim\\ACESim\\Games\\AdditiveEvidenceGame";
+                    strategiesPath = Path.Combine(baseOutputDirectory, "Strategies");
+                    launcher = new AdditiveEvidenceGameLauncher();
+                    break;
+
+                case AvailableGames.SelectDMSReplicationGame:
+                    baseOutputDirectory = "C:\\GitHub\\ACESim\\ACESim\\Games\\AdditiveEvidenceGame";
+                    strategiesPath = Path.Combine(baseOutputDirectory, "Strategies");
+                    launcher = new DMSReplicationGameLauncher();
+                    break;
+
+            }
+            launcher.BaseOutputDirectory = baseOutputDirectory;
+            launcher.StrategiesPath = strategiesPath;
+            return launcher;
         }
 
         #endregion
