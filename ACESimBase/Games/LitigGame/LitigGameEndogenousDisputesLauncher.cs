@@ -91,12 +91,6 @@ namespace ACESim
 
         public override GameDefinition GetGameDefinition() => new LitigGameDefinition();
 
-        private enum OptionSetChoice
-        {
-            JustOneOption,
-            EndogenousDisputesArticle,
-        }
-        OptionSetChoice OptionSetChosen = OptionSetChoice.EndogenousDisputesArticle;  // <<-- Choose option set here
 
         public override GameOptions GetDefaultSingleGameOptions()
         {
@@ -106,17 +100,8 @@ namespace ACESim
         public override List<GameOptions> GetOptionsSets()
         {
             List<GameOptions> optionSets = new List<GameOptions>();
-            
-            switch (OptionSetChosen)
-            {
-                case OptionSetChoice.JustOneOption:
-                    AddToOptionsSetsWithName(optionSets, "singleoptionset", LitigGameOptionsGenerator.BaseBeforeApplyingEndogenousGenerator());
-                    break;
-                case OptionSetChoice.EndogenousDisputesArticle:
-                    AddToOptionsSets(optionSets);
-                    break;
 
-            }
+            AddToOptionsSetsWithName(optionSets, "singleoptionset", LitigGameOptionsGenerator.GetLitigGameOptions());
 
             optionSets = optionSets.OrderBy(x => x.Name).ToList();
 

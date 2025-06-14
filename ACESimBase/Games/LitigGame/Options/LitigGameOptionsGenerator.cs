@@ -36,7 +36,7 @@ namespace ACESim
             _ => throw new Exception()
         };
 
-        public static LitigGameOptions BaseBeforeApplyingEndogenousGenerator()
+        private static LitigGameOptions BaseBeforeApplyingEndogenousGenerator()
         {
             var options = new LitigGameOptions();
 
