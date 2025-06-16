@@ -51,6 +51,11 @@ namespace ACESimBase.Games.LitigGame.ManualReports
         // Constants and styling settings
         // ---------------------------------------------------------------------
 
+        public const double LightPanelWidth = 15.0;      // W when pres == false
+        public const double LightPanelHeight = 16.0;      // H when pres == false
+        public const double PresPanelWidth = 26.6666;   // W when pres == true
+        public const double PresPanelHeight = 15.0;      // H when pres == true
+
         /// <summary>
         /// Fill patterns for print mode (default color/line patterns).
         /// </summary>
@@ -338,6 +343,92 @@ namespace ACESimBase.Games.LitigGame.ManualReports
             return new(yL, yR, xL, xR, xR / yR);
         }
 
+        internal static List<AxisScalingInfo> ComputeScaling(
+            List<List<Slice>> sliceSets,
+            double peakProportion)
+        {
+            if (sliceSets is null || sliceSets.Count == 0)
+                throw new ArgumentException(nameof(sliceSets));
+            if (peakProportion <= 0.0 || peakProportion > 1.0)
+                throw new ArgumentOutOfRangeException(nameof(peakProportion));
+
+            // ---------------------------------------------------------------------
+            // Determine the largest area-per-unit value A that satisfies:
+            //
+            //   tallestRight ≤ peakProportion · (0.5 / pRight) / A
+            //   tallestLeft  ≤ peakProportion · (0.5 / pLeft ) / A   (split only)
+            //   tallestTotal ≤ peakProportion · 1.0          / A     (single panel)
+            //
+            // across every diagram.  The shared A is the tightest upper bound.
+            // ---------------------------------------------------------------------
+            double sharedAreaPerUnit = double.MaxValue;
+
+            foreach (var slices in sliceSets)
+            {
+                bool isSplit = HasTwoPanels(slices);
+
+                if (isSplit)
+                {
+                    SplitMasses(slices, out var pLeft, out var pRight);
+                    var (tallestLeft, tallestRight) = TallestStacks(slices);
+
+                    double limitRight = peakProportion * (0.5 / pRight) / tallestRight;
+                    double limitLeft  = peakProportion * (0.5 / pLeft)  / tallestLeft;
+
+                    double diagramLimit = Math.Min(limitLeft, limitRight);
+                    if (diagramLimit < sharedAreaPerUnit)
+                        sharedAreaPerUnit = diagramLimit;
+                }
+                else
+                {
+                    double tallestTotal = slices.Max(s => s.Total);
+                    double diagramLimit = peakProportion / tallestTotal;
+                    if (diagramLimit < sharedAreaPerUnit)
+                        sharedAreaPerUnit = diagramLimit;
+                }
+            }
+
+            // ---------------------------------------------------------------------
+            // Build per-diagram AxisScalingInfo objects with the shared A.
+            // ---------------------------------------------------------------------
+            var infos = new List<AxisScalingInfo>(sliceSets.Count);
+
+            foreach (var slices in sliceSets)
+            {
+                bool isSplit = HasTwoPanels(slices);
+
+                if (isSplit)
+                {
+                    SplitMasses(slices, out var pLeft, out var pRight);
+
+                    double yMaxRight = (0.5 / pRight) / sharedAreaPerUnit;
+                    double yMaxLeft  = (0.5 / pLeft)  / sharedAreaPerUnit;
+
+                    infos.Add(new AxisScalingInfo(
+                        yMaxLeft,
+                        yMaxRight,
+                        0.5 / pLeft,
+                        0.5 / pRight,
+                        sharedAreaPerUnit));
+                }
+                else
+                {
+                    double yMax = 1.0 / sharedAreaPerUnit;
+
+                    infos.Add(new AxisScalingInfo(
+                        yMax,
+                        yMax,
+                        1.0,
+                        1.0,
+                        sharedAreaPerUnit));
+                }
+            }
+
+            return infos;
+        }
+
+
+
         /// <summary>
         /// Computes axis maxima for a new diagram based on the scale used in a
         /// reference diagram. Ensures cross-diagram area comparability.
@@ -502,7 +593,7 @@ namespace ACESimBase.Games.LitigGame.ManualReports
             }
         }
 
-#endregion
+        #endregion
 
         #region Tikz
 
@@ -514,15 +605,35 @@ namespace ACESimBase.Games.LitigGame.ManualReports
         /// Renders the full cost breakdown diagram in TikZ.
         /// Draws all rectangles, axes, labels, legend, and optional split logic.
         /// </summary>
+        /// <summary>
+        /// Original API now supports optional embedding parameters without breaking old callers.
+        /// Adding optional flags for legend/axis labels and optional outer box sizing/offset.
+        /// </summary>
         internal static string TikzScaled(
             List<Slice> slices,
             AxisScalingInfo sc,
             bool pres,
             string title,
-            bool splitRareHarmPanel)
+            bool splitRareHarmPanel,
+            bool standalone = true,
+            bool includeLegend = true,
+            bool includeAxisLabels = true,
+            double? targetWidth = null,
+            double? targetHeight = null,
+            double? xOffset = null,
+            double? yOffset = null)
         {
-            double W = pres ? 26.6666 : 15, H = pres ? 15 : 16;
-            var outer = new TikzRectangle(0, 0, W, H);
+            // --- Dimensions --------------------------------------------------------------------
+            double W = pres ? 26.6666 : 15;
+            double H = pres ? 15 : 16;
+            if (targetWidth.HasValue) W = targetWidth.Value;
+            if (targetHeight.HasValue) H = targetHeight.Value;
+
+            // --- Origin shift ------------------------------------------------------------------
+            double originX = xOffset ?? 0.0;
+            double originY = yOffset ?? 0.0;
+
+            var outer = new TikzRectangle(originX, originY, originX + W, originY + H);
             var pane = outer.ReducedByPadding(1.5, 2.5, 1.5, 1.5);
             string pen = pres ? "white" : "black";
             string[] fills = pres ? PresFill : RegFill;
@@ -542,7 +653,7 @@ namespace ACESimBase.Games.LitigGame.ManualReports
                     $"\\huge {title}"));
             }
 
-            // --- Draw cost rectangles -----------------------------------------
+            // --- Draw cost rectangles ---------------------------------------------------------
             double sx = pane.width, sy = pane.height;
             foreach (var rc in GetComponentRects(slices, sc, splitRareHarmPanel))
             {
@@ -555,18 +666,20 @@ namespace ACESimBase.Games.LitigGame.ManualReports
                     $"{fills[rc.Category]},draw={pen},very thin"));
             }
 
-            // --- Draw y-axis on the left --------------------------------------
+            // --- Draw y-axis on the left ------------------------------------------------------
             var yL = new TikzLine(
                 new(pane.left, pane.bottom), new(pane.left, pane.top));
-            var ticksLeft = BuildTicks(sc.YMaxLeft);
+            var ticksLeft = BuildTicks(sc.YMaxLeft)
+                .Select(t => includeAxisLabels ? t : (t.proportion, ""))
+                .ToList();
             double shiftYL = BestLabelShiftY(ticksLeft, pane.height);
             sb.AppendLine(yL.DrawAxis($"{pen},very thin", ticksLeft,
                 $"font=\\small,text={pen}", "east",
-                "Cost", "center", TikzHorizontalAlignment.Center,
-                $"font=\\small,rotate=90,text={pen}",
+                includeAxisLabels ? "Cost" : null, "center", TikzHorizontalAlignment.Center,
+                includeAxisLabels ? $"font=\\small,rotate=90,text={pen}" : null,
                 -0.40, shiftYL));
 
-            // --- Optional split mode logic -------------------------------------
+            // --- Optional split mode logic ----------------------------------------------------
             if (splitRareHarmPanel)
             {
                 // Dashed divider between left/right panels
@@ -578,26 +691,31 @@ namespace ACESimBase.Games.LitigGame.ManualReports
                 // Right-side y-axis
                 var yR = new TikzLine(
                     new(pane.right, pane.bottom), new(pane.right, pane.top));
+                var ticksRight = BuildTicks(sc.YMaxRight)
+                    .Select(t => includeAxisLabels ? t : (t.proportion, ""))
+                    .ToList();
                 sb.AppendLine(yR.DrawAxis($"{pen},very thin",
-                    BuildTicks(sc.YMaxRight),
+                    ticksRight,
                     $"font=\\small,text={pen}", "west",
                     null, null, TikzHorizontalAlignment.Center,
-                    $"font=\\small,text={pen}", 0.65, 0));
+                    includeAxisLabels ? $"font=\\small,text={pen}" : null, 0.65, 0));
             }
 
-            // --- Draw x-axis ---------------------------------------------------
+            // --- Draw x-axis ------------------------------------------------------------------
             var xB = new TikzLine(
                 new(pane.left, pane.bottom), new(pane.right, pane.bottom));
-            var xTicks = new List<(double, string)> { (0, "0\\%"), (1, "100\\%") };
+            var xTicks = includeAxisLabels
+                ? new List<(double, string)> { (0, "0\\%"), (1, "100\\%") }
+                : new List<(double, string)> { (0, ""), (1, "") };
 
             sb.AppendLine(xB.DrawAxis($"{pen},very thin", xTicks,
                 $"font=\\small,text={pen}", "north",
-                splitRareHarmPanel ? null : "Proportion of Cases",
+                (!includeAxisLabels || splitRareHarmPanel) ? null : "Proportion of Cases",
                 "south", TikzHorizontalAlignment.Center,
                 $"font=\\small,text={pen}", 0, -0.6));
 
-            // --- Panel label captions in split mode ----------------------------
-            if (splitRareHarmPanel)
+            // --- Panel label captions in split mode -------------------------------------------
+            if (splitRareHarmPanel && includeAxisLabels)
             {
                 double pLeft = 0.5 / sc.XScaleLeft;
                 double pRight = 0.5 / sc.XScaleRight;
@@ -619,45 +737,53 @@ namespace ACESimBase.Games.LitigGame.ManualReports
                     $"font=\\small,text={pen},anchor=south"));
             }
 
-            // --- Legend (only includes used categories) ------------------------
-            bool[] used = new bool[Labels.Length];
-            foreach (var s in slices)
+            // --- Legend (only includes used categories) ---------------------------------------
+            if (includeLegend)
             {
-                if (s.Opportunity > 1e-12) used[0] = true;
-                if (s.Harm > 1e-12) used[1] = true;
-                if (s.Filing > 1e-12) used[2] = true;
-                if (s.Answer > 1e-12) used[3] = true;
-                if (s.Bargaining > 1e-12) used[4] = true;
-                if (s.Trial > 1e-12) used[5] = true;
-            }
-            var active = Enumerable.Range(0, Labels.Length)
-                                   .Where(i => used[i]).ToList();
-
-            if (active.Count > 0)
-            {
-                sb.AppendLine(
-                    $@"\draw ({pane.left + pane.width / 2},{pane.bottom}) node (B) {{}};");
-                sb.AppendLine(@"\begin{scope}[align=center]");
-                sb.AppendLine(
-                    $@"\matrix[scale=0.5,draw={pen},below=0.5cm of B,nodes={{draw}},column sep=0.1cm]{{");
-                for (int k = 0; k < active.Count; k++)
+                bool[] used = new bool[Labels.Length];
+                foreach (var s in slices)
                 {
-                    int i = active[k];
-                    sb.Append(
-                        $@"\node[rectangle,draw,minimum width=0.5cm,minimum height=0.5cm,{fills[i]}]{{}}; & ");
-                    sb.Append(
-                        $@"\node[draw=none,font=\small,text={pen}]{{{Labels[i]}}};");
-                    sb.AppendLine(k == active.Count - 1 ? @" \\" : " &");
+                    if (s.Opportunity > 1e-12) used[0] = true;
+                    if (s.Harm > 1e-12) used[1] = true;
+                    if (s.Filing > 1e-12) used[2] = true;
+                    if (s.Answer > 1e-12) used[3] = true;
+                    if (s.Bargaining > 1e-12) used[4] = true;
+                    if (s.Trial > 1e-12) used[5] = true;
                 }
-                sb.AppendLine("};\\end{scope}");
+                var active = Enumerable.Range(0, Labels.Length)
+                                       .Where(i => used[i]).ToList();
+
+                if (active.Count > 0)
+                {
+                    sb.AppendLine(
+                        $"\\draw ({pane.left + pane.width / 2},{pane.bottom}) node (B) {{}};");
+                    sb.AppendLine("\\begin{scope}[align=center]");
+                    sb.AppendLine(
+                        $"\\matrix[scale=0.5,draw={pen},below=0.5cm of B,nodes={{draw}},column sep=0.1cm]{{");
+                    for (int k = 0; k < active.Count; k++)
+                    {
+                        int i = active[k];
+                        sb.Append(
+                            $"\\node[rectangle,draw,minimum width=0.5cm,minimum height=0.5cm,{fills[i]}]{{}}; & ");
+                        sb.Append(
+                            $"\\node[draw=none,font=\\small,text={pen}]{{{Labels[i]}}};");
+                        sb.AppendLine(k == active.Count - 1 ? @" \\\\" : " &");
+                    }
+                    sb.AppendLine("};\\end{scope}");
+                }
             }
 
-            // Wrap everything in a LaTeX standalone document
+            // --- Return -----------------------------------------------------------------------
+            if (!standalone)
+                return sb.ToString();
+
             return TikzHelper.GetStandaloneDocument(
                 sb.ToString(),
                 additionalHeaderInfo: pres ? "\\usepackage[sfdefault]{ClearSans}" : null,
                 additionalTikzLibraries: new() { "patterns", "positioning" });
         }
+
+
 
         /// <summary>
         /// Generates CSV and TikZ strings given slices and layout parameters.

@@ -1,8 +1,11 @@
-﻿using System.Collections.Generic;
-using System.Linq;
-using ACESimBase.Games.LitigGame.ManualReports;
+﻿using ACESimBase.Games.LitigGame.ManualReports;
+using ACESimBase.Util.Tikz;
 using FluentAssertions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
 
 namespace ACESimTest
 {
@@ -149,6 +152,155 @@ namespace ACESimTest
             tikz.Should().Contain("dashed,very thin");      // midline present
             tikz.Should().Contain(@"99\%");                // divider at x = 0.5
         }
+
+        [TestMethod]
+        public void ThreeSplitPanels_WithFourLeftAndFourRightSlices_Render()
+        {
+            // shorthand S(width, opportunity, harm, filing, answer, bargaining, trial) already in test framework
+
+            var p1 = new List<CostBreakdownReport.Slice>
+            {
+                S(0.40, 0.02, 0),  S(0.30, 0.015, 0), S(0.20, 0.010, 0), S(0.09, 0.005, 0),
+                S(0.0025, 0.002, 0.08, 0.04, 0.03, 0.02, 0.03),
+                S(0.0025, 0.002, 0.07, 0.035,0.03, 0.02, 0.03),
+                S(0.0025, 0.002, 0.09, 0.045,0.04, 0.03, 0.04),
+                S(0.0025, 0.002, 0.10, 0.050,0.04, 0.03, 0.04)
+            };
+
+            var p2 = new List<CostBreakdownReport.Slice>
+            {
+                S(0.492, 0.015, 0), S(0.25, 0.010, 0), S(0.16, 0.008, 0), S(0.093, 0.004, 0),
+                S(0.00125, 0.002, 0.05, 0.025,0.02,0.015,0.02),
+                S(0.00125, 0.002, 0.06, 0.030,0.02,0.015,0.02),
+                S(0.00125, 0.002, 0.04, 0.020,0.02,0.015,0.02),
+                S(0.00125, 0.002, 0.03, 0.015,0.02,0.015,0.02)
+            };
+
+            var p3 = new List<CostBreakdownReport.Slice>
+            {
+                S(0.45, 0.025, 0),  S(0.30, 0.018, 0), S(0.15, 0.010, 0), S(0.094, 0.005, 0),
+                S(0.0015, 0.003, 0.12, 0.06, 0.05, 0.04, 0.05),
+                S(0.0015, 0.003, 0.11, 0.055,0.05, 0.04, 0.05),
+                S(0.0015, 0.003, 0.13, 0.065,0.05, 0.04, 0.05),
+                S(0.0015, 0.003, 0.14, 0.070,0.05, 0.04, 0.05)
+            };
+
+            var allSlices = new List<List<CostBreakdownReport.Slice>>()
+            {
+                p1, p2, p3
+            };
+
+            var scalingInfo = CostBreakdownReport.ComputeScaling(allSlices, 0.8);
+
+            var fig = new StringBuilder();
+
+            fig.Append(CostBreakdownReport.TikzScaled(
+                p1, scalingInfo[0], pres: false, "Panel 1", true,
+                standalone: false, includeLegend: false,
+                xOffset: 0, yOffset: 0));
+
+            fig.Append(CostBreakdownReport.TikzScaled(
+                p2, scalingInfo[1], pres: false, "Panel 2", true,
+                standalone: false, includeLegend: false,
+                targetWidth: 0.60 * 15, targetHeight: 0.60 * 16,
+                xOffset: 17, yOffset: 0));
+
+            fig.Append(CostBreakdownReport.TikzScaled(
+                p3, scalingInfo[2], pres: true, "Panel 3", true,
+                standalone: false, includeLegend: false,
+                targetWidth: 0.40 * 26.6666, targetHeight: 0.40 * 15,
+                xOffset: 0, yOffset: 18));
+
+            string latexDoc = TikzHelper.GetStandaloneDocument(
+                fig.ToString(),
+                additionalHeaderInfo: "\\usepackage[sfdefault]{ClearSans}");
+
+            Assert.IsTrue(latexDoc.Contains("dashed,very thin"));
+        }
+
+        [TestMethod]
+        public void SharedAreaPerUnitAndPeakProportionAreHonoured()
+        {
+            const double peak = 0.90;
+            const double epsilon = 1e-10;
+
+            // ----- diagram 1 -------------------------------------------------
+            var diagramOne = new List<CostBreakdownReport.Slice>
+            {
+                // left-panel slice
+                new(0.60, 10, 0, 0, 0, 0, 0),
+                // right-panel slices
+                new(0.30,  5, 3, 2, 0, 1, 0),
+                new(0.10,  2, 0, 1, 1, 0.5, 0)
+            };
+
+            // ----- diagram 2 -------------------------------------------------
+            var diagramTwo = new List<CostBreakdownReport.Slice>
+            {
+                new(0.40, 20, 0, 0, 0, 0, 0),
+                new(0.60,  8, 6, 1, 0, 0, 2)
+            };
+
+            var diagrams = new List<List<CostBreakdownReport.Slice>>
+            {
+                diagramOne,
+                diagramTwo
+            };
+
+            // act
+            var infos = CostBreakdownReport.ComputeScaling(diagrams, peak);
+
+            // assert: area-per-unit identical
+            infos.Select(i => i.AreaPerUnit).Distinct().Count()
+                 .Should().Be(1, "all diagrams must share a common area-per-unit-cost");
+
+            double sharedAreaPerUnit = infos.First().AreaPerUnit;
+
+            for (int d = 0; d < diagrams.Count; d++)
+            {
+                var slices = diagrams[d];
+                var info = infos[d];
+
+                bool isSplit = slices.Any(s => s.Harm + s.Filing + s.Answer +
+                                               s.Bargaining + s.Trial > 0) &&
+                               slices.Any(s => s.Harm + s.Filing + s.Answer +
+                                               s.Bargaining + s.Trial == 0);
+
+                // tallest stacks
+                double tallestLeft = 0, tallestRight = 0;
+                foreach (var s in slices)
+                {
+                    double total = s.Total;
+                    bool left = s.Harm + s.Filing + s.Answer +
+                                s.Bargaining + s.Trial == 0;
+                    if (left)  tallestLeft  = Math.Max(tallestLeft, total);
+                    else       tallestRight = Math.Max(tallestRight, total);
+                }
+
+                if (isSplit)
+                {
+                    (tallestLeft     / info.YMaxLeft ).Should()
+                        .BeLessOrEqualTo(peak + epsilon);
+                    (tallestRight    / info.YMaxRight).Should()
+                        .BeLessOrEqualTo(peak + epsilon);
+                }
+                else
+                {
+                    double tallest = slices.Max(s => s.Total);
+                    (tallest / info.YMaxLeft).Should()
+                        .BeLessOrEqualTo(peak + epsilon);
+                }
+
+                // area-per-unit matches shared value
+                info.AreaPerUnit.Should().BeApproximately(sharedAreaPerUnit, epsilon);
+            }
+        }
+
+
+
+
+
+
 
         [TestMethod]
         public void SplitPanel_VeryRareHarmScenario_RendersWithDivider()
