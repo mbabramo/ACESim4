@@ -88,9 +88,9 @@ namespace ACESimBase.Games.LitigGame.ManualReports
         // ---------------------------------------------------------------------
 
         public static List<string> GenerateReports(
-    IEnumerable<(LitigGameProgress p, double w)> raw,
-    double rightAxisTop,
-    bool splitRareHarmPanel = true)
+            IEnumerable<(LitigGameProgress p, double w)> raw,
+            double rightAxisTop,
+            bool splitRareHarmPanel = true)
         {
             var slices = ToNormalizedSlices(raw, rightAxisTop);
             bool useSplit = splitRareHarmPanel && HasTwoPanels(slices);

@@ -84,10 +84,10 @@ namespace ACESim
 
         // We can use this to allow for multiple options sets. These can then run in parallel. But note that we can also have multiple runs with a single option set using different settings by using GameDefinition scenarios; this is useful when there is a long initialization and it makes sense to complete one set before starting the next set.
 
-        // DEBUG -- must not include margin of victory for precaution negligence game, unless we update the code to handle it.
+
         public override FeeShiftingRule[] FeeShiftingModes => new[] { FeeShiftingRule.English_LiabilityIssue, FeeShiftingRule.MarginOfVictory_LiabilityIssue, 
-            // NO LONGER INCLUDED: FeeShiftingRule.Rule68_DamagesIssue, FeeShiftingRule.Rule68English_DamagesIssue 
-        };
+            FeeShiftingRule.Rule68_DamagesIssue, FeeShiftingRule.Rule68English_DamagesIssue 
+        }; // TODO -- note that these are disabled now (see TODO below). Can be added back in by providing support for margin of fee shifting by creating logic around that in PrecautionNegligence game
 
         public override GameDefinition GetGameDefinition() => new LitigGameDefinition();
 
@@ -161,7 +161,7 @@ namespace ACESim
                NoiseTransformations(includeBaselineValueForNoncritical),
                PRelativeCostsTransformations(includeBaselineValueForNoncritical),
                DamagesMultiplierTransformations(includeBaselineValueForNoncritical),
-               FeeShiftingModeTransformations(includeBaselineValueForNoncritical),  
+               // FeeShiftingModeTransformations(includeBaselineValueForNoncritical),  // TODO: Add this back in by providing support for Bayesian logic with the margin-of-victory approach
                ProportionOfCostsAtBeginningTransformations(includeBaselineValueForNoncritical),
            };
             List<List<Func<LitigGameOptions, LitigGameOptions>>> criticalTransformations = allTransformations.Take(numCritical).ToList();

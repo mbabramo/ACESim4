@@ -1093,17 +1093,21 @@ namespace ACESim
 
         public override IEnumerable<(string suffix, string reportcontent)> ProduceManualReports(List<(GameProgress theProgress, double weight)> gameProgresses, string supplementalString)
         {
+            bool isPrecautionNegligenceGame = Options.LitigGameDisputeGenerator is PrecautionNegligenceDisputeGenerator;
             const double yAxisTop = 4.0;
             var contents = CostBreakdownReport.GenerateReports(gameProgresses.Select(x => ((LitigGameProgress) x.theProgress, x.weight)), yAxisTop);
             yield return ($"-costbreakdownlight{supplementalString}.csv", contents[0]);
             yield return ($"-costbreakdownlight{supplementalString}.tex", contents[1]);
             yield return ($"-costbreakdowndark{supplementalString}.csv", contents[2]);
             yield return ($"-costbreakdowndark{supplementalString}.tex", contents[3]);
-            contents = StageCostReport.GenerateReport(gameProgresses);
-            yield return ($"-stagecostlight{supplementalString}.csv", contents[0]);
-            yield return ($"-stagecostlight{supplementalString}.tex", contents[1]);
-            yield return ($"-stagecostdark{supplementalString}.csv", contents[2]);
-            yield return ($"-stagecostdark{supplementalString}.tex", contents[3]);
+            if (!isPrecautionNegligenceGame)
+            {
+                contents = StageCostReport.GenerateReport(gameProgresses);
+                yield return ($"-stagecostlight{supplementalString}.csv", contents[0]);
+                yield return ($"-stagecostlight{supplementalString}.tex", contents[1]);
+                yield return ($"-stagecostdark{supplementalString}.csv", contents[2]);
+                yield return ($"-stagecostdark{supplementalString}.tex", contents[3]);
+            }
             contents = SignalOfferReport.GenerateReport(this, gameProgresses, SignalOfferReport.TypeOfReport.Offers);
             yield return ($"-offers{supplementalString}.tex", contents[0]);
             contents = SignalOfferReport.GenerateReport(this, gameProgresses, SignalOfferReport.TypeOfReport.FileAndAnswer);

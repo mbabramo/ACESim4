@@ -11,6 +11,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Reflection.Emit;
@@ -455,11 +456,10 @@ namespace LitigCharts
                             if (!stepDefiningRowsToFind)
                                 lineGraphData.Add(lineGraphDataForRow);
                         }
+                        double originalMaxY = maxY;
 
-                        // round maxY up to the nearest 0.1 (e.g., 1.43 -> 1.5). This will then be set as the top of the y-axis for every mini-graph for this variation. Note that different variations will not all have the same value, but that's OK, because people will generally look at one set of minigraphs at a time (if that). 
-                        maxY = Math.Ceiling(maxY * 10) / 10;
-                        if (maxY >= 0.6 && maxY <= 0.9)
-                            maxY = 1.0; // use round number
+                        maxY = RoundAxisLimit(originalMaxY);
+                        Console.WriteLine($"{originalMaxY}, {maxY}"); // DEBUG
                         // change aggregatedGraphInfo so that the microY axis value is multiplied by the new value.
                         aggregatedGraphInfo = aggregatedGraphInfo with { maximumValueMicroY = Math.Max(aggregatedGraphInfo.maximumValueMicroY ?? 1, 1.0) * maxY };
                         // now, change each individual mini graph so that the y value is divided by maxY (since we've increased the scale on the graph).
@@ -489,6 +489,7 @@ namespace LitigCharts
                     valuesFromCSVAllRows = CSVData.GetCSVData_SinglePass(pathAndFilename, collectedRowsToFind.ToArray(), aggregatedGraphInfo.columnsToGet.ToArray(), cacheFile: true);
                 }
             }
+
         }
 
         private static void CreateAggregatedLineGraphFromData(LitigGameLauncherBase launcher, string outputFolderPath, AggregatedGraphInfo aggregatedGraphInfo, string equilibriumType, LitigGameEndogenousDisputesLauncher.ArticleVariationInfoSets variation, List<LitigGameEndogenousDisputesLauncher.ArticleVariationInfo> requirementsForEachVariation, List<List<TikzLineGraphData>> lineGraphData, double? limitToCostsMultiplier)
@@ -513,14 +514,7 @@ namespace LitigCharts
             else
                 maximumValueMicroY = presetMax;
 
-            double RoundUp(double input, int places)
-            {
-                double multiplier = Math.Pow(10, Convert.ToDouble(places));
-                return Math.Ceiling(input * multiplier) / multiplier;
-            }
-            maximumValueMicroY = RoundUp(maximumValueMicroY, 1);
-            if (maximumValueMicroY is 0.7 or 0.8 or 0.9)
-                maximumValueMicroY = 1.0; // just round all the way up
+            maximumValueMicroY = RoundAxisLimit(maximumValueMicroY);
 
             foreach (var macroRow in lineGraphData)
             {
@@ -555,8 +549,8 @@ namespace LitigCharts
                 majorYAxisLabel = aggregatedGraphInfo.majorYAxisLabel,
                 minorXValueNames = launcher.CriticalFeeShiftingMultipliers.OrderBy(x => x).Select(y => y.ToString()).ToList(),
                 minorXAxisLabel = requirementsForEachVariation.Count > 3 ? aggregatedGraphInfo.minorXAxisLabelShort : aggregatedGraphInfo.minorXAxisLabel,
-                minorYValueNames = Enumerable.Range(0, 11).Select(y => y switch { 0 => "0", 10 => maximumValueMicroY.ToString(), _ => " " }).ToList(),
-                minorYAxisLabel = aggregatedGraphInfo.minorYAxisLabel,
+                minorYValueNames = Enumerable.Range(0, 11).Select(y => y switch { 0 => "0", 10 => FormatMinorYAxisMaxTick(maximumValueMicroY), _ => " " }).ToList(),
+                minorYAxisLabel = FormatMinorYAxisLabel(aggregatedGraphInfo.minorYAxisLabel, maximumValueMicroY),
                 yAxisSpaceMicro = 0.8,
                 yAxisLabelOffsetMicro = 0.4,
                 xAxisSpaceMicro = 1.1,
@@ -572,6 +566,101 @@ namespace LitigCharts
             if (!avoidProcessingIfPDFExists || !DataProcessingBase.VirtualizableFileSystem.File.Exists(expectedOutput))
                 ExecuteLatexProcess(subfolderName, outputFilename);
         }
+
+        private static double RoundAxisLimit(double value)
+        {
+            if (value == 0) return 0;
+
+            var sign = Math.Sign(value);
+            var abs = Math.Abs(value);
+
+            var exponent = Math.Floor(Math.Log10(abs));
+            var scale = Math.Pow(10, exponent);       // 10^n
+            var scaled = abs / scale;                  // now in [1,10)
+
+            double niceScaled =
+                scaled <= 1 ? 1 :
+                scaled <= 2 ? 2 :
+                scaled <= 5 ? 5 : 10;
+
+            return sign * niceScaled * scale;
+        }
+
+        private static string FormatMinorYAxisMaxTick(double maxValueMicroY)
+        {
+            var p = SplitMantissaAndExponent(maxValueMicroY);
+            return p.MantissaWrapped;
+        }
+
+        private static string FormatMinorYAxisLabel(string baseLabel, double maxValueMicroY)
+        {
+            var p = SplitMantissaAndExponent(maxValueMicroY);
+            return p.ExponentSuffixWrapped.Length == 0
+                   ? baseLabel
+                   : $"{baseLabel} {p.ExponentSuffixWrapped}";
+        }
+
+        private static (string Mantissa,
+                       string MantissaWrapped,
+                       string ExponentSuffix,
+                       string ExponentSuffixWrapped)
+            SplitMantissaAndExponent(double value, int thresholdExponent = -2)
+        {
+            if (value == 0)
+            {
+                const string zero = "0";
+                return (zero, $"${zero}$", string.Empty, string.Empty);
+            }
+
+            var sign = Math.Sign(value);
+            var abs = Math.Abs(value);
+            var exponent = (int)Math.Floor(Math.Log10(abs));
+
+            if (exponent >= thresholdExponent)
+            {
+                var plain = value.ToString("G", CultureInfo.InvariantCulture);
+                return (plain, $"${plain}$", string.Empty, string.Empty);
+            }
+
+            var powerOfTen = Math.Pow(10, exponent);
+            var mantissaVal = sign * abs / powerOfTen;
+            var mantissa = mantissaVal.ToString("G", CultureInfo.InvariantCulture)
+                                           .TrimEnd('0').TrimEnd('.');
+
+            var exponentTxt = $"\\cdot10^{{{exponent}}}";
+
+            return (mantissa,
+                    $"${mantissa}$",
+                    exponentTxt,
+                    $"${exponentTxt}$");
+        }
+
+         private static string FormatNumberForLaTeX(double value)
+        {
+            string normal = value.ToString("G", CultureInfo.InvariantCulture);
+
+            // ordinary decimal form → just wrap in $...$
+            if (!normal.Contains('E') && !normal.Contains('e'))
+                return $"${normal}$";
+
+            int ePos = normal.IndexOfAny(new[] { 'E', 'e' });
+            string mantissa = normal[..ePos];
+            string exponentRaw = normal[(ePos + 1)..];
+
+            if (exponentRaw.StartsWith("+"))
+                exponentRaw = exponentRaw[1..];
+
+            // int.Parse removes any leading zeros
+            string exponent = int.Parse(exponentRaw, NumberStyles.Integer, CultureInfo.InvariantCulture)
+                                .ToString(CultureInfo.InvariantCulture);
+
+            // trim trailing zeros from mantissa
+            if (mantissa.Contains('.'))
+                mantissa = mantissa.TrimEnd('0').TrimEnd('.');
+
+            return $"${mantissa}\\cdot10^{{{exponent}}}$";
+        }
+
 
         public static void CalculateAverageCoefficientOfVariation()
         {
