@@ -20,6 +20,7 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Tensorflow;
 using static LitigCharts.DataProcessingUtils;
+using static LitigCharts.Runner;
 
 namespace LitigCharts
 {
@@ -164,7 +165,7 @@ namespace LitigCharts
 
         #endregion
 
-        public static List<(string folderName, string[] extensions)> GetFilePlacementRules()
+        public static List<(string folderName, string[] extensions)> GetFilePlacementRules(DataBeingAnalyzed article)
         {
             HashSet<string> alreadyProcessed = new();
 
@@ -178,12 +179,20 @@ namespace LitigCharts
                 ("Latex files", expandToIncludeAdditionalEquilibria(new[] { "-offers.tex", "-fileans.tex", "-stagecostlight.tex", "-stagecostdark.tex", "-costbreakdownlight.tex", "-costbreakdowndark.tex" })),
                 ("File-Answer Diagrams", expandToIncludeAdditionalEquilibria( new[] { "-fileans.pdf" })),
                 ("Offer Heatmaps", expandToIncludeAdditionalEquilibria( new[] { "-offers.pdf" })),
-                ("Stage Costs Diagrams (Normal)", expandToIncludeAdditionalEquilibria( new[] { "-stagecostlight.pdf" })),
-                ("Stage Costs Diagrams (Dark Mode)", expandToIncludeAdditionalEquilibria( new[] { "-stagecostdark.pdf" })),
                 ("Cost Breakdown Diagrams (Normal)", expandToIncludeAdditionalEquilibria( new[] { "-costbreakdownlight.pdf" })),
                 ("Cost Breakdown Diagrams (Dark Mode)", expandToIncludeAdditionalEquilibria( new[] { "-costbreakdowndark.pdf" })),
                 ("Cross Tabs", expandToIncludeAdditionalEquilibria(new[] { ".csv" })),
             };
+
+            if (article != DataBeingAnalyzed.EndogenousDisputesArticle)
+            {
+                placementRules.AddRange(new List<(string folderName, string[] extensions)>
+                {
+                    ("Stage Costs Diagrams (Normal)", expandToIncludeAdditionalEquilibria(new[] { "-stagecostlight.pdf" })),
+                    ("Stage Costs Diagrams (Dark Mode)", expandToIncludeAdditionalEquilibria(new[] { "-stagecostdark.pdf" })),
+                }
+                );
+            }
 
             string[] notAlreadyProcessed(string[] original)
             {

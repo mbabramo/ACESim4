@@ -84,7 +84,7 @@ namespace ACESimBase.Games.LitigGame.ManualReports
         #region Report generation
 
         // ---------------------------------------------------------------------
-        // Public entrypoints
+        // Public entry-points
         // ---------------------------------------------------------------------
 
         public static List<string> GenerateReports(
@@ -92,8 +92,12 @@ namespace ACESimBase.Games.LitigGame.ManualReports
             double rightAxisTop,
             bool splitRareHarmPanel = true)
         {
-            var slices = ToNormalizedSlices(raw, rightAxisTop);
+            var slices = ToNormalizedSlices(raw);
+
             bool useSplit = splitRareHarmPanel && HasTwoPanels(slices);
+
+            if (!useSplit) // one-panel diagrams
+                slices = SinglePanelScale(slices, rightAxisTop).ToList();
 
             var scale = useSplit
                 ? ComputeScaling(slices, rightAxisTop)
@@ -105,19 +109,22 @@ namespace ACESimBase.Games.LitigGame.ManualReports
             return BuildOutputs(slices, scale, useSplit, "", options);
         }
 
-        /// <inheritdoc cref="GenerateReports(IEnumerable{(LitigGameProgress,double)},IEnumerable{(LitigGameProgress,double)},double,bool)"/>
+        /// <inheritdoc cref="GenerateReports(IEnumerable{(LitigGameProgress,double)},double,bool)"/>
         public static List<string> GenerateReports(
             IEnumerable<(LitigGameProgress p, double w)> raw,
             IEnumerable<(LitigGameProgress p, double w)> reference,
             double referenceRightAxisTop,
             bool splitRareHarmPanel = true)
         {
-            var slices = ToNormalizedSlices(raw, referenceRightAxisTop);
-            var referenceSlices = ToNormalizedSlices(reference, referenceRightAxisTop);
+            var slices = ToNormalizedSlices(raw);
+            var referenceSlices = ToNormalizedSlices(reference);
 
             bool useSplit = splitRareHarmPanel
                             && HasTwoPanels(slices)
                             && HasTwoPanels(referenceSlices);
+
+            if (!useSplit) // legacy one-panel diagrams
+                slices = SinglePanelScale(slices, referenceRightAxisTop).ToList();
 
             var scale = useSplit
                 ? ComputeScalingFromReference(
@@ -129,7 +136,6 @@ namespace ACESimBase.Games.LitigGame.ManualReports
 
             return BuildOutputs(slices, scale, useSplit, "", options);
         }
- 
 
         #endregion
 
@@ -196,14 +202,14 @@ namespace ACESimBase.Games.LitigGame.ManualReports
         /// <returns>A list of distinct, normalized, scaled <see cref="Slice"/> objects.</returns>
 
         static List<Slice> ToNormalizedSlices(
-            IEnumerable<(LitigGameProgress p, double w)> raw,
-            double yAxisTop)
+    IEnumerable<(LitigGameProgress p, double w)> raw)
         {
-            double tot = raw.Sum(t => t.w);
-            if (tot <= 0) throw new ArgumentException("weights");
-            return SinglePanelScale(Merge(
-                    raw.Select(t => BuildSlice(t.p, t.w / tot))), yAxisTop)
-                   .ToList();
+            double totalWeight = raw.Sum(t => t.w);
+            if (totalWeight <= 0)
+                throw new ArgumentException(nameof(raw));
+
+            // BuildSlice applies cost rules; Merge collapses identical slices.
+            return Merge(raw.Select(t => BuildSlice(t.p, t.w / totalWeight))).ToList();
         }
 
         /// <summary>
