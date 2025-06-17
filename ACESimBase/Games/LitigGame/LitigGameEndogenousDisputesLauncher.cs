@@ -46,9 +46,10 @@ namespace ACESim
             "Noise Multipliers", // includes P & D
             "Relative Costs",
             "Damages Multiplier",
-            "Fee Shifting Mode",
+            // TODO: Add back in "Fee Shifting Mode",
             "Proportion of Costs at Beginning",
         };
+
         public override List<(string criticalValueName, string[] criticalValueValues)> CriticalVariableValues
         {
             get
@@ -64,8 +65,6 @@ namespace ACESim
         public override List<ArticleVariationInfoSets> VariationInfoSets
             => GetArticleVariationInfoList_PossiblyFixingRiskAversion(false);
 
-        public override string ReportPrefix => MasterReportNameForDistributedProcessing;
-        public override string MasterReportNameForDistributedProcessing => MasterReportNamePrefix + "001";
 
         public enum UnderlyingGame
         {
@@ -82,20 +81,15 @@ namespace ACESim
             _ => throw new NotImplementedException("Unknown game to play: " + GameToPlay.ToString()),
         };
 
+        public override string MasterReportNameForDistributedProcessing => MasterReportNamePrefix + "001";
+
         // We can use this to allow for multiple options sets. These can then run in parallel. But note that we can also have multiple runs with a single option set using different settings by using GameDefinition scenarios; this is useful when there is a long initialization and it makes sense to complete one set before starting the next set.
 
 
         public override FeeShiftingRule[] FeeShiftingModes => new[] { FeeShiftingRule.English_LiabilityIssue, FeeShiftingRule.MarginOfVictory_LiabilityIssue, 
             FeeShiftingRule.Rule68_DamagesIssue, FeeShiftingRule.Rule68English_DamagesIssue 
-        }; // TODO -- note that these are disabled now (see TODO below). Can be added back in by providing support for margin of fee shifting by creating logic around that in PrecautionNegligence game
+        }; // TODO -- note that these are disabled now (see TODOs above and below). Can be added back in by providing support for margin of fee shifting by creating logic around that in PrecautionNegligence game
 
-        public override GameDefinition GetGameDefinition() => new LitigGameDefinition();
-
-
-        public override GameOptions GetDefaultSingleGameOptions()
-        {
-            return LitigGameOptionsGenerator.GetLitigGameOptions();
-        }
 
         public override List<GameOptions> GetOptionsSets()
         {
@@ -130,9 +124,8 @@ namespace ACESim
             return eachGameIndependently.Select(x => (GameOptions) x).ToList();
         }
 
-        public override List<List<GameOptions>> GetSetsOfGameOptions(bool useAllPermutationsOfTransformations, bool includeBaselineValueForNoncritical)
+        public override List<List<GameOptions>> GetVariationSets(bool useAllPermutationsOfTransformations, bool includeBaselineValueForNoncritical)
         {
-            List<List<LitigGameOptions>> result = new List<List<LitigGameOptions>>();
             const int numCritical = 3; // critical transformations are all interacted with one another and then with each of the other transformations  
             var criticalCostsMultiplierTransformations = CriticalCostsMultiplierTransformations(true);
             var noncriticalCostsMultiplierTransformations = AdditionalCostsMultiplierTransformations(includeBaselineValueForNoncritical);
@@ -142,64 +135,26 @@ namespace ACESim
             var noncriticalRiskAversionTransformations = AdditionalRiskAversionTransformations(includeBaselineValueForNoncritical);
             List<List<Func<LitigGameOptions, LitigGameOptions>>> allTransformations = new List<List<Func<LitigGameOptions, LitigGameOptions>>>()
            {  
+               // IMPORTANT: When changing these, change NamesOfFeeShiftingArticleSets to match each of these  
                // Can always choose any of these:  
                criticalCostsMultiplierTransformations,
                criticalFeeShiftingMultipleTransformations,
                criticalRiskAversionTransformations,  
+               // IMPORTANT: Must follow with the corresponding noncritical transformations
                // And then can vary ONE of these (avoiding inconsistencies with above):  
-               // IMPORTANT: When changing these, change NamesOfFeeShiftingArticleSets to match each of these  
                noncriticalCostsMultiplierTransformations, // i.e., not only the core costs multipliers and other core variables, but also the critical costs multipliers  
                noncriticalFeeShiftingMultipleTransformations,
                noncriticalRiskAversionTransformations,
+               // Now other noncritical transformations
                NoiseTransformations(includeBaselineValueForNoncritical),
                PRelativeCostsTransformations(includeBaselineValueForNoncritical),
                DamagesMultiplierTransformations(includeBaselineValueForNoncritical),
-               // FeeShiftingModeTransformations(includeBaselineValueForNoncritical),  // TODO: Add this back in by providing support for Bayesian logic with the margin-of-victory approach
+               // FeeShiftingModeTransformations(includeBaselineValueForNoncritical),  // TODO: Add this back in by providing support for Bayesian logic with the margin-of-victory approach -- then make change in NamesOfVariationSets
                ProportionOfCostsAtBeginningTransformations(includeBaselineValueForNoncritical),
            };
-            List<List<Func<LitigGameOptions, LitigGameOptions>>> criticalTransformations = allTransformations.Take(numCritical).ToList();
-            List<List<Func<LitigGameOptions, LitigGameOptions>>> noncriticalTransformations = allTransformations.Skip(IncludeNonCriticalTransformations ? numCritical : allTransformations.Count()).ToList();
-            if (!useAllPermutationsOfTransformations)
-            {
-                var noncriticalTransformationPlusNoTransformation = new List<List<Func<LitigGameOptions, LitigGameOptions>>>();
-                noncriticalTransformationPlusNoTransformation.AddRange(noncriticalTransformations.Where(x => x.Count() != 0));
-                noncriticalTransformationPlusNoTransformation.Insert(0, null);
-                // We still want the non-critical transformations, just not permuted with the others.  
-                for (int noncriticalIndex = 0; noncriticalIndex < noncriticalTransformationPlusNoTransformation.Count; noncriticalIndex++)
-                {
-                    List<Func<LitigGameOptions, LitigGameOptions>> noncriticalTransformation = noncriticalTransformationPlusNoTransformation[noncriticalIndex];
-                    if (includeBaselineValueForNoncritical && noncriticalTransformation != null && noncriticalTransformation.Count() <= 1)
-                        continue; // if there is only 1 entry, that will be the baseline, and thus there is no transformation here, so there is nothing to add. But we keep the null case, because that is the case for just keeping the baseline critical transformations.  
-                    List<List<Func<LitigGameOptions, LitigGameOptions>>> transformLists = criticalTransformations.ToList();
-                    bool replaced = false;
-                    foreach ((List<Func<LitigGameOptions, LitigGameOptions>> noncritical, List<Func<LitigGameOptions, LitigGameOptions>> critical) in new (List<Func<LitigGameOptions, LitigGameOptions>> noncritical, List<Func<LitigGameOptions, LitigGameOptions>> critical)[] { (noncriticalCostsMultiplierTransformations, criticalCostsMultiplierTransformations), (noncriticalFeeShiftingMultipleTransformations, criticalFeeShiftingMultipleTransformations), (noncriticalRiskAversionTransformations, criticalRiskAversionTransformations) })
-                    {
-                        if (noncriticalTransformation == noncritical)
-                        {
-                            // Keep the order the same for naming purposes  
-                            int indexOfCritical = transformLists.IndexOf(critical);
-                            transformLists[indexOfCritical] = noncriticalTransformation;
-                            replaced = true;
-                        }
-                    }
-                    if (noncriticalTransformation != null && !replaced)
-                        transformLists.Add(noncriticalTransformation);
-                    List<LitigGameOptions> noncriticalOptions = ApplyPermutationsOfTransformations(LitigGameOptionsGenerator.GetLitigGameOptions, transformLists);
-                    List<(string, string)> defaultNonCriticalValues = DefaultVariableValues;
-                    foreach (var optionSet in noncriticalOptions)
-                    {
-                        foreach (var defaultPair in defaultNonCriticalValues)
-                            if (!optionSet.VariableSettings.ContainsKey(defaultPair.Item1))
-                                optionSet.VariableSettings[defaultPair.Item1] = defaultPair.Item2;
-                    }
-
-                    //var optionSetNames = noncriticalOptions.Select(x => x.Name).OrderBy(x => x).ToList();  
-                    result.Add(noncriticalOptions);
-                }
-            }
-            return result.Select(innerList => innerList.Cast<GameOptions>().ToList()).ToList();
+            List<List<GameOptions>> result = PerformTransformations(allTransformations, numCritical, useAllPermutationsOfTransformations, includeBaselineValueForNoncritical);
+            return result;
         }
-
 
         public override List<ArticleVariationInfoSets> GetArticleVariationInfoList_PossiblyFixingRiskAversion(bool useRiskAversionForNonRiskReports)
         {

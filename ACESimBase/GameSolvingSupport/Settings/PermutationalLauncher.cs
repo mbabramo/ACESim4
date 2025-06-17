@@ -80,7 +80,7 @@ namespace ACESimBase.GameSolvingSupport.Settings
             return gamesSets.SelectMany(x => x).ToList();
         }
 
-        public abstract List<List<GameOptions>> GetSetsOfGameOptions(bool useAllPermutationsOfTransformations, bool includeBaselineValueForNoncritical);
+        public abstract List<List<GameOptions>> GetVariationSets(bool useAllPermutationsOfTransformations, bool includeBaselineValueForNoncritical);
 
         public void AddToOptionsSets(List<GameOptions> options)
         {
@@ -90,7 +90,7 @@ namespace ACESimBase.GameSolvingSupport.Settings
 
         public void AddToOptionsSets(List<GameOptions> options, bool allowRedundancies)
         {
-            var gamesSets = GetSetsOfGameOptions(false, allowRedundancies); // each is a set with noncritical
+            var gamesSets = GetVariationSets(false, allowRedundancies); // each is a set with noncritical
             List<GameOptions> eachGameIndependently = FlattenAndOrderGameSets(gamesSets);
 
             List<string> optionChoices = eachGameIndependently.Select(x => ToCompleteString(x.VariableSettings)).ToList();
