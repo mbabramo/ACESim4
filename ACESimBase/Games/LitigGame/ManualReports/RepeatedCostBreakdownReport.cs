@@ -38,7 +38,8 @@ namespace ACESimBase.Games.LitigGame.ManualReports
             string                  majorYAxisLabel,
             double                  peakProportion            = 0.8,
             bool                    keepAxisLabels            = false,
-            bool                    keepAxisTicks             = true) 
+            bool                    keepAxisTicks             = true,
+            bool                    tickLabelsInside          = true) 
         {
             // ── basic checks ─────────────────────────────────────────────────────────
             if (sliceGrid is null || sliceGrid.Count == 0 || sliceGrid.Any(r => r.Count == 0))
@@ -123,7 +124,8 @@ namespace ACESimBase.Games.LitigGame.ManualReports
                             xOffset:      cell.left,
                             yOffset:      cell.bottom,
                             adaptivePadding: true,
-                            minimalTicks: true));
+                            minimalTicks: true,
+                            tickLabelsInside: tickLabelsInside));
                 }
             }
 

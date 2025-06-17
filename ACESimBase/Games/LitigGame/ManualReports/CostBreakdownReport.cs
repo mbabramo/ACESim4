@@ -627,7 +627,8 @@ namespace ACESimBase.Games.LitigGame.ManualReports
             double?          xOffset              = null,
             double?          yOffset              = null,
             bool             adaptivePadding      = false, 
-            bool             minimalTicks         = false) 
+            bool             minimalTicks         = false,
+            bool             tickLabelsInside     = false) 
         {
             // ── dimensions ─────────────────────────────────────────────────────────
             double W = pres ? PresPanelWidth : LightPanelWidth;
@@ -641,9 +642,14 @@ namespace ACESimBase.Games.LitigGame.ManualReports
             var outer = new TikzRectangle(originX, originY, originX + W, originY + H);
 
             // ── padding ────────────────────────────────────────────────────────────
-            const double NeedLeft = 0.40;   // matches hard-wired y-label shift
-            const double NeedBot  = 0.60;   // matches hard-wired x-label shift
-            const double NeedTop  = 0.50;   // tiny clearance for legend title
+            double NeedLeft = tickLabelsInside ? 0.15               // no outside ticks → slim edge
+                                               : 0.40;              // room for tick labels
+
+            double NeedBot  = includeAxisLabels ? 0.60              // x-axis label + ticks
+                                               : 0.20;              // keep at least 0.20 cm
+
+            double NeedTop  = includeLegend     ? 0.60              // legend title line
+                                               : 0.10;              // tiny headroom
 
             double padLR, padTop, padBot;
             if (!adaptivePadding)
@@ -654,10 +660,14 @@ namespace ACESimBase.Games.LitigGame.ManualReports
             }
             else
             {
-                padLR  = Math.Max(NeedLeft, Math.Min(1.0, W * 0.08));
-                padBot = Math.Max(NeedBot,  Math.Min(1.0, H * 0.08));
-                padTop = Math.Max(NeedTop,  Math.Min(1.5, H * 0.12));
+                double relLR = W < 6.0 ? 0.04 : 0.08;   // 4 % if the pane is < 6 cm wide
+                double relTB = H < 6.0 ? 0.04 : 0.08;
+
+                padLR  = Math.Max(NeedLeft, Math.Min(1.0, W * relLR));
+                padBot = Math.Max(NeedBot,  Math.Min(1.0, H * relTB));
+                padTop = Math.Max(NeedTop,  Math.Min(1.5, H * relTB * 1.5));
             }
+
 
             var pane = outer.ReducedByPadding(padLR, padTop, padLR, padBot);
 
@@ -687,45 +697,53 @@ namespace ACESimBase.Games.LitigGame.ManualReports
                 sb.AppendLine(box.DrawCommand($"{fills[rc.Category]},draw={pen},very thin"));
             }
 
-            // ── left y-axis ────────────────────────────────────────────────────────
-            var yL = new TikzLine(new(pane.left, pane.bottom), new(pane.left, pane.top));
+            // ── left y-axis ───────────────────────────────────────────────────
+            var yL = new TikzLine(new(pane.left, pane.bottom),
+                                  new(pane.left, pane.top));
+
             var ticksLeftRaw = BuildTicks(sc.YMaxLeft);
             if (minimalTicks && ticksLeftRaw.Count > 2)
-                ticksLeftRaw = new List<(double, string)> { ticksLeftRaw[^1] };
+                ticksLeftRaw = new() { ticksLeftRaw[^1] };
             var ticksLeft = ticksLeftRaw;
-            // DEBUG
-                //.Select(t => !minimalTicks ? t : (t.proportion, ""))
-                //.ToList();
 
-            double shiftYL = BestLabelShiftY(ticksLeft, pane.height);
+            string  anchorLeft  = tickLabelsInside ? "west" : "east";
+            double   shiftXLeft = tickLabelsInside ?  0.15 : -0.40;
+            double   shiftYL    = BestLabelShiftY(ticksLeft, pane.height);
+
             sb.AppendLine(yL.DrawAxis($"{pen},very thin", ticksLeft,
-                $"font=\\small,text={pen}", "east",
-                includeAxisLabels ? "Cost" : null, "center", TikzHorizontalAlignment.Center,
+                $"font=\\small,text={pen}", anchorLeft,
+                includeAxisLabels ? "Cost" : null, "center",
+                TikzHorizontalAlignment.Center,
                 includeAxisLabels ? $"font=\\small,rotate=90,text={pen}" : null,
-                -0.40, shiftYL));
+                shiftXLeft, shiftYL));
 
-            // ── split-panel right y-axis (unchanged except minimalTicks) ───────────
+            // ── right y-axis (split-panel only) ───────────────────────────────
             if (splitRareHarmPanel)
             {
                 var mid = new TikzLine(new(pane.left + 0.5 * sx, pane.bottom - 0.4),
                                        new(pane.left + 0.5 * sx, pane.top));
                 sb.AppendLine(mid.DrawCommand($"{pen},dashed,very thin"));
 
-                var yR = new TikzLine(new(pane.right, pane.bottom), new(pane.right, pane.top));
+                var yR = new TikzLine(new(pane.right, pane.bottom),
+                                      new(pane.right, pane.top));
+
                 var ticksRightRaw = BuildTicks(sc.YMaxRight);
                 if (minimalTicks && ticksRightRaw.Count > 2)
-                    ticksRightRaw = new List<(double, string)> { ticksRightRaw[^1] };
-                var ticksRight = ticksRightRaw
-                    .Select(t => includeAxisLabels ? t : (t.proportion, ""))
-                    .ToList();
+                    ticksRightRaw = new() { ticksRightRaw[^1] };
+                var ticksRight = ticksRightRaw;
+
+                string anchorRight  = tickLabelsInside ? "east" : "west";
+                double shiftXRight  = tickLabelsInside ? -0.15 :  0.65;
 
                 sb.AppendLine(yR.DrawAxis($"{pen},very thin", ticksRight,
-                    $"font=\\small,text={pen}", "west",
+                    $"font=\\small,text={pen}", anchorRight,
                     null, null, TikzHorizontalAlignment.Center,
-                    includeAxisLabels ? $"font=\\small,text={pen}" : null, 0.65, 0));
+                    includeAxisLabels ? $"font=\\small,text={pen}" : null,
+                    shiftXRight, 0));
             }
 
-            // ── x-axis & (optional) panel captions – unchanged ─────────────────────
+
+            // ── x-axis & (optional) panel captions  ─────────────────────
             var xB = new TikzLine(new(pane.left, pane.bottom), new(pane.right, pane.bottom));
             var xTicks = includeAxisLabels
                 ? new List<(double, string)> { (0, "0\\%"), (1, "100\\%") } // this is really tick marks but we make them disappear when dropping the labels
