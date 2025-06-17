@@ -36,9 +36,9 @@ namespace ACESimBase.Games.LitigGame.ManualReports
             List<string>            majorYValueNames,
             string                  majorXAxisLabel,
             string                  majorYAxisLabel,
-            double                  peakProportion = 0.8,
-            bool                    keepAxisLabels = false,
-            bool                    keepAxisTicks  = true)
+            double                  peakProportion            = 0.8,
+            bool                    keepAxisLabels            = false,
+            bool                    keepAxisTicks             = true) 
         {
             // ── basic checks ─────────────────────────────────────────────────────────
             if (sliceGrid is null || sliceGrid.Count == 0 || sliceGrid.Any(r => r.Count == 0))
@@ -51,28 +51,38 @@ namespace ACESimBase.Games.LitigGame.ManualReports
                 throw new ArgumentException("Dimension mismatch between axis labels and data grid.");
 
             // ── shared scaling across all panels ─────────────────────────────────────
-            var scales = ComputeScaling(sliceGrid.SelectMany(r => r).ToList(), peakProportion);
+            var scales      = ComputeScaling(sliceGrid.SelectMany(r => r).ToList(), peakProportion);
             int scaleCursor = 0;
 
-            // ── outer rectangle mimics TikzRepeatedGraph style but with tighter pitch ─
-            double widthCm  = OuterLeftBandCm + cols * CellPitchCm;
-            double heightCm = 2.3 + rows * CellPitchCm; // 2.3 cm top band for macro labels
+            // ── geometry parameters (allow caller overrides) ─────────────────────────
+            double yAxisGapCm    = Math.Max(1.0, 0.35 *
+                                            (majorXValueNames.Count == 0
+                                                 ? 1
+                                                 : majorXValueNames.Max(s => s.Length)));
+
+            double outerLeftBand = Math.Max(OuterLeftBandCm, yAxisGapCm + 0.9);
+            double yLabelOffset  = Math.Max(0.9, outerLeftBand - 1.0);
+
+            double widthCm  = outerLeftBand + cols * CellPitchCm;
+            double heightCm = 2.3 + rows * CellPitchCm;                   // 2.3 cm top band
 
             var outerRect = new TikzRectangle(0, 0, widthCm, heightCm);
             var outerAxis = new TikzAxisSet(
-                majorXValueNames, majorYValueNames,
-                majorXAxisLabel,  majorYAxisLabel,
+                majorXValueNames,
+                majorYValueNames,
+                majorXAxisLabel,
+                majorYAxisLabel,
                 outerRect,
                 fontScale: 2,
                 xAxisSpace: 1.0,
-                yAxisSpace: 1.0,
-                xAxisLabelOffsetDown: 0.7,
-                yAxisLabelOffsetLeft: 0.9,
+                yAxisSpace: yAxisGapCm,
+                xAxisLabelOffsetDown: 0.9,
+                yAxisLabelOffsetLeft: yLabelOffset,
                 boxBordersAttributes: "draw=none",
                 horizontalLinesAttribute: "draw=none",
                 verticalLinesAttribute: "draw=none");
 
-            // ── determine legend entries actually present ───────────────────────────
+            // ── legend entries actually present ──────────────────────────────────────
             bool[] used = new bool[Labels.Length];
             foreach (var s in sliceGrid.SelectMany(r => r).SelectMany(x => x))
             {
@@ -85,7 +95,7 @@ namespace ACESimBase.Games.LitigGame.ManualReports
             }
             var activeCats = Enumerable.Range(0, Labels.Length).Where(i => used[i]).ToList();
 
-            // ── build TikZ contents ──────────────────────────────────────────────────
+            // ── build TikZ body ──────────────────────────────────────────────────────
             var body = new StringBuilder();
             body.AppendLine($@"\clip(0,-{LegendSpaceCm}) rectangle +{outerRect.topRight.WithYTranslation(LegendSpaceCm)};");
             body.AppendLine(outerAxis.GetDrawCommands());
@@ -117,7 +127,7 @@ namespace ACESimBase.Games.LitigGame.ManualReports
                 }
             }
 
-            // ── legend directly under the x-axis ─────────────────────────────────────
+            // ── legend underneath x-axis ─────────────────────────────────────────────
             if (activeCats.Count > 0)
             {
                 double midX = (outerAxis.BottomAxisLine.start.x + outerAxis.BottomAxisLine.end.x) / 2.0;
@@ -130,20 +140,21 @@ namespace ACESimBase.Games.LitigGame.ManualReports
                     string sep = i == activeCats.Count - 1 ? @"\\" : "&";
                     body.AppendLine(
                         $@"\node[rectangle,draw,minimum width=0.55cm,minimum height=0.55cm,{RegFill[cat]}]{{}}; &
-\node[draw=none,font=\small]{{{Labels[cat]}}}; {sep}");
+        \node[draw=none,font=\small]{{{Labels[cat]}}}; {sep}");
                 }
                 body.AppendLine("};\\end{scope}");
             }
 
             // ── minimal header so \fontscale is always defined ───────────────────────
             const string extraHeader = @"\usetikzlibrary{calc}
-\usepackage{relsize}
-\tikzset{fontscale/.style = {font=\relsize{#1}}}";
+        \usepackage{relsize}
+        \tikzset{fontscale/.style = {font=\relsize{#1}}}";
 
             return TikzHelper.GetStandaloneDocument(
                 body.ToString(),
                 additionalHeaderInfo: extraHeader,
                 additionalTikzLibraries: new() { "patterns", "positioning" });
         }
+
     }
 }
