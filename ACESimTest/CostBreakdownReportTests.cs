@@ -261,18 +261,18 @@ namespace ACESimTest
                 var slices = diagrams[d];
                 var info = infos[d];
 
-                bool isSplit = slices.Any(s => s.Harm + s.Filing + s.Answer +
-                                               s.Bargaining + s.Trial > 0) &&
-                               slices.Any(s => s.Harm + s.Filing + s.Answer +
-                                               s.Bargaining + s.Trial == 0);
+                bool isSplit = slices.Any(s => s.harm + s.filing + s.answer +
+                                               s.bargaining + s.trial > 0) &&
+                               slices.Any(s => s.harm + s.filing + s.answer +
+                                               s.bargaining + s.trial == 0);
 
                 // tallest stacks
                 double tallestLeft = 0, tallestRight = 0;
                 foreach (var s in slices)
                 {
                     double total = s.Total;
-                    bool left = s.Harm + s.Filing + s.Answer +
-                                s.Bargaining + s.Trial == 0;
+                    bool left = s.harm + s.filing + s.answer +
+                                s.bargaining + s.trial == 0;
                     if (left)  tallestLeft  = Math.Max(tallestLeft, total);
                     else       tallestRight = Math.Max(tallestRight, total);
                 }
@@ -295,11 +295,6 @@ namespace ACESimTest
                 info.AreaPerUnit.Should().BeApproximately(sharedAreaPerUnit, epsilon);
             }
         }
-
-
-
-
-
 
 
         [TestMethod]
@@ -329,6 +324,107 @@ namespace ACESimTest
             tikz.Should().Contain(@"0.0001\%");
 
         }
+
+        [TestMethod]
+        public void RepeatedCostBreakdownReport_FourByThreeGrid_RendersTikz()
+        {
+            const int rows = 4;
+            const int cols = 3;
+            var rng = new Random(98765);
+
+            // ---------------------------------------------------------------------
+            // Build a 4×3 grid where every panel has at least one left-only slice
+            // (opportunity costs) and at least one right-side slice (includes harm)
+            // ---------------------------------------------------------------------
+            var sliceGrid = new List<List<List<CostBreakdownReport.Slice>>>();
+            for (int r = 0; r < rows; r++)
+            {
+                var row = new List<List<CostBreakdownReport.Slice>>();
+                for (int c = 0; c < cols; c++)
+                {
+                    var slices = RandomSliceSet(rng);
+                    // Sanity: each panel must split into left & right
+                    slices.Any(IsLeftSlice).Should().BeTrue();
+                    slices.Any(s => !IsLeftSlice(s)).Should().BeTrue();
+                    row.Add(slices);
+                }
+                sliceGrid.Add(row);
+            }
+
+            var majorX = Enumerable.Range(1, cols).Select(i => $"Col {i}").ToList();
+            var majorY = Enumerable.Range(1, rows).Select(i => $"Row {i}").ToList();
+
+            string tikz = RepeatedCostBreakdownReport.GenerateRepeatedReport(
+                             sliceGrid,
+                             majorX,
+                             majorY,
+                             "Cases",
+                             "Scenarios",
+                             peakProportion: 0.8,
+                             keepAxisLabels: true,
+                             keepAxisTicks: true);
+
+            tikz.Should().StartWith(@"\documentclass{standalone}");
+        }
+
+        private static List<CostBreakdownReport.Slice> RandomSliceSet(Random rng)
+        {
+            int sliceCount = rng.Next(3, 6);          // total slices ≥ 3
+            var rawWeights = Enumerable.Range(0, sliceCount)
+                                       .Select(_ => rng.NextDouble())
+                                       .ToArray();
+            double total = rawWeights.Sum();
+
+            // Helper to round values consistently
+            static double R2(double v) => Math.Round(v, 2, MidpointRounding.AwayFromZero);
+
+            var slices = new List<CostBreakdownReport.Slice>();
+
+            // ---------------- Left-only slice (opportunity cost) ----------------
+            slices.Add(new CostBreakdownReport.Slice(
+                width:  R2(rawWeights[0] / total),
+                opportunity: R2(rng.NextDouble() * 10),
+                harm: 0, filing: 0, answer: 0, bargaining: 0, trial: 0));
+
+            // ---------------- Right-side slice (includes harm) ------------------
+            slices.Add(new CostBreakdownReport.Slice(
+                width:  R2(rawWeights[1] / total),
+                opportunity: R2(rng.NextDouble() * 10),
+                harm:        R2(rng.NextDouble() * 5),
+                filing:      R2(rng.NextDouble() * 2),
+                answer:      R2(rng.NextDouble() * 2),
+                bargaining:  R2(rng.NextDouble() * 1),
+                trial:       R2(rng.NextDouble() * 3)));
+
+            // ---------------- Additional slices (randomly left or right) --------
+            for (int i = 2; i < sliceCount; i++)
+            {
+                bool left = rng.NextDouble() < 0.4; // ~40 % chance of another left slice
+                if (left)
+                {
+                    slices.Add(new CostBreakdownReport.Slice(
+                        width:  R2(rawWeights[i] / total),
+                        opportunity: R2(rng.NextDouble() * 10),
+                        harm: 0, filing: 0, answer: 0, bargaining: 0, trial: 0));
+                }
+                else
+                {
+                    slices.Add(new CostBreakdownReport.Slice(
+                        width:  R2(rawWeights[i] / total),
+                        opportunity: R2(rng.NextDouble() * 10),
+                        harm:        R2(rng.NextDouble() * 5),
+                        filing:      R2(rng.NextDouble() * 2),
+                        answer:      R2(rng.NextDouble() * 2),
+                        bargaining:  R2(rng.NextDouble() * 1),
+                        trial:       R2(rng.NextDouble() * 3)));
+                }
+            }
+
+            return slices;
+        }
+
+        private static bool IsLeftSlice(CostBreakdownReport.Slice s) =>
+            s.harm + s.filing + s.answer + s.bargaining + s.trial == 0;
 
     }
 }

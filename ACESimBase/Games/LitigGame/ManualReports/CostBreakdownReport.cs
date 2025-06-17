@@ -55,6 +55,9 @@ namespace ACESimBase.Games.LitigGame.ManualReports
         public const double LightPanelHeight = 16.0;      // H when pres == false
         public const double PresPanelWidth = 26.6666;   // W when pres == true
         public const double PresPanelHeight = 15.0;      // H when pres == true
+        private const double MinPadLeftForLabels   = 0.45; // ≥ |yAxisLabelOffsetLeft|
+        private const double MinPadBottomForLabels = 0.75; // ≥ xAxisLabelOffsetDown + tick height
+        private const double MinPadTopForLegend    = 0.60; // room for legend title line
 
         /// <summary>
         /// Fill patterns for print mode (default color/line patterns).
@@ -154,15 +157,15 @@ namespace ACESimBase.Games.LitigGame.ManualReports
         /// One aggregate outcome type, normalized to a weight (probability)
         /// and six cost components.
         /// </summary>
-        internal sealed record Slice(
-            double Width, double Opportunity, double Harm, double Filing,
-            double Answer, double Bargaining, double Trial)
+        public sealed record Slice(
+            double width, double opportunity, double harm, double filing,
+            double answer, double bargaining, double trial)
         {
             /// <summary>
             /// The total cost in this slice (sum of components).
             /// </summary>
             public double Total =>
-                Opportunity + Harm + Filing + Answer + Bargaining + Trial;
+                opportunity + harm + filing + answer + bargaining + trial;
         }
 
         /// <summary>
@@ -228,17 +231,17 @@ namespace ACESimBase.Games.LitigGame.ManualReports
             foreach (var s in src)
             {
                 var hit = acc.FirstOrDefault(a =>
-                    Math.Abs(a.Opportunity - s.Opportunity) < 1e-7 &&
-                    Math.Abs(a.Harm - s.Harm) < 1e-7 &&
-                    Math.Abs(a.Filing - s.Filing) < 1e-7 &&
-                    Math.Abs(a.Answer - s.Answer) < 1e-7 &&
-                    Math.Abs(a.Bargaining - s.Bargaining) < 1e-7 &&
-                    Math.Abs(a.Trial - s.Trial) < 1e-7);
+                    Math.Abs(a.opportunity - s.opportunity) < 1e-7 &&
+                    Math.Abs(a.harm - s.harm) < 1e-7 &&
+                    Math.Abs(a.filing - s.filing) < 1e-7 &&
+                    Math.Abs(a.answer - s.answer) < 1e-7 &&
+                    Math.Abs(a.bargaining - s.bargaining) < 1e-7 &&
+                    Math.Abs(a.trial - s.trial) < 1e-7);
                 if (hit is null)
                     acc.Add(s);
                 else
                     acc[acc.IndexOf(hit)] =
-                        hit with { Width = hit.Width + s.Width };
+                        hit with { width = hit.width + s.width };
             }
             return acc;
         }
@@ -254,12 +257,12 @@ namespace ACESimBase.Games.LitigGame.ManualReports
             double k = peak > yAxisTop ? yAxisTop / peak : 1;
             return src.Select(s => s with
             {
-                Opportunity = s.Opportunity * k,
-                Harm = s.Harm * k,
-                Filing = s.Filing * k,
-                Answer = s.Answer * k,
-                Bargaining = s.Bargaining * k,
-                Trial = s.Trial * k
+                opportunity = s.opportunity * k,
+                harm = s.harm * k,
+                filing = s.filing * k,
+                answer = s.answer * k,
+                bargaining = s.bargaining * k,
+                trial = s.trial * k
             });
         }
 
@@ -277,15 +280,15 @@ namespace ACESimBase.Games.LitigGame.ManualReports
         /// (has dispute costs).  When this is false we fall back to the
         /// simple one-panel layout.
         /// </summary>
-        static bool HasTwoPanels(List<Slice> slices)
+        internal static bool HasTwoPanels(List<Slice> slices)
         {
             bool hasLeft = false;
             bool hasRight = false;
 
             foreach (var s in slices)
             {
-                bool left = s.Harm + s.Filing + s.Answer +
-                            s.Bargaining + s.Trial == 0;
+                bool left = s.harm + s.filing + s.answer +
+                            s.bargaining + s.trial == 0;
                 if (left) hasLeft = true;
                 else hasRight = true;
 
@@ -466,9 +469,9 @@ namespace ACESimBase.Games.LitigGame.ManualReports
             double l = 0, r = 0;
             foreach (var s in slices)
             {
-                bool left = s.Harm + s.Filing + s.Answer +
-                            s.Bargaining + s.Trial == 0;
-                if (left) l += s.Width; else r += s.Width;
+                bool left = s.harm + s.filing + s.answer +
+                            s.bargaining + s.trial == 0;
+                if (left) l += s.width; else r += s.width;
             }
             if (l <= 0 || r <= 0)
                 throw new InvalidOperationException("one panel empty");
@@ -482,8 +485,8 @@ namespace ACESimBase.Games.LitigGame.ManualReports
             foreach (var s in slices)
             {
                 double total = s.Total;
-                bool left = s.Harm + s.Filing + s.Answer +
-                            s.Bargaining + s.Trial == 0;
+                bool left = s.harm + s.filing + s.answer +
+                            s.bargaining + s.trial == 0;
                 if (left) leftMax = Math.Max(leftMax, total);
                 else rightMax = Math.Max(rightMax, total);
             }
@@ -534,7 +537,7 @@ namespace ACESimBase.Games.LitigGame.ManualReports
                 double x = 0.0;
                 for (int idx = 0; idx < slices.Count; idx++)
                 {
-                    double w = slices[idx].Width * sc.XScaleLeft;   // XScaleLeft == 1.0 in this mode
+                    double w = slices[idx].width * sc.XScaleLeft;   // XScaleLeft == 1.0 in this mode
                     AddRects(rects, slices[idx], true, idx, x, x + w, sc.YMaxLeft);
                     x += w;
                 }
@@ -544,21 +547,21 @@ namespace ACESimBase.Games.LitigGame.ManualReports
             // --- Split panel: divide into left/right by content ----------------
             // Split into left/right and apply ordering within each panel
             var left = slices
-                .Where(s => s.Harm + s.Filing + s.Answer + s.Bargaining + s.Trial == 0)
-                .OrderByDescending(s => s.Opportunity)
+                .Where(s => s.harm + s.filing + s.answer + s.bargaining + s.trial == 0)
+                .OrderByDescending(s => s.opportunity)
                 .ThenBy(s => s.Total)
                 .ToList();
 
             var right = slices
-                .Where(s => s.Harm + s.Filing + s.Answer + s.Bargaining + s.Trial > 0)
-                .OrderByDescending(s => s.Opportunity)
+                .Where(s => s.harm + s.filing + s.answer + s.bargaining + s.trial > 0)
+                .OrderByDescending(s => s.opportunity)
                 .ThenBy(s => s.Total)
                 .ToList();
 
             double xL = 0.0;
             for (int i = 0; i < left.Count; i++)
             {
-                double w = left[i].Width * sc.XScaleLeft;          // 0.5 / pLeft
+                double w = left[i].width * sc.XScaleLeft;          // 0.5 / pLeft
                 AddRects(rects, left[i], true, i, xL, xL + w, sc.YMaxLeft);
                 xL += w;
             }
@@ -566,7 +569,7 @@ namespace ACESimBase.Games.LitigGame.ManualReports
             double xR = 0.5;
             for (int j = 0; j < right.Count; j++)
             {
-                double w = right[j].Width * sc.XScaleRight;        // 0.5 / pRight
+                double w = right[j].width * sc.XScaleRight;        // 0.5 / pRight
                 AddRects(rects, right[j], false, j, xR, xR + w, sc.YMaxRight);
                 xR += w;
             }
@@ -583,7 +586,7 @@ namespace ACESimBase.Games.LitigGame.ManualReports
         {
             double y = 0;
             double[] seg =
-            { s.Opportunity, s.Harm, s.Filing, s.Answer, s.Bargaining, s.Trial };
+            { s.opportunity, s.harm, s.filing, s.answer, s.bargaining, s.trial };
             for (int cat = 0; cat < 6; cat++)
             {
                 if (seg[cat] <= 1e-12) continue;
@@ -618,10 +621,13 @@ namespace ACESimBase.Games.LitigGame.ManualReports
             bool standalone = true,
             bool includeLegend = true,
             bool includeAxisLabels = true,
+            bool includeDisputeLabels = true,
             double? targetWidth = null,
             double? targetHeight = null,
             double? xOffset = null,
-            double? yOffset = null)
+            double? yOffset = null,
+            bool adaptivePadding = false
+            )
         {
             // --- Dimensions --------------------------------------------------------------------
             double W = pres ? 26.6666 : 15;
@@ -634,36 +640,44 @@ namespace ACESimBase.Games.LitigGame.ManualReports
             double originY = yOffset ?? 0.0;
 
             var outer = new TikzRectangle(originX, originY, originX + W, originY + H);
-            var pane = outer.ReducedByPadding(1.5, 2.5, 1.5, 1.5);
-            string pen = pres ? "white" : "black";
-            string[] fills = pres ? PresFill : RegFill;
 
+            // ── adaptive padding with lower bounds ───────────────────────────────
+            double padLR  = Math.Max(
+                               includeAxisLabels ? MinPadLeftForLabels : 0.25,
+                               Math.Min(1.5, W * 0.10));
+
+            double padBot = Math.Max(
+                               includeAxisLabels ? MinPadBottomForLabels : 0.25,
+                               Math.Min(1.5, H * 0.10));
+
+            double padTop = Math.Max(
+                               includeLegend ? MinPadTopForLegend : padBot,
+                               Math.Min(2.5, H * 0.15));
+
+            var pane = outer.ReducedByPadding(padLR, padTop, padLR, padBot);
+
+            string pen   = pres ? "white" : "black";
+            string[] fills = pres ? PresFill : RegFill;
             var sb = new StringBuilder();
 
-            // Background fill (black in presentation mode)
             if (pres)
                 sb.AppendLine(outer.DrawCommand("fill=black"));
 
-            // Title
             if (pres && !string.IsNullOrEmpty(title))
             {
-                var head = new TikzRectangle(
-                    outer.left, pane.top, outer.right, outer.top);
-                sb.AppendLine(head.DrawCommand($"draw=none,text={pen}",
-                    $"\\huge {title}"));
+                var head = new TikzRectangle(outer.left, pane.top, outer.right, outer.top);
+                sb.AppendLine(head.DrawCommand($"draw=none,text={pen}", $"\\huge {title}"));
             }
 
-            // --- Draw cost rectangles ---------------------------------------------------------
             double sx = pane.width, sy = pane.height;
             foreach (var rc in GetComponentRects(slices, sc, splitRareHarmPanel))
             {
                 var box = new TikzRectangle(
-                    pane.left + rc.X0 * sx,
+                    pane.left   + rc.X0 * sx,
                     pane.bottom + rc.Y0 * sy,
-                    pane.left + rc.X1 * sx,
+                    pane.left   + rc.X1 * sx,
                     pane.bottom + rc.Y1 * sy);
-                sb.AppendLine(box.DrawCommand(
-                    $"{fills[rc.Category]},draw={pen},very thin"));
+                sb.AppendLine(box.DrawCommand($"{fills[rc.Category]},draw={pen},very thin"));
             }
 
             // --- Draw y-axis on the left ------------------------------------------------------
@@ -720,8 +734,8 @@ namespace ACESimBase.Games.LitigGame.ManualReports
                 double pLeft = 0.5 / sc.XScaleLeft;
                 double pRight = 0.5 / sc.XScaleRight;
 
-                string leftLbl = $"No\\ Dispute\\ ({Pct(pLeft)})";
-                string rightLbl = $"Dispute\\ ({Pct(pRight)})";
+                string leftLbl = includeDisputeLabels ? $"No\\ Dispute\\ ({Pct(pLeft)})" : Pct(pLeft);
+                string rightLbl = includeDisputeLabels ? $"Dispute\\ ({Pct(pRight)})" : Pct(pRight);
                 double yLabel = pane.bottom - 0.6;
 
                 sb.AppendLine(TikzHelper.DrawText(
@@ -743,12 +757,12 @@ namespace ACESimBase.Games.LitigGame.ManualReports
                 bool[] used = new bool[Labels.Length];
                 foreach (var s in slices)
                 {
-                    if (s.Opportunity > 1e-12) used[0] = true;
-                    if (s.Harm > 1e-12) used[1] = true;
-                    if (s.Filing > 1e-12) used[2] = true;
-                    if (s.Answer > 1e-12) used[3] = true;
-                    if (s.Bargaining > 1e-12) used[4] = true;
-                    if (s.Trial > 1e-12) used[5] = true;
+                    if (s.opportunity > 1e-12) used[0] = true;
+                    if (s.harm > 1e-12) used[1] = true;
+                    if (s.filing > 1e-12) used[2] = true;
+                    if (s.answer > 1e-12) used[3] = true;
+                    if (s.bargaining > 1e-12) used[4] = true;
+                    if (s.trial > 1e-12) used[5] = true;
                 }
                 var active = Enumerable.Range(0, Labels.Length)
                                        .Where(i => used[i]).ToList();
@@ -1015,13 +1029,13 @@ namespace ACESimBase.Games.LitigGame.ManualReports
                 "Answering,Bargaining,Trying,Total\n");
             foreach (var s in ss)
                 sb.AppendLine(string.Join(",",
-                    s.Width.ToString("F6", CultureInfo.InvariantCulture),
-                    s.Opportunity.ToString("G6", CultureInfo.InvariantCulture),
-                    s.Harm.ToString("G6", CultureInfo.InvariantCulture),
-                    s.Filing.ToString("G6", CultureInfo.InvariantCulture),
-                    s.Answer.ToString("G6", CultureInfo.InvariantCulture),
-                    s.Bargaining.ToString("G6", CultureInfo.InvariantCulture),
-                    s.Trial.ToString("G6", CultureInfo.InvariantCulture),
+                    s.width.ToString("F6", CultureInfo.InvariantCulture),
+                    s.opportunity.ToString("G6", CultureInfo.InvariantCulture),
+                    s.harm.ToString("G6", CultureInfo.InvariantCulture),
+                    s.filing.ToString("G6", CultureInfo.InvariantCulture),
+                    s.answer.ToString("G6", CultureInfo.InvariantCulture),
+                    s.bargaining.ToString("G6", CultureInfo.InvariantCulture),
+                    s.trial.ToString("G6", CultureInfo.InvariantCulture),
                     s.Total.ToString("G6", CultureInfo.InvariantCulture)));
             return sb.ToString();
         }
