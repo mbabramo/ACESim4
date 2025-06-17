@@ -433,7 +433,13 @@ namespace LitigCharts
                 {
                     foreach (var welfareMeasureInfo in welfareMeasureColumns)
                     {
-                        CreateAggregatedReportVariationsForWelfareMeasure(launcher, pathAndFilename, outputFolderPath, variations, welfareMeasureInfo, limitToCostsMultiplier);
+                        List<string> costsMultipliers = limitToCostsMultiplier == null ? launcher.CriticalCostsMultipliers.OrderBy(x => x).Select(x => x.ToString()).ToList() : new List<string> { limitToCostsMultiplier.ToString() };
+                        List<string> feeShiftingMultipliers = launcher.CriticalFeeShiftingMultipliers.OrderBy(x => x).Select(y => y.ToString()).ToList();
+                        string additionalLabel = null;
+                        if (limitToCostsMultiplier == 1.0)
+                            additionalLabel = " Single Row";
+
+                        CreateAggregatedReportVariationsForWelfareMeasure(launcher, pathAndFilename, outputFolderPath, variations, welfareMeasureInfo,  "Costs Multiplier", costsMultipliers, "Fee Shifting Multiplier", feeShiftingMultipliers, additionalLabel);
                     }
                 }
             }
@@ -443,7 +449,7 @@ namespace LitigCharts
             DeleteAuxiliaryFiles(outputFolderPath);
         }
 
-        private static void CreateAggregatedReportVariationsForWelfareMeasure(LitigGameLauncherBase launcher, string pathAndFilename, string outputFolderPath, List<PermutationalLauncher.SimulationSetsIdentifier> variations, AggregatedGraphInfo aggregatedGraphInfo, double? limitToCostsMultiplier)
+        private static void CreateAggregatedReportVariationsForWelfareMeasure(LitigGameLauncherBase launcher, string pathAndFilename, string outputFolderPath, List<PermutationalLauncher.SimulationSetsIdentifier> variations, AggregatedGraphInfo aggregatedGraphInfo, string macroYValueName, List<string> macroYValues, string microXValueName, List<string> microXValues, string additionalLabel)
         {
             Func<double?, double?> scaleMiniGraphValues = aggregatedGraphInfo.scaleMiniGraphValues ?? (x => x);
             List<(string columnName, string expectedText)[]> collectedRowsToFind = new List<(string columnName, string expectedText)[]>();
@@ -462,9 +468,8 @@ namespace LitigCharts
 
                         var simulationIdentifiers = variation.simulationIdentifiers;
                         List<List<TikzLineGraphData>> lineGraphData = new List<List<TikzLineGraphData>>();
-                        List<double> costsMultipliers = limitToCostsMultiplier == null ? launcher.CriticalCostsMultipliers.OrderBy(x => x).ToList() : new List<double> { (double)limitToCostsMultiplier };
                         double maxY = 0;
-                        foreach (double macroYValue in costsMultipliers)
+                        foreach (string macroYValue in macroYValues)
                         {
                             List<TikzLineGraphData> lineGraphDataForRow = new List<TikzLineGraphData>();
                             foreach (var macroXValue in simulationIdentifiers)
@@ -475,11 +480,11 @@ namespace LitigCharts
 
                                 List<List<double?>> dataForMiniGraph = null;
 
-                                foreach (var microXValue in launcher.CriticalFeeShiftingMultipliers.OrderBy(x => x))
+                                foreach (var microXValue in microXValues)
                                 {
                                     if (stepDefiningRowsToFind)
                                     {
-                                        var modifiedRowsToFind = columnsToMatch.WithReplacement("Fee Shifting Multiplier", microXValue.ToString()).WithReplacement("Costs Multiplier", macroYValue.ToString()).Select(x => (x.Item1, x.Item2.ToString())).ToArray();
+                                        var modifiedRowsToFind = columnsToMatch.WithReplacement("Fee Shifting Multiplier", microXValue.ToString()).WithReplacement(macroYValueName, macroYValue).Select(x => (x.Item1, x.Item2.ToString())).ToArray();
                                         collectedRowsToFind.Add(modifiedRowsToFind);
                                     }
                                     else
@@ -540,7 +545,7 @@ namespace LitigCharts
                         }
 
                         if (!stepDefiningRowsToFind)
-                            CreateAggregatedLineGraphFromData(launcher, outputFolderPath, aggregatedGraphInfo, equilibriumType, variation, simulationIdentifiers, lineGraphData, limitToCostsMultiplier);
+                            CreateAggregatedLineGraphFromData(launcher, outputFolderPath, aggregatedGraphInfo, equilibriumType, variation, simulationIdentifiers, lineGraphData, macroYValues, microXValues, additionalLabel);
 
                     }
                 }
@@ -552,16 +557,13 @@ namespace LitigCharts
 
         }
 
-        private static void CreateAggregatedLineGraphFromData(LitigGameLauncherBase launcher, string outputFolderPath, AggregatedGraphInfo aggregatedGraphInfo, string equilibriumType, LitigGameEndogenousDisputesLauncher.SimulationSetsIdentifier variation, List<LitigGameEndogenousDisputesLauncher.SimulationIdentifier> simulationIdentifiers, List<List<TikzLineGraphData>> lineGraphData, double? limitToCostsMultiplier)
+        private static void CreateAggregatedLineGraphFromData(LitigGameLauncherBase launcher, string outputFolderPath, AggregatedGraphInfo aggregatedGraphInfo, string equilibriumType, LitigGameEndogenousDisputesLauncher.SimulationSetsIdentifier variation, List<LitigGameEndogenousDisputesLauncher.SimulationIdentifier> simulationIdentifiers, List<List<TikzLineGraphData>> lineGraphData, List<string> macroYValueNames, List<string> microXValues, string additionalLabel)
         {
             string subfolderName = Path.Combine(outputFolderPath, variation.nameOfSet);
             if (!VirtualizableFileSystem.Directory.GetDirectories(outputFolderPath).Any(x => x == subfolderName))
                 VirtualizableFileSystem.Directory.CreateDirectory(subfolderName);
-            string costsLevel = "";
-            if (limitToCostsMultiplier != null)
-                costsLevel = $" Costs {limitToCostsMultiplier}";
             string equilibriumTypeAdj = equilibriumType == "First Eq" ? "" : " (" + equilibriumType + ")";
-            string outputFilename = Path.Combine(subfolderName, $"{aggregatedGraphInfo.topicName} {(variation.nameOfSet.Contains("Baseline") == false ? "Varying " : "")}{variation.nameOfSet}{costsLevel}{equilibriumTypeAdj}{(limitToCostsMultiplier != null ? $" Costs Multiplier {limitToCostsMultiplier}" : "")}.tex");
+            string outputFilename = Path.Combine(subfolderName, $"{aggregatedGraphInfo.topicName} {(variation.nameOfSet.Contains("Baseline") == false ? "Varying " : "")}{variation.nameOfSet}{additionalLabel}{equilibriumTypeAdj}.tex");
 
             // make all data proportional to rounded up maximum value
             double maximumValueMicroY;
@@ -605,9 +607,9 @@ namespace LitigCharts
             {
                 majorXValueNames = simulationIdentifiers.Select(x => x.nameForSimulation).ToList(),
                 majorXAxisLabel = variation.nameOfSet == "Baseline" ? "" : variation.nameOfSet,
-                majorYValueNames = limitToCostsMultiplier == null ? launcher.CriticalCostsMultipliers.OrderBy(x => x).Select(y => y.ToString()).ToList() : new List<string>() { limitToCostsMultiplier.ToString() },
+                majorYValueNames = macroYValueNames,
                 majorYAxisLabel = aggregatedGraphInfo.majorYAxisLabel,
-                minorXValueNames = launcher.CriticalFeeShiftingMultipliers.OrderBy(x => x).Select(y => y.ToString()).ToList(),
+                minorXValueNames = microXValues,
                 minorXAxisLabel = simulationIdentifiers.Count > 3 ? aggregatedGraphInfo.minorXAxisLabelShort : aggregatedGraphInfo.minorXAxisLabel,
                 minorYValueNames = Enumerable.Range(0, 11).Select(y => y switch { 0 => "0", 10 => FormatMinorYAxisMaxTick(maximumValueMicroY), _ => " " }).ToList(),
                 minorYAxisLabel = FormatMinorYAxisLabel(aggregatedGraphInfo.minorYAxisLabel, maximumValueMicroY),
