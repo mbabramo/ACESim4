@@ -326,10 +326,11 @@ namespace ACESimTest
         }
 
         [TestMethod]
-        public void RepeatedCostBreakdownReport_FourByThreeGrid_RendersTikz()
+        [DataRow(4,4)]
+        [DataRow(4,1)]
+        [DataRow(1,4)]
+        public void RepeatedCostBreakdownReport_RendersTikz(int rows, int cols)
         {
-            const int rows = 4;
-            const int cols = 3;
             var rng = new Random(98765);
 
             // ---------------------------------------------------------------------
