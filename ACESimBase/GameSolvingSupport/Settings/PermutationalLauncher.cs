@@ -24,9 +24,6 @@ namespace ACESimBase.GameSolvingSupport.Settings
         // Noncritical variables should not be included.
         public abstract List<(string criticalValueName, string[] criticalValueValues)> CriticalVariableValues { get; }
 
-        // Article variation metadata: list of variation info sets for grouping scenarios in reports.
-        public abstract List<ArticleVariationInfoSets> VariationInfoSets { get; }
-
         // Stable report prefix used for output files (e.g., "FS036" or "APP001").
         public abstract string ReportPrefix { get; }
 
@@ -34,9 +31,9 @@ namespace ACESimBase.GameSolvingSupport.Settings
 
         #region Helper data structures and methods
 
-        public record ArticleVariationInfo(string nameOfVariation, List<(string columnName, string expectedValue)> columnMatches);
+        public record SimulationIdentifier(string nameForSimulation, List<(string columnName, string expectedValue)> columnMatches);
 
-        public record ArticleVariationInfoSets(string nameOfSet, List<ArticleVariationInfo> requirementsForEachVariation);
+        public record SimulationSetsIdentifier(string nameOfSet, List<SimulationIdentifier> simulationIdentifiers);
 
         public record GroupingVariableInfo(
             string VariableName,
@@ -44,8 +41,6 @@ namespace ACESimBase.GameSolvingSupport.Settings
             bool IsDefault,
             bool IncludeInCritical
         );
-
-        public abstract List<ArticleVariationInfoSets> GetArticleVariationInfoList_PossiblyFixingRiskAversion(bool useRiskAversionForNonRiskReports);
 
         public T GetAndTransform<T>(T options, string suffix, Action<T> transform) where T : GameOptions
         {

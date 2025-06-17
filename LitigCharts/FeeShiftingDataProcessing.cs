@@ -377,7 +377,7 @@ namespace LitigCharts
 
             foreach (bool useRiskAversionForNonRiskReports in new bool[] { false, true })
             {
-                var variations = launcher.GetArticleVariationInfoList_PossiblyFixingRiskAversion(useRiskAversionForNonRiskReports);
+                var variations = launcher.GetArticleVariationInfoList(useRiskAversionForNonRiskReports ? LitigGameLauncherBase.RequireModerateRiskAversion : null);
 
                 var plaintiffDefendantAndOthersLineScheme = new List<string>()
                 {
@@ -435,7 +435,7 @@ namespace LitigCharts
             DeleteAuxiliaryFiles(outputFolderPath);
         }
 
-        private static void CreateAggregatedReportVariationsForWelfareMeasure(LitigGameLauncherBase launcher, string pathAndFilename, string outputFolderPath, List<LitigGameEndogenousDisputesLauncher.ArticleVariationInfoSets> variations, AggregatedGraphInfo aggregatedGraphInfo, double? limitToCostsMultiplier)
+        private static void CreateAggregatedReportVariationsForWelfareMeasure(LitigGameLauncherBase launcher, string pathAndFilename, string outputFolderPath, List<LitigGameEndogenousDisputesLauncher.SimulationSetsIdentifier> variations, AggregatedGraphInfo aggregatedGraphInfo, double? limitToCostsMultiplier)
         {
             Func<double?, double?> scaleMiniGraphValues = aggregatedGraphInfo.scaleMiniGraphValues ?? (x => x);
             List<(string columnName, string expectedText)[]> collectedRowsToFind = new List<(string columnName, string expectedText)[]>();
@@ -452,14 +452,14 @@ namespace LitigCharts
                         // The small x axis is the fee shifting multiplier. And the y axis represents the values that we are loading. 
                         // We then have a different line for each data series.
 
-                        var requirementsForEachVariation = variation.requirementsForEachVariation;
+                        var simulationIdentifiers = variation.simulationIdentifiers;
                         List<List<TikzLineGraphData>> lineGraphData = new List<List<TikzLineGraphData>>();
                         List<double> costsMultipliers = limitToCostsMultiplier == null ? launcher.CriticalCostsMultipliers.OrderBy(x => x).ToList() : new List<double> { (double)limitToCostsMultiplier };
                         double maxY = 0;
                         foreach (double macroYValue in costsMultipliers)
                         {
                             List<TikzLineGraphData> lineGraphDataForRow = new List<TikzLineGraphData>();
-                            foreach (var macroXValue in requirementsForEachVariation)
+                            foreach (var macroXValue in simulationIdentifiers)
                             {
                                 var columnsToMatch = macroXValue.columnMatches.ToList();
                                 columnsToMatch.Add(("Filter", aggregatedGraphInfo.filter));
@@ -528,7 +528,7 @@ namespace LitigCharts
                         }
 
                         if (!stepDefiningRowsToFind)
-                            CreateAggregatedLineGraphFromData(launcher, outputFolderPath, aggregatedGraphInfo, equilibriumType, variation, requirementsForEachVariation, lineGraphData, limitToCostsMultiplier);
+                            CreateAggregatedLineGraphFromData(launcher, outputFolderPath, aggregatedGraphInfo, equilibriumType, variation, simulationIdentifiers, lineGraphData, limitToCostsMultiplier);
 
                     }
                 }
@@ -540,7 +540,7 @@ namespace LitigCharts
 
         }
 
-        private static void CreateAggregatedLineGraphFromData(LitigGameLauncherBase launcher, string outputFolderPath, AggregatedGraphInfo aggregatedGraphInfo, string equilibriumType, LitigGameEndogenousDisputesLauncher.ArticleVariationInfoSets variation, List<LitigGameEndogenousDisputesLauncher.ArticleVariationInfo> requirementsForEachVariation, List<List<TikzLineGraphData>> lineGraphData, double? limitToCostsMultiplier)
+        private static void CreateAggregatedLineGraphFromData(LitigGameLauncherBase launcher, string outputFolderPath, AggregatedGraphInfo aggregatedGraphInfo, string equilibriumType, LitigGameEndogenousDisputesLauncher.SimulationSetsIdentifier variation, List<LitigGameEndogenousDisputesLauncher.SimulationIdentifier> simulationIdentifiers, List<List<TikzLineGraphData>> lineGraphData, double? limitToCostsMultiplier)
         {
             string subfolderName = Path.Combine(outputFolderPath, variation.nameOfSet);
             if (!VirtualizableFileSystem.Directory.GetDirectories(outputFolderPath).Any(x => x == subfolderName))
@@ -591,12 +591,12 @@ namespace LitigCharts
 
             TikzRepeatedGraph r = new TikzRepeatedGraph()
             {
-                majorXValueNames = requirementsForEachVariation.Select(x => x.nameOfVariation).ToList(),
+                majorXValueNames = simulationIdentifiers.Select(x => x.nameForSimulation).ToList(),
                 majorXAxisLabel = variation.nameOfSet == "Baseline" ? "" : variation.nameOfSet,
                 majorYValueNames = limitToCostsMultiplier == null ? launcher.CriticalCostsMultipliers.OrderBy(x => x).Select(y => y.ToString()).ToList() : new List<string>() { limitToCostsMultiplier.ToString() },
                 majorYAxisLabel = aggregatedGraphInfo.majorYAxisLabel,
                 minorXValueNames = launcher.CriticalFeeShiftingMultipliers.OrderBy(x => x).Select(y => y.ToString()).ToList(),
-                minorXAxisLabel = requirementsForEachVariation.Count > 3 ? aggregatedGraphInfo.minorXAxisLabelShort : aggregatedGraphInfo.minorXAxisLabel,
+                minorXAxisLabel = simulationIdentifiers.Count > 3 ? aggregatedGraphInfo.minorXAxisLabelShort : aggregatedGraphInfo.minorXAxisLabel,
                 minorYValueNames = Enumerable.Range(0, 11).Select(y => y switch { 0 => "0", 10 => FormatMinorYAxisMaxTick(maximumValueMicroY), _ => " " }).ToList(),
                 minorYAxisLabel = FormatMinorYAxisLabel(aggregatedGraphInfo.minorYAxisLabel, maximumValueMicroY),
                 yAxisSpaceMicro = 0.8,

@@ -63,9 +63,6 @@ namespace ACESim
             }
         }
 
-        public override List<ArticleVariationInfoSets> VariationInfoSets
-            => GetArticleVariationInfoList_PossiblyFixingRiskAversion(false);
-
         // We can use this to allow for multiple options sets. These can then run in parallel. But note that we can also have multiple runs with a single option set using different settings by using GameDefinition scenarios; this is useful when there is a long initialization and it makes sense to complete one set before starting the next set.
 
         // Fee shifting article
@@ -193,136 +190,119 @@ namespace ACESim
             return result;
         }
 
-        public override List<ArticleVariationInfoSets> GetArticleVariationInfoList_PossiblyFixingRiskAversion(bool useRiskAversionForNonRiskReports)
+        public override List<SimulationSetsIdentifier> GetArticleVariationInfoList(SimulationSetsTransformer transformer = null)
         {
-            var varyingNothing = new List<ArticleVariationInfo>()
+            var varyingNothing = new List<SimulationIdentifier>()
             {
-                new ArticleVariationInfo("Baseline", DefaultVariableValues),
+                new SimulationIdentifier("Baseline", DefaultVariableValues),
             };
 
-            var varyingFeeShiftingRule_LiabilityUncertain = new List<ArticleVariationInfo>()
+            var varyingFeeShiftingRule_LiabilityUncertain = new List<SimulationIdentifier>()
             {
                 // where liability is uncertain:
-                new ArticleVariationInfo("English", DefaultVariableValues),
-                new ArticleVariationInfo("Margin of Victory", DefaultVariableValues.WithReplacement("Fee Shifting Rule", "Margin of Victory")),
+                new SimulationIdentifier("English", DefaultVariableValues),
+                new SimulationIdentifier("Margin of Victory", DefaultVariableValues.WithReplacement("Fee Shifting Rule", "Margin of Victory")),
             };
 
-            var varyingFeeShiftingRule_DamagesUncertain = new List<ArticleVariationInfo>()
+            var varyingFeeShiftingRule_DamagesUncertain = new List<SimulationIdentifier>()
             {
                 // where liability is uncertain:
-                new ArticleVariationInfo("English", DefaultVariableValues.WithReplacement("Issue", "Damages")),
-                new ArticleVariationInfo("Rule 68", DefaultVariableValues.WithReplacement("Fee Shifting Rule", "Rule 68").WithReplacement("Issue", "Damages")),
-                new ArticleVariationInfo("Reverse 68", DefaultVariableValues.WithReplacement("Fee Shifting Rule", "Reverse 68").WithReplacement("Issue", "Damages")),
+                new SimulationIdentifier("English", DefaultVariableValues.WithReplacement("Issue", "Damages")),
+                new SimulationIdentifier("Rule 68", DefaultVariableValues.WithReplacement("Fee Shifting Rule", "Rule 68").WithReplacement("Issue", "Damages")),
+                new SimulationIdentifier("Reverse 68", DefaultVariableValues.WithReplacement("Fee Shifting Rule", "Reverse 68").WithReplacement("Issue", "Damages")),
             };
 
-            var varyingNoiseMultipliersBoth = new List<ArticleVariationInfo>()
+            var varyingNoiseMultipliersBoth = new List<SimulationIdentifier>()
             {
-                new ArticleVariationInfo(".25", DefaultVariableValues.WithReplacement("Noise Multiplier P", "0.25").WithReplacement("Noise Multiplier D", "0.25")),
-                new ArticleVariationInfo(".5", DefaultVariableValues.WithReplacement("Noise Multiplier P", "0.5").WithReplacement("Noise Multiplier D", "0.5")),
-                new ArticleVariationInfo("1", DefaultVariableValues.WithReplacement("Noise Multiplier P", "1").WithReplacement("Noise Multiplier D", "1")),
-                new ArticleVariationInfo("2", DefaultVariableValues.WithReplacement("Noise Multiplier P", "2").WithReplacement("Noise Multiplier D", "2")),
-                new ArticleVariationInfo("4", DefaultVariableValues.WithReplacement("Noise Multiplier P", "4").WithReplacement("Noise Multiplier D", "4")),
+                new SimulationIdentifier(".25", DefaultVariableValues.WithReplacement("Noise Multiplier P", "0.25").WithReplacement("Noise Multiplier D", "0.25")),
+                new SimulationIdentifier(".5", DefaultVariableValues.WithReplacement("Noise Multiplier P", "0.5").WithReplacement("Noise Multiplier D", "0.5")),
+                new SimulationIdentifier("1", DefaultVariableValues.WithReplacement("Noise Multiplier P", "1").WithReplacement("Noise Multiplier D", "1")),
+                new SimulationIdentifier("2", DefaultVariableValues.WithReplacement("Noise Multiplier P", "2").WithReplacement("Noise Multiplier D", "2")),
+                new SimulationIdentifier("4", DefaultVariableValues.WithReplacement("Noise Multiplier P", "4").WithReplacement("Noise Multiplier D", "4")),
             };
 
-            var varyingNoiseMultipliersAsymmetric = new List<ArticleVariationInfo>()
+            var varyingNoiseMultipliersAsymmetric = new List<SimulationIdentifier>()
             {
-                new ArticleVariationInfo("Equal Information", DefaultVariableValues.WithReplacement("Noise Multiplier P", "1").WithReplacement("Noise Multiplier D", "1")),
-                new ArticleVariationInfo("P Better", DefaultVariableValues.WithReplacement("Noise Multiplier P", "0.5").WithReplacement("Noise Multiplier D", "2")),
-                new ArticleVariationInfo("D Better", DefaultVariableValues.WithReplacement("Noise Multiplier P", "2").WithReplacement("Noise Multiplier D", "0.5")),
+                new SimulationIdentifier("Equal Information", DefaultVariableValues.WithReplacement("Noise Multiplier P", "1").WithReplacement("Noise Multiplier D", "1")),
+                new SimulationIdentifier("P Better", DefaultVariableValues.WithReplacement("Noise Multiplier P", "0.5").WithReplacement("Noise Multiplier D", "2")),
+                new SimulationIdentifier("D Better", DefaultVariableValues.WithReplacement("Noise Multiplier P", "2").WithReplacement("Noise Multiplier D", "0.5")),
             };
 
-            var varyingRelativeCosts = new List<ArticleVariationInfo>()
+            var varyingRelativeCosts = new List<SimulationIdentifier>()
             {
-                new ArticleVariationInfo("P Lower Costs", DefaultVariableValues.WithReplacement("Relative Costs", "0.5")),
-                new ArticleVariationInfo("Equal", DefaultVariableValues.WithReplacement("Relative Costs", "1")),
-                new ArticleVariationInfo("P Higher Costs", DefaultVariableValues.WithReplacement("Relative Costs", "2")),
+                new SimulationIdentifier("P Lower Costs", DefaultVariableValues.WithReplacement("Relative Costs", "0.5")),
+                new SimulationIdentifier("Equal", DefaultVariableValues.WithReplacement("Relative Costs", "1")),
+                new SimulationIdentifier("P Higher Costs", DefaultVariableValues.WithReplacement("Relative Costs", "2")),
             };
 
-            var varyingRiskAversion = new List<ArticleVariationInfo>()
+            var varyingRiskAversion = new List<SimulationIdentifier>()
             {
-                new ArticleVariationInfo("Risk Neutral", DefaultVariableValues.WithReplacement("Risk Aversion", "Risk Neutral")),
-                new ArticleVariationInfo("Mildly Averse", DefaultVariableValues.WithReplacement("Risk Aversion", "Mildly Risk Averse")),
-                new ArticleVariationInfo("Moderately Averse", DefaultVariableValues.WithReplacement("Risk Aversion", "Moderately Risk Averse")),
-                new ArticleVariationInfo("Highly Averse", DefaultVariableValues.WithReplacement("Risk Aversion", "Highly Risk Averse")),
+                new SimulationIdentifier("Risk Neutral", DefaultVariableValues.WithReplacement("Risk Aversion", "Risk Neutral")),
+                new SimulationIdentifier("Mildly Averse", DefaultVariableValues.WithReplacement("Risk Aversion", "Mildly Risk Averse")),
+                new SimulationIdentifier("Moderately Averse", DefaultVariableValues.WithReplacement("Risk Aversion", "Moderately Risk Averse")),
+                new SimulationIdentifier("Highly Averse", DefaultVariableValues.WithReplacement("Risk Aversion", "Highly Risk Averse")),
             };
 
-            var varyingRiskAversionAsymmetry = new List<ArticleVariationInfo>()
+            var varyingRiskAversionAsymmetry = new List<SimulationIdentifier>()
             {
-                new ArticleVariationInfo("P Risk Averse", DefaultVariableValues.WithReplacement("Risk Aversion", "P Risk Averse")),
-                new ArticleVariationInfo("D Risk Averse", DefaultVariableValues.WithReplacement("Risk Aversion", "D Risk Averse")),
-                new ArticleVariationInfo("P More Risk Averse", DefaultVariableValues.WithReplacement("Risk Aversion", "P More Risk Averse")),
-                new ArticleVariationInfo("D More Risk Averse", DefaultVariableValues.WithReplacement("Risk Aversion", "D More Risk Averse")),
+                new SimulationIdentifier("P Risk Averse", DefaultVariableValues.WithReplacement("Risk Aversion", "P Risk Averse")),
+                new SimulationIdentifier("D Risk Averse", DefaultVariableValues.WithReplacement("Risk Aversion", "D Risk Averse")),
+                new SimulationIdentifier("P More Risk Averse", DefaultVariableValues.WithReplacement("Risk Aversion", "P More Risk Averse")),
+                new SimulationIdentifier("D More Risk Averse", DefaultVariableValues.WithReplacement("Risk Aversion", "D More Risk Averse")),
             };
 
-            var varyingQuitRules = new List<ArticleVariationInfo>()
+            var varyingQuitRules = new List<SimulationIdentifier>()
             {
-                new ArticleVariationInfo("Quitting Allowed", DefaultVariableValues.WithReplacement("Allow Abandon and Defaults", "TRUE")),
-                new ArticleVariationInfo("Quitting Prohibited", DefaultVariableValues.WithReplacement("Allow Abandon and Defaults", "FALSE")),
+                new SimulationIdentifier("Quitting Allowed", DefaultVariableValues.WithReplacement("Allow Abandon and Defaults", "TRUE")),
+                new SimulationIdentifier("Quitting Prohibited", DefaultVariableValues.WithReplacement("Allow Abandon and Defaults", "FALSE")),
             };
 
-            var varyingProbabilityTrulyLiable = new List<ArticleVariationInfo>()
+            var varyingProbabilityTrulyLiable = new List<SimulationIdentifier>()
             {
-                new ArticleVariationInfo("0.1", DefaultVariableValues.WithReplacement("Probability Truly Liable", "0.1")),
-                new ArticleVariationInfo("0.5", DefaultVariableValues.WithReplacement("Probability Truly Liable", "0.5")),
-                new ArticleVariationInfo("0.9", DefaultVariableValues.WithReplacement("Probability Truly Liable", "0.9")),
+                new SimulationIdentifier("0.1", DefaultVariableValues.WithReplacement("Probability Truly Liable", "0.1")),
+                new SimulationIdentifier("0.5", DefaultVariableValues.WithReplacement("Probability Truly Liable", "0.5")),
+                new SimulationIdentifier("0.9", DefaultVariableValues.WithReplacement("Probability Truly Liable", "0.9")),
             };
 
-            var varyingNoiseToProduceCaseStrength = new List<ArticleVariationInfo>()
+            var varyingNoiseToProduceCaseStrength = new List<SimulationIdentifier>()
             {
-                new ArticleVariationInfo("0.175", DefaultVariableValues.WithReplacement("Noise to Produce Case Strength", "0.175")),
-                new ArticleVariationInfo("0.35", DefaultVariableValues.WithReplacement("Noise to Produce Case Strength", "0.35")),
-                new ArticleVariationInfo("0.70", DefaultVariableValues.WithReplacement("Noise to Produce Case Strength", "0.7")),
+                new SimulationIdentifier("0.175", DefaultVariableValues.WithReplacement("Noise to Produce Case Strength", "0.175")),
+                new SimulationIdentifier("0.35", DefaultVariableValues.WithReplacement("Noise to Produce Case Strength", "0.35")),
+                new SimulationIdentifier("0.70", DefaultVariableValues.WithReplacement("Noise to Produce Case Strength", "0.7")),
             };
 
-            var varyingIssue = new List<ArticleVariationInfo>()
+            var varyingIssue = new List<SimulationIdentifier>()
             {
-                new ArticleVariationInfo("Liability", DefaultVariableValues.WithReplacement("Issue", "Liability")),
-                new ArticleVariationInfo("Damages", DefaultVariableValues.WithReplacement("Issue", "Damages")),
+                new SimulationIdentifier("Liability", DefaultVariableValues.WithReplacement("Issue", "Liability")),
+                new SimulationIdentifier("Damages", DefaultVariableValues.WithReplacement("Issue", "Damages")),
             };
 
-            var varyingTimingOfCosts = new List<ArticleVariationInfo>()
+            var varyingTimingOfCosts = new List<SimulationIdentifier>()
             {
-                new ArticleVariationInfo("0", DefaultVariableValues.WithReplacement("Proportion of Costs at Beginning", "0")),
-                new ArticleVariationInfo("0.25", DefaultVariableValues.WithReplacement("Proportion of Costs at Beginning", "0.25")),
-                new ArticleVariationInfo("0.5", DefaultVariableValues.WithReplacement("Proportion of Costs at Beginning", "0.5")),
-                new ArticleVariationInfo("0.75", DefaultVariableValues.WithReplacement("Proportion of Costs at Beginning", "0.75")),
-                new ArticleVariationInfo("1", DefaultVariableValues.WithReplacement("Proportion of Costs at Beginning", "1")),
+                new SimulationIdentifier("0", DefaultVariableValues.WithReplacement("Proportion of Costs at Beginning", "0")),
+                new SimulationIdentifier("0.25", DefaultVariableValues.WithReplacement("Proportion of Costs at Beginning", "0.25")),
+                new SimulationIdentifier("0.5", DefaultVariableValues.WithReplacement("Proportion of Costs at Beginning", "0.5")),
+                new SimulationIdentifier("0.75", DefaultVariableValues.WithReplacement("Proportion of Costs at Beginning", "0.75")),
+                new SimulationIdentifier("1", DefaultVariableValues.WithReplacement("Proportion of Costs at Beginning", "1")),
             };
 
-            var tentativeResults = new List<ArticleVariationInfoSets>()
+            var tentativeResults = new List<SimulationSetsIdentifier>()
             {
-                new ArticleVariationInfoSets("Baseline", varyingNothing),
-                new ArticleVariationInfoSets("Fee Shifting Rule (Liability Issue)", varyingFeeShiftingRule_LiabilityUncertain),
-                new ArticleVariationInfoSets("Fee Shifting Rule (Damages Issue)", varyingFeeShiftingRule_DamagesUncertain),
-                new ArticleVariationInfoSets("Noise Multiplier", varyingNoiseMultipliersBoth),
-                new ArticleVariationInfoSets("Information Asymmetry", varyingNoiseMultipliersAsymmetric),
-                new ArticleVariationInfoSets("Relative Costs", varyingRelativeCosts),
-                new ArticleVariationInfoSets("Risk Aversion", varyingRiskAversion),
-                new ArticleVariationInfoSets("Risk Aversion Asymmetry", varyingRiskAversionAsymmetry),
-                new ArticleVariationInfoSets("Quitting Rules", varyingQuitRules),
-                new ArticleVariationInfoSets("Proportion of Cases Where D Is Truly Liable", varyingProbabilityTrulyLiable),
-                new ArticleVariationInfoSets("Case Strength Noise", varyingNoiseToProduceCaseStrength),
-                new ArticleVariationInfoSets("Issue", varyingIssue),
-                new ArticleVariationInfoSets("Proportion of Costs at Beginning", varyingTimingOfCosts)
+                new SimulationSetsIdentifier("Baseline", varyingNothing),
+                new SimulationSetsIdentifier("Fee Shifting Rule (Liability Issue)", varyingFeeShiftingRule_LiabilityUncertain),
+                new SimulationSetsIdentifier("Fee Shifting Rule (Damages Issue)", varyingFeeShiftingRule_DamagesUncertain),
+                new SimulationSetsIdentifier("Noise Multiplier", varyingNoiseMultipliersBoth),
+                new SimulationSetsIdentifier("Information Asymmetry", varyingNoiseMultipliersAsymmetric),
+                new SimulationSetsIdentifier("Relative Costs", varyingRelativeCosts),
+                new SimulationSetsIdentifier("Risk Aversion", varyingRiskAversion),
+                new SimulationSetsIdentifier("Risk Aversion Asymmetry", varyingRiskAversionAsymmetry),
+                new SimulationSetsIdentifier("Quitting Rules", varyingQuitRules),
+                new SimulationSetsIdentifier("Proportion of Cases Where D Is Truly Liable", varyingProbabilityTrulyLiable),
+                new SimulationSetsIdentifier("Case Strength Noise", varyingNoiseToProduceCaseStrength),
+                new SimulationSetsIdentifier("Issue", varyingIssue),
+                new SimulationSetsIdentifier("Proportion of Costs at Beginning", varyingTimingOfCosts)
             };
-
-
-            if (useRiskAversionForNonRiskReports)
-            {
-                // eliminate risk-related reports
-                tentativeResults = tentativeResults.Where(x => !x.nameOfSet.StartsWith("Risk")).ToList();
-                for (int i = 0; i < tentativeResults.Count; i++)
-                {
-                    ArticleVariationInfoSets variationSetInfo = tentativeResults[i];
-                    tentativeResults[i] = variationSetInfo with
-                    {
-                        requirementsForEachVariation = variationSetInfo.requirementsForEachVariation.Select(x => x with
-                        {
-                            columnMatches = x.columnMatches.WithReplacement("Risk Aversion", "Moderately Risk Averse")
-                        }).ToList()
-                    };
-                }
-            }
+            tentativeResults = PerformArticleVariationInfoSetsTransformation(transformer, tentativeResults);
 
             return tentativeResults;
         }

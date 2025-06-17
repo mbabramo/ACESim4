@@ -1,6 +1,7 @@
 ﻿using ACESim;
 using ACESimBase.GameSolvingSupport.DeepCFRSupport;
 using ACESimBase.GameSolvingSupport.Settings;
+using ACESimBase.Util.Collections;
 using ACESimBase.Util.Mathematics;
 using System;
 using System.Collections.Generic;
@@ -340,7 +341,42 @@ namespace ACESimBase.Games.LitigGame
 
         #endregion
 
-        #region Helper methods
+        #region Helpers
+
+        public record class SimulationSetsTransformer(Func<SimulationSetsIdentifier, bool> includeSet, List<(string nameOfSet, string nameForSimulation)> changesToMake);
+
+        public static SimulationSetsTransformer RequireModerateRiskAversion = new SimulationSetsTransformer(
+                x => !x.nameOfSet.StartsWith("Risk"),
+                [("Risk Aversion", "Moderately Risk Averse")]
+                );
+
+        public abstract List<SimulationSetsIdentifier> GetArticleVariationInfoList(SimulationSetsTransformer transformer = null);
+
+        protected static List<SimulationSetsIdentifier> PerformArticleVariationInfoSetsTransformation(SimulationSetsTransformer transformer, List<SimulationSetsIdentifier> tentativeResults)
+        {
+            if (transformer is not null)
+            {
+                // eliminate risk-related reports
+                tentativeResults = tentativeResults.Where(transformer.includeSet).ToList();
+                for (int i = 0; i < tentativeResults.Count; i++)
+                {
+                    SimulationSetsIdentifier variationSetInfo = tentativeResults[i];
+                    tentativeResults[i] = variationSetInfo;
+                    foreach (var changeToMake in transformer.changesToMake)
+                    {
+                        tentativeResults[i] = tentativeResults[i] with
+                        {
+                            simulationIdentifiers = variationSetInfo.simulationIdentifiers.Select(x => x with
+                            {
+                                columnMatches = x.columnMatches.WithReplacement(changeToMake.nameOfSet, changeToMake.nameForSimulation)
+                            }).ToList()
+                        };
+                    }
+                }
+            }
+
+            return tentativeResults;
+        }
 
         protected List<List<GameOptions>> PerformTransformations(List<List<Func<LitigGameOptions, LitigGameOptions>>> allTransformations, int numCritical, bool useAllPermutationsOfTransformations, bool includeBaselineValueForNoncritical)
         {
