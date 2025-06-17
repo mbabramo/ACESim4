@@ -34,27 +34,30 @@ namespace ACESimBase.Games.LitigGame
         }
 
         public bool IncludeNonCriticalTransformations = true;
-        public virtual FeeShiftingRule[] FeeShiftingModes => new[] { FeeShiftingRule.English_LiabilityIssue, FeeShiftingRule.MarginOfVictory_LiabilityIssue, FeeShiftingRule.Rule68_DamagesIssue, FeeShiftingRule.Rule68English_DamagesIssue };
+        public virtual FeeShiftingRule[] FeeShiftingModes => new[] { FeeShiftingRule.English_LiabilityIssue }; //, FeeShiftingRule.MarginOfVictory_LiabilityIssue, FeeShiftingRule.Rule68_DamagesIssue, FeeShiftingRule.Rule68English_DamagesIssue };
         public double[] CriticalCostsMultipliers = new double[] { 1.0, 0.25, 0.5, 2.0, 4.0 };
-        public double[] AdditionalCostsMultipliers = new double[] { 1.0, 0.125, 8.0 }; // NOTE: If restoring this, also change NamesOfFeeShiftingArticleSets
+        public double[] AdditionalCostsMultipliers = new double[] { 1.0, 0.0 }; // NOTE: If restoring this, also change NamesOfFeeShiftingArticleSets
+        public double[] CriticalFeeShiftingMultipliers = new double[] { 0.0, 1.0, 0.5, 2.0 };
+        public double[] AdditionalFeeShiftingMultipliers = new double[] { 0.0, 5.0 }; // added all but 0 //, 0.25, 4.0 };// NOTE: If restoring this, also change NamesOfFeeShiftingArticleSets
+        
         public (double pNoiseMultiplier, double dNoiseMultiplier)[] NoiseMultipliers = new (double pNoiseMultiplier, double dNoiseMultiplier)[] { (1.0, 1.0), (0.50, 0.50), (0.5, 2.0), (2.0, 2.0), (2.0, 0.5), (0.25, 0.25), (4.0, 4.0) };
-        public double[] CriticalFeeShiftingMultipliers = new double[] { 0.0, 1.0, 0.5, 1.5, 2.0 };
-        public double[] AdditionalFeeShiftingMultipliers = new double[] { 0.0 }; // added all but 0 //, 0.25, 4.0 };// NOTE: If restoring this, also change NamesOfFeeShiftingArticleSets
         public double[] RelativeCostsMultipliers = new double[] { 1.0, 0.5, 2.0 };
         public double[] ProbabilitiesTrulyLiable = new double[] { 0.5, 0.1, 0.9 };
         public double[] StdevsNoiseToProduceLiabilityStrength = new double[] { 0.35, 0.175, 0.70 };
         public double[] ProportionOfCostsAtBeginning = new double[] { 0.5, 0.75, 0.25, 1.0, 0.0 };
         public double[] DamagesMultipliers = new double[] { 1.0, 0.5, 2.0, 4.0 };
 
-        public List<Func<LitigGameOptions, LitigGameOptions>> FeeShiftingModeTransformations(bool includeBaselineValue)
+        private List<Func<LitigGameOptions, LitigGameOptions>> Transform<T>(Func<LitigGameOptions, T, LitigGameOptions> transformer, IEnumerable<T> values, bool includeBaselineValue)
         {
             List<Func<LitigGameOptions, LitigGameOptions>> results = new List<Func<LitigGameOptions, LitigGameOptions>>();
-            foreach (FeeShiftingRule mode in FeeShiftingModes.Skip(includeBaselineValue ? 0 : 1))
+            foreach (T value in values.Skip(includeBaselineValue ? 0 : 1))
             {
-                results.Add(o => GetAndTransform_FeeShiftingMode(o, mode));
+                results.Add(o => transformer(o, value));
             }
             return results;
         }
+
+        public List<Func<LitigGameOptions, LitigGameOptions>> FeeShiftingModeTransformations(bool includeBaselineValue) => Transform(GetAndTransform_FeeShiftingMode, FeeShiftingModes, includeBaselineValue);
 
         public LitigGameOptions GetAndTransform_FeeShiftingMode(LitigGameOptions options, FeeShiftingRule mode) => GetAndTransform(options, " Fee Rule " + mode switch
         {

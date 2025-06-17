@@ -256,7 +256,7 @@ namespace LitigCharts
         static bool includeHeatmaps = false;
         internal static void ExecuteLatexProcessesForExisting() => ExecuteLatexProcessesForExisting(result => includeHeatmaps || (!result.Contains("offers") && !result.Contains("fileans")));
 
-        internal static void ProduceLatexDiagramsFromTexFiles(LitigGameLauncherBase launcher)
+        internal static void ProduceLatexDiagramsFromTexFiles(LitigGameLauncherBase launcher, DataBeingAnalyzed article)
         {
             bool workExists = true;
             int numAttempts = 0; // sometimes the Latex processes fail, so we try again if any of our files to create are missing
@@ -267,7 +267,10 @@ namespace LitigCharts
                 workExists = processesToLaunch.Any(); 
                 foreach (string fileSuffix in equilibriumTypeSuffixes)
                 {
-                    List<(string path, string combinedPath, string optionSetName, string fileSuffix)> someToDo = FeeShiftingDataProcessing.GetLatexProcessPlans(launcher, new string[] { "-stagecostlight" + fileSuffix, "-stagecostdark" + fileSuffix, "-costbreakdownlight" + fileSuffix, "-costbreakdowndark" + fileSuffix, "-offers" + fileSuffix, "-fileans" + fileSuffix }, avoidProcessingIfPDFExists || numAttempts > 1);
+                    List<string> extensions = ["-costbreakdownlight" + fileSuffix, "-costbreakdowndark" + fileSuffix, "-offers" + fileSuffix, "-fileans" + fileSuffix];
+                    if (article != DataBeingAnalyzed.EndogenousDisputesArticle)
+                        extensions.AddRange(["-stagecostlight" + fileSuffix, "-stagecostdark" + fileSuffix]);
+                    List<(string path, string combinedPath, string optionSetName, string fileSuffix)> someToDo = FeeShiftingDataProcessing.GetLatexProcessPlans(launcher, extensions.ToArray(), avoidProcessingIfPDFExists || numAttempts > 1);
                     processesToLaunch.AddRange(someToDo);
                 }
                 ProduceLatexDiagrams(processesToLaunch);
@@ -422,7 +425,7 @@ namespace LitigCharts
                 {
                     foreach (var welfareMeasureInfo in welfareMeasureColumns)
                     {
-                        ProcessForWelfareMeasure(launcher, pathAndFilename, outputFolderPath, variations, welfareMeasureInfo, limitToCostsMultiplier);
+                        CreateAggregatedReportVariationsForWelfareMeasure(launcher, pathAndFilename, outputFolderPath, variations, welfareMeasureInfo, limitToCostsMultiplier);
                     }
                 }
             }
@@ -432,7 +435,7 @@ namespace LitigCharts
             DeleteAuxiliaryFiles(outputFolderPath);
         }
 
-        private static void ProcessForWelfareMeasure(LitigGameLauncherBase launcher, string pathAndFilename, string outputFolderPath, List<LitigGameEndogenousDisputesLauncher.ArticleVariationInfoSets> variations, AggregatedGraphInfo aggregatedGraphInfo, double? limitToCostsMultiplier)
+        private static void CreateAggregatedReportVariationsForWelfareMeasure(LitigGameLauncherBase launcher, string pathAndFilename, string outputFolderPath, List<LitigGameEndogenousDisputesLauncher.ArticleVariationInfoSets> variations, AggregatedGraphInfo aggregatedGraphInfo, double? limitToCostsMultiplier)
         {
             Func<double?, double?> scaleMiniGraphValues = aggregatedGraphInfo.scaleMiniGraphValues ?? (x => x);
             List<(string columnName, string expectedText)[]> collectedRowsToFind = new List<(string columnName, string expectedText)[]>();

@@ -120,13 +120,6 @@ namespace ACESim
         }
 
 
-        void AddToOptionsSetsWithName(List<GameOptions> list, string name, GameOptions options)
-        {
-            options.Name = name;
-            list.Add(options);
-        }
-
-
         #region Game sets generation
 
         public override List<GameOptions> FlattenAndOrderGameSets(List<List<GameOptions>> gamesSets)
