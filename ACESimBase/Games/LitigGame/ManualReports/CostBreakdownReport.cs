@@ -613,46 +613,51 @@ namespace ACESimBase.Games.LitigGame.ManualReports
         /// Adding optional flags for legend/axis labels and optional outer box sizing/offset.
         /// </summary>
         internal static string TikzScaled(
-            List<Slice> slices,
-            AxisScalingInfo sc,
-            bool pres,
-            string title,
-            bool splitRareHarmPanel,
-            bool standalone = true,
-            bool includeLegend = true,
-            bool includeAxisLabels = true,
-            bool includeDisputeLabels = true,
-            double? targetWidth = null,
-            double? targetHeight = null,
-            double? xOffset = null,
-            double? yOffset = null,
-            bool adaptivePadding = false
-            )
+            List<Slice>      slices,
+            AxisScalingInfo  sc,
+            bool             pres,
+            string           title,
+            bool             splitRareHarmPanel,
+            bool             standalone           = true,
+            bool             includeLegend        = true,
+            bool             includeAxisLabels    = true,
+            bool             includeDisputeLabels = true,
+            double?          targetWidth          = null,
+            double?          targetHeight         = null,
+            double?          xOffset              = null,
+            double?          yOffset              = null,
+            bool             adaptivePadding      = false, 
+            bool             minimalTicks         = false) 
         {
-            // --- Dimensions --------------------------------------------------------------------
-            double W = pres ? 26.6666 : 15;
-            double H = pres ? 15 : 16;
-            if (targetWidth.HasValue) W = targetWidth.Value;
+            // ── dimensions ─────────────────────────────────────────────────────────
+            double W = pres ? PresPanelWidth : LightPanelWidth;
+            double H = pres ? PresPanelHeight: LightPanelHeight;
+            if (targetWidth .HasValue) W = targetWidth .Value;
             if (targetHeight.HasValue) H = targetHeight.Value;
 
-            // --- Origin shift ------------------------------------------------------------------
             double originX = xOffset ?? 0.0;
             double originY = yOffset ?? 0.0;
 
             var outer = new TikzRectangle(originX, originY, originX + W, originY + H);
 
-            // ── adaptive padding with lower bounds ───────────────────────────────
-            double padLR  = Math.Max(
-                               includeAxisLabels ? MinPadLeftForLabels : 0.25,
-                               Math.Min(1.5, W * 0.10));
+            // ── padding ────────────────────────────────────────────────────────────
+            const double NeedLeft = 0.40;   // matches hard-wired y-label shift
+            const double NeedBot  = 0.60;   // matches hard-wired x-label shift
+            const double NeedTop  = 0.50;   // tiny clearance for legend title
 
-            double padBot = Math.Max(
-                               includeAxisLabels ? MinPadBottomForLabels : 0.25,
-                               Math.Min(1.5, H * 0.10));
-
-            double padTop = Math.Max(
-                               includeLegend ? MinPadTopForLegend : padBot,
-                               Math.Min(2.5, H * 0.15));
+            double padLR, padTop, padBot;
+            if (!adaptivePadding)
+            {
+                padLR  = 1.5;
+                padTop = 2.5;
+                padBot = 1.5;
+            }
+            else
+            {
+                padLR  = Math.Max(NeedLeft, Math.Min(1.0, W * 0.08));
+                padBot = Math.Max(NeedBot,  Math.Min(1.0, H * 0.08));
+                padTop = Math.Max(NeedTop,  Math.Min(1.5, H * 0.12));
+            }
 
             var pane = outer.ReducedByPadding(padLR, padTop, padLR, padBot);
 
@@ -660,6 +665,7 @@ namespace ACESimBase.Games.LitigGame.ManualReports
             string[] fills = pres ? PresFill : RegFill;
             var sb = new StringBuilder();
 
+            // ── background & title (unchanged) ─────────────────────────────────────
             if (pres)
                 sb.AppendLine(outer.DrawCommand("fill=black"));
 
@@ -669,6 +675,7 @@ namespace ACESimBase.Games.LitigGame.ManualReports
                 sb.AppendLine(head.DrawCommand($"draw=none,text={pen}", $"\\huge {title}"));
             }
 
+            // ── cost rectangles (unchanged) ────────────────────────────────────────
             double sx = pane.width, sy = pane.height;
             foreach (var rc in GetComponentRects(slices, sc, splitRareHarmPanel))
             {
@@ -680,12 +687,16 @@ namespace ACESimBase.Games.LitigGame.ManualReports
                 sb.AppendLine(box.DrawCommand($"{fills[rc.Category]},draw={pen},very thin"));
             }
 
-            // --- Draw y-axis on the left ------------------------------------------------------
-            var yL = new TikzLine(
-                new(pane.left, pane.bottom), new(pane.left, pane.top));
-            var ticksLeft = BuildTicks(sc.YMaxLeft)
-                .Select(t => includeAxisLabels ? t : (t.proportion, ""))
-                .ToList();
+            // ── left y-axis ────────────────────────────────────────────────────────
+            var yL = new TikzLine(new(pane.left, pane.bottom), new(pane.left, pane.top));
+            var ticksLeftRaw = BuildTicks(sc.YMaxLeft);
+            if (minimalTicks && ticksLeftRaw.Count > 2)
+                ticksLeftRaw = new List<(double, string)> { ticksLeftRaw[^1] };
+            var ticksLeft = ticksLeftRaw;
+            // DEBUG
+                //.Select(t => !minimalTicks ? t : (t.proportion, ""))
+                //.ToList();
+
             double shiftYL = BestLabelShiftY(ticksLeft, pane.height);
             sb.AppendLine(yL.DrawAxis($"{pen},very thin", ticksLeft,
                 $"font=\\small,text={pen}", "east",
@@ -693,33 +704,31 @@ namespace ACESimBase.Games.LitigGame.ManualReports
                 includeAxisLabels ? $"font=\\small,rotate=90,text={pen}" : null,
                 -0.40, shiftYL));
 
-            // --- Optional split mode logic ----------------------------------------------------
+            // ── split-panel right y-axis (unchanged except minimalTicks) ───────────
             if (splitRareHarmPanel)
             {
-                // Dashed divider between left/right panels
-                var mid = new TikzLine(
-                    new(pane.left + 0.5 * sx, pane.bottom - 0.4),
-                    new(pane.left + 0.5 * sx, pane.top));
+                var mid = new TikzLine(new(pane.left + 0.5 * sx, pane.bottom - 0.4),
+                                       new(pane.left + 0.5 * sx, pane.top));
                 sb.AppendLine(mid.DrawCommand($"{pen},dashed,very thin"));
 
-                // Right-side y-axis
-                var yR = new TikzLine(
-                    new(pane.right, pane.bottom), new(pane.right, pane.top));
-                var ticksRight = BuildTicks(sc.YMaxRight)
+                var yR = new TikzLine(new(pane.right, pane.bottom), new(pane.right, pane.top));
+                var ticksRightRaw = BuildTicks(sc.YMaxRight);
+                if (minimalTicks && ticksRightRaw.Count > 2)
+                    ticksRightRaw = new List<(double, string)> { ticksRightRaw[^1] };
+                var ticksRight = ticksRightRaw
                     .Select(t => includeAxisLabels ? t : (t.proportion, ""))
                     .ToList();
-                sb.AppendLine(yR.DrawAxis($"{pen},very thin",
-                    ticksRight,
+
+                sb.AppendLine(yR.DrawAxis($"{pen},very thin", ticksRight,
                     $"font=\\small,text={pen}", "west",
                     null, null, TikzHorizontalAlignment.Center,
                     includeAxisLabels ? $"font=\\small,text={pen}" : null, 0.65, 0));
             }
 
-            // --- Draw x-axis ------------------------------------------------------------------
-            var xB = new TikzLine(
-                new(pane.left, pane.bottom), new(pane.right, pane.bottom));
+            // ── x-axis & (optional) panel captions – unchanged ─────────────────────
+            var xB = new TikzLine(new(pane.left, pane.bottom), new(pane.right, pane.bottom));
             var xTicks = includeAxisLabels
-                ? new List<(double, string)> { (0, "0\\%"), (1, "100\\%") }
+                ? new List<(double, string)> { (0, "0\\%"), (1, "100\\%") } // this is really tick marks but we make them disappear when dropping the labels
                 : new List<(double, string)> { (0, ""), (1, "") };
 
             sb.AppendLine(xB.DrawAxis($"{pen},very thin", xTicks,
@@ -728,66 +737,53 @@ namespace ACESimBase.Games.LitigGame.ManualReports
                 "south", TikzHorizontalAlignment.Center,
                 $"font=\\small,text={pen}", 0, -0.6));
 
-            // --- Panel label captions in split mode -------------------------------------------
-            if (splitRareHarmPanel && includeAxisLabels)
+            if (splitRareHarmPanel)
             {
-                double pLeft = 0.5 / sc.XScaleLeft;
+                double pLeft  = 0.5 / sc.XScaleLeft;
                 double pRight = 0.5 / sc.XScaleRight;
-
-                string leftLbl = includeDisputeLabels ? $"No\\ Dispute\\ ({Pct(pLeft)})" : Pct(pLeft);
-                string rightLbl = includeDisputeLabels ? $"Dispute\\ ({Pct(pRight)})" : Pct(pRight);
                 double yLabel = pane.bottom - 0.6;
 
-                sb.AppendLine(TikzHelper.DrawText(
-                    pane.left + 0.25 * sx,
-                    yLabel,
-                    leftLbl,
-                    $"font=\\small,text={pen},anchor=south"));
+                string leftLbl  = includeDisputeLabels  ? $"No\\ Dispute\\ ({Pct(pLeft)})"  : Pct(pLeft);
+                string rightLbl = includeDisputeLabels  ? $"Dispute\\ ({Pct(pRight)})"     : Pct(pRight);
 
-                sb.AppendLine(TikzHelper.DrawText(
-                    pane.left + 0.75 * sx,
-                    yLabel,
-                    rightLbl,
-                    $"font=\\small,text={pen},anchor=south"));
+                sb.AppendLine(TikzHelper.DrawText(pane.left + 0.25 * sx, yLabel,
+                    leftLbl,  $"font=\\small,text={pen},anchor=south"));
+                sb.AppendLine(TikzHelper.DrawText(pane.left + 0.75 * sx, yLabel,
+                    rightLbl, $"font=\\small,text={pen},anchor=south"));
             }
 
-            // --- Legend (only includes used categories) ---------------------------------------
+            // ── legend (identical to current code) ─────────────────────────────────
             if (includeLegend)
             {
                 bool[] used = new bool[Labels.Length];
                 foreach (var s in slices)
                 {
                     if (s.opportunity > 1e-12) used[0] = true;
-                    if (s.harm > 1e-12) used[1] = true;
-                    if (s.filing > 1e-12) used[2] = true;
-                    if (s.answer > 1e-12) used[3] = true;
-                    if (s.bargaining > 1e-12) used[4] = true;
-                    if (s.trial > 1e-12) used[5] = true;
+                    if (s.harm        > 1e-12) used[1] = true;
+                    if (s.filing      > 1e-12) used[2] = true;
+                    if (s.answer      > 1e-12) used[3] = true;
+                    if (s.bargaining  > 1e-12) used[4] = true;
+                    if (s.trial       > 1e-12) used[5] = true;
                 }
-                var active = Enumerable.Range(0, Labels.Length)
-                                       .Where(i => used[i]).ToList();
+                var active = Enumerable.Range(0, Labels.Length).Where(i => used[i]).ToList();
 
                 if (active.Count > 0)
                 {
-                    sb.AppendLine(
-                        $"\\draw ({pane.left + pane.width / 2},{pane.bottom}) node (B) {{}};");
+                    sb.AppendLine($"\\draw ({pane.left + pane.width / 2},{pane.bottom}) node (B) {{}};");
                     sb.AppendLine("\\begin{scope}[align=center]");
-                    sb.AppendLine(
-                        $"\\matrix[scale=0.5,draw={pen},below=0.5cm of B,nodes={{draw}},column sep=0.1cm]{{");
+                    sb.AppendLine($"\\matrix[scale=0.5,draw={pen},below=0.5cm of B,nodes={{draw}},column sep=0.1cm]{{");
                     for (int k = 0; k < active.Count; k++)
                     {
                         int i = active[k];
-                        sb.Append(
-                            $"\\node[rectangle,draw,minimum width=0.5cm,minimum height=0.5cm,{fills[i]}]{{}}; & ");
-                        sb.Append(
-                            $"\\node[draw=none,font=\\small,text={pen}]{{{Labels[i]}}};");
+                        sb.Append($"\\node[rectangle,draw,minimum width=0.5cm,minimum height=0.5cm,{fills[i]}]{{}}; & ");
+                        sb.Append($"\\node[draw=none,font=\\small,text={pen}]{{{Labels[i]}}};");
                         sb.AppendLine(k == active.Count - 1 ? @" \\\\" : " &");
                     }
                     sb.AppendLine("};\\end{scope}");
                 }
             }
 
-            // --- Return -----------------------------------------------------------------------
+            // ── return ─────────────────────────────────────────────────────────────
             if (!standalone)
                 return sb.ToString();
 
@@ -796,6 +792,7 @@ namespace ACESimBase.Games.LitigGame.ManualReports
                 additionalHeaderInfo: pres ? "\\usepackage[sfdefault]{ClearSans}" : null,
                 additionalTikzLibraries: new() { "patterns", "positioning" });
         }
+
 
 
 

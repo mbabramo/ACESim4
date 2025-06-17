@@ -37,7 +37,7 @@ namespace ACESimBase.Games.LitigGame.ManualReports
             string                  majorXAxisLabel,
             string                  majorYAxisLabel,
             double                  peakProportion = 0.8,
-            bool                    keepAxisLabels = true,
+            bool                    keepAxisLabels = false,
             bool                    keepAxisTicks  = true)
         {
             // ── basic checks ─────────────────────────────────────────────────────────
@@ -112,7 +112,8 @@ namespace ACESimBase.Games.LitigGame.ManualReports
                             targetHeight: cell.height,
                             xOffset:      cell.left,
                             yOffset:      cell.bottom,
-                            adaptivePadding: true));
+                            adaptivePadding: true,
+                            minimalTicks: true));
                 }
             }
 

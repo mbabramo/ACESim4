@@ -361,7 +361,7 @@ namespace ACESimTest
                              "Cases",
                              "Scenarios",
                              peakProportion: 0.8,
-                             keepAxisLabels: true,
+                             keepAxisLabels: false,
                              keepAxisTicks: true);
 
             tikz.Should().StartWith(@"\documentclass{standalone}");
