@@ -139,7 +139,7 @@ namespace ACESimBase.Games.LitigGame.ManualReports
                             standalone: false,
                             includeLegend: false,
                             includeAxisLabels: keepAxisLabels && keepAxisTicks,
-                            includeDisputeLabels: false,
+                            includeDisputeLabels: cols <= 2,
                             targetWidth:  pane.width,
                             targetHeight: pane.height,
                             xOffset:      pane.left,

@@ -326,6 +326,7 @@ namespace ACESimTest
         }
 
         [TestMethod]
+        [DataRow(2,2)]
         [DataRow(4,4)]
         [DataRow(4,1)]
         [DataRow(1,4)]
