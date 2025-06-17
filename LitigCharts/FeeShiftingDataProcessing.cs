@@ -33,7 +33,7 @@ namespace LitigCharts
             List<string> rowsToGet = new List<string> { "All", "Not Litigated", "Litigated", "Settles", "Tried", "P Loses", "P Wins", "Truly Liable", "Truly Not Liable" };
             List<string> replacementRowNames = new List<string> { "All", "Not Litigated", "Litigated", "Settles", "Tried", "P Loses", "P Wins", "Truly Liable", "Truly Not Liable" };
             List<string> columnsToGet = new List<string> { "Exploit", "Seconds", "PFiles", "DAnswers", "POffer1", "DOffer1", "Trial", "PWinPct", "PWealth", "DWealth", "TotWealth", "WealthLoss", "PWelfare", "DWelfare", "PDSWelfareLoss", "SWelfareLoss", "OpportunityCost", "HarmCost", "TotExpense", "False+", "False-", "ValIfSettled", "PDoesntFile", "DDoesntAnswer", "SettlesBR1", "PAbandonsBR1", "DDefaultsBR1", "P Loses", "P Wins", "PrimaryAction" };
-            List<string> replacementColumnNames = new List<string> { "Exploitability", "Calculation Time", "P Files", "D Answers", "P Offer", "D Offer", "Trial", "P Win Probability", "P Wealth", "D Wealth", "Total Wealth", "Wealth Loss", "P Welfare", "D Welfare", "Pre-Dispute Social Welfare Loss", "Social Welfare Loss", "OpportunityCost", "HarmCost", "Expenditures", "False Positive Inaccuracy", "False Negative Inaccuracy", "Value If Settled", "No Suit", "No Answer", "Settles", "P Abandons", "D Defaults", "P Loses", "P Wins", "Appropriation" };
+            List<string> replacementColumnNames = new List<string> { "Exploitability", "Calculation Time", "P Files", "D Answers", "P Offer", "D Offer", "Trial", "P Win Probability", "P Wealth", "D Wealth", "Total Wealth", "Wealth Loss", "P Welfare", "D Welfare", "Pre-Dispute Social Welfare Loss", "Social Welfare Loss", "Opportunity Cost", "Harm Cost", "Expenditures", "False Positive Inaccuracy", "False Negative Inaccuracy", "Value If Settled", "No Suit", "No Answer", "Settles", "P Abandons", "D Defaults", "P Loses", "P Wins", "Appropriation" };
             BuildReport(launcher, rowsToGet, replacementRowNames, columnsToGet, replacementColumnNames, "output");
         }
 
@@ -386,6 +386,14 @@ namespace LitigCharts
                   "green, opacity=0.70, line width=1mm, solid",
                 };
 
+                var lossesLineScheme = new List<string>()
+                {
+                  "green, opacity=0.70, line width=0.5mm, dotted",
+                  "yellow, opacity=0.70, line width=1mm, dashed",
+                  "blue, opacity=0.70, line width=1mm, dashdotdotted",
+                  "red, opacity=0.70, line width=1mm, solid",
+                };
+
                 var dispositionLineScheme = new List<string>()
                 {
                   "violet, line width=3mm, solid",
@@ -404,8 +412,8 @@ namespace LitigCharts
                     new AggregatedGraphInfo($"Accuracy{riskAversionString}", new List<string>() { "False Positive Inaccuracy", "False Negative Inaccuracy" }, plaintiffDefendantAndOthersLineScheme.Take(2).ToList()),
                     new AggregatedGraphInfo($"Expenditures{riskAversionString}", new List<string>() { "Expenditures" }, plaintiffDefendantAndOthersLineScheme.Skip(2).Take(1).ToList()),
                     new AggregatedGraphInfo($"Offers{riskAversionString}", new List<string>() { "P Offer", "D Offer" }, plaintiffDefendantAndOthersLineScheme.Take(2).ToList()),
-                    new AggregatedGraphInfo($"Social Welfare Loss{riskAversionString}", new List<string>() { "Social Welfare Loss" }, plaintiffDefendantAndOthersLineScheme.Take(1).ToList(), maximumValueMicroY: 2, scaleMiniGraphValues: x => x / 2.0),
-                    new AggregatedGraphInfo($"Wealth Loss{riskAversionString}", new List<string>() { "Wealth Loss" }, plaintiffDefendantAndOthersLineScheme.Take(1).ToList(), maximumValueMicroY: 2, scaleMiniGraphValues:  x => x / 2.0),
+                    new AggregatedGraphInfo($"Social Welfare Loss{riskAversionString}", new List<string>() { "Opportunity Cost", "Harm Cost", "Expenditures", "Social Welfare Loss" }, lossesLineScheme, maximumValueMicroY: 2, scaleMiniGraphValues: x => x / 1.0),
+                    new AggregatedGraphInfo($"Wealth Loss{riskAversionString}", new List<string>() { "Wealth Loss" }, plaintiffDefendantAndOthersLineScheme.Take(1).ToList(), maximumValueMicroY: 2, scaleMiniGraphValues:  x => x / 1.0),
                     new AggregatedGraphInfo($"Trial{riskAversionString}", new List<string>() { "Trial" }, plaintiffDefendantAndOthersLineScheme.Take(1).ToList(), minorYAxisLabel: "Proportion", maximumValueMicroY: 1.0),
                     new AggregatedGraphInfo($"Trial Outcomes{riskAversionString}", new List<string>() { "P Win Probability" }, plaintiffDefendantAndOthersLineScheme.Take(1).ToList(), minorYAxisLabel: "Proportion", maximumValueMicroY: 1.0),
                     new AggregatedGraphInfo($"Disposition{riskAversionString}", new List<string>() {"No Suit", "No Answer", "Settles", "P Abandons", "D Defaults", "P Loses", "P Wins"}, dispositionLineScheme, minorYAxisLabel:"Proportion", maximumValueMicroY: 1.0, graphType:TikzAxisSet.GraphType.StackedBar),
@@ -435,7 +443,7 @@ namespace LitigCharts
             DeleteAuxiliaryFiles(outputFolderPath);
         }
 
-        private static void CreateAggregatedReportVariationsForWelfareMeasure(LitigGameLauncherBase launcher, string pathAndFilename, string outputFolderPath, List<LitigGameEndogenousDisputesLauncher.SimulationSetsIdentifier> variations, AggregatedGraphInfo aggregatedGraphInfo, double? limitToCostsMultiplier)
+        private static void CreateAggregatedReportVariationsForWelfareMeasure(LitigGameLauncherBase launcher, string pathAndFilename, string outputFolderPath, List<PermutationalLauncher.SimulationSetsIdentifier> variations, AggregatedGraphInfo aggregatedGraphInfo, double? limitToCostsMultiplier)
         {
             Func<double?, double?> scaleMiniGraphValues = aggregatedGraphInfo.scaleMiniGraphValues ?? (x => x);
             List<(string columnName, string expectedText)[]> collectedRowsToFind = new List<(string columnName, string expectedText)[]>();
@@ -507,10 +515,10 @@ namespace LitigCharts
                         double originalMaxY = maxY;
 
                         maxY = RoundAxisLimit(originalMaxY);
-                        Console.WriteLine($"{originalMaxY}, {maxY}"); // DEBUG
-                        // change aggregatedGraphInfo so that the microY axis value is multiplied by the new value.
-                        aggregatedGraphInfo = aggregatedGraphInfo with { maximumValueMicroY = Math.Max(aggregatedGraphInfo.maximumValueMicroY ?? 1, 1.0) * maxY };
-                        // now, change each individual mini graph so that the y value is divided by maxY (since we've increased the scale on the graph).
+
+                        // change aggregatedGraphInfo so that the top of the microY axis, if not already set to a high enough value, is set to maxY
+                        aggregatedGraphInfo = aggregatedGraphInfo with { maximumValueMicroY = Math.Max(aggregatedGraphInfo.maximumValueMicroY ?? 0, maxY) };
+                        // now, change each individual mini graph so that the y proportional heights value is divided by maximumValueMicroY
                         foreach (var macroRow in lineGraphData)
                         {
                             for (int macroColumnIndex = 0; macroColumnIndex < macroRow.Count; macroColumnIndex++)
@@ -521,7 +529,11 @@ namespace LitigCharts
                                     for (int j = 0; j < macroCell.proportionalHeights[i].Count(); j++)
                                     {
                                         if (macroCell.proportionalHeights[i][j] != null)
-                                            macroCell.proportionalHeights[i][j] /= maxY;
+                                        { 
+                                            macroCell.proportionalHeights[i][j] /= aggregatedGraphInfo.maximumValueMicroY;
+                                            if (macroCell.proportionalHeights[i][j] > 1)
+                                                macroCell.proportionalHeights[i][j] = 1.05; // just use a generic number to mean above the graph (though that shouldn't happen given the formula above)
+                                        }
                                     }
                                 }
                             }
