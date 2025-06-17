@@ -370,59 +370,81 @@ namespace ACESimTest
 
         private static List<CostBreakdownReport.Slice> RandomSliceSet(Random rng)
         {
-            int sliceCount = rng.Next(3, 6);          // total slices ≥ 3
-            var rawWeights = Enumerable.Range(0, sliceCount)
-                                       .Select(_ => rng.NextDouble())
-                                       .ToArray();
-            double total = rawWeights.Sum();
+            // ------------------------------------------------------------------
+            // 1.  Probability split:  98 %–99.999 % left  vs.  0.01 %–2 % right
+            // ------------------------------------------------------------------
+            double pRare   = Math.Pow(10, -(2.0 + rng.NextDouble() * 3.0));   // 1 e-2 … 1 e-5
+            double pCommon = 1.0 - pRare;
 
-            // Helper to round values consistently
+            // 2–4 slices per side (≥1 each)
+            int leftCount  = rng.Next(1, 4);
+            int rightCount = rng.Next(1, 4);
+
+            // Dirichlet helper – returns *absolute* widths that sum to ‘total’
+            static double[] Dirichlet(int k, double total, Random r)
+            {
+                double[] x = new double[k];
+                double    s = 0;
+                for (int i = 0; i < k; i++) { x[i] = -Math.Log(r.NextDouble()); s += x[i]; }
+                for (int i = 0; i < k; i++) x[i] = x[i] / s * total;
+                return x;
+            }
+
+            double[] wLeft  = Dirichlet(leftCount,  pCommon, rng);
+            double[] wRight = Dirichlet(rightCount, pRare,   rng);
+
+            // ------------------------------------------------------------------
+            // 2.  Low-opportunity left panel
+            // ------------------------------------------------------------------
+            var slices    = new List<CostBreakdownReport.Slice>();
+            double areaL  = 0.0;                       // Σ width·cost on the left
             static double R2(double v) => Math.Round(v, 2, MidpointRounding.AwayFromZero);
 
-            var slices = new List<CostBreakdownReport.Slice>();
-
-            // ---------------- Left-only slice (opportunity cost) ----------------
-            slices.Add(new CostBreakdownReport.Slice(
-                width:  R2(rawWeights[0] / total),
-                opportunity: R2(rng.NextDouble() * 10),
-                harm: 0, filing: 0, answer: 0, bargaining: 0, trial: 0));
-
-            // ---------------- Right-side slice (includes harm) ------------------
-            slices.Add(new CostBreakdownReport.Slice(
-                width:  R2(rawWeights[1] / total),
-                opportunity: R2(rng.NextDouble() * 10),
-                harm:        R2(rng.NextDouble() * 5),
-                filing:      R2(rng.NextDouble() * 2),
-                answer:      R2(rng.NextDouble() * 2),
-                bargaining:  R2(rng.NextDouble() * 1),
-                trial:       R2(rng.NextDouble() * 3)));
-
-            // ---------------- Additional slices (randomly left or right) --------
-            for (int i = 2; i < sliceCount; i++)
+            for (int i = 0; i < leftCount; i++)
             {
-                bool left = rng.NextDouble() < 0.4; // ~40 % chance of another left slice
-                if (left)
-                {
-                    slices.Add(new CostBreakdownReport.Slice(
-                        width:  R2(rawWeights[i] / total),
-                        opportunity: R2(rng.NextDouble() * 10),
-                        harm: 0, filing: 0, answer: 0, bargaining: 0, trial: 0));
-                }
-                else
-                {
-                    slices.Add(new CostBreakdownReport.Slice(
-                        width:  R2(rawWeights[i] / total),
-                        opportunity: R2(rng.NextDouble() * 10),
-                        harm:        R2(rng.NextDouble() * 5),
-                        filing:      R2(rng.NextDouble() * 2),
-                        answer:      R2(rng.NextDouble() * 2),
-                        bargaining:  R2(rng.NextDouble() * 1),
-                        trial:       R2(rng.NextDouble() * 3)));
-                }
+                double opp = 0.005 + rng.NextDouble() * 0.045;     // 0.005 – 0.05
+                areaL += wLeft[i] * opp;
+
+                slices.Add(new CostBreakdownReport.Slice(
+                    width:       wLeft[i],
+                    opportunity: R2(opp),
+                    harm: 0, filing: 0, answer: 0, bargaining: 0, trial: 0));
+            }
+
+            // ------------------------------------------------------------------
+            // 3.  High-harm right panel — scaled so that 0.1 ≤ areaR/areaL ≤ 10
+            // ------------------------------------------------------------------
+            double ratioLR     = Math.Pow(10, rng.NextDouble() * 2.0 - 1.0);  // 0.1 … 10
+            double targetAreaR = areaL * ratioLR;
+            double baseCost    = targetAreaR / pRare;                         // equal across right slices
+
+            foreach (double w in wRight)
+            {
+                // preserve a small opportunity cost even on the right
+                double opp = 0.005 + rng.NextDouble() * 0.045;
+                double remaining = baseCost - opp;
+
+                // harm takes 60–90 % of what remains
+                double harm    = remaining * (0.60 + 0.30 * rng.NextDouble());
+                double balance = remaining - harm;
+
+                // split balance over four litigation phases
+                double[] phase = Dirichlet(4, balance, rng);
+
+                slices.Add(new CostBreakdownReport.Slice(
+                    width:       w,
+                    opportunity: R2(opp),
+                    harm:        R2(harm),
+                    filing:      R2(phase[0]),
+                    answer:      R2(phase[1]),
+                    bargaining:  R2(phase[2]),
+                    trial:       R2(phase[3])));
             }
 
             return slices;
         }
+
+
 
         private static bool IsLeftSlice(CostBreakdownReport.Slice s) =>
             s.harm + s.filing + s.answer + s.bargaining + s.trial == 0;
