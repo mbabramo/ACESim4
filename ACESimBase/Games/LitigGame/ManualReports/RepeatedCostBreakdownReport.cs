@@ -101,33 +101,40 @@ namespace ACESimBase.Games.LitigGame.ManualReports
             body.AppendLine($@"\clip(0,-{LegendSpaceCm}) rectangle +{outerRect.topRight.WithYTranslation(LegendSpaceCm)};");
             body.AppendLine(outerAxis.GetDrawCommands());
 
+            // uniform inner gap below every mini-graph
+            const double MiniGraphBottomPadCm = 0.20;
+
             foreach (var (row, rIdx) in sliceGrid.Select((r, i) => (r, i)))
             {
                 foreach (var (slices, cIdx) in row.Select((s, i) => (s, i)))
                 {
-                    var cell = outerAxis.IndividualCells[rIdx][cIdx];
-                    var sc   = scales[scaleCursor++];
+                    // shave 0.12 cm off the inside-bottom of *every* cell
+                    var pane = outerAxis.IndividualCells[rIdx][cIdx]
+                                        .ReducedByPadding(0, MiniGraphBottomPadCm, 0, 0);
+
+                    var sc = scales[scaleCursor++];
 
                     body.AppendLine(
                         TikzScaled(
                             slices,
                             sc,
-                            pres:false,
-                            title:"",
-                            splitRareHarmPanel:HasTwoPanels(slices),
-                            standalone:false,
-                            includeLegend:false,
+                            pres: false,
+                            title: "",
+                            splitRareHarmPanel: HasTwoPanels(slices),
+                            standalone: false,
+                            includeLegend: false,
                             includeAxisLabels: keepAxisLabels && keepAxisTicks,
                             includeDisputeLabels: false,
-                            targetWidth:  cell.width,
-                            targetHeight: cell.height,
-                            xOffset:      cell.left,
-                            yOffset:      cell.bottom,
+                            targetWidth:  pane.width,
+                            targetHeight: pane.height,
+                            xOffset:      pane.left,
+                            yOffset:      pane.bottom,
                             adaptivePadding: true,
                             minimalTicks: true,
                             tickLabelsInside: tickLabelsInside));
                 }
             }
+
 
             // ── legend underneath x-axis ─────────────────────────────────────────────
             if (activeCats.Count > 0)
