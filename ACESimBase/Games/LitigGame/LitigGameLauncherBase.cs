@@ -350,7 +350,7 @@ namespace ACESimBase.Games.LitigGame
                 [("Risk Aversion", "Moderately Risk Averse")]
                 );
 
-        public abstract List<SimulationSetsIdentifier> GetArticleVariationInfoList(SimulationSetsTransformer transformer = null);
+        public abstract List<SimulationSetsIdentifier> GetSimulationSetsIdentifiers(SimulationSetsTransformer transformer = null);
 
         protected static List<SimulationSetsIdentifier> PerformArticleVariationInfoSetsTransformation(SimulationSetsTransformer transformer, List<SimulationSetsIdentifier> tentativeResults)
         {

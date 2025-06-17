@@ -377,7 +377,7 @@ namespace LitigCharts
 
             foreach (bool useRiskAversionForNonRiskReports in new bool[] { false, true })
             {
-                var variations = launcher.GetArticleVariationInfoList(useRiskAversionForNonRiskReports ? LitigGameLauncherBase.RequireModerateRiskAversion : null);
+                var variations = launcher.GetSimulationSetsIdentifiers(useRiskAversionForNonRiskReports ? LitigGameLauncherBase.RequireModerateRiskAversion : null);
 
                 var plaintiffDefendantAndOthersLineScheme = new List<string>()
                 {

@@ -153,7 +153,7 @@ namespace ACESim
             return result;
         }
 
-        public override List<SimulationSetsIdentifier> GetArticleVariationInfoList(SimulationSetsTransformer transformer = null)
+        public override List<SimulationSetsIdentifier> GetSimulationSetsIdentifiers(SimulationSetsTransformer transformer = null)
         {
             var varyingNothing = new List<SimulationIdentifier>()
             {
