@@ -26,7 +26,7 @@ namespace LitigCharts
 {
     public class FeeShiftingDataProcessing : DataProcessingBase
     {
-        #region CSV reports
+        #region CSV reports and files
 
         public static void BuildMainFeeShiftingReport(LitigGameLauncherBase launcher)
         {
@@ -137,33 +137,39 @@ namespace LitigCharts
             BuildReport(launcher, filtersOfRowsToGet, replacementRowNames, columnsToGet, replacementColumnNames, "offers");
         }
 
-        #endregion
+        
 
-        #region Latex diagrams for individual simulation results
-
-        static bool includeHeatmaps = false;
-        internal static void ExecuteLatexProcessesForExisting() => ExecuteLatexProcessesForExisting(result => includeHeatmaps || (!result.Contains("offers") && !result.Contains("fileans")));
-
-        internal static void ProduceLatexDiagramsFromTexFiles(LitigGameLauncherBase launcher)
+        private static List<(string[] stringValues, double[] numericValues)> GetDataFromCSV(string filename, int columnToMatch, string requiredContentsOfColumnToMatch, int[] stringColumns, int[] numericColumns)
         {
-            bool workExists = true;
-            int numAttempts = 0; // sometimes the Latex processes fail, so we try again if any of our files to create are missing
-            const int maxAttempts = 10;
-            while (workExists && numAttempts < maxAttempts)
+            var lines = new List<(string[] stringValues, double[] numericValues)>();
+            using (var reader = new StreamReader(filename))
             {
-                List<(string path, string combinedPath, string optionSetName, string fileSuffix)> processesToLaunch = new List<(string path, string combinedPath, string optionSetName, string fileSuffix)>();
-                workExists = processesToLaunch.Any(); 
-                foreach (string fileSuffix in equilibriumTypeSuffixes)
+                while (!reader.EndOfStream)
                 {
-                    List<(string path, string combinedPath, string optionSetName, string fileSuffix)> someToDo = FeeShiftingDataProcessing.GetLatexProcessPlans(launcher, new string[] { "-stagecostlight" + fileSuffix, "-stagecostdark" + fileSuffix, "-costbreakdownlight" + fileSuffix, "-costbreakdowndark" + fileSuffix, "-offers" + fileSuffix, "-fileans" + fileSuffix }, avoidProcessingIfPDFExists || numAttempts > 1);
-                    processesToLaunch.AddRange(someToDo);
+                    var line = reader.ReadLine();
+                    var values = line.Split(',');
+                    if (values[columnToMatch] == requiredContentsOfColumnToMatch)
+                    {
+                        var stringValues = stringColumns.Select(x => values[x]).ToArray();
+                        var numericValues = numericColumns.Select(x => values[x] == "" ? 0.0 : double.Parse(values[x])).ToArray();
+                        lines.Add((stringValues, numericValues));
+                    }
                 }
-                ProduceLatexDiagrams(processesToLaunch);
-                numAttempts++;
             }
+            return lines;
         }
 
-        #endregion
+        //private string SeparateOptionSetsByRelevantVariable(List<LitigGameOptions> optionSets)
+        //{
+        //    foreach (var e in optionSets.First().VariableSettings)
+        //    {
+        //        int count = optionSets.Count(x => x.VariableSettings[e.Key] == e.Value);
+        //        if (count == 1)
+        //        {
+        //            string variableThatDiffers = e.Key;
+        //        }
+        //    }
+        //}
 
         public static List<(string folderName, string[] extensions)> GetFilePlacementRules(DataBeingAnalyzed article)
         {
@@ -242,6 +248,36 @@ namespace LitigCharts
 
             return placementRules;
         }
+
+        #endregion
+
+        #region Latex diagrams for individual simulation results
+
+        static bool includeHeatmaps = false;
+        internal static void ExecuteLatexProcessesForExisting() => ExecuteLatexProcessesForExisting(result => includeHeatmaps || (!result.Contains("offers") && !result.Contains("fileans")));
+
+        internal static void ProduceLatexDiagramsFromTexFiles(LitigGameLauncherBase launcher)
+        {
+            bool workExists = true;
+            int numAttempts = 0; // sometimes the Latex processes fail, so we try again if any of our files to create are missing
+            const int maxAttempts = 10;
+            while (workExists && numAttempts < maxAttempts)
+            {
+                List<(string path, string combinedPath, string optionSetName, string fileSuffix)> processesToLaunch = new List<(string path, string combinedPath, string optionSetName, string fileSuffix)>();
+                workExists = processesToLaunch.Any(); 
+                foreach (string fileSuffix in equilibriumTypeSuffixes)
+                {
+                    List<(string path, string combinedPath, string optionSetName, string fileSuffix)> someToDo = FeeShiftingDataProcessing.GetLatexProcessPlans(launcher, new string[] { "-stagecostlight" + fileSuffix, "-stagecostdark" + fileSuffix, "-costbreakdownlight" + fileSuffix, "-costbreakdowndark" + fileSuffix, "-offers" + fileSuffix, "-fileans" + fileSuffix }, avoidProcessingIfPDFExists || numAttempts > 1);
+                    processesToLaunch.AddRange(someToDo);
+                }
+                ProduceLatexDiagrams(processesToLaunch);
+                numAttempts++;
+            }
+        }
+
+        #endregion
+
+        #region Latex diagrams for aggregated results
 
         public static void ExampleLatexDiagramsAggregatingReports(TikzAxisSet.GraphType graphType = TikzAxisSet.GraphType.Line)
         {
@@ -643,33 +679,9 @@ namespace LitigCharts
                     exponentTxt,
                     $"${exponentTxt}$");
         }
+        #endregion
 
-         private static string FormatNumberForLaTeX(double value)
-        {
-            string normal = value.ToString("G", CultureInfo.InvariantCulture);
-
-            // ordinary decimal form → just wrap in $...$
-            if (!normal.Contains('E') && !normal.Contains('e'))
-                return $"${normal}$";
-
-            int ePos = normal.IndexOfAny(new[] { 'E', 'e' });
-            string mantissa = normal[..ePos];
-            string exponentRaw = normal[(ePos + 1)..];
-
-            if (exponentRaw.StartsWith("+"))
-                exponentRaw = exponentRaw[1..];
-
-            // int.Parse removes any leading zeros
-            string exponent = int.Parse(exponentRaw, NumberStyles.Integer, CultureInfo.InvariantCulture)
-                                .ToString(CultureInfo.InvariantCulture);
-
-            // trim trailing zeros from mantissa
-            if (mantissa.Contains('.'))
-                mantissa = mantissa.TrimEnd('0').TrimEnd('.');
-
-            return $"${mantissa}\\cdot10^{{{exponent}}}$";
-        }
-
+        #region Coefficient of variation report
 
         public static void CalculateAverageCoefficientOfVariation()
         {
@@ -744,36 +756,6 @@ namespace LitigCharts
             Console.WriteLine($"Average coefficient of variation: {String.Join(", ", averageCoefficients)}");
         }
 
-        private static List<(string[] stringValues, double[] numericValues)> GetDataFromCSV(string filename, int columnToMatch, string requiredContentsOfColumnToMatch, int[] stringColumns, int[] numericColumns)
-        {
-            var lines = new List<(string[] stringValues, double[] numericValues)>();
-            using (var reader = new StreamReader(filename))
-            {
-                while (!reader.EndOfStream)
-                {
-                    var line = reader.ReadLine();
-                    var values = line.Split(',');
-                    if (values[columnToMatch] == requiredContentsOfColumnToMatch)
-                    {
-                        var stringValues = stringColumns.Select(x => values[x]).ToArray();
-                        var numericValues = numericColumns.Select(x => values[x] == "" ? 0.0 : double.Parse(values[x])).ToArray();
-                        lines.Add((stringValues, numericValues));
-                    }
-                }
-            }
-            return lines;
-        }
-
-        //private string SeparateOptionSetsByRelevantVariable(List<LitigGameOptions> optionSets)
-        //{
-        //    foreach (var e in optionSets.First().VariableSettings)
-        //    {
-        //        int count = optionSets.Count(x => x.VariableSettings[e.Key] == e.Value);
-        //        if (count == 1)
-        //        {
-        //            string variableThatDiffers = e.Key;
-        //        }
-        //    }
-        //}
+        #endregion
     }
 }

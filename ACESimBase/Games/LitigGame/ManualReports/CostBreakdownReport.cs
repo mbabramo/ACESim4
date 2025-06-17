@@ -1055,6 +1055,46 @@ namespace ACESimBase.Games.LitigGame.ManualReports
             return sb.ToString();
         }
 
+        public static List<Slice> LoadSlicesFromCsv(string csvPath, bool firstRowIsHeader = true)
+        {
+            var slices = new List<Slice>();
+
+            foreach (string rawLine in System.IO.File.ReadLines(csvPath))
+            {
+                if (string.IsNullOrWhiteSpace(rawLine))
+                    continue;                                       // skip blanks
+
+                string line = rawLine.TrimStart();
+                if (line.StartsWith("#"))
+                    continue;                                       // allow comment lines
+
+                if (firstRowIsHeader)
+                {
+                    firstRowIsHeader = false;                       // consume header
+                    continue;
+                }
+
+                string[] fields = line.Split(',');
+                if (fields.Length < 7)
+                    throw new FormatException(
+                        $"CSV line has {fields.Length} fields; expected ≥ 7: \"{rawLine}\"");
+
+                // parse using invariant culture to avoid locale-specific separators
+                double width      = double.Parse(fields[0], CultureInfo.InvariantCulture);
+                double opportunity= double.Parse(fields[1], CultureInfo.InvariantCulture);
+                double harm       = double.Parse(fields[2], CultureInfo.InvariantCulture);
+                double filing     = double.Parse(fields[3], CultureInfo.InvariantCulture);
+                double answer     = double.Parse(fields[4], CultureInfo.InvariantCulture);
+                double bargaining = double.Parse(fields[5], CultureInfo.InvariantCulture);
+                double trial      = double.Parse(fields[6], CultureInfo.InvariantCulture);
+
+                slices.Add(new Slice(width, opportunity, harm, filing, answer, bargaining, trial));
+            }
+
+            return slices;
+        }
+
+
         #endregion
 
 
