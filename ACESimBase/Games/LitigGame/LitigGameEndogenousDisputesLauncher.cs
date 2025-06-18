@@ -1,6 +1,7 @@
 using ACESim.Util;
 using ACESimBase;
 using ACESimBase.Games.LitigGame;
+using ACESimBase.Games.LitigGame.PrecautionModel;
 using ACESimBase.GameSolvingSupport.DeepCFRSupport;
 using ACESimBase.GameSolvingSupport.Settings;
 using ACESimBase.Util.Collections;
@@ -27,6 +28,8 @@ namespace ACESim
                     ("Costs Multiplier", "1"),
                     ("Fee Shifting Multiplier", "0"),
                     ("Risk Aversion", "Risk Neutral"),
+                    ("Liability Threshold", "1"),
+                    ("Marginal Precaution Cost", "0.00001"),
                     ("Fee Shifting Rule", "English"),
                     ("Relative Costs", "1"),
                     ("Noise Multiplier P", "1"),
@@ -43,6 +46,8 @@ namespace ACESim
             "Costs Multipliers",
             "Fee Shifting Multiples",
             "Risk Aversion",
+            "Liability Thresholds",
+            "Marginal Precaution Costs",
             "Noise Multipliers", // includes P & D
             "Relative Costs",
             "Damages Multiplier",
@@ -59,9 +64,23 @@ namespace ACESim
                     ("Costs Multiplier", CriticalCostsMultipliers.Select(x => x.ToString()).ToArray()),
                     ("Fee Shifting Multiplier", CriticalFeeShiftingMultipliers.Select(x => x.ToString()).ToArray()),
                     ("Risk Aversion", new[] { "Risk Neutral", "Moderately Risk Averse" }),
+                    ("Liability Threshold", CriticalLiabilityThresholds.Select(x => x.ToString()).ToArray()),
+                    ("Marginal Precaution Cost", CriticalPrecautionCosts.Select(x => x.ToString()).ToArray()),
                 };
             }
         }
+        public override FeeShiftingRule[] FeeShiftingModes => new[] { FeeShiftingRule.English_LiabilityIssue };
+        
+        public override double[] CriticalCostsMultipliers => new double[] { 1.0, 0.25, 4.0 };
+        public override double[] AdditionalCostsMultipliers => new double[] { 1.0, 0.5, 2.0 };
+        public override double[] CriticalFeeShiftingMultipliers => new double[] { 0.0, 1.0 };
+        public override double[] AdditionalFeeShiftingMultipliers => new double[] { 0.0, 0.5, 2.0 };
+
+        public double[] CriticalLiabilityThresholds => new double[] { 1.0, 0.5, 1.5 };
+        public double[] AdditionalLiabilityThresholds => new double[] { 1.0, 1.25, 2.0 };
+
+        public double[] CriticalPrecautionCosts => new double[] { 0.00001, 0.000005, 0.00002 };
+        public double[] AdditionalPrecautionCosts => new double[] { 0.00001, 0.000001 };
 
         public enum UnderlyingGame
         {
@@ -81,12 +100,6 @@ namespace ACESim
         public override string MasterReportNameForDistributedProcessing => MasterReportNamePrefix + "001";
 
         // We can use this to allow for multiple options sets. These can then run in parallel. But note that we can also have multiple runs with a single option set using different settings by using GameDefinition scenarios; this is useful when there is a long initialization and it makes sense to complete one set before starting the next set.
-
-
-        public override FeeShiftingRule[] FeeShiftingModes => new[] { FeeShiftingRule.English_LiabilityIssue, FeeShiftingRule.MarginOfVictory_LiabilityIssue, 
-            FeeShiftingRule.Rule68_DamagesIssue, FeeShiftingRule.Rule68English_DamagesIssue 
-        }; // TODO -- note that these are disabled now (see TODOs above and below). Can be added back in by providing support for margin of fee shifting by creating logic around that in PrecautionNegligence game
-
 
         public override List<GameOptions> GetOptionsSets()
         {
@@ -110,6 +123,40 @@ namespace ACESim
             return optionSets.OrderBy(o => o.Name).ToList();
         }
 
+        #region Custom transformations
+
+        // Marginal precaution cost
+
+        public List<Func<LitigGameOptions, LitigGameOptions>> CriticalPrecautionCostTransformations(bool includeBaselineValue)
+            => Transform(GetAndTransform_PrecautionCost, CriticalPrecautionCosts, includeBaselineValue);
+        
+        public List<Func<LitigGameOptions, LitigGameOptions>> AdditionalPrecautionCostTransformations(bool includeBaselineValue)
+            => Transform(GetAndTransform_PrecautionCost, AdditionalPrecautionCosts, includeBaselineValue);
+
+        public LitigGameOptions GetAndTransform_PrecautionCost(LitigGameOptions options, double marginalPrecautionCost) => GetAndTransform(options, " Marginal Precaution Cost " + marginalPrecautionCost, g =>
+        {
+            PrecautionNegligenceDisputeGenerator disputeGenerator = (PrecautionNegligenceDisputeGenerator)options.LitigGameDisputeGenerator;
+            disputeGenerator.MarginalPrecautionCost = marginalPrecautionCost;
+            g.VariableSettings["Marginal Precaution Cost"] = marginalPrecautionCost;
+        });
+
+        // Liability threshold
+
+        public List<Func<LitigGameOptions, LitigGameOptions>> CriticalLiabilityThresholdTransformations(bool includeBaselineValue)
+            => Transform(GetAndTransform_LiabilityThreshold, CriticalLiabilityThresholds, includeBaselineValue);
+        
+        public List<Func<LitigGameOptions, LitigGameOptions>> AdditionalLiabilityThresholdTransformations(bool includeBaselineValue)
+            => Transform(GetAndTransform_LiabilityThreshold, AdditionalLiabilityThresholds, includeBaselineValue);
+
+        public LitigGameOptions GetAndTransform_LiabilityThreshold(LitigGameOptions options, double liabilityThreshold) => GetAndTransform(options, " Liability Threshold " + liabilityThreshold, g =>
+        {
+            PrecautionNegligenceDisputeGenerator disputeGenerator = (PrecautionNegligenceDisputeGenerator)options.LitigGameDisputeGenerator;
+            disputeGenerator.LiabilityThreshold = liabilityThreshold;
+            g.VariableSettings["Liability Threshold"] = liabilityThreshold;
+        });
+
+        #endregion
+
 
         #region Game sets generation
 
@@ -123,25 +170,33 @@ namespace ACESim
 
         public override List<List<GameOptions>> GetVariationSets(bool useAllPermutationsOfTransformations, bool includeBaselineValueForNoncritical)
         {
-            const int numCritical = 3; // critical transformations are all interacted with one another and then with each of the other transformations  
+            const int numCritical = 5; // critical transformations are all interacted with one another and then with each of the other transformations  
             var criticalCostsMultiplierTransformations = CriticalCostsMultiplierTransformations(true);
             var noncriticalCostsMultiplierTransformations = AdditionalCostsMultiplierTransformations(includeBaselineValueForNoncritical);
             var criticalFeeShiftingMultipleTransformations = CriticalFeeShiftingMultiplierTransformations(true);
             var noncriticalFeeShiftingMultipleTransformations = AdditionalFeeShiftingMultiplierTransformations(includeBaselineValueForNoncritical);
             var criticalRiskAversionTransformations = CriticalRiskAversionTransformations(true);
             var noncriticalRiskAversionTransformations = AdditionalRiskAversionTransformations(includeBaselineValueForNoncritical);
+            var criticalLiabilityThresholdTransformations = CriticalLiabilityThresholdTransformations(true);
+            var noncriticalLiabilityThresholdTransformations = AdditionalLiabilityThresholdTransformations(includeBaselineValueForNoncritical);
+            var criticalPrecautionCostTransformations = CriticalPrecautionCostTransformations(true);
+            var noncriticalPrecautionCostTransformations = AdditionalPrecautionCostTransformations(includeBaselineValueForNoncritical);
             List<List<Func<LitigGameOptions, LitigGameOptions>>> allTransformations = new List<List<Func<LitigGameOptions, LitigGameOptions>>>()
            {  
                // IMPORTANT: When changing these, change NamesOfFeeShiftingArticleSets to match each of these  
                // Can always choose any of these:  
                criticalCostsMultiplierTransformations,
                criticalFeeShiftingMultipleTransformations,
-               criticalRiskAversionTransformations,  
+               criticalRiskAversionTransformations,
+               criticalLiabilityThresholdTransformations,
+               criticalPrecautionCostTransformations,
                // IMPORTANT: Must follow with the corresponding noncritical transformations
                // And then can vary ONE of these (avoiding inconsistencies with above):  
                noncriticalCostsMultiplierTransformations, // i.e., not only the core costs multipliers and other core variables, but also the critical costs multipliers  
                noncriticalFeeShiftingMultipleTransformations,
                noncriticalRiskAversionTransformations,
+               noncriticalLiabilityThresholdTransformations,
+               noncriticalPrecautionCostTransformations,
                // Now other noncritical transformations
                NoiseTransformations(includeBaselineValueForNoncritical),
                PRelativeCostsTransformations(includeBaselineValueForNoncritical),
