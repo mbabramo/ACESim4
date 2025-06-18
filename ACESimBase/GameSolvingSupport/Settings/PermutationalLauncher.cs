@@ -37,18 +37,22 @@ namespace ACESimBase.GameSolvingSupport.Settings
     ///     code finds a unique result file.
     /// 
     /// ************************************************************************************************
-    /// <para><b>Critical vs. non-critical variables</b></para>
-    /// 
-    /// • <i>Critical</i> variables are the handful that are central to the research question and thus
-    ///   are <em>always</em> explored in full factorial combination with each other.  For these
-    ///   variables you usually want to see interactions (“If risk aversion is high <i>and</i> fee
-    ///   shifting is 4×, what happens?”).  
-    /// 
-    /// • <i>Non-critical</i> variables are supporting parameters that you would like to probe but
-    ///   that would blow up the search space if fully crossed with every other non-critical.  By
-    ///   default this class varies them <em>one at a time</em> against the complete critical bundle,
-    ///   keeping everything else at its baseline value.  That produces a tidy set of sweeps:
-    /// 
+    /// <para><b>Critical, super-critical, and non-critical variables</b></para>
+    ///
+    /// • <i>Critical</i> variables are the headline levers examined in a full-factorial grid so every
+    ///   mutual interaction is visible (e.g., “If risk aversion is high <i>and</i> fee shifting is 4×,
+    ///   what happens?”).
+    ///
+    /// • The first <c>numSupercriticals</c> of those critical variables are treated as
+    ///   <i>super-critical</i>. When any non-critical dimension is swept, only these super-critical
+    ///   variables continue to vary; the remaining critical variables stay at baseline unless their
+    ///   own partner list is being swept. This exposes the most consequential interactions while
+    ///   keeping the run-space manageable.
+    ///
+    /// • <i>Non-critical</i> variables are supporting parameters used chiefly for sensitivity analysis.
+    ///   By default they are varied <i>one at a time</i> against the bundle of critical/super-critical
+    ///   variables, leaving everything else at baseline.  The resulting sweeps look like:
+    ///
     ///   <code>
     ///   Baseline criticals only
     ///   Baseline + (NonCritA = 0.5)
@@ -56,11 +60,11 @@ namespace ACESimBase.GameSolvingSupport.Settings
     ///   …
     ///   Baseline + (NonCritB = 1.2)
     ///   </code>
-    /// 
-    ///   The switch <paramref name="useAllPermutationsOfTransformations"/> lets an advanced user
-    ///   override this and request the full Cartesian product across non-criticals, but that is rare
-    ///   because it grows exponentially.
-    /// 
+    ///
+    ///   Setting <paramref name="useAllPermutationsOfTransformations"/> to <c>true</c> overrides this
+    ///   and requests the full Cartesian product across non-critical dimensions, but that is rarely
+    ///   necessary because it grows combinatorially.
+    ///
     /// ************************************************************************************************
     /// <para><b>Redundancies and the “baseline again” row</b></para>
     /// 
@@ -244,40 +248,82 @@ namespace ACESimBase.GameSolvingSupport.Settings
             Func<T> optionsFn)
             where T : GameOptions
         {
-            // Partition the incoming lists ------------------------------------------------
-            var criticalTransforms     = allTransformations.Take(numCritical).ToList();
-            var noncriticalTransforms  = allTransformations.Skip(
-                IncludeNonCriticalTransformations ? numCritical : allTransformations.Count)
+            return PerformTransformations(
+                allTransformations,
+                numCritical,
+                numCritical,          // ← all criticals are super-critical
+                useAllPermutationsOfTransformations,
+                includeBaselineValueForNoncritical,
+                optionsFn);
+        }
+
+        /// <summary>
+        /// Extended version that distinguishes <paramref name="numSupercriticals"/>
+        /// (listed first) from the remaining critical variables.  
+        /// Non-critical sweeps are fully crossed only with those super-critical
+        /// dimensions; the others are fixed at baseline unless their own partner list
+        /// is being swept.
+        /// </summary>
+        protected List<List<GameOptions>> PerformTransformations<T>(
+            List<List<Func<T, T>>> allTransformations,
+            int numCritical,
+            int numSupercriticals,
+            bool useAllPermutationsOfTransformations,
+            bool includeBaselineValueForNoncritical,
+            Func<T> optionsFn)
+            where T : GameOptions
+        {
+            // ---------------------------------------------------------------------
+            //  Guardrails and basic partitions
+            // ---------------------------------------------------------------------
+            if (numSupercriticals < 0 || numSupercriticals > numCritical)
+                numSupercriticals = numCritical;
+
+            var criticalTransforms    = allTransformations.Take(numCritical).ToList();
+            var noncriticalTransforms = allTransformations.Skip(
+                    IncludeNonCriticalTransformations ? numCritical : allTransformations.Count)
                 .ToList();
 
-            var resultSets = new List<List<T>>();
-
-            // Fast path: full Cartesian product across every dimension --------------------
+            // ---------------------------------------------------------------------
+            //  Fast path – full Cartesian across *everything*
+            // ---------------------------------------------------------------------
             if (useAllPermutationsOfTransformations)
-            {
-                var combined = criticalTransforms.Concat(noncriticalTransforms).ToList();
-                resultSets.Add(ApplyPermutationsOfTransformations(optionsFn, combined));
-            }
-            else
-            {
-                // One-at-a-time sweeps: null branch + each non-critical list ---------------
-                var sweepTargets = BuildSweepTargetList(noncriticalTransforms);
-
-                foreach (var noncritList in sweepTargets)
+                return new List<List<GameOptions>>
                 {
-                    if (ShouldSkipBaseline(noncritList, includeBaselineValueForNoncritical))
-                        continue;
+                    ApplyPermutationsOfTransformations(
+                        optionsFn,
+                        criticalTransforms.Concat(noncriticalTransforms).ToList())
+                        .Cast<GameOptions>()
+                        .ToList()
+                };
 
-                    var combinedLists = BuildTransformListsForSweep(
-                        criticalTransforms,
-                        noncritList,
-                        allTransformations,
-                        numCritical);
+            // ---------------------------------------------------------------------
+            //  One-at-a-time sweeps
+            // ---------------------------------------------------------------------
+            var resultSets  = new List<List<T>>();
+            var sweepTargets = BuildSweepTargetList(noncriticalTransforms);
 
-                    var options = ApplyPermutationsOfTransformations(optionsFn, combinedLists);
-                    AddDefaultNoncriticalValues(options);
-                    resultSets.Add(options);
-                }
+            foreach (var noncritList in sweepTargets)
+            {
+                if (ShouldSkipBaseline(noncritList, includeBaselineValueForNoncritical))
+                    continue;
+
+                // Freeze the non-super-critical dimensions at baseline
+                var criticalForSweep = criticalTransforms
+                    .Select((list, idx) =>
+                        idx < numSupercriticals ? list
+                                                : list.Take(1).ToList())   // baseline only
+                    .ToList();
+
+                var combinedLists = BuildTransformListsForSweep(
+                    criticalForSweep,
+                    noncritList,
+                    allTransformations,
+                    numCritical);
+
+                var options = ApplyPermutationsOfTransformations(optionsFn, combinedLists);
+                AddDefaultNoncriticalValues(options);
+                resultSets.Add(options);
             }
 
             return resultSets.Select(inner => inner.Cast<GameOptions>().ToList()).ToList();
