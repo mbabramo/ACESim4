@@ -19,6 +19,8 @@ namespace ACESim
     public class LitigGameEndogenousDisputesLauncher : LitigGameLauncherBase
     {
 
+        // DEBUG: consider critical damages multipliers
+
         public override List<(string, string)> DefaultVariableValues
         {
             get
@@ -215,6 +217,20 @@ namespace ACESim
                 new SimulationIdentifier("Baseline", DefaultVariableValues),
             };
 
+            var varyingLiabilityThreshold = new List<SimulationIdentifier>()
+            {
+                new SimulationIdentifier("Low", DefaultVariableValues.WithReplacement("Liability Threshold", "0.5")),
+                new SimulationIdentifier("Normal", DefaultVariableValues.WithReplacement("Liability Threshold", "1")),
+                new SimulationIdentifier("High", DefaultVariableValues.WithReplacement("Liability Threshold", "1.5")),
+            };
+            
+            var varyingMarginalPrecautionCost = new List<SimulationIdentifier>()
+            {
+                new SimulationIdentifier("Low", DefaultVariableValues.WithReplacement("Marginal Precaution Cost", "5E-06")),
+                new SimulationIdentifier("Normal", DefaultVariableValues.WithReplacement("Marginal Precaution Cost", "1E-05")),
+                new SimulationIdentifier("High", DefaultVariableValues.WithReplacement("Marginal Precaution Cost", "2E-05")),
+            };
+
             //var varyingFeeShiftingRule_LiabilityUncertain = new List<ArticleVariationInfo>()
             //{
             //    // where liability is uncertain:
@@ -233,8 +249,8 @@ namespace ACESim
 
             var varyingNoiseMultipliersAsymmetric = new List<SimulationIdentifier>()
             {
-                new SimulationIdentifier("Equal Information", DefaultVariableValues.WithReplacement("Noise Multiplier P", "1").WithReplacement("Noise Multiplier D", "1")),
                 new SimulationIdentifier("P Better", DefaultVariableValues.WithReplacement("Noise Multiplier P", "0.5").WithReplacement("Noise Multiplier D", "2")),
+                new SimulationIdentifier("Equal Information", DefaultVariableValues.WithReplacement("Noise Multiplier P", "1").WithReplacement("Noise Multiplier D", "1")),
                 new SimulationIdentifier("D Better", DefaultVariableValues.WithReplacement("Noise Multiplier P", "2").WithReplacement("Noise Multiplier D", "0.5")),
             };
 
@@ -281,6 +297,8 @@ namespace ACESim
             var tentativeResults = new List<SimulationSetsIdentifier>()
             {
                 new SimulationSetsIdentifier("Baseline", varyingNothing),
+                new SimulationSetsIdentifier("Liability Threshold", varyingLiabilityThreshold),
+                new SimulationSetsIdentifier("Marginal Precaution Cost", varyingMarginalPrecautionCost),
                 // TODO new ArticleVariationInfoSets("Fee Shifting Rule (Liability Issue)", varyingFeeShiftingRule_LiabilityUncertain),
                 new SimulationSetsIdentifier("Noise Multiplier", varyingNoiseMultipliersBoth),
                 new SimulationSetsIdentifier("Information Asymmetry", varyingNoiseMultipliersAsymmetric),

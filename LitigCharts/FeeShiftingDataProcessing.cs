@@ -358,6 +358,10 @@ namespace LitigCharts
             var drawCommands = r.GetStandaloneDocument();
         }
 
+        // DEBUG -- add option for using Damages Multiplier, if we make that critical.
+        // DEBUG -- try using cost breakdown diagrams instead. Include columns for baseline, fee shifting, damages multiplier, both.
+        // DEBUG -- consider using Damages Multiplier instead of Costs Multiplier on the macro y.
+
         public record AggregatedGraphInfo(string topicName, List<string> columnsToGet, List<string> lineScheme, string minorXAxisLabel = "Fee Shifting Multiplier", string minorXAxisLabelShort = "Fee Shift Mult.", string minorYAxisLabel = "\\$", string majorYAxisLabel = "Costs Multiplier", double? maximumValueMicroY = null, TikzAxisSet.GraphType graphType = TikzAxisSet.GraphType.Line, Func<double?, double?> scaleMiniGraphValues = null, string filter = "All");
 
         public static void ProduceLatexDiagramsAggregatingReports(LitigGameLauncherBase launcher)
