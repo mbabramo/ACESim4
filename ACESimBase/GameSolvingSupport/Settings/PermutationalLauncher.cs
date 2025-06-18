@@ -244,72 +244,98 @@ namespace ACESimBase.GameSolvingSupport.Settings
             Func<T> optionsFn)
             where T : GameOptions
         {
-            List<List<T>> listOfOptionSets = new();
-            var criticalTransformations = allTransformations.Take(numCritical).ToList();
-            var noncriticalTransformations =
-                allTransformations.Skip(
-                    IncludeNonCriticalTransformations ? numCritical
-                                                      : allTransformations.Count)
-                                  .ToList();
+            // Partition the incoming lists ------------------------------------------------
+            var criticalTransforms     = allTransformations.Take(numCritical).ToList();
+            var noncriticalTransforms  = allTransformations.Skip(
+                IncludeNonCriticalTransformations ? numCritical : allTransformations.Count)
+                .ToList();
 
-            var nonCriticalCriticalPairs =
-                Enumerable.Range(0, numCritical)
-                          .Select(i => (
-                              noncritical: allTransformations[numCritical + i],
-                              critical:    allTransformations[i]))
-                          .ToArray();
+            var resultSets = new List<List<T>>();
 
-            if (!useAllPermutationsOfTransformations)
+            // Fast path: full Cartesian product across every dimension --------------------
+            if (useAllPermutationsOfTransformations)
             {
-                var noncriticalTransformationPlusNoTransformation = new List<List<Func<T, T>>>();
-                noncriticalTransformationPlusNoTransformation
-                    .AddRange(noncriticalTransformations.Where(x => x.Count != 0));
-                noncriticalTransformationPlusNoTransformation.Insert(0, null);
+                var combined = criticalTransforms.Concat(noncriticalTransforms).ToList();
+                resultSets.Add(ApplyPermutationsOfTransformations(optionsFn, combined));
+            }
+            else
+            {
+                // One-at-a-time sweeps: null branch + each non-critical list ---------------
+                var sweepTargets = BuildSweepTargetList(noncriticalTransforms);
 
-                for (int noncriticalIndex = 0;
-                     noncriticalIndex < noncriticalTransformationPlusNoTransformation.Count;
-                     noncriticalIndex++)
+                foreach (var noncritList in sweepTargets)
                 {
-                    var noncriticalTransformation =
-                        noncriticalTransformationPlusNoTransformation[noncriticalIndex];
+                    if (ShouldSkipBaseline(noncritList, includeBaselineValueForNoncritical))
+                        continue;
 
-                    if (includeBaselineValueForNoncritical &&
-                        noncriticalTransformation != null &&
-                        noncriticalTransformation.Count <= 1)
-                        continue; // redundant baseline
+                    var combinedLists = BuildTransformListsForSweep(
+                        criticalTransforms,
+                        noncritList,
+                        allTransformations,
+                        numCritical);
 
-                    var transformLists = criticalTransformations.ToList();
-                    bool replaced = false;
-
-                    foreach (var (noncritical, critical) in nonCriticalCriticalPairs)
-                    {
-                        if (noncriticalTransformation == noncritical)
-                        {
-                            int indexOfCritical = transformLists.IndexOf(critical);
-                            transformLists[indexOfCritical] = noncriticalTransformation;
-                            replaced = true;
-                        }
-                    }
-
-                    if (noncriticalTransformation != null && !replaced)
-                        transformLists.Add(noncriticalTransformation);
-
-                    List<T> noncriticalOptions =
-                        ApplyPermutationsOfTransformations(optionsFn, transformLists);
-
-                    var defaultNonCriticalValues = DefaultVariableValues;
-                    foreach (var optionSet in noncriticalOptions)
-                        foreach (var d in defaultNonCriticalValues)
-                            if (!optionSet.VariableSettings.ContainsKey(d.Item1))
-                                optionSet.VariableSettings[d.Item1] = d.Item2;
-
-                    listOfOptionSets.Add(noncriticalOptions);
+                    var options = ApplyPermutationsOfTransformations(optionsFn, combinedLists);
+                    AddDefaultNoncriticalValues(options);
+                    resultSets.Add(options);
                 }
             }
 
-            return listOfOptionSets
-                   .Select(inner => inner.Cast<GameOptions>().ToList())
-                   .ToList();
+            return resultSets.Select(inner => inner.Cast<GameOptions>().ToList()).ToList();
+        }
+
+        // -----------------------------------------------------------------------------
+        //  Helpers (private)
+        // -----------------------------------------------------------------------------
+        private static bool ShouldSkipBaseline<T>(
+            List<Func<T, T>> noncritList,
+            bool includeBaselineValueForNoncritical) =>
+            includeBaselineValueForNoncritical &&
+            noncritList != null &&
+            noncritList.Count <= 1;   // single entry means “baseline again”
+
+        private static List<List<Func<T, T>>> BuildSweepTargetList<T>(
+            List<List<Func<T, T>>> noncriticalTransforms)
+        {
+            var list = new List<List<Func<T, T>>> { null };        // null branch = “don’t vary”
+            list.AddRange(noncriticalTransforms.Where(x => x.Count != 0));
+            return list;
+        }
+
+        private List<List<Func<T, T>>> BuildTransformListsForSweep<T>(
+            List<List<Func<T, T>>> criticalTransforms,
+            List<Func<T, T>> chosenNoncrit,
+            List<List<Func<T, T>>> allTransforms,
+            int numCritical)
+        {
+            var lists = criticalTransforms.ToList();   // copy
+
+            // If the chosen list is the partner of a critical dimension, replace in-place
+            bool replaced = false;
+            for (int i = 0; i < numCritical; i++)
+            {
+                var partner = allTransforms[numCritical + i];
+                if (partner == chosenNoncrit)
+                {
+                    lists[i] = chosenNoncrit;
+                    replaced = true;
+                    break;
+                }
+            }
+
+            // Otherwise (independent non-critical) just append
+            if (chosenNoncrit != null && !replaced)
+                lists.Add(chosenNoncrit);
+
+            return lists;
+        }
+
+        private void AddDefaultNoncriticalValues<T>(IEnumerable<T> optionSet) where T : GameOptions
+        {
+            var defaults = DefaultVariableValues;
+            foreach (var opt in optionSet)
+                foreach (var (varName, defVal) in defaults)
+                    if (!opt.VariableSettings.ContainsKey(varName))
+                        opt.VariableSettings[varName] = defVal;
         }
 
 
