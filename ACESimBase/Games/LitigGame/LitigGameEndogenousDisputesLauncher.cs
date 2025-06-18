@@ -29,7 +29,7 @@ namespace ACESim
                     ("Fee Shifting Multiplier", "0"),
                     ("Risk Aversion", "Risk Neutral"),
                     ("Liability Threshold", "1"),
-                    ("Marginal Precaution Cost", "0.00001"),
+                    ("Marginal Precaution Cost", "1E-05"),
                     ("Fee Shifting Rule", "English"),
                     ("Relative Costs", "1"),
                     ("Noise Multiplier P", "1"),
