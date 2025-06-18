@@ -186,7 +186,7 @@ namespace ACESim
                 ProportionOfCostsAtBeginningTransformations(includeBaselineValueForNoncritical),
             };
             
-            List<List<GameOptions>> result = PerformTransformations(allTransformations, numCritical, useAllPermutationsOfTransformations, includeBaselineValueForNoncritical);
+            List<List<GameOptions>> result = PerformTransformations(allTransformations, numCritical, useAllPermutationsOfTransformations, includeBaselineValueForNoncritical, LitigGameOptionsGenerator.GetLitigGameOptions);
             return result;
         }
 

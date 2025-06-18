@@ -34,7 +34,6 @@ namespace ACESimBase.Games.LitigGame
             DMoreRiskAverse,
         }
 
-        public bool IncludeNonCriticalTransformations = true;
         public virtual FeeShiftingRule[] FeeShiftingModes => new[] { FeeShiftingRule.English_LiabilityIssue, FeeShiftingRule.MarginOfVictory_LiabilityIssue, FeeShiftingRule.Rule68_DamagesIssue, FeeShiftingRule.Rule68English_DamagesIssue };
         public virtual double[] CriticalCostsMultipliers => new double[] { 1.0, 0.25, 0.5, 2.0, 4.0 };
         public virtual double[] AdditionalCostsMultipliers => new double[] { 1.0, 0.125, 8.0 }; // NOTE: If restoring this, also change NamesOfFeeShiftingArticleSets
@@ -376,60 +375,6 @@ namespace ACESimBase.Games.LitigGame
             }
 
             return tentativeResults;
-        }
-
-        protected List<List<GameOptions>> PerformTransformations(List<List<Func<LitigGameOptions, LitigGameOptions>>> allTransformations, int numCritical, bool useAllPermutationsOfTransformations, bool includeBaselineValueForNoncritical)
-        {
-            List<List<LitigGameOptions>> listOfOptionSets = new List<List<LitigGameOptions>>();
-            List<List<Func<LitigGameOptions, LitigGameOptions>>> criticalTransformations = allTransformations.Take(numCritical).ToList();
-            List<List<Func<LitigGameOptions, LitigGameOptions>>> noncriticalTransformations = allTransformations.Skip(IncludeNonCriticalTransformations ? numCritical : allTransformations.Count()).ToList();
-            (List<Func<LitigGameOptions, LitigGameOptions>> noncritical, List<Func<LitigGameOptions, LitigGameOptions>> critical)[] nonCriticalCriticalPairs =
-                Enumerable.Range(0, numCritical)
-                    .Select(i => (
-                        noncritical: allTransformations[numCritical + i],
-                        critical: allTransformations[i]
-                    ))
-                    .ToArray();
-            if (!useAllPermutationsOfTransformations)
-            {
-                var noncriticalTransformationPlusNoTransformation = new List<List<Func<LitigGameOptions, LitigGameOptions>>>();
-                noncriticalTransformationPlusNoTransformation.AddRange(noncriticalTransformations.Where(x => x.Count() != 0));
-                noncriticalTransformationPlusNoTransformation.Insert(0, null);
-                // We still want the non-critical transformations, just not permuted with the others.  
-                for (int noncriticalIndex = 0; noncriticalIndex < noncriticalTransformationPlusNoTransformation.Count; noncriticalIndex++)
-                {
-                    List<Func<LitigGameOptions, LitigGameOptions>> noncriticalTransformation = noncriticalTransformationPlusNoTransformation[noncriticalIndex];
-                    if (includeBaselineValueForNoncritical && noncriticalTransformation != null && noncriticalTransformation.Count() <= 1)
-                        continue; // if there is only 1 entry, that will be the baseline, and thus there is no transformation here, so there is nothing to add. But we keep the null case, because that is the case for just keeping the baseline critical transformations.  
-                    List<List<Func<LitigGameOptions, LitigGameOptions>>> transformLists = criticalTransformations.ToList();
-                    bool replaced = false;
-                    foreach ((List<Func<LitigGameOptions, LitigGameOptions>> noncritical, List<Func<LitigGameOptions, LitigGameOptions>> critical) in nonCriticalCriticalPairs)
-                    {
-                        if (noncriticalTransformation == noncritical)
-                        {
-                            // Keep the order the same for naming purposes  
-                            int indexOfCritical = transformLists.IndexOf(critical);
-                            transformLists[indexOfCritical] = noncriticalTransformation;
-                            replaced = true;
-                        }
-                    }
-                    if (noncriticalTransformation != null && !replaced)
-                        transformLists.Add(noncriticalTransformation);
-                    List<LitigGameOptions> noncriticalOptions = ApplyPermutationsOfTransformations(LitigGameOptionsGenerator.GetLitigGameOptions, transformLists);
-                    List<(string, string)> defaultNonCriticalValues = DefaultVariableValues;
-                    foreach (var optionSet in noncriticalOptions)
-                    {
-                        foreach (var defaultPair in defaultNonCriticalValues)
-                            if (!optionSet.VariableSettings.ContainsKey(defaultPair.Item1))
-                                optionSet.VariableSettings[defaultPair.Item1] = defaultPair.Item2;
-                    }
-
-                    //var optionSetNames = noncriticalOptions.Select(x => x.Name).OrderBy(x => x).ToList();  
-                    listOfOptionSets.Add(noncriticalOptions);
-                }
-            }
-            var result = listOfOptionSets.Select(innerList => innerList.Cast<GameOptions>().ToList()).ToList();
-            return result;
         }
 
         public static LitigGameProgress PlayLitigGameOnce(LitigGameOptions options,

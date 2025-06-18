@@ -222,7 +222,7 @@ namespace ACESim
                // FeeShiftingModeTransformations(includeBaselineValueForNoncritical),  // TODO: Add this back in by providing support for Bayesian logic with the margin-of-victory approach -- then make change in NamesOfVariationSets
                ProportionOfCostsAtBeginningTransformations(includeBaselineValueForNoncritical),
            };
-            List<List<GameOptions>> result = PerformTransformations(allTransformations, numCritical, useAllPermutationsOfTransformations, includeBaselineValueForNoncritical);
+            List<List<GameOptions>> result = PerformTransformations(allTransformations, numCritical, useAllPermutationsOfTransformations, includeBaselineValueForNoncritical, LitigGameOptionsGenerator.GetLitigGameOptions);
             return result;
         }
 
