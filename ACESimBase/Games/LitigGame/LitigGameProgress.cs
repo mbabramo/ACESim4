@@ -45,7 +45,7 @@ namespace ACESim
         public LitigGamePretrialActions PretrialActions;
         public LitigGameRunningSideBetsActions RunningSideBetsActions;
 
-        public bool IsTrulyLiable;
+        public bool? IsTrulyLiable;
         public byte LiabilityStrengthDiscrete;
         public byte PLiabilityNoiseDiscrete;
         public byte DLiabilityNoiseDiscrete;
@@ -540,7 +540,7 @@ namespace ACESim
         {
             LitigGameOptions o = LitigGameDefinition.Options;
             if (!o.LitigGameDisputeGenerator.PotentialDisputeArises(LitigGameDefinition, DisputeGeneratorActions, this))
-                IsTrulyLiable = false;
+                IsTrulyLiable = null;
             else
                 IsTrulyLiable = o.LitigGameDisputeGenerator.IsTrulyLiable(LitigGameDefinition, DisputeGeneratorActions, this);
             LiabilityStrengthUniform = Game.ConvertActionToUniformDistributionDraw(LiabilityStrengthDiscrete, o.NumLiabilityStrengthPoints, false);
@@ -576,15 +576,20 @@ namespace ACESim
             double falseNegativeShortfallIfTrulyLiable = Math.Max(0, correctDamagesIfTrulyLiable - PChangeWealth); // how much plaintiff's payment fell short (if at all)
             double falsePositiveExpendituresIfNotTrulyLiable = Math.Max(0, 0 - DChangeWealth); // how much defendant's payment was excessive (if at all), in the condition in which the defendant is NOT truly liable. In this case, the defendant ideally would pay 0.
             double falsePositiveExpendituresIfTrulyLiable = Math.Max(0, 0 - correctDamagesIfTrulyLiable - DChangeWealth); // how much defendant's payment was excessive (if at all), in the condition in which the defendant is truly liable. In this case, the defendant ideally would pay the correct amount of damages. E.g., if correct damages are 100 and defendant pays out 150 (including costs), then change in wealth is -150, we have -100 - -150, so we have 50.
-            if (IsTrulyLiable)
+            if (IsTrulyLiable == true)
             {
                 FalseNegativeShortfall = falseNegativeShortfallIfTrulyLiable;
                 FalsePositiveExpenditures = falsePositiveExpendituresIfTrulyLiable;
             }
-            else
+            else if (IsTrulyLiable == false)
             {
                 FalseNegativeShortfall = 0;
                 FalsePositiveExpenditures = falsePositiveExpendituresIfNotTrulyLiable;
+            }
+            else
+            {
+                FalseNegativeShortfall = 0;
+                FalsePositiveExpenditures = 0;
             }
             PreDisputeSharedWelfare = o.LitigGameDisputeGenerator.GetLitigationIndependentSocialWelfare(LitigGameDefinition, DisputeGeneratorActions, this);
             (OpportunityCost, HarmCost) = o.LitigGameDisputeGenerator.GetOpportunityAndHarmCosts(LitigGameDefinition, DisputeGeneratorActions, this);

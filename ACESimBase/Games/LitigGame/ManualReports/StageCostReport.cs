@@ -65,7 +65,7 @@ namespace ACESimBase.Games.LitigGame.ManualReports
                 List<StageInStageCostDiagram> stages = new List<StageInStageCostDiagram>();
                 foreach (var namedStage in namedStages)
                 {
-                    var applicableProgresses = litigProgresses.Where(prog => namedStage.filter(prog.Item1)).ToList();
+                    var applicableProgresses = litigProgresses.Where(prog => namedStage.filter(prog.Item1) && prog.theProgress.IsTrulyLiable != null).ToList();
                     Func<(LitigGameProgress theProgress, double weight), double> assessor = prog => assessment.assessmentMeasure(prog.theProgress);
                     var ordered = applicableProgresses.OrderByDescending(assessor).ThenBy(x => x.theProgress.IsTrulyLiable).ToList();
                     var consolidated = ordered.GroupBy(x => (assessor(x), x.theProgress.IsTrulyLiable)).Select(x => ((LitigGameProgress theProgress, double weight))(x.First().theProgress, x.Sum(y => y.weight))).ToList();
@@ -79,7 +79,7 @@ namespace ACESimBase.Games.LitigGame.ManualReports
                     if (measures.Any())
                     {
                         List<(double w, double m)> weightsAndMeasures = weights.Zip(measures, (w, m) => (w, m)).OrderByDescending(x => x.m).ToList();
-                        List<(double w, double m, bool s)> weightsMeasuresAndShading = weightsAndMeasures.Zip(isTrulyLiable, (w, itl) => (w.w, w.m, itl)).OrderByDescending(x => x.m).ToList();
+                        List<(double w, double m, bool s)> weightsMeasuresAndShading = weightsAndMeasures.Zip(isTrulyLiable.Select(x => (bool) x), (w, itl) => (w.w, w.m, itl)).OrderByDescending(x => x.m).ToList();
                         stages.Add(new StageInStageCostDiagram(namedStage.stageName, weightsMeasuresAndShading));
                     }
                 }

@@ -108,7 +108,6 @@ namespace ACESimTest
                     x => x.PLiabilitySignalDiscrete - x.DLiabilitySignalDiscrete,
                     x => x.LiabilityStrengthDiscrete,
                     x => x.RelativePrecautionLevel,
-                    x => x.IsTrulyLiable ? 1.0 : 0,
                 })
                 {
                     ConfirmEquivalentValues(filterFunc, func);

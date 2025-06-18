@@ -293,18 +293,18 @@ namespace ACESim
                     rows.Add(
                         new SimpleReportFilter("PrePrimary" + s, (GameProgress gp) => MyGP(gp).DisputeGeneratorActions.PrePrimaryChanceAction == s));
                 }
-                rows.Add(new SimpleReportFilter("Truly Liable", (GameProgress gp) => MyGP(gp).IsTrulyLiable));
-                rows.Add(new SimpleReportFilter("Truly Not Liable", (GameProgress gp) => !MyGP(gp).IsTrulyLiable));
+                rows.Add(new SimpleReportFilter("Truly Liable", (GameProgress gp) => MyGP(gp).IsTrulyLiable == true));
+                rows.Add(new SimpleReportFilter("Truly Not Liable", (GameProgress gp) => MyGP(gp).IsTrulyLiable == false));
                 // rows.Add(new SimpleReportFilter("AllCount", (GameProgress gp) => true) { UseSum = true });
                 bool useCounts = false;
                 string countString = useCounts ? " Count" : "";
                 AddRowsForLiabilityStrengthAndSignalDistributions("", true, useCounts, rows, gp => true);
                 if (useCounts)
-                    rows.Add(new SimpleReportFilter($"Truly Liable{countString}", (GameProgress gp) => MyGP(gp).IsTrulyLiable) { UseSum = useCounts });
-                AddRowsForLiabilityStrengthAndSignalDistributions("Truly Liable ", false, useCounts, rows, gp => MyGP(gp).IsTrulyLiable);
+                    rows.Add(new SimpleReportFilter($"Truly Liable{countString}", (GameProgress gp) => MyGP(gp).IsTrulyLiable == true) { UseSum = useCounts });
+                AddRowsForLiabilityStrengthAndSignalDistributions("Truly Liable ", false, useCounts, rows, gp => MyGP(gp).IsTrulyLiable == true);
                 if (useCounts)
-                    rows.Add(new SimpleReportFilter($"Truly Not Liable{countString}", (GameProgress gp) => !MyGP(gp).IsTrulyLiable) { UseSum = useCounts });
-                AddRowsForLiabilityStrengthAndSignalDistributions("Truly Not Liable ", false, useCounts, rows, gp => !MyGP(gp).IsTrulyLiable);
+                    rows.Add(new SimpleReportFilter($"Truly Not Liable{countString}", (GameProgress gp) => MyGP(gp).IsTrulyLiable == false) { UseSum = useCounts });
+                AddRowsForLiabilityStrengthAndSignalDistributions("Truly Not Liable ", false, useCounts, rows, gp => MyGP(gp).IsTrulyLiable == false);
                 rows.Add(new SimpleReportFilter($"High Quality{countString}", (GameProgress gp) => MyGP(gp).LiabilityStrengthDiscrete >= 8) { UseSum = useCounts });
                 AddRowsForLiabilityStrengthAndSignalDistributions("High Quality Liable ", false, useCounts, rows, gp => MyGP(gp).LiabilityStrengthDiscrete >= 8);
                 AddRowsForDamagesStrengthAndSignalDistributions("", true, false, rows, gp => true);

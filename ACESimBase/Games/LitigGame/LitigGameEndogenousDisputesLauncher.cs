@@ -19,8 +19,6 @@ namespace ACESim
     public class LitigGameEndogenousDisputesLauncher : LitigGameLauncherBase
     {
 
-        // DEBUG: consider critical damages multipliers
-
         public override List<(string, string)> DefaultVariableValues
         {
             get
@@ -29,6 +27,7 @@ namespace ACESim
                 {
                     ("Costs Multiplier", "1"),
                     ("Fee Shifting Multiplier", "0"),
+                    ("Damages Multiplier", "1"),
                     ("Risk Aversion", "Risk Neutral"),
                     ("Liability Threshold", "1"),
                     ("Marginal Precaution Cost", "1E-05"),
@@ -36,7 +35,6 @@ namespace ACESim
                     ("Relative Costs", "1"),
                     ("Noise Multiplier P", "1"),
                     ("Noise Multiplier D", "1"),
-                    ("Damages Multiplier", "1"),
                     ("Issue", "Liability"),
                     ("Proportion of Costs at Beginning", "0.5"),
                 };
@@ -50,9 +48,9 @@ namespace ACESim
             "Risk Aversion",
             "Liability Thresholds",
             "Marginal Precaution Costs",
+            "Damages Multiplier",
             "Noise Multipliers", // includes P & D
             "Relative Costs",
-            "Damages Multiplier",
             // TODO: Add back in "Fee Shifting Mode",
             "Proportion of Costs at Beginning",
         };
@@ -68,6 +66,7 @@ namespace ACESim
                     ("Risk Aversion", new[] { "Risk Neutral", "Moderately Risk Averse" }),
                     ("Liability Threshold", CriticalLiabilityThresholds.Select(x => x.ToString()).ToArray()),
                     ("Marginal Precaution Cost", CriticalPrecautionCosts.Select(x => x.ToString()).ToArray()),
+                    ("Damages Multiplier", CriticalDamagesMultipliers.Select(x => x.ToString()).ToArray()),
                 };
             }
         }
@@ -75,14 +74,18 @@ namespace ACESim
         
         public override double[] CriticalCostsMultipliers => new double[] { 1.0, 0.25, 4.0 };
         public override double[] AdditionalCostsMultipliers => new double[] { 1.0, 0.5, 2.0 };
-        public override double[] CriticalFeeShiftingMultipliers => new double[] { 0.0, 1.0 };
-        public override double[] AdditionalFeeShiftingMultipliers => new double[] { 0.0, 0.5, 2.0 };
+        public override double[] CriticalFeeShiftingMultipliers => new double[] { 0.0, 1.0, 2.0 };
+        public override double[] AdditionalFeeShiftingMultipliers => new double[] { 0.0, 0.5 };
 
         public double[] CriticalLiabilityThresholds => new double[] { 1.0, 0.5, 1.5 };
         public double[] AdditionalLiabilityThresholds => new double[] { 1.0, 1.25, 2.0 };
 
         public double[] CriticalPrecautionCosts => new double[] { 0.00001, 0.000005, 0.00002 };
         public double[] AdditionalPrecautionCosts => new double[] { 0.00001, 0.000001 };
+
+        
+        public double[] CriticalDamagesMultipliers => new double[] { 1.0, 0.5, 2.0 };
+        public double[] AdditionalDamagesMultipliers => new double[] { 1.0, 4.0 };
 
         public enum UnderlyingGame
         {
@@ -126,6 +129,16 @@ namespace ACESim
         }
 
         #region Custom transformations
+
+        // Damages multiplier
+
+        public List<Func<LitigGameOptions, LitigGameOptions>> CriticalDamagesMultiplierTransformations(bool includeBaselineValue)
+            => Transform(GetAndTransform_DamagesMultiplier, CriticalDamagesMultipliers, includeBaselineValue);
+        
+        public List<Func<LitigGameOptions, LitigGameOptions>> AdditionalDamagesMultiplierTransformations(bool includeBaselineValue)
+            => Transform(GetAndTransform_DamagesMultiplier, AdditionalDamagesMultipliers, includeBaselineValue);
+
+        // Note: GetAndTransform_DamagesMultiplier is defined in base class
 
         // Marginal precaution cost
 
@@ -172,7 +185,7 @@ namespace ACESim
 
         public override List<List<GameOptions>> GetVariationSets(bool useAllPermutationsOfTransformations, bool includeBaselineValueForNoncritical)
         {
-            const int numCritical = 5; // critical transformations are all interacted with one another and then with each of the other transformations  
+            const int numCritical = 6; // critical transformations are all interacted with one another and then with each of the other transformations  
             var criticalCostsMultiplierTransformations = CriticalCostsMultiplierTransformations(true);
             var noncriticalCostsMultiplierTransformations = AdditionalCostsMultiplierTransformations(includeBaselineValueForNoncritical);
             var criticalFeeShiftingMultipleTransformations = CriticalFeeShiftingMultiplierTransformations(true);
@@ -183,6 +196,8 @@ namespace ACESim
             var noncriticalLiabilityThresholdTransformations = AdditionalLiabilityThresholdTransformations(includeBaselineValueForNoncritical);
             var criticalPrecautionCostTransformations = CriticalPrecautionCostTransformations(true);
             var noncriticalPrecautionCostTransformations = AdditionalPrecautionCostTransformations(includeBaselineValueForNoncritical);
+            var criticalDamagesMultiplierTransformations = CriticalDamagesMultiplierTransformations(true);
+            var noncriticalDamagesMultiplierTransformations = AdditionalDamagesMultiplierTransformations(includeBaselineValueForNoncritical);
             List<List<Func<LitigGameOptions, LitigGameOptions>>> allTransformations = new List<List<Func<LitigGameOptions, LitigGameOptions>>>()
            {  
                // IMPORTANT: When changing these, change NamesOfFeeShiftingArticleSets to match each of these  
@@ -192,6 +207,7 @@ namespace ACESim
                criticalRiskAversionTransformations,
                criticalLiabilityThresholdTransformations,
                criticalPrecautionCostTransformations,
+               criticalDamagesMultiplierTransformations,
                // IMPORTANT: Must follow with the corresponding noncritical transformations
                // And then can vary ONE of these (avoiding inconsistencies with above):  
                noncriticalCostsMultiplierTransformations, // i.e., not only the core costs multipliers and other core variables, but also the critical costs multipliers  
@@ -199,10 +215,10 @@ namespace ACESim
                noncriticalRiskAversionTransformations,
                noncriticalLiabilityThresholdTransformations,
                noncriticalPrecautionCostTransformations,
+               noncriticalDamagesMultiplierTransformations,
                // Now other noncritical transformations
                NoiseTransformations(includeBaselineValueForNoncritical),
                PRelativeCostsTransformations(includeBaselineValueForNoncritical),
-               DamagesMultiplierTransformations(includeBaselineValueForNoncritical),
                // FeeShiftingModeTransformations(includeBaselineValueForNoncritical),  // TODO: Add this back in by providing support for Bayesian logic with the margin-of-victory approach -- then make change in NamesOfVariationSets
                ProportionOfCostsAtBeginningTransformations(includeBaselineValueForNoncritical),
            };
@@ -215,6 +231,23 @@ namespace ACESim
             var varyingNothing = new List<SimulationIdentifier>()
             {
                 new SimulationIdentifier("Baseline", DefaultVariableValues),
+            };
+
+            
+            var varyingFeeShiftingMultiplier = new List<SimulationIdentifier>()
+            {
+                new SimulationIdentifier("American", DefaultVariableValues.WithReplacement("Fee Shifting Multiplier", "0")),
+                new SimulationIdentifier("English", DefaultVariableValues.WithReplacement("Fee Shifting Multiplier", "1")),
+                new SimulationIdentifier("Double", DefaultVariableValues.WithReplacement("Fee Shifting Multiplier", "2")),
+                // omit additional (we could add this back in, but not in combination with other things): new SimulationIdentifier("4", DefaultVariableValues.WithReplacement("Damages Multiplier", "4")),
+            };
+
+            var varyingDamagesMultiplier = new List<SimulationIdentifier>()
+            {
+                new SimulationIdentifier("0.5", DefaultVariableValues.WithReplacement("Damages Multiplier", "0.5")),
+                new SimulationIdentifier("1", DefaultVariableValues.WithReplacement("Damages Multiplier", "1")),
+                new SimulationIdentifier("2", DefaultVariableValues.WithReplacement("Damages Multiplier", "2")),
+                // omit additional (we could add this back in, but not in combination with other things): new SimulationIdentifier("4", DefaultVariableValues.WithReplacement("Damages Multiplier", "4")),
             };
 
             var varyingLiabilityThreshold = new List<SimulationIdentifier>()
@@ -277,14 +310,6 @@ namespace ACESim
                 new SimulationIdentifier("D More Risk Averse", DefaultVariableValues.WithReplacement("Risk Aversion", "D More Risk Averse")),
             };
 
-            var varyingDamagesMultiplier = new List<SimulationIdentifier>()
-            {
-                new SimulationIdentifier("0.5", DefaultVariableValues.WithReplacement("Damages Multiplier", "0.5")),
-                new SimulationIdentifier("1", DefaultVariableValues.WithReplacement("Damages Multiplier", "1")),
-                new SimulationIdentifier("2", DefaultVariableValues.WithReplacement("Damages Multiplier", "2")),
-                new SimulationIdentifier("4", DefaultVariableValues.WithReplacement("Damages Multiplier", "4")),
-            };
-
             var varyingTimingOfCosts = new List<SimulationIdentifier>()
             {
                 new SimulationIdentifier("0", DefaultVariableValues.WithReplacement("Proportion of Costs at Beginning", "0")),
@@ -297,15 +322,16 @@ namespace ACESim
             var tentativeResults = new List<SimulationSetsIdentifier>()
             {
                 new SimulationSetsIdentifier("Baseline", varyingNothing),
+                new SimulationSetsIdentifier("Fee Shifting Multiplier", varyingFeeShiftingMultiplier),
                 new SimulationSetsIdentifier("Liability Threshold", varyingLiabilityThreshold),
                 new SimulationSetsIdentifier("Marginal Precaution Cost", varyingMarginalPrecautionCost),
+                new SimulationSetsIdentifier("Damages Multiplier", varyingDamagesMultiplier),
                 // TODO new ArticleVariationInfoSets("Fee Shifting Rule (Liability Issue)", varyingFeeShiftingRule_LiabilityUncertain),
                 new SimulationSetsIdentifier("Noise Multiplier", varyingNoiseMultipliersBoth),
                 new SimulationSetsIdentifier("Information Asymmetry", varyingNoiseMultipliersAsymmetric),
                 new SimulationSetsIdentifier("Relative Costs", varyingRelativeCosts),
                 new SimulationSetsIdentifier("Risk Aversion", varyingRiskAversion),
                 new SimulationSetsIdentifier("Risk Aversion Asymmetry", varyingRiskAversionAsymmetry),
-                new SimulationSetsIdentifier("Damages Multiplier", varyingDamagesMultiplier),
                 new SimulationSetsIdentifier("Proportion of Costs at Beginning", varyingTimingOfCosts)
             };
             
