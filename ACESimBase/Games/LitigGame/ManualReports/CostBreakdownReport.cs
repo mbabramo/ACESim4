@@ -835,7 +835,6 @@ namespace ACESimBase.Games.LitigGame.ManualReports
             {
                 Csv(slices),
                 TikzScaled(slices, sc, false, title, splitRareHarmPanel),
-                Csv(slices),
                 TikzScaled(slices, sc, true, title, splitRareHarmPanel),
             };
         }

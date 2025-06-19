@@ -174,7 +174,7 @@ namespace LitigCharts
                 ("EFG Files", new[] { ".efg" }),
                 ("Equilibria Files", new[] { "-equ.csv" }),
                 ("Logs", new[] { "-log.txt" }),
-                ("Latex underlying data", expandToIncludeAdditionalEquilibria(new[] { "-offers.csv", "-fileans.csv", "-stagecostlight.csv", "-stagecostdark.csv", "-costbreakdownlight.csv", "-costbreakdowndark.csv" })),
+                ("Latex underlying data", expandToIncludeAdditionalEquilibria(new[] { "-offers.csv", "-fileans.csv", "-stagecostlight.csv", "-stagecostdark.csv", "-costbreakdown.csv", "-costbreakdownlight.csv", "-costbreakdowndark.csv" })),
                 ("Latex files", expandToIncludeAdditionalEquilibria(new[] { "-offers.tex", "-fileans.tex", "-stagecostlight.tex", "-stagecostdark.tex", "-costbreakdownlight.tex", "-costbreakdowndark.tex" })),
                 ("File-Answer Diagrams", expandToIncludeAdditionalEquilibria( new[] { "-fileans.pdf" })),
                 ("Offer Heatmaps", expandToIncludeAdditionalEquilibria( new[] { "-offers.pdf" })),
@@ -446,12 +446,12 @@ namespace LitigCharts
                         {
                             List<string> costsMultipliers = limitToCostsMultiplier == null ? launcher.CriticalCostsMultipliers.OrderBy(x => x).Select(x => x.ToString()).ToList() : new List<string> { limitToCostsMultiplier.ToString() };
                             string additionalLabel = "";
-                            if (article == DataBeingAnalyzed.EndogenousDisputesArticle)
-                                additionalLabel = " " + macroXToRun;
                             if (limitToCostsMultiplier == 1.0)
                                 additionalLabel += " Single Row";
+                            if (article == DataBeingAnalyzed.EndogenousDisputesArticle)
+                                outputFolderPath = Path.Combine(outputFolderPath, "Macro X " + macroXToRun.macroXName);
 
-                            CreateAggregatedReportVariationsForWelfareMeasure(launcher, pathAndFilename, outputFolderPath, variations, welfareMeasureInfo, "Costs Multiplier", costsMultipliers, "Fee Shifting Multiplier", feeShiftingMultipliers, additionalLabel);
+                            CreateAggregatedReportVariationsForWelfareMeasure(launcher, pathAndFilename, outputFolderPath, variations, welfareMeasureInfo, "Costs Multiplier", costsMultipliers, macroXToRun.macroXName, macroXToRun.macroXValues, additionalLabel);
                         }
                     }
                 }
@@ -462,7 +462,7 @@ namespace LitigCharts
             DeleteAuxiliaryFiles(outputFolderPath);
         }
 
-        private static void CreateAggregatedReportVariationsForWelfareMeasure(LitigGameLauncherBase launcher, string pathAndFilename, string outputFolderPath, List<PermutationalLauncher.SimulationSetsIdentifier> variations, AggregatedGraphInfo aggregatedGraphInfo, string macroYValueName, List<string> macroYValues, string microXValueName, List<string> microXValues, string additionalLabel)
+        private static void CreateAggregatedReportVariationsForWelfareMeasure(LitigGameLauncherBase launcher, string sourceDataPathAndFilename, string outputFolderPath, List<PermutationalLauncher.SimulationSetsIdentifier> variations, AggregatedGraphInfo aggregatedGraphInfo, string macroYValueName, List<string> macroYValues, string microXValueName, List<string> microXValues, string additionalLabel)
         {
             Func<double?, double?> scaleMiniGraphValues = aggregatedGraphInfo.scaleMiniGraphValues ?? (x => x);
             List<(string columnName, string expectedText)[]> collectedRowsToFind = new List<(string columnName, string expectedText)[]>();
@@ -564,7 +564,7 @@ namespace LitigCharts
                 }
                 if (stepDefiningRowsToFind)
                 {
-                    valuesFromCSVAllRows = CSVData.GetCSVData_SinglePass(pathAndFilename, collectedRowsToFind.ToArray(), aggregatedGraphInfo.columnsToGet.ToArray(), cacheFile: true);
+                    valuesFromCSVAllRows = CSVData.GetCSVData_SinglePass(sourceDataPathAndFilename, collectedRowsToFind.ToArray(), aggregatedGraphInfo.columnsToGet.ToArray(), cacheFile: true);
                 }
             }
 

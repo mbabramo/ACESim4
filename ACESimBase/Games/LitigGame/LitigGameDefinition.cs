@@ -1096,10 +1096,9 @@ namespace ACESim
             bool isPrecautionNegligenceGame = Options.LitigGameDisputeGenerator is PrecautionNegligenceDisputeGenerator;
             const double yAxisTop = 4.0;
             var contents = CostBreakdownReport.GenerateReports(gameProgresses.Select(x => ((LitigGameProgress) x.theProgress, x.weight)), yAxisTop);
-            yield return ($"-costbreakdownlight{supplementalString}.csv", contents[0]);
+            yield return ($"-costbreakdowndata.csv", contents[0]);
             yield return ($"-costbreakdownlight{supplementalString}.tex", contents[1]);
-            yield return ($"-costbreakdowndark{supplementalString}.csv", contents[2]);
-            yield return ($"-costbreakdowndark{supplementalString}.tex", contents[3]);
+            yield return ($"-costbreakdowndark{supplementalString}.tex", contents[2]);
             if (!isPrecautionNegligenceGame)
             {
                 contents = StageCostReport.GenerateReport(gameProgresses);
