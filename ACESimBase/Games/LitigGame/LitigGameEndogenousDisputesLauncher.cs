@@ -45,10 +45,10 @@ namespace ACESim
         {
             "Costs Multipliers",
             "Fee Shifting Multiples",
+            "Damages Multiplier",
             "Risk Aversion",
             "Liability Thresholds",
             "Marginal Precaution Costs",
-            "Damages Multiplier",
             "Noise Multipliers", // includes P & D
             "Relative Costs",
             // TODO: Add back in "Fee Shifting Mode",
@@ -63,10 +63,10 @@ namespace ACESim
                 {
                     ("Costs Multiplier", CriticalCostsMultipliers.Select(x => x.ToString()).ToArray()),
                     ("Fee Shifting Multiplier", CriticalFeeShiftingMultipliers.Select(x => x.ToString()).ToArray()),
+                    ("Damages Multiplier", CriticalDamagesMultipliers.Select(x => x.ToString()).ToArray()),
                     ("Risk Aversion", new[] { "Risk Neutral", "Moderately Risk Averse" }),
                     ("Liability Threshold", CriticalLiabilityThresholds.Select(x => x.ToString()).ToArray()),
                     ("Marginal Precaution Cost", CriticalPrecautionCosts.Select(x => x.ToString()).ToArray()),
-                    ("Damages Multiplier", CriticalDamagesMultipliers.Select(x => x.ToString()).ToArray()),
                 };
             }
         }
@@ -186,37 +186,37 @@ namespace ACESim
         public override List<List<GameOptions>> GetVariationSets(bool useAllPermutationsOfTransformations, bool includeBaselineValueForNoncritical)
         {
             const int numCritical = 6; // critical transformations are all interacted with one another
-            const int numSupercritical = 3; // the supercritical of these are all interacted with all other transformations
+            const int numSupercritical = 4; // the supercritical of these are all interacted with all other transformations
             var criticalCostsMultiplierTransformations = CriticalCostsMultiplierTransformations(true);
             var noncriticalCostsMultiplierTransformations = AdditionalCostsMultiplierTransformations(includeBaselineValueForNoncritical);
             var criticalFeeShiftingMultipleTransformations = CriticalFeeShiftingMultiplierTransformations(true);
             var noncriticalFeeShiftingMultipleTransformations = AdditionalFeeShiftingMultiplierTransformations(includeBaselineValueForNoncritical);
+            var criticalDamagesMultiplierTransformations = CriticalDamagesMultiplierTransformations(true);
+            var noncriticalDamagesMultiplierTransformations = AdditionalDamagesMultiplierTransformations(includeBaselineValueForNoncritical);
             var criticalRiskAversionTransformations = CriticalRiskAversionTransformations(true);
             var noncriticalRiskAversionTransformations = AdditionalRiskAversionTransformations(includeBaselineValueForNoncritical);
             var criticalLiabilityThresholdTransformations = CriticalLiabilityThresholdTransformations(true);
             var noncriticalLiabilityThresholdTransformations = AdditionalLiabilityThresholdTransformations(includeBaselineValueForNoncritical);
             var criticalPrecautionCostTransformations = CriticalPrecautionCostTransformations(true);
             var noncriticalPrecautionCostTransformations = AdditionalPrecautionCostTransformations(includeBaselineValueForNoncritical);
-            var criticalDamagesMultiplierTransformations = CriticalDamagesMultiplierTransformations(true);
-            var noncriticalDamagesMultiplierTransformations = AdditionalDamagesMultiplierTransformations(includeBaselineValueForNoncritical);
             List<List<Func<LitigGameOptions, LitigGameOptions>>> allTransformations = new List<List<Func<LitigGameOptions, LitigGameOptions>>>()
            {  
                // IMPORTANT: When changing these, change NamesOfFeeShiftingArticleSets to match each of these  
                // Can always choose any of these:  
                criticalCostsMultiplierTransformations,
                criticalFeeShiftingMultipleTransformations,
+               criticalDamagesMultiplierTransformations,
                criticalRiskAversionTransformations,
                criticalLiabilityThresholdTransformations,
                criticalPrecautionCostTransformations,
-               criticalDamagesMultiplierTransformations,
                // IMPORTANT: Must follow with the corresponding noncritical transformations
                // And then can vary ONE of these (avoiding inconsistencies with above):  
                noncriticalCostsMultiplierTransformations, // i.e., not only the core costs multipliers and other core variables, but also the critical costs multipliers  
                noncriticalFeeShiftingMultipleTransformations,
+               noncriticalDamagesMultiplierTransformations,
                noncriticalRiskAversionTransformations,
                noncriticalLiabilityThresholdTransformations,
                noncriticalPrecautionCostTransformations,
-               noncriticalDamagesMultiplierTransformations,
                // Now other noncritical transformations
                NoiseTransformations(includeBaselineValueForNoncritical),
                PRelativeCostsTransformations(includeBaselineValueForNoncritical),
