@@ -30,7 +30,7 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
         public double ProbabilityAccidentMaxPrecaution_HighPower = 0.00000;
         public double AlphaLowPower = 3;
         public double AlphaHighPower = 1.5;
-        public double ProbabilityAccidentWrongfulAttribution = 0.000025;
+        public double ProbabilityAccidentWrongfulAttribution = 0.00001; 
         public double LiabilityThreshold = 1.0;
         int numSamplesToMakeForCourtLiablityDetermination = 1000;
 
@@ -467,6 +467,8 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
             pr.DLiabilitySignalDiscrete = dSig;
             if (cSig.HasValue)
                 pr.CLiabilitySignalDiscrete = cSig.Value;
+            
+            pr.BenefitCostRatio = impact.GetBenefitCostRatio(pr.LiabilityStrengthDiscrete - 1, pr.RelativePrecautionLevel);
 
             pr.ResetPostGameInfo();
         }
@@ -524,6 +526,12 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
                         list.AddRange(DuplicateProgressWithAndWithoutWrongfulAttribution(cp, weight));
                     }
                 }
+                foreach (var item in list)
+                {
+                    PrecautionNegligenceProgress precautionNegligenceProgress = (PrecautionNegligenceProgress)item.Item1;
+                    precautionNegligenceProgress.BenefitCostRatio = impact.GetBenefitCostRatio(precautionNegligenceProgress.LiabilityStrengthDiscrete - 1, precautionNegligenceProgress.RelativePrecautionLevel);
+                    precautionNegligenceProgress.ResetPostGameInfo();
+                }
                 return list;
             }
 
@@ -544,7 +552,11 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
             }
 
             foreach (var item in list)
-                ((PrecautionNegligenceProgress)item.Item1).ResetPostGameInfo();
+            {
+                PrecautionNegligenceProgress precautionNegligenceProgress = (PrecautionNegligenceProgress)item.Item1;
+                precautionNegligenceProgress.BenefitCostRatio = impact.GetBenefitCostRatio(precautionNegligenceProgress.LiabilityStrengthDiscrete - 1, precautionNegligenceProgress.RelativePrecautionLevel);
+                precautionNegligenceProgress.ResetPostGameInfo();
+            }
 
             return list;
         }

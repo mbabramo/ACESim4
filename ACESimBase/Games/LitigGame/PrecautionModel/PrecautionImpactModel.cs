@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Linq;
 
 namespace ACESimBase.Games.LitigGame.PrecautionModel
@@ -29,6 +30,7 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
 
         readonly double[][] accidentProb;
         readonly double[][] riskReduction;
+        readonly double[][] benefitCostRatio;
         readonly bool[][] trueLiability;
         readonly double[] accidentProbMarginal;
         readonly double[] trueLiabilityProb;
@@ -82,6 +84,7 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
 
             accidentProb = BuildAccidentProbTable();
             riskReduction = BuildRiskReductionTable();
+            benefitCostRatio = BuildBenefitCostRatioTable();
             trueLiability = BuildTrueLiabilityTable();
             accidentProbMarginal = BuildAccidentProbMarginalTable();
             trueLiabilityProb = BuildTrueLiabilityProbTable();
@@ -118,6 +121,12 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
         {
             ValidateIndices(hiddenIndex, precautionLevel, allowHypothetical: false);
             return riskReduction[hiddenIndex][precautionLevel];
+        }
+
+        public double GetBenefitCostRatio(int hiddenIndex, int precautionLevel)
+        {
+            ValidateIndices(hiddenIndex, precautionLevel, allowHypothetical: false);
+            return benefitCostRatio[hiddenIndex][precautionLevel];
         }
 
         public bool IsTrulyLiable(int hiddenIndex, int precautionLevel)
@@ -218,6 +227,23 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
             return arr;
         }
 
+        double[][] BuildBenefitCostRatioTable()
+        {
+            var arr = new double[HiddenCount][];
+            for (int h = 0; h < HiddenCount; h++)
+            {
+                arr[h] = new double[PrecautionLevels];
+                for (int k = 0; k < PrecautionLevels; k++)
+                {
+                    double benefit = riskReduction[h][k] * HarmCost;
+                    double ratio = benefit / MarginalPrecautionCost;
+                    arr[h][k] = ratio;
+                    Debug.Write(ratio.ToString() + ", "); // DEBUG
+                }
+                Debug.WriteLine(""); // DEBUG
+            }
+            return arr;
+        }
 
         bool[][] BuildTrueLiabilityTable()
         {

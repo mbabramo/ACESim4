@@ -49,7 +49,7 @@ namespace LitigCharts
         {
             ProcessesList = ProcessesList.Where(x => !x.HasExited).ToList();
 
-            TimeSpan maxTimeAllowed = TimeSpan.FromMinutes(2);
+            TimeSpan maxTimeAllowed = TimeSpan.FromMinutes(3);
             var expiredList = ProcessesList.Where(x => x.StartTime + maxTimeAllowed < DateTime.Now).ToList();
             foreach (var expired in expiredList)
             {

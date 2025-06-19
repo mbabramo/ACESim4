@@ -36,8 +36,8 @@ namespace LitigCharts
             List<string> replacementColumnNames = new List<string> { "Exploitability", "Calculation Time", "P Files", "D Answers", "P Offer", "D Offer", "Trial", "P Win Probability", "P Wealth", "D Wealth", "Total Wealth", "Wealth Loss", "P Welfare", "D Welfare", "Pre-Dispute Social Welfare Loss", "Social Welfare Loss", "Opportunity Cost", "Harm Cost", "Expenditures", "False Positive Inaccuracy", "False Negative Inaccuracy", "Value If Settled", "No Suit", "No Answer", "Settles", "P Abandons", "D Defaults", "P Loses", "P Wins", "Appropriation" };
             if (article == DataBeingAnalyzed.EndogenousDisputesArticle)
             {
-                columnsToGet.AddRange(["Activity", "Accident", "WrongAttrib", "PrecPower", "PrecLevel"]);
-                replacementColumnNames.AddRange(["Engages in Activity", "Accident Occurs", "Wrongful Attribution", "Precaution Power", "Precaution Level"]);
+                columnsToGet.AddRange(["Activity", "Accident", "WrongAttrib", "PrecPower", "PrecLevel", "BCRatio"]);
+                replacementColumnNames.AddRange(["Engages in Activity", "Accident Occurs", "Wrongful Attribution", "Precaution Power", "Precaution Level", "Benefit-Cost Ratio"]);
             }
             BuildReportHelper(launcher, rowsToGet, replacementRowNames, columnsToGet, replacementColumnNames, "output");
         }
@@ -432,18 +432,27 @@ namespace LitigCharts
                     // Appropriation is PrimaryAction (yes = 1, no = 2). So, 1.33 would indicate that 66% of the time, the plaintiff appropriates, and 33% of the time, they do not; 2 would indicate that appropriation never occurs. Thus, to translate the reported PrimaryAction average value to a proportion, we need 1 => 1, 2 => 0, so the formula is x => 2 - x
                     welfareMeasureColumns.Add(new AggregatedGraphInfo($"Appropriation{riskAversionString}", new List<string>() { "Appropriation" }, plaintiffDefendantAndOthersLineScheme.Take(1).ToList(), minorYAxisLabel: "Proportion", maximumValueMicroY: 1.0, scaleMiniGraphValues: x => 2 - x, filter:generalFilter));
                 }
-
-                foreach (double? limitToCostsMultiplier in new double?[] { 1.0, null })
+                
+                List<string> feeShiftingMultipliers = launcher.CriticalFeeShiftingMultipliers.OrderBy(x => x).Select(y => y.ToString()).ToList();
+                List<string> damagesMultipliers = launcher.DamagesMultipliers.OrderBy(x => x).Select(y => y.ToString()).ToList();
+                List<(string macroXName, string macroXAbbrev, List<string> macroXValues)> macroXToRuns = [("Fee Shifting Multiplier", "FSM", feeShiftingMultipliers)];
+                if (article == DataBeingAnalyzed.EndogenousDisputesArticle)
+                    macroXToRuns.Add(("Damages Multiplier", "DM", damagesMultipliers));
+                foreach (var macroXToRun in macroXToRuns)
                 {
-                    foreach (var welfareMeasureInfo in welfareMeasureColumns)
+                    foreach (double? limitToCostsMultiplier in new double?[] { 1.0, null })
                     {
-                        List<string> costsMultipliers = limitToCostsMultiplier == null ? launcher.CriticalCostsMultipliers.OrderBy(x => x).Select(x => x.ToString()).ToList() : new List<string> { limitToCostsMultiplier.ToString() };
-                        List<string> feeShiftingMultipliers = launcher.CriticalFeeShiftingMultipliers.OrderBy(x => x).Select(y => y.ToString()).ToList();
-                        string additionalLabel = null;
-                        if (limitToCostsMultiplier == 1.0)
-                            additionalLabel = " Single Row";
+                        foreach (var welfareMeasureInfo in welfareMeasureColumns)
+                        {
+                            List<string> costsMultipliers = limitToCostsMultiplier == null ? launcher.CriticalCostsMultipliers.OrderBy(x => x).Select(x => x.ToString()).ToList() : new List<string> { limitToCostsMultiplier.ToString() };
+                            string additionalLabel = "";
+                            if (article == DataBeingAnalyzed.EndogenousDisputesArticle)
+                                additionalLabel = " " + macroXToRun;
+                            if (limitToCostsMultiplier == 1.0)
+                                additionalLabel += " Single Row";
 
-                        CreateAggregatedReportVariationsForWelfareMeasure(launcher, pathAndFilename, outputFolderPath, variations, welfareMeasureInfo,  "Costs Multiplier", costsMultipliers, "Fee Shifting Multiplier", feeShiftingMultipliers, additionalLabel);
+                            CreateAggregatedReportVariationsForWelfareMeasure(launcher, pathAndFilename, outputFolderPath, variations, welfareMeasureInfo, "Costs Multiplier", costsMultipliers, "Fee Shifting Multiplier", feeShiftingMultipliers, additionalLabel);
+                        }
                     }
                 }
             }

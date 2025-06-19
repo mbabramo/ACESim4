@@ -74,6 +74,7 @@ namespace ACESim
                     new SimpleReportColumnFilter("WrongAttrib", (GameProgress gp) => MyPNP(gp).AccidentWronglyCausallyAttributedToDefendant, SimpleReportColumnFilterOptions.ProportionOfRow),
                     new SimpleReportColumnVariable("PrecPower", (GameProgress gp) => MyPNP(gp).LiabilityStrengthDiscrete),
                     new SimpleReportColumnVariable("PrecLevel", (GameProgress gp) => MyPNP(gp).RelativePrecautionLevel),
+                    new SimpleReportColumnVariable("BCRatio", (GameProgress gp) => MyPNP(gp).BenefitCostRatio),
                 }
                 );
             }
@@ -261,6 +262,11 @@ namespace ACESim
                     {
                         byte bcopy = b; // avoid closure
                         rows.Add(new SimpleReportFilter("PrecPower" + b.ToString(), (GameProgress gp) => MyPNP(gp).LiabilityStrengthDiscrete == bcopy));
+                    }
+                    for (byte b = 0; b < pngDG.RelativePrecautionLevels; b++)
+                    {
+                        byte bcopy = b; // avoid closure
+                        rows.Add(new SimpleReportFilter("PrecLevel" + b.ToString(), (GameProgress gp) => MyPNP(gp).RelativePrecautionLevel == bcopy));
                     }
                 }
                 for (int b = 1; b <= Options.NumPotentialBargainingRounds; b++)

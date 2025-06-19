@@ -163,13 +163,14 @@ namespace ACESim
             var disputeGenerator = new PrecautionNegligenceDisputeGenerator();
             disputeGenerator.PrecautionPowerLevels = numPrecautionPowerLevels;
             disputeGenerator.RelativePrecautionLevels = precautionLevels;
-            disputeGenerator.MarginalPrecautionCost = 0.000010;
+            disputeGenerator.MarginalPrecautionCost = 0.00001; // chosen so that the bc ratio varies below and above 1 depending on precaution power
             disputeGenerator.ProbabilityAccidentNoPrecaution = 0.0001;
             disputeGenerator.AlphaLowPower = 2;
             disputeGenerator.AlphaHighPower = 1.5;
             disputeGenerator.ProbabilityAccidentMaxPrecaution_LowPower = 0.00008;
             disputeGenerator.ProbabilityAccidentMaxPrecaution_HighPower = 0.00002;
-            disputeGenerator.ProbabilityAccidentWrongfulAttribution = 0.000025;
+            disputeGenerator.ProbabilityAccidentWrongfulAttribution = 0.00001;
+            options.CourtLiabilityNoiseStdev = 0.01; // DEBUG -- make it so that we can set this to 0 (i.e., court always gets the correct answer)
 
             options.LitigGameDisputeGenerator = disputeGenerator;
 

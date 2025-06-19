@@ -77,10 +77,10 @@ namespace ACESim
         public override double[] CriticalFeeShiftingMultipliers => new double[] { 0.0, 1.0, 2.0 };
         public override double[] AdditionalFeeShiftingMultipliers => new double[] { 0.0, 0.5 };
 
-        public double[] CriticalLiabilityThresholds => new double[] { 1.0, 0.5, 1.5 };
-        public double[] AdditionalLiabilityThresholds => new double[] { 1.0, 1.25, 2.0 };
+        public double[] CriticalLiabilityThresholds => new double[] { 1.0, 0.8, 1.2 };
+        public double[] AdditionalLiabilityThresholds => new double[] { 1.0, 0.5, 1.5 };
 
-        public double[] CriticalPrecautionCosts => new double[] { 0.00001, 0.000005, 0.00002 };
+        public double[] CriticalPrecautionCosts => new double[] { 0.00001, 0.000008, 0.000012 };
         public double[] AdditionalPrecautionCosts => new double[] { 0.00001, 0.000001 };
 
         
