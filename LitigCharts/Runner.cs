@@ -20,7 +20,7 @@ namespace LitigCharts
             DataProcessingBase.singleEquilibriumOnly = article == DataBeingAnalyzed.EndogenousDisputesArticle;
 
             bool useVirtualizedFileSystemForIndividualDiagrams = false; // this is for testing purposes -- it doesn't generate any diagrams
-            bool buildMainFeeShiftingReport = true; // this looks at all of the csv files containing the report outputs (e.g., Report Name.csv where there is only one equilibrium, or "-eq1", "-eq2", "-Avg", etc.), and then aggregates all of the information on the report outputs for each simulation into a CSV file, including both All cases and separate rows for various subsets of cases. Set this to false only if it has already been done. 
+            bool buildMainReport = true; // this looks at all of the csv files containing the report outputs (e.g., Report Name.csv where there is only one equilibrium, or "-eq1", "-eq2", "-Avg", etc.), and then aggregates all of the information on the report outputs for each simulation into a CSV file, including both All cases and separate rows for various subsets of cases. Set this to false only if it has already been done. 
             bool printIndividualLatexDiagrams = true; // this is the time consuming one -- it applies to the heat map and offers diagrams for each individual equilibrium
             bool doDeletion = false; // DEBUG printIndividualLatexDiagrams; // don't delete if we haven't done the diagrams yet
             bool organizeIntoFolders = true;
@@ -38,8 +38,8 @@ namespace LitigCharts
 
             DataProcessingBase.VirtualizableFileSystem = new ACESimBase.Util.Serialization.VirtualizableFileSystem(launcher.GetReportFolder(), !useVirtualizedFileSystemForIndividualDiagrams);
 
-            if (buildMainFeeShiftingReport)
-                FeeShiftingDataProcessing.BuildMainFeeShiftingReport(launcher);
+            if (buildMainReport)
+                FeeShiftingDataProcessing.BuildMainReport(launcher, article);
             if (printIndividualLatexDiagrams)
                 FeeShiftingDataProcessing.ProduceLatexDiagramsFromTexFiles(launcher, article); // this code assumes that all data (including the .tex files) are in the ReportResults folder, so must do before organization
             if (organizeIntoFolders)
@@ -48,7 +48,7 @@ namespace LitigCharts
             {
                 if (useVirtualizedFileSystemForIndividualDiagrams)
                     DataProcessingBase.VirtualizableFileSystem = new VirtualizableFileSystem(launcher.GetReportFolder(), true);
-                FeeShiftingDataProcessing.ProduceLatexDiagramsAggregatingReports(launcher); // now we produce diagrams that aggregate info from multiple reports
+                FeeShiftingDataProcessing.ProduceLatexDiagramsAggregatingReports(launcher, article); // now we produce diagrams that aggregate info from multiple reports
             }
 
             ////FeeShiftingDataProcessing.BuildOffersReport(); // we're no longer generating the offers data in csv, since we're directly generating a Latex file with the heatmap

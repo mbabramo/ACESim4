@@ -185,7 +185,8 @@ namespace ACESim
 
         public override List<List<GameOptions>> GetVariationSets(bool useAllPermutationsOfTransformations, bool includeBaselineValueForNoncritical)
         {
-            const int numCritical = 6; // critical transformations are all interacted with one another and then with each of the other transformations  
+            const int numCritical = 6; // critical transformations are all interacted with one another
+            const int numSupercritical = 3; // the supercritical of these are all interacted with all other transformations
             var criticalCostsMultiplierTransformations = CriticalCostsMultiplierTransformations(true);
             var noncriticalCostsMultiplierTransformations = AdditionalCostsMultiplierTransformations(includeBaselineValueForNoncritical);
             var criticalFeeShiftingMultipleTransformations = CriticalFeeShiftingMultiplierTransformations(true);
@@ -222,7 +223,7 @@ namespace ACESim
                // FeeShiftingModeTransformations(includeBaselineValueForNoncritical),  // TODO: Add this back in by providing support for Bayesian logic with the margin-of-victory approach -- then make change in NamesOfVariationSets
                ProportionOfCostsAtBeginningTransformations(includeBaselineValueForNoncritical),
            };
-            List<List<GameOptions>> result = PerformTransformations(allTransformations, numCritical, useAllPermutationsOfTransformations, includeBaselineValueForNoncritical, LitigGameOptionsGenerator.GetLitigGameOptions);
+            List<List<GameOptions>> result = PerformTransformations(allTransformations, numCritical, numSupercritical, useAllPermutationsOfTransformations, includeBaselineValueForNoncritical, LitigGameOptionsGenerator.GetLitigGameOptions);
             return result;
         }
 
@@ -231,6 +232,13 @@ namespace ACESim
             var varyingNothing = new List<SimulationIdentifier>()
             {
                 new SimulationIdentifier("Baseline", DefaultVariableValues),
+            };
+
+            var varyingMisc = new List<SimulationIdentifier>()
+            {
+                new SimulationIdentifier("Baseline", DefaultVariableValues),
+                new SimulationIdentifier("English", DefaultVariableValues.WithReplacement("Fee Shifting Multiplier", "1")),
+                new SimulationIdentifier("Mix", DefaultVariableValues.WithReplacement("Damages Multiplier", "2").WithReplacement("Liability Threshold", "1.5")),
             };
 
             

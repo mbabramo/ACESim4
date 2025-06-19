@@ -28,16 +28,21 @@ namespace LitigCharts
     {
         #region CSV reports and files
 
-        public static void BuildMainFeeShiftingReport(LitigGameLauncherBase launcher)
+        public static void BuildMainReport(LitigGameLauncherBase launcher, DataBeingAnalyzed article)
         {
-            List<string> rowsToGet = new List<string> { "All", "Not Litigated", "Litigated", "Settles", "Tried", "P Loses", "P Wins", "Truly Liable", "Truly Not Liable" };
-            List<string> replacementRowNames = new List<string> { "All", "Not Litigated", "Litigated", "Settles", "Tried", "P Loses", "P Wins", "Truly Liable", "Truly Not Liable" };
+            List<string> rowsToGet = new List<string> { "All", "DisputeArises", "Not Litigated", "Litigated", "Settles", "Tried", "P Loses", "P Wins", "Truly Liable", "Truly Not Liable" };
+            List<string> replacementRowNames = new List<string> { "All", "Dispute Arises", "Not Litigated", "Litigated", "Settles", "Tried", "P Loses", "P Wins", "Truly Liable", "Truly Not Liable" };
             List<string> columnsToGet = new List<string> { "Exploit", "Seconds", "PFiles", "DAnswers", "POffer1", "DOffer1", "Trial", "PWinPct", "PWealth", "DWealth", "TotWealth", "WealthLoss", "PWelfare", "DWelfare", "PDSWelfareLoss", "SWelfareLoss", "OpportunityCost", "HarmCost", "TotExpense", "False+", "False-", "ValIfSettled", "PDoesntFile", "DDoesntAnswer", "SettlesBR1", "PAbandonsBR1", "DDefaultsBR1", "P Loses", "P Wins", "PrimaryAction" };
             List<string> replacementColumnNames = new List<string> { "Exploitability", "Calculation Time", "P Files", "D Answers", "P Offer", "D Offer", "Trial", "P Win Probability", "P Wealth", "D Wealth", "Total Wealth", "Wealth Loss", "P Welfare", "D Welfare", "Pre-Dispute Social Welfare Loss", "Social Welfare Loss", "Opportunity Cost", "Harm Cost", "Expenditures", "False Positive Inaccuracy", "False Negative Inaccuracy", "Value If Settled", "No Suit", "No Answer", "Settles", "P Abandons", "D Defaults", "P Loses", "P Wins", "Appropriation" };
-            BuildReport(launcher, rowsToGet, replacementRowNames, columnsToGet, replacementColumnNames, "output");
+            if (article == DataBeingAnalyzed.EndogenousDisputesArticle)
+            {
+                columnsToGet.AddRange(["Activity", "Accident", "WrongAttrib", "PrecPower", "PrecLevel"]);
+                replacementColumnNames.AddRange(["Engages in Activity", "Accident Occurs", "Wrongful Attribution", "Precaution Power", "Precaution Level"]);
+            }
+            BuildReportHelper(launcher, rowsToGet, replacementRowNames, columnsToGet, replacementColumnNames, "output");
         }
 
-        private static void BuildReport(LitigGameLauncherBase launcher, List<string> rowsToGet, List<string> replacementRowNames, List<string> columnsToGet, List<string> replacementColumnNames, string filenameCore)
+        private static void BuildReportHelper(LitigGameLauncherBase launcher, List<string> rowsToGet, List<string> replacementRowNames, List<string> columnsToGet, List<string> replacementColumnNames, string filenameCore)
         {
             bool onlyAllFilter = false;
             if (onlyAllFilter)
@@ -134,7 +139,7 @@ namespace LitigCharts
             replacementColumnNames.AddRange(pOfferColumnsReplacement);
             replacementColumnNames.AddRange(dOfferColumnsReplacement);
 
-            BuildReport(launcher, filtersOfRowsToGet, replacementRowNames, columnsToGet, replacementColumnNames, "offers");
+            BuildReportHelper(launcher, filtersOfRowsToGet, replacementRowNames, columnsToGet, replacementColumnNames, "offers");
         }
 
         
@@ -158,18 +163,6 @@ namespace LitigCharts
             }
             return lines;
         }
-
-        //private string SeparateOptionSetsByRelevantVariable(List<LitigGameOptions> optionSets)
-        //{
-        //    foreach (var e in optionSets.First().VariableSettings)
-        //    {
-        //        int count = optionSets.Count(x => x.VariableSettings[e.Key] == e.Value);
-        //        if (count == 1)
-        //        {
-        //            string variableThatDiffers = e.Key;
-        //        }
-        //    }
-        //}
 
         public static List<(string folderName, string[] extensions)> GetFilePlacementRules(DataBeingAnalyzed article)
         {
@@ -364,7 +357,7 @@ namespace LitigCharts
 
         public record AggregatedGraphInfo(string topicName, List<string> columnsToGet, List<string> lineScheme, string minorXAxisLabel = "Fee Shifting Multiplier", string minorXAxisLabelShort = "Fee Shift Mult.", string minorYAxisLabel = "\\$", string majorYAxisLabel = "Costs Multiplier", double? maximumValueMicroY = null, TikzAxisSet.GraphType graphType = TikzAxisSet.GraphType.Line, Func<double?, double?> scaleMiniGraphValues = null, string filter = "All");
 
-        public static void ProduceLatexDiagramsAggregatingReports(LitigGameLauncherBase launcher)
+        public static void ProduceLatexDiagramsAggregatingReports(LitigGameLauncherBase launcher, DataBeingAnalyzed article)
         {
             string reportFolder = Launcher.ReportFolder();
             string pathAndFilename = launcher.GetReportFullPath(null, "output.csv");
@@ -409,18 +402,25 @@ namespace LitigCharts
                   "red, line width=0.5mm, densely dashed",
                 };
 
+                string generalFilter = article switch
+                {
+                    DataBeingAnalyzed.CorrelatedSignalsArticle => "All",
+                    DataBeingAnalyzed.EndogenousDisputesArticle => "Dispute Arises",
+                    _ => "All"
+                };
+
                 string riskAversionString = useRiskAversionForNonRiskReports ? " (Risk Averse)" : "";
                 List<AggregatedGraphInfo> welfareMeasureColumns = new List<AggregatedGraphInfo>()
                 {
-                    new AggregatedGraphInfo($"Accuracy and Expenditures{riskAversionString}", new List<string>() { "False Negative Inaccuracy", "False Positive Inaccuracy",  "Expenditures" }, plaintiffDefendantAndOthersLineScheme.ToList()),
-                    new AggregatedGraphInfo($"Accuracy{riskAversionString}", new List<string>() { "False Positive Inaccuracy", "False Negative Inaccuracy" }, plaintiffDefendantAndOthersLineScheme.Take(2).ToList()),
-                    new AggregatedGraphInfo($"Expenditures{riskAversionString}", new List<string>() { "Expenditures" }, plaintiffDefendantAndOthersLineScheme.Skip(2).Take(1).ToList()),
-                    new AggregatedGraphInfo($"Offers{riskAversionString}", new List<string>() { "P Offer", "D Offer" }, plaintiffDefendantAndOthersLineScheme.Take(2).ToList()),
+                    new AggregatedGraphInfo($"Accuracy and Expenditures{riskAversionString}", new List<string>() { "False Negative Inaccuracy", "False Positive Inaccuracy",  "Expenditures" }, plaintiffDefendantAndOthersLineScheme.ToList(), filter:generalFilter),
+                    new AggregatedGraphInfo($"Accuracy{riskAversionString}", new List<string>() { "False Positive Inaccuracy", "False Negative Inaccuracy" }, plaintiffDefendantAndOthersLineScheme.Take(2).ToList(), filter:generalFilter),
+                    new AggregatedGraphInfo($"Expenditures{riskAversionString}", new List<string>() { "Expenditures" }, plaintiffDefendantAndOthersLineScheme.Skip(2).Take(1).ToList(), filter:generalFilter),
+                    new AggregatedGraphInfo($"Offers{riskAversionString}", new List<string>() { "P Offer", "D Offer" }, plaintiffDefendantAndOthersLineScheme.Take(2).ToList(), filter:generalFilter),
                     new AggregatedGraphInfo($"Social Welfare Loss{riskAversionString}", new List<string>() { "Opportunity Cost", "Harm Cost", "Expenditures", "Social Welfare Loss" }, lossesLineScheme),
                     new AggregatedGraphInfo($"Wealth Loss{riskAversionString}", new List<string>() { "Wealth Loss" }, plaintiffDefendantAndOthersLineScheme.Take(1).ToList()),
-                    new AggregatedGraphInfo($"Trial{riskAversionString}", new List<string>() { "Trial" }, plaintiffDefendantAndOthersLineScheme.Take(1).ToList(), minorYAxisLabel: "Proportion", maximumValueMicroY: 1.0),
-                    new AggregatedGraphInfo($"Trial Outcomes{riskAversionString}", new List<string>() { "P Win Probability" }, plaintiffDefendantAndOthersLineScheme.Take(1).ToList(), minorYAxisLabel: "Proportion", maximumValueMicroY: 1.0),
-                    new AggregatedGraphInfo($"Disposition{riskAversionString}", new List<string>() {"No Suit", "No Answer", "Settles", "P Abandons", "D Defaults", "P Loses", "P Wins"}, dispositionLineScheme, minorYAxisLabel:"Proportion", maximumValueMicroY: 1.0, graphType:TikzAxisSet.GraphType.StackedBar),
+                    new AggregatedGraphInfo($"Trial{riskAversionString}", new List<string>() { "Trial" }, plaintiffDefendantAndOthersLineScheme.Take(1).ToList(), minorYAxisLabel: "Proportion", maximumValueMicroY: 1.0, filter:generalFilter),
+                    new AggregatedGraphInfo($"Trial Outcomes{riskAversionString}", new List<string>() { "P Win Probability" }, plaintiffDefendantAndOthersLineScheme.Take(1).ToList(), minorYAxisLabel: "Proportion", maximumValueMicroY: 1.0, filter:generalFilter),
+                    new AggregatedGraphInfo($"Disposition{riskAversionString}", new List<string>() {"No Suit", "No Answer", "Settles", "P Abandons", "D Defaults", "P Loses", "P Wins"}, dispositionLineScheme, minorYAxisLabel:"Proportion", maximumValueMicroY: 1.0, graphType:TikzAxisSet.GraphType.StackedBar, filter:generalFilter),
                     new AggregatedGraphInfo($"Accuracy and Expenditures (Truly Liable){riskAversionString}", new List<string>() { "False Negative Inaccuracy", "False Positive Inaccuracy",  "Expenditures" }, plaintiffDefendantAndOthersLineScheme.ToList(), filter:"Truly Liable"),
                     new AggregatedGraphInfo($"Accuracy and Expenditures (Truly Not Liable){riskAversionString}", new List<string>() { "False Negative Inaccuracy", "False Positive Inaccuracy",  "Expenditures" }, plaintiffDefendantAndOthersLineScheme.ToList(), filter: "Truly Not Liable"),
                     new AggregatedGraphInfo($"Disposition (Truly Liable){riskAversionString}", new List<string>() {"No Suit", "No Answer", "Settles", "P Abandons", "D Defaults", "P Loses", "P Wins"}, dispositionLineScheme, minorYAxisLabel:"Proportion", maximumValueMicroY: 1.0, graphType:TikzAxisSet.GraphType.StackedBar, filter:"Truly Liable"),
@@ -430,7 +430,7 @@ namespace LitigCharts
                 if (launcher is LitigGameEndogenousDisputesLauncher endog && endog.GameToPlay == LitigGameEndogenousDisputesLauncher.UnderlyingGame.AppropriationGame)
                 {
                     // Appropriation is PrimaryAction (yes = 1, no = 2). So, 1.33 would indicate that 66% of the time, the plaintiff appropriates, and 33% of the time, they do not; 2 would indicate that appropriation never occurs. Thus, to translate the reported PrimaryAction average value to a proportion, we need 1 => 1, 2 => 0, so the formula is x => 2 - x
-                    welfareMeasureColumns.Add(new AggregatedGraphInfo($"Appropriation{riskAversionString}", new List<string>() { "Appropriation" }, plaintiffDefendantAndOthersLineScheme.Take(1).ToList(), minorYAxisLabel: "Proportion", maximumValueMicroY: 1.0, scaleMiniGraphValues: x => 2 - x));
+                    welfareMeasureColumns.Add(new AggregatedGraphInfo($"Appropriation{riskAversionString}", new List<string>() { "Appropriation" }, plaintiffDefendantAndOthersLineScheme.Take(1).ToList(), minorYAxisLabel: "Proportion", maximumValueMicroY: 1.0, scaleMiniGraphValues: x => 2 - x, filter:generalFilter));
                 }
 
                 foreach (double? limitToCostsMultiplier in new double?[] { 1.0, null })

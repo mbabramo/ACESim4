@@ -15,7 +15,7 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
     public sealed class PrecautionNegligenceDisputeGenerator : ILitigGameDisputeGenerator
     {
         // ----------------------------------------------------------------  public configuration -- OVERRIDDEN BY LITIGGAMEOPTIONSGENERATOR
-        public double BenefitToDefendantOfActivity = 3.0;
+        public double BenefitToDefendantOfActivity = 0.001;
         public double CostOfAccident = 1.0;
         public double MarginalPrecautionCost = 0.00001;
 
@@ -26,9 +26,9 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
 
 
         public double ProbabilityAccidentNoPrecaution = 0.0001;  // pMax
-        public double ProbabilityAccidentMaxPrecaution_LowPower = 0.00008;
-        public double ProbabilityAccidentMaxPrecaution_HighPower = 0.00002;
-        public double AlphaLowPower = 2;
+        public double ProbabilityAccidentMaxPrecaution_LowPower = 0.0001; // since the power is not at the extreme, we will still end up with interpolated values
+        public double ProbabilityAccidentMaxPrecaution_HighPower = 0.00000;
+        public double AlphaLowPower = 3;
         public double AlphaHighPower = 1.5;
         public double ProbabilityAccidentWrongfulAttribution = 0.000025;
         public double LiabilityThreshold = 1.0;

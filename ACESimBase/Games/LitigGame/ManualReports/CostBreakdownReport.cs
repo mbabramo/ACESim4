@@ -548,13 +548,13 @@ namespace ACESimBase.Games.LitigGame.ManualReports
             // Split into left/right and apply ordering within each panel
             var left = slices
                 .Where(s => s.harm + s.filing + s.answer + s.bargaining + s.trial == 0)
-                .OrderByDescending(s => s.opportunity)
+                .OrderBy(s => s.opportunity)
                 .ThenBy(s => s.Total)
                 .ToList();
 
             var right = slices
                 .Where(s => s.harm + s.filing + s.answer + s.bargaining + s.trial > 0)
-                .OrderByDescending(s => s.opportunity)
+                .OrderBy(s => s.harm)
                 .ThenBy(s => s.Total)
                 .ToList();
 
@@ -1040,18 +1040,18 @@ namespace ACESimBase.Games.LitigGame.ManualReports
         static string Csv(IEnumerable<Slice> ss)
         {
             var sb = new StringBuilder(
-                "Width,Opportunity,Harm,Filing," +
-                "Answering,Bargaining,Trying,Total\n");
+                "Width,Opportunity,Harm,File," +
+                "Answer,Bargain,Trial,Total\n");
             foreach (var s in ss)
                 sb.AppendLine(string.Join(",",
-                    s.width.ToString("F6", CultureInfo.InvariantCulture),
-                    s.opportunity.ToString("G6", CultureInfo.InvariantCulture),
-                    s.harm.ToString("G6", CultureInfo.InvariantCulture),
-                    s.filing.ToString("G6", CultureInfo.InvariantCulture),
-                    s.answer.ToString("G6", CultureInfo.InvariantCulture),
-                    s.bargaining.ToString("G6", CultureInfo.InvariantCulture),
-                    s.trial.ToString("G6", CultureInfo.InvariantCulture),
-                    s.Total.ToString("G6", CultureInfo.InvariantCulture)));
+                    s.width.ToString("F9", CultureInfo.InvariantCulture),
+                    s.opportunity.ToString("G9", CultureInfo.InvariantCulture),
+                    s.harm.ToString("G9", CultureInfo.InvariantCulture),
+                    s.filing.ToString("G9", CultureInfo.InvariantCulture),
+                    s.answer.ToString("G9", CultureInfo.InvariantCulture),
+                    s.bargaining.ToString("G9", CultureInfo.InvariantCulture),
+                    s.trial.ToString("G9", CultureInfo.InvariantCulture),
+                    s.Total.ToString("G9", CultureInfo.InvariantCulture)));
             return sb.ToString();
         }
 
