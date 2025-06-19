@@ -77,6 +77,10 @@ namespace ACESim
                     new SimpleReportColumnVariable("BCRatio", (GameProgress gp) => MyPNP(gp).BenefitCostRatio),
                 }
                 );
+                for (int i = 1; i <= precautionNegligenceDisputeGenerator.PrecautionPowerLevels; i++)
+                {
+                    colItems.Add(new SimpleReportColumnFilter("PrecPower" + i, (GameProgress gp) => MyPNP(gp).LiabilityStrengthDiscrete == i, SimpleReportColumnFilterOptions.ProportionOfRow)); // note that this is a filter, whereas the other above is a variable.
+                }
             }
 
             for (byte b = 1; b <= Options.NumPotentialBargainingRounds; b++)

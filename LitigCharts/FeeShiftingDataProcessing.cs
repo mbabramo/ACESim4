@@ -443,8 +443,6 @@ namespace LitigCharts
 
             foreach (bool useRiskAversionForNonRiskReports in new bool[] { false, true })
             {
-                Debug; // what if we want to filter based on something like precaution power and then add another set? we would first need to add another filter to our reports, based on the precaution power level.
-
                 var variations = launcher.GetSimulationSetsIdentifiers(useRiskAversionForNonRiskReports ? LitigGameLauncherBase.RequireModerateRiskAversion : null);
 
                 var plaintiffDefendantAndOthersLineScheme = new List<string>()
@@ -572,7 +570,6 @@ namespace LitigCharts
                             foreach (var macroXValue in simulationIdentifiers)
                             {
                                 var columnsToMatch = macroXValue.columnMatches.ToList();
-                                Debug; // here's where we can override the filter
                                 columnsToMatch.Add(("Filter", aggregatedGraphInfo.filter));
                                 columnsToMatch.Add(("Equilibrium Type", equilibriumType));
 

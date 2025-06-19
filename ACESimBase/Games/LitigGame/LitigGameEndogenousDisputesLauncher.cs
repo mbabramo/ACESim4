@@ -329,6 +329,15 @@ namespace ACESim
                 new SimulationIdentifier("1", DefaultVariableValues.WithReplacement("Proportion of Costs at Beginning", "1")),
             };
 
+            var varyingPrecautionPower = new List<SimulationIdentifier>()
+            {
+                new SimulationIdentifier("1", DefaultVariableValues.WithReplacement("Filter", "PrecPower1")),
+                new SimulationIdentifier("2", DefaultVariableValues.WithReplacement("Filter", "PrecPower2")),
+                new SimulationIdentifier("3", DefaultVariableValues.WithReplacement("Filter", "PrecPower3")),
+                new SimulationIdentifier("4", DefaultVariableValues.WithReplacement("Filter", "PrecPower4")),
+                new SimulationIdentifier("5", DefaultVariableValues.WithReplacement("Filter", "PrecPower5")),
+            }; // it would be nice if we could set this to the number of levels of precaution power in the PrecautionNegligenceDisputeGenerator, but we don't have access to the game definition and thus the dispute generator (or other options) here, in part because they change for every simulation, and we're making general settings. Possibly, we could have a static variable in the options generator that then controls the value in the dispute generator.
+
             var tentativeResults = new List<SimulationSetsIdentifier>()
             {
                 new SimulationSetsIdentifier("Baseline", varyingNothing),
@@ -342,7 +351,8 @@ namespace ACESim
                 new SimulationSetsIdentifier("Relative Costs", varyingRelativeCosts),
                 new SimulationSetsIdentifier("Risk Aversion", varyingRiskAversion),
                 new SimulationSetsIdentifier("Risk Aversion Asymmetry", varyingRiskAversionAsymmetry),
-                new SimulationSetsIdentifier("Proportion of Costs at Beginning", varyingTimingOfCosts)
+                new SimulationSetsIdentifier("Proportion of Costs at Beginning", varyingTimingOfCosts),
+                new SimulationSetsIdentifier("Precaution Power", varyingPrecautionPower),
             };
             
             tentativeResults = PerformArticleVariationInfoSetsTransformation(transformer, tentativeResults);
