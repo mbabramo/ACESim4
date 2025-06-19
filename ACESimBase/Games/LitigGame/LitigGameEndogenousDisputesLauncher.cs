@@ -72,6 +72,8 @@ namespace ACESim
         }
         public override FeeShiftingRule[] FeeShiftingModes => new[] { FeeShiftingRule.English_LiabilityIssue };
         
+        // REMINDER: When changing these, must also change GetSimulationSetsIdentifiers so that reports work correctly.
+
         public override double[] CriticalCostsMultipliers => new double[] { 1.0, 0.25, 4.0 };
         public override double[] AdditionalCostsMultipliers => new double[] { 1.0, 0.5, 2.0 };
         public override double[] CriticalFeeShiftingMultipliers => new double[] { 0.0, 1.0, 2.0 };
@@ -260,16 +262,16 @@ namespace ACESim
 
             var varyingLiabilityThreshold = new List<SimulationIdentifier>()
             {
-                new SimulationIdentifier("Low", DefaultVariableValues.WithReplacement("Liability Threshold", "0.5")),
+                new SimulationIdentifier("Low", DefaultVariableValues.WithReplacement("Liability Threshold", "0.8")),
                 new SimulationIdentifier("Normal", DefaultVariableValues.WithReplacement("Liability Threshold", "1")),
-                new SimulationIdentifier("High", DefaultVariableValues.WithReplacement("Liability Threshold", "1.5")),
+                new SimulationIdentifier("High", DefaultVariableValues.WithReplacement("Liability Threshold", "1.2")),
             };
             
             var varyingMarginalPrecautionCost = new List<SimulationIdentifier>()
             {
-                new SimulationIdentifier("Low", DefaultVariableValues.WithReplacement("Marginal Precaution Cost", "5E-06")),
+                new SimulationIdentifier("Low", DefaultVariableValues.WithReplacement("Marginal Precaution Cost", "8E-06")),
                 new SimulationIdentifier("Normal", DefaultVariableValues.WithReplacement("Marginal Precaution Cost", "1E-05")),
-                new SimulationIdentifier("High", DefaultVariableValues.WithReplacement("Marginal Precaution Cost", "2E-05")),
+                new SimulationIdentifier("High", DefaultVariableValues.WithReplacement("Marginal Precaution Cost", "1.2E-05")),
             };
 
             //var varyingFeeShiftingRule_LiabilityUncertain = new List<ArticleVariationInfo>()

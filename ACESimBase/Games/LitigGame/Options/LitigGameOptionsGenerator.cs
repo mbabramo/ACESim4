@@ -170,7 +170,7 @@ namespace ACESim
             disputeGenerator.ProbabilityAccidentMaxPrecaution_LowPower = 0.00008;
             disputeGenerator.ProbabilityAccidentMaxPrecaution_HighPower = 0.00002;
             disputeGenerator.ProbabilityAccidentWrongfulAttribution = 0.00001;
-            options.CourtLiabilityNoiseStdev = 0.01; // DEBUG -- make it so that we can set this to 0 (i.e., court always gets the correct answer)
+            options.CourtLiabilityNoiseStdev = 0.01; // DEBUG -- make it so that we can set this to 0 (i.e., court always gets the correct answer) -- reason for perfect decision is that we have more responsiveness in our simulations to conditions.
 
             options.LitigGameDisputeGenerator = disputeGenerator;
 

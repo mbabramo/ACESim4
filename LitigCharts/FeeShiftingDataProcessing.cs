@@ -54,7 +54,7 @@ namespace LitigCharts
             var gameOptionsSets = launcher.GetOptionsSets();
             var map = launcher.NameMap; // name to find (avoids redundancies in naming)
             string path = launcher.GetReportFolder();
-            string outputFileFullPath = launcher.GetReportFullPath(filenameCore, ".csv"); 
+            string outputFileFullPath = launcher.GetReportFullPath(filenameCore, ".csv");
             string cumResults = "";
 
             var distinctOptionSets = gameOptionsSets.DistinctBy(x => map[x.Name]).ToList();
@@ -78,6 +78,7 @@ namespace LitigCharts
             TabbedText.WriteLine("All options sets (including redundancies)");
             TabbedText.WriteLine(formattedTableOfOptionsSets);
 
+            int excelRowIndex = 1;
             foreach (string fileSuffix in equilibriumTypeSuffixes)
             {
                 TabbedText.WriteLine($"Processing equilibrium type {fileSuffix}");
@@ -97,8 +98,76 @@ namespace LitigCharts
                     bodyLine.Insert(0, equilibriumType);
                 string resultForEquilibrium = MakeString(outputLines);
                 cumResults += resultForEquilibrium;
+                excelRowIndex++;
             }
             TextFileManage.CreateTextFile(outputFileFullPath, cumResults);
+        }
+
+        public static void BuildCombinedCostBreakdownReport(LitigGameLauncherBase launcher)
+        {
+            var optionSets = launcher.GetOptionsSets();
+            var map = launcher.NameMap;
+
+            string outputFile = launcher.GetReportFullPath("Combined costbreakdown", ".csv");  // same folder as the other combined reports
+
+            // keep only unique option-sets in case the launcher list contains repeats
+            var distinctOptionSets = optionSets.DistinctBy(x => map[x.Name]).ToList();
+
+            StringBuilder csv = new StringBuilder();
+            bool wroteHeader = false;
+
+            foreach (var opt in distinctOptionSets)
+            {
+                string coreName = map[opt.Name];
+                string inputPath = Launcher.ReportFullPath(filePrefix(launcher), coreName, "-costbreakdown.csv");
+
+                if (!VirtualizableFileSystem.File.Exists(inputPath))
+                    continue;                             // option-set had no cost-breakdown file
+
+                using var reader = new StreamReader(inputPath);
+
+                string localHeader = reader.ReadLine();   // first row of the source file
+                if (localHeader is null)
+                    continue;
+
+                // write the combined header once (variable columns + group + option + original header)
+                if (!wroteHeader)
+                {
+                    var varHeadings = opt.VariableSettings
+                                          .OrderBy(kv => kv.Key.ToString())
+                                          .Select(kv => kv.Key.ToString());
+
+                    csv.AppendLine(string.Join(",",
+                        varHeadings
+                        .Concat(new[] { "GroupName", "OptionSetName" })
+                        .Concat(localHeader.Split(','))));
+
+                    wroteHeader = true;
+                }
+
+                while (!reader.EndOfStream)
+                {
+                    string line = reader.ReadLine();
+                    if (string.IsNullOrWhiteSpace(line))
+                        continue;
+
+                    var varValues = opt.VariableSettings
+                                       .OrderBy(kv => kv.Key.ToString())
+                                       .Select(kv => (kv.Value?.ToString() ?? "").Replace(",", "-"));
+
+                    IEnumerable<string> combinedRow = varValues
+                        .Concat(new[]
+                        {
+                            (opt.GroupName ?? "").Replace(",", "-"),
+                            coreName.Replace(",", "-")
+                        })
+                        .Concat(line.Split(','));
+
+                    csv.AppendLine(string.Join(",", combinedRow));
+                }
+            }
+
+            TextFileManage.CreateTextFile(outputFile, csv.ToString());
         }
 
         public static void BuildOffersReport(LitigGameLauncherBase launcher)
@@ -142,7 +211,7 @@ namespace LitigCharts
             BuildReportHelper(launcher, filtersOfRowsToGet, replacementRowNames, columnsToGet, replacementColumnNames, "offers");
         }
 
-        
+
 
         private static List<(string[] stringValues, double[] numericValues)> GetDataFromCSV(string filename, int columnToMatch, string requiredContentsOfColumnToMatch, int[] stringColumns, int[] numericColumns)
         {
@@ -213,7 +282,7 @@ namespace LitigCharts
                 }
                 var l = original.ToList();
                 foreach (var item in original)
-                    foreach (int i in Enumerable.Range(1, 100)) 
+                    foreach (int i in Enumerable.Range(1, 100))
                         l.Add(item.Replace(".", $"-Eq{i}."));
                 return notAlreadyProcessed(l.ToArray());
             }
@@ -257,7 +326,7 @@ namespace LitigCharts
             while (workExists && numAttempts < maxAttempts)
             {
                 List<(string path, string combinedPath, string optionSetName, string fileSuffix)> processesToLaunch = new List<(string path, string combinedPath, string optionSetName, string fileSuffix)>();
-                workExists = processesToLaunch.Any(); 
+                workExists = processesToLaunch.Any();
                 foreach (string fileSuffix in equilibriumTypeSuffixes)
                 {
                     List<string> extensions = ["-costbreakdownlight" + fileSuffix, "-costbreakdowndark" + fileSuffix, "-offers" + fileSuffix, "-fileans" + fileSuffix];
@@ -355,7 +424,7 @@ namespace LitigCharts
         // DEBUG -- try using cost breakdown diagrams instead. Include columns for baseline, fee shifting, damages multiplier, both.
         // DEBUG -- consider using Damages Multiplier instead of Costs Multiplier on the macro y.
 
-        public record AggregatedGraphInfo(string topicName, List<string> columnsToGet, List<string> lineScheme, string minorXAxisLabel = "Fee Shifting Multiplier", string minorXAxisLabelShort = "Fee Shift Mult.", string minorYAxisLabel = "\\$", string majorYAxisLabel = "Costs Multiplier", double? maximumValueMicroY = null, TikzAxisSet.GraphType graphType = TikzAxisSet.GraphType.Line, Func<double?, double?> scaleMiniGraphValues = null, string filter = "All");
+        public record AggregatedGraphInfo(string topicName, List<string> columnsToGet, List<string> lineScheme, string minorXAxisLabel = "TBD", string minorXAxisLabelShort = "TBD", string minorYAxisLabel = "\\$", string majorYAxisLabel = "Costs Multiplier", double? maximumValueMicroY = null, TikzAxisSet.GraphType graphType = TikzAxisSet.GraphType.Line, Func<double?, double?> scaleMiniGraphValues = null, string filter = "All");
 
         public static void ProduceLatexDiagramsAggregatingReports(LitigGameLauncherBase launcher, DataBeingAnalyzed article)
         {
@@ -374,6 +443,8 @@ namespace LitigCharts
 
             foreach (bool useRiskAversionForNonRiskReports in new bool[] { false, true })
             {
+                Debug; // what if we want to filter based on something like precaution power and then add another set? we would first need to add another filter to our reports, based on the precaution power level.
+
                 var variations = launcher.GetSimulationSetsIdentifiers(useRiskAversionForNonRiskReports ? LitigGameLauncherBase.RequireModerateRiskAversion : null);
 
                 var plaintiffDefendantAndOthersLineScheme = new List<string>()
@@ -386,7 +457,7 @@ namespace LitigCharts
                 var lossesLineScheme = new List<string>()
                 {
                   "green, opacity=0.70, line width=0.5mm, dotted",
-                  "yellow, opacity=0.70, line width=1mm, dashed",
+                  "yellow, opacity=0.70, line width=0.75mm, dashed",
                   "blue, opacity=0.70, line width=1mm, dashdotdotted",
                   "red, opacity=0.70, line width=1mm, solid",
                 };
@@ -416,7 +487,7 @@ namespace LitigCharts
                     new AggregatedGraphInfo($"Accuracy{riskAversionString}", new List<string>() { "False Positive Inaccuracy", "False Negative Inaccuracy" }, plaintiffDefendantAndOthersLineScheme.Take(2).ToList(), filter:generalFilter),
                     new AggregatedGraphInfo($"Expenditures{riskAversionString}", new List<string>() { "Expenditures" }, plaintiffDefendantAndOthersLineScheme.Skip(2).Take(1).ToList(), filter:generalFilter),
                     new AggregatedGraphInfo($"Offers{riskAversionString}", new List<string>() { "P Offer", "D Offer" }, plaintiffDefendantAndOthersLineScheme.Take(2).ToList(), filter:generalFilter),
-                    new AggregatedGraphInfo($"Social Welfare Loss{riskAversionString}", new List<string>() { "Opportunity Cost", "Harm Cost", "Expenditures", "Social Welfare Loss" }, lossesLineScheme),
+                    new AggregatedGraphInfo($"Social Welfare Loss{riskAversionString}", new List<string>() { "Opportunity Cost", "Harm Cost", "Expenditures", "Social Welfare Loss" }, lossesLineScheme, maximumValueMicroY: 1.2),
                     new AggregatedGraphInfo($"Wealth Loss{riskAversionString}", new List<string>() { "Wealth Loss" }, plaintiffDefendantAndOthersLineScheme.Take(1).ToList()),
                     new AggregatedGraphInfo($"Trial{riskAversionString}", new List<string>() { "Trial" }, plaintiffDefendantAndOthersLineScheme.Take(1).ToList(), minorYAxisLabel: "Proportion", maximumValueMicroY: 1.0, filter:generalFilter),
                     new AggregatedGraphInfo($"Trial Outcomes{riskAversionString}", new List<string>() { "P Win Probability" }, plaintiffDefendantAndOthersLineScheme.Take(1).ToList(), minorYAxisLabel: "Proportion", maximumValueMicroY: 1.0, filter:generalFilter),
@@ -430,28 +501,39 @@ namespace LitigCharts
                 if (launcher is LitigGameEndogenousDisputesLauncher endog && endog.GameToPlay == LitigGameEndogenousDisputesLauncher.UnderlyingGame.AppropriationGame)
                 {
                     // Appropriation is PrimaryAction (yes = 1, no = 2). So, 1.33 would indicate that 66% of the time, the plaintiff appropriates, and 33% of the time, they do not; 2 would indicate that appropriation never occurs. Thus, to translate the reported PrimaryAction average value to a proportion, we need 1 => 1, 2 => 0, so the formula is x => 2 - x
-                    welfareMeasureColumns.Add(new AggregatedGraphInfo($"Appropriation{riskAversionString}", new List<string>() { "Appropriation" }, plaintiffDefendantAndOthersLineScheme.Take(1).ToList(), minorYAxisLabel: "Proportion", maximumValueMicroY: 1.0, scaleMiniGraphValues: x => 2 - x, filter:generalFilter));
+                    welfareMeasureColumns.Add(new AggregatedGraphInfo($"Appropriation{riskAversionString}", new List<string>() { "Appropriation" }, plaintiffDefendantAndOthersLineScheme.Take(1).ToList(), minorYAxisLabel: "Proportion", maximumValueMicroY: 1.0, scaleMiniGraphValues: x => 2 - x, filter: generalFilter));
                 }
-                
+
                 List<string> feeShiftingMultipliers = launcher.CriticalFeeShiftingMultipliers.OrderBy(x => x).Select(y => y.ToString()).ToList();
-                List<string> damagesMultipliers = launcher.DamagesMultipliers.OrderBy(x => x).Select(y => y.ToString()).ToList();
-                List<(string macroXName, string macroXAbbrev, List<string> macroXValues)> macroXToRuns = [("Fee Shifting Multiplier", "FSM", feeShiftingMultipliers)];
+                List<(string minorXName, string minorXAbbrev, List<string> minorXValues)> minorXToRuns = [("Fee Shifting Multiplier", "Fee Shift Mult.", feeShiftingMultipliers)];
                 if (article == DataBeingAnalyzed.EndogenousDisputesArticle)
-                    macroXToRuns.Add(("Damages Multiplier", "DM", damagesMultipliers));
-                foreach (var macroXToRun in macroXToRuns)
+                {
+                    LitigGameEndogenousDisputesLauncher endogLauncher = (LitigGameEndogenousDisputesLauncher)launcher;
+                    List<string> damagesMultipliers = endogLauncher.CriticalDamagesMultipliers.OrderBy(x => x).Select(y => y.ToString()).ToList();
+                    minorXToRuns.Add(("Damages Multiplier", "Damages Mult.", damagesMultipliers));
+                }
+                foreach (var minorXToRun in minorXToRuns)
                 {
                     foreach (double? limitToCostsMultiplier in new double?[] { 1.0, null })
                     {
                         foreach (var welfareMeasureInfo in welfareMeasureColumns)
                         {
+                            var welfareMeasureWithCorrectedMinorX = welfareMeasureInfo with { minorXAxisLabel = minorXToRun.minorXName, minorXAxisLabelShort = minorXToRun.minorXAbbrev };
+                            PlannedPath plannedPath = new PlannedPath(outputFolderPath, new List<(string name, int priority)>());
+                            plannedPath.AddSubpath(useRiskAversionForNonRiskReports ? "Risk Averse" : "Risk Neutral", 3);
                             List<string> costsMultipliers = limitToCostsMultiplier == null ? launcher.CriticalCostsMultipliers.OrderBy(x => x).Select(x => x.ToString()).ToList() : new List<string> { limitToCostsMultiplier.ToString() };
-                            string additionalLabel = "";
                             if (limitToCostsMultiplier == 1.0)
-                                additionalLabel += " Single Row";
+                                plannedPath.AddSubpath("Single Row", 2);
+                            else
+                                plannedPath.AddSubpath("All Rows", 2);
                             if (article == DataBeingAnalyzed.EndogenousDisputesArticle)
-                                outputFolderPath = Path.Combine(outputFolderPath, "Macro X " + macroXToRun.macroXName);
+                            {
+                                var outputFolderPathOriginal = outputFolderPath;
+                                string subfolderName = "Macro X " + minorXToRun.minorXName;
+                                plannedPath.AddSubpath(subfolderName, 4);
+                            }
 
-                            CreateAggregatedReportVariationsForWelfareMeasure(launcher, pathAndFilename, outputFolderPath, variations, welfareMeasureInfo, "Costs Multiplier", costsMultipliers, macroXToRun.macroXName, macroXToRun.macroXValues, additionalLabel);
+                            CreateAggregatedReportVariationsForWelfareMeasure(launcher, pathAndFilename, plannedPath, variations, welfareMeasureWithCorrectedMinorX, costsMultipliers, minorXToRun.minorXValues);
                         }
                     }
                 }
@@ -462,12 +544,13 @@ namespace LitigCharts
             DeleteAuxiliaryFiles(outputFolderPath);
         }
 
-        private static void CreateAggregatedReportVariationsForWelfareMeasure(LitigGameLauncherBase launcher, string sourceDataPathAndFilename, string outputFolderPath, List<PermutationalLauncher.SimulationSetsIdentifier> variations, AggregatedGraphInfo aggregatedGraphInfo, string macroYValueName, List<string> macroYValues, string microXValueName, List<string> microXValues, string additionalLabel)
+        private static void CreateAggregatedReportVariationsForWelfareMeasure(LitigGameLauncherBase launcher, string sourceDataPathAndFilename, PlannedPath outputFolderPath, List<PermutationalLauncher.SimulationSetsIdentifier> variations, AggregatedGraphInfo aggregatedGraphInfo, List<string> macroYValues, List<string> microXValues)
         {
             Func<double?, double?> scaleMiniGraphValues = aggregatedGraphInfo.scaleMiniGraphValues ?? (x => x);
             List<(string columnName, string expectedText)[]> collectedRowsToFind = new List<(string columnName, string expectedText)[]>();
             double?[,] valuesFromCSVAllRows = null;
             int collectedValuesIndex = 0;
+            // We do this as a two-step process, first defining the rows to find and then acting on that information. So we go through the basic logic twice, checking at various points which step we are on.
             foreach (bool stepDefiningRowsToFind in new bool[] { true, false })
             {
                 foreach (string equilibriumType in eqToRun)
@@ -479,6 +562,7 @@ namespace LitigCharts
                         // The small x axis is the fee shifting multiplier. And the y axis represents the values that we are loading. 
                         // We then have a different line for each data series.
 
+                        // Load all the data
                         var simulationIdentifiers = variation.simulationIdentifiers;
                         List<List<TikzLineGraphData>> lineGraphData = new List<List<TikzLineGraphData>>();
                         double maxY = 0;
@@ -488,6 +572,7 @@ namespace LitigCharts
                             foreach (var macroXValue in simulationIdentifiers)
                             {
                                 var columnsToMatch = macroXValue.columnMatches.ToList();
+                                Debug; // here's where we can override the filter
                                 columnsToMatch.Add(("Filter", aggregatedGraphInfo.filter));
                                 columnsToMatch.Add(("Equilibrium Type", equilibriumType));
 
@@ -497,11 +582,12 @@ namespace LitigCharts
                                 {
                                     if (stepDefiningRowsToFind)
                                     {
-                                        var modifiedRowsToFind = columnsToMatch.WithReplacement("Fee Shifting Multiplier", microXValue.ToString()).WithReplacement(macroYValueName, macroYValue).Select(x => (x.Item1, x.Item2.ToString())).ToArray();
+                                        var modifiedRowsToFind = columnsToMatch.WithReplacement(aggregatedGraphInfo.minorXAxisLabel, microXValue.ToString()).WithReplacement(aggregatedGraphInfo.majorYAxisLabel, macroYValue).Select(x => (x.Item1, x.Item2.ToString())).ToArray();
                                         collectedRowsToFind.Add(modifiedRowsToFind);
                                     }
                                     else
                                     {
+                                        // We found the rows earlier and collected the data for the columns. Now we need to assemble that data into our minigraphs.
                                         int welfareColumnsCount = aggregatedGraphInfo.columnsToGet.Count();
                                         if (dataForMiniGraph == null)
                                         {
@@ -530,11 +616,10 @@ namespace LitigCharts
                             if (!stepDefiningRowsToFind)
                                 lineGraphData.Add(lineGraphDataForRow);
                         }
+
+                        // Change aggregatedGraphInfo so that the top of the microY axis, if not already set to a high enough value, is set to maxY
                         double originalMaxY = maxY;
-
                         maxY = RoundAxisLimit(originalMaxY);
-
-                        // change aggregatedGraphInfo so that the top of the microY axis, if not already set to a high enough value, is set to maxY
                         aggregatedGraphInfo = aggregatedGraphInfo with { maximumValueMicroY = Math.Max(aggregatedGraphInfo.maximumValueMicroY ?? 0, maxY) };
                         // now, change each individual mini graph so that the y proportional heights value is divided by maximumValueMicroY
                         foreach (var macroRow in lineGraphData)
@@ -547,7 +632,7 @@ namespace LitigCharts
                                     for (int j = 0; j < macroCell.proportionalHeights[i].Count(); j++)
                                     {
                                         if (macroCell.proportionalHeights[i][j] != null)
-                                        { 
+                                        {
                                             macroCell.proportionalHeights[i][j] /= aggregatedGraphInfo.maximumValueMicroY;
                                             if (macroCell.proportionalHeights[i][j] > 1)
                                                 macroCell.proportionalHeights[i][j] = 1.05; // just use a generic number to mean above the graph (though that shouldn't happen given the formula above)
@@ -557,26 +642,33 @@ namespace LitigCharts
                             }
                         }
 
-                        if (!stepDefiningRowsToFind)
-                            CreateAggregatedLineGraphFromData(launcher, outputFolderPath, aggregatedGraphInfo, equilibriumType, variation, simulationIdentifiers, lineGraphData, macroYValues, microXValues, additionalLabel);
+                        // Now create the aggregated line graph. This is the very last thing we'll do in this method.
+                        if (!stepDefiningRowsToFind && variation.nameOfSet != aggregatedGraphInfo.minorXAxisLabel) // we don't want to have graphs in a Fee Shifting Multiplier folder, if we're already including Fee Shifting Multiplier as the minor x axis (this would actually create the same graph multiple times)
+                            CreateAggregatedLineGraphFromData(launcher, outputFolderPath, aggregatedGraphInfo, equilibriumType, variation, simulationIdentifiers, lineGraphData, macroYValues, microXValues);
 
                     }
                 }
                 if (stepDefiningRowsToFind)
                 {
-                    valuesFromCSVAllRows = CSVData.GetCSVData_SinglePass(sourceDataPathAndFilename, collectedRowsToFind.ToArray(), aggregatedGraphInfo.columnsToGet.ToArray(), cacheFile: true);
+                    // When we get here, we've identified the rows to pull out of the CSV for all equilibria that we need data for.
+                    // We're just copying data from the CSV right now. We're not creating the graph yet (that will be in the second step within this method).
+                    bool validate = true; // DEBUG
+                    if (validate)
+                        valuesFromCSVAllRows = CSVData.GetCSVData_MultiPassValidated(sourceDataPathAndFilename, collectedRowsToFind.ToArray(), aggregatedGraphInfo.columnsToGet.ToArray(), cacheFile: true);
+                    else
+                        valuesFromCSVAllRows = CSVData.GetCSVData_SinglePass(sourceDataPathAndFilename, collectedRowsToFind.ToArray(), aggregatedGraphInfo.columnsToGet.ToArray(), cacheFile: true);
+                        
                 }
             }
 
         }
 
-        private static void CreateAggregatedLineGraphFromData(LitigGameLauncherBase launcher, string outputFolderPath, AggregatedGraphInfo aggregatedGraphInfo, string equilibriumType, LitigGameEndogenousDisputesLauncher.SimulationSetsIdentifier variation, List<LitigGameEndogenousDisputesLauncher.SimulationIdentifier> simulationIdentifiers, List<List<TikzLineGraphData>> lineGraphData, List<string> macroYValueNames, List<string> microXValues, string additionalLabel)
+        private static void CreateAggregatedLineGraphFromData(LitigGameLauncherBase launcher, PlannedPath plannedPath, AggregatedGraphInfo aggregatedGraphInfo, string equilibriumType, LitigGameEndogenousDisputesLauncher.SimulationSetsIdentifier variation, List<LitigGameEndogenousDisputesLauncher.SimulationIdentifier> simulationIdentifiers, List<List<TikzLineGraphData>> lineGraphData, List<string> macroYValueNames, List<string> microXValues)
         {
-            string subfolderName = Path.Combine(outputFolderPath, variation.nameOfSet);
-            if (!VirtualizableFileSystem.Directory.GetDirectories(outputFolderPath).Any(x => x == subfolderName))
-                VirtualizableFileSystem.Directory.CreateDirectory(subfolderName);
-            string equilibriumTypeAdj = equilibriumType == "First Eq" ? "" : " (" + equilibriumType + ")";
-            string outputFilename = Path.Combine(subfolderName, $"{aggregatedGraphInfo.topicName} {(variation.nameOfSet.Contains("Baseline") == false ? "Varying " : "")}{variation.nameOfSet}{additionalLabel}{equilibriumTypeAdj}.tex");
+            plannedPath = plannedPath.DeepClone();
+            plannedPath.AddSubpath(variation.nameOfSet, 5);
+            string equilibriumTypeAdj = equilibriumType is "First Eq" or "Only Eq" ? "" : " (" + equilibriumType + ")";
+            string outputFilename = $"{aggregatedGraphInfo.topicName} {(variation.nameOfSet.Contains("Baseline") == false ? "Varying " : "")}{variation.nameOfSet}{equilibriumTypeAdj}.tex";
 
             // make all data proportional to rounded up maximum value
             double maximumValueMicroY;
@@ -635,11 +727,13 @@ namespace LitigCharts
             };
             var result = r.GetStandaloneDocument();
 
-            TextFileManage.CreateTextFile(outputFilename, result);
+            string outputPath = plannedPath.GetPlannedPathString();
+            string outputCombinedPath = plannedPath.GetCombinedPlannedPathString(outputFilename);
+            TextFileManage.CreateTextFile(outputCombinedPath, result);
             TabbedText.WriteLine($"Launching {outputFilename}");
-            string expectedOutput = outputFilename.Replace(".tex", ".pdf");
+            string expectedOutput = outputCombinedPath.Replace(".tex", ".pdf");
             if (!avoidProcessingIfPDFExists || !DataProcessingBase.VirtualizableFileSystem.File.Exists(expectedOutput))
-                ExecuteLatexProcess(subfolderName, outputFilename);
+                ExecuteLatexProcess(outputPath, outputCombinedPath);
         }
 
         private static double RoundAxisLimit(double value)
@@ -784,6 +878,36 @@ namespace LitigCharts
             // Finally, let's get the average coefficient of variation across columns
             var averageCoefficients = numericColumns.Select(x => coefficientsOfVariation.Select(y => y[x]).Average()).ToArray();
             Console.WriteLine($"Average coefficient of variation: {String.Join(", ", averageCoefficients)}");
+        }
+
+        #endregion
+
+        #region Directory helpers
+
+        record PlannedPath(string originalPath, List<(string name, int priority)> prioritizedSubpaths)
+        {
+            public void AddSubpath(string name, int priority)
+            {
+                prioritizedSubpaths.Add((name, priority));
+            }
+
+            public string GetPlannedPathString()
+            {
+                var orderedSubpaths = prioritizedSubpaths.OrderByDescending(x => x.priority).Select(x => x.name).ToList();
+                string currentPath = originalPath;
+                foreach (string subpath in orderedSubpaths)
+                {
+                    string nextPath = Path.Combine(currentPath, subpath);
+                    if (!VirtualizableFileSystem.Directory.GetDirectories(currentPath).Any(x => x == subpath))
+                        VirtualizableFileSystem.Directory.CreateDirectory(nextPath);
+                    currentPath = nextPath;
+                }
+                return currentPath;
+            }
+
+            public string GetCombinedPlannedPathString(string filename) => Path.Combine(GetPlannedPathString(), filename);
+
+            public PlannedPath DeepClone() => new PlannedPath(originalPath, prioritizedSubpaths.ToList());
         }
 
         #endregion

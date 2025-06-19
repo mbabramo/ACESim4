@@ -155,7 +155,13 @@ namespace ACESimBase.GameSolvingSupport.Settings
         /// </summary>
         public record SimulationIdentifier(
             string nameForSimulation,
-            List<(string columnName, string expectedValue)> columnMatches);
+            List<(string columnName, string expectedValue)> columnMatches)
+        {
+            public override string ToString()
+            {
+                return $"{nameForSimulation}: {String.Join(",", columnMatches.Select(x => $"{x.columnName}={x.expectedValue}"))}";
+            }
+        }
 
         /// <summary>
         /// A *group* of <see cref="SimulationIdentifier"/> objects that
@@ -163,7 +169,13 @@ namespace ACESimBase.GameSolvingSupport.Settings
         /// </summary>
         public record SimulationSetsIdentifier(
             string nameOfSet,
-            List<SimulationIdentifier> simulationIdentifiers);
+            List<SimulationIdentifier> simulationIdentifiers)
+        {
+            public override string ToString()
+            {
+                return nameOfSet + " \n" + String.Join(" \n", simulationIdentifiers);
+            }
+        }
 
         /// <summary>
         /// Normalised metadata used both for folder names and for
@@ -299,10 +311,12 @@ namespace ACESimBase.GameSolvingSupport.Settings
             // ------------------------------------------------------------------
             // 3. Batch 0 – the *complete* critical‑only grid
             // ------------------------------------------------------------------
-            var resultBatches = new List<List<T>>
+            List<List<T>> resultBatches = new List<List<T>>
             {
                 ApplyPermutationsOfTransformations(optionsFactory, criticalTransformLists)
             };
+            foreach (var batch in resultBatches)
+                AddDefaultNoncriticalValues(batch);
 
             // ------------------------------------------------------------------
             // 4. One‑non‑critical‑at‑a‑time sweeps crossed with SUPER‑criticals
@@ -331,7 +345,7 @@ namespace ACESimBase.GameSolvingSupport.Settings
                     allTransformations,
                     numCritical);
 
-                var sweepOptions = ApplyPermutationsOfTransformations(
+                List<T> sweepOptions = ApplyPermutationsOfTransformations(
                     optionsFactory, combinedLists);
 
                 AddDefaultNoncriticalValues(sweepOptions);

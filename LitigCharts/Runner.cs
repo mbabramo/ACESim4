@@ -43,7 +43,7 @@ namespace LitigCharts
             if (printIndividualLatexDiagrams)
                 FeeShiftingDataProcessing.ProduceLatexDiagramsFromTexFiles(launcher, article); // this code assumes that all data (including the .tex files) are in the ReportResults folder, so must do before organization
             if (organizeIntoFolders)
-                FeeShiftingDataProcessing.OrganizeIntoFolders(launcher, doDeletion, FeeShiftingDataProcessing.GetFilePlacementRules(article)); // now we organize, including the diagrams just made
+                FeeShiftingDataProcessing.OrganizeIndividualSimulationsIntoFolders(launcher, doDeletion, FeeShiftingDataProcessing.GetFilePlacementRules(article)); // now we organize, including the diagrams just made
             if (printAggregatedDiagrams)
             {
                 if (useVirtualizedFileSystemForIndividualDiagrams)

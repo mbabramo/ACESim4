@@ -1,6 +1,8 @@
 ﻿using CsvHelper;
+using CsvHelper.Configuration;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -80,11 +82,13 @@ namespace ACESimBase.Util.Serialization
                     rowInCSV++;
                     foreach (var indexedCriterion in indexedCriteria)
                         matchingCriteria[indexedCriterion.index] = MeetsRowRequirement(csv, indexedCriterion.item.columnName, indexedCriterion.item.expectedText);
+                    int bestRow = -1;
                     for (int rowToFind = 0; rowToFind < rowsToFind.Length; rowToFind++)
                     {
                         bool meetsRowRequirements = criteriaIndices[rowToFind].All(x => matchingCriteria[x]);
                         if (meetsRowRequirements)
                         {
+                            bestRow = rowToFind;
                             for (int c = 0; c < columnsToGet.Length; c++)
                             {
                                 string contents = csv.GetField<string>(columnsToGet[c]);
@@ -99,6 +103,89 @@ namespace ACESimBase.Util.Serialization
             }
             return results;
         }
+
+        public static double?[,] GetCSVData_MultiPassValidated(
+            string fullFilename,
+            (string columnName, string expectedText)[][] rowsToFind,
+            string[] columnsToGet,
+            bool cacheFile = false)
+        {
+            double?[,] results = new double?[rowsToFind.Length, columnsToGet.Length];
+
+            for (int rowIndex = 0; rowIndex < rowsToFind.Length; rowIndex++)
+            {
+                bool perfectRowLocated = false;
+                int greatestCriteriaMatchCount = -1;
+                Dictionary<string, string> closestRowCellValues = null;
+
+                using (var reader = GetStreamReader(fullFilename, cacheFile))
+                {
+                    var csvConfiguration = new CsvConfiguration(CultureInfo.InvariantCulture)
+                    {
+                        MissingFieldFound = null
+                    };
+
+                    using (var csv = new CsvReader(reader, csvConfiguration))
+                    {
+                        csv.Read();
+                        csv.ReadHeader();
+
+                        while (csv.Read())
+                        {
+                            int matchedCriteriaCount = rowsToFind[rowIndex]
+                                .Count(r => MeetsRowRequirement(csv, r.columnName, r.expectedText));
+
+                            if (matchedCriteriaCount > greatestCriteriaMatchCount)
+                            {
+                                greatestCriteriaMatchCount = matchedCriteriaCount;
+                                closestRowCellValues = rowsToFind[rowIndex]
+                                    .ToDictionary(r => r.columnName, r => csv.GetField<string>(r.columnName));
+                            }
+
+                            if (matchedCriteriaCount == rowsToFind[rowIndex].Length)
+                            {
+                                for (int c = 0; c < columnsToGet.Length; c++)
+                                {
+                                    string cellText = csv.GetField<string>(columnsToGet[c]);
+
+                                    results[rowIndex, c] = string.IsNullOrWhiteSpace(cellText)
+                                        ? null
+                                        : csv.GetField<double>(columnsToGet[c]);
+                                }
+
+                                perfectRowLocated = true;
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                if (!perfectRowLocated)
+                {
+                    var exceptionMessageBuilder = new StringBuilder();
+                    exceptionMessageBuilder.AppendLine("Unable to locate a CSV row matching every specified criterion.");
+                    exceptionMessageBuilder.AppendLine("Criteria:");
+                    foreach (var (columnName, expectedText) in rowsToFind[rowIndex])
+                        exceptionMessageBuilder.AppendLine($"    {columnName}: \"{expectedText}\"");
+
+                    if (closestRowCellValues != null)
+                    {
+                        exceptionMessageBuilder.AppendLine("Closest row:");
+                        foreach (var (columnName, expectedText) in rowsToFind[rowIndex])
+                        {
+                            string actual = closestRowCellValues.TryGetValue(columnName, out var value) ? value : "[missing]";
+                            string indicator = string.Equals(actual, expectedText, StringComparison.OrdinalIgnoreCase) ? "✓" : "✗";
+                            exceptionMessageBuilder.AppendLine($"    {columnName}: \"{actual}\" {indicator}");
+                        }
+                    }
+
+                    throw new Exception(exceptionMessageBuilder.ToString());
+                }
+            }
+
+            return results;
+        }
+
 
         public static double?[,] GetCSVData((string columnName, string expectedText)[][] rowsToFind, string[] columnsToGet, StreamReader reader)
         {

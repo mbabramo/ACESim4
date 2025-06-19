@@ -274,7 +274,7 @@ namespace LitigCharts
 
         #region File organization
 
-        public static void OrganizeIntoFolders(PermutationalLauncher launcher, bool doDeletion, List<(string folderName, string[] extensions)> placementRules)
+        public static void OrganizeIndividualSimulationsIntoFolders(PermutationalLauncher launcher, bool doDeletion, List<(string folderName, string[] extensions)> placementRules)
         {
             string reportFolder, individualResultsRoot;
             PrepareFolders(out reportFolder, out individualResultsRoot);
