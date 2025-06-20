@@ -79,13 +79,19 @@ namespace ACESimBase.Games.LitigGame.ManualReports
                 return total;
             }
 
-            // ── geometry parameters ──────────────────────────────────────────────────
-            double yAxisGapCm = Math.Max(1.0, 0.35 * (majorXValueNames.Count == 0
-                                          ? 1
-                                          : majorXValueNames.Max(s => s.Length)));
+            // ── geometry parameters ────────────────────────────────────────────────
+            double yAxisGapCm = Math.Max(1.0, 0.35 * (majorYValueNames.Count == 0
+                                           ? 1
+                                           : majorYValueNames.Max(s => s.Length)));
 
-            double outerLeftBand = Math.Max(OuterLeftBandCm, yAxisGapCm + 0.9);
-            double yLabelOffset  = Math.Max(0.9, outerLeftBand - 1.0);
+            double baseLeft       = yAxisGapCm + 0.9;                  // axis + tick labels
+            double outerLeftBand  = Math.Max(OuterLeftBandCm, baseLeft);
+
+            // If we had to fall back to the fixed 6 cm band, keep the axis label
+            // inside the clip by limiting how far left we offset it.
+            double yLabelOffset = Math.Max(0.9,
+                baseLeft < OuterLeftBandCm ? yAxisGapCm - 0.2           // stay within view
+                                           : outerLeftBand - 1.0);
 
             double cellBand    = cols * CellPitchCm;
             double legendWidth = LegendWidthCm();
