@@ -75,7 +75,7 @@ namespace ACESim
         // REMINDER: When changing these, must also change GetSimulationSetsIdentifiers so that reports work correctly.
 
         public override double[] CriticalCostsMultipliers => new double[] { 1.0, 0.25, 4.0 };
-        public override double[] AdditionalCostsMultipliers => new double[] { 1.0, 0.5, 2.0 };
+        public override double[] AdditionalCostsMultipliers => new double[] { 1.0, 0, 0.5, 2.0 };
         public override double[] CriticalFeeShiftingMultipliers => new double[] { 0.0, 1.0, 2.0 };
         public override double[] AdditionalFeeShiftingMultipliers => new double[] { 0.0, 0.5 };
 
