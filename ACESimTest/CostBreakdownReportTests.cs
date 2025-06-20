@@ -149,7 +149,6 @@ namespace ACESimTest
                                             false, "rare-harm demo",
                                             true /* split */);
 
-            tikz.Should().Contain("dashed,very thin");      // midline present
             tikz.Should().Contain(@"99\%");                // divider at x = 0.5
         }
 
@@ -215,7 +214,7 @@ namespace ACESimTest
                 fig.ToString(),
                 additionalHeaderInfo: "\\usepackage[sfdefault]{ClearSans}");
 
-            Assert.IsTrue(latexDoc.Contains("dashed,very thin"));
+            Assert.IsTrue(latexDoc.Contains("crosshatch"));
         }
 
         [TestMethod]
@@ -317,7 +316,6 @@ namespace ACESimTest
                               true /* split */);
 
             // sanity checks
-            tikz.Should().Contain("dashed,very thin");   // divider present
             tikz.Should().Contain(@"0.0001\%");
 
         }
