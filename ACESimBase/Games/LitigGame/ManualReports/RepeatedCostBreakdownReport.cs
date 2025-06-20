@@ -90,7 +90,7 @@ namespace ACESimBase.Games.LitigGame.ManualReports
             // If we had to fall back to the fixed 6 cm band, keep the axis label
             // inside the clip by limiting how far left we offset it.
             double yLabelOffset = Math.Max(0.9,
-                baseLeft < OuterLeftBandCm ? yAxisGapCm - 0.2           // stay within view
+                baseLeft < OuterLeftBandCm ? yAxisGapCm - 0.3           // stay within view
                                            : outerLeftBand - 1.0);
 
             double cellBand    = cols * CellPitchCm;

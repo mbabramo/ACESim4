@@ -763,9 +763,10 @@ namespace ACESimBase.Games.LitigGame.ManualReports
             // ── right y-axis (split-panel only) ───────────────────────────────
             if (splitRareHarmPanel)
             {
+                double gap = 0.03 * sy;                                  // 3 % of pane height
                 var mid = new TikzLine(
-                    new(pane.left + 0.5 * sx, pane.bottom),   // start exactly at pane bottom
-                    new(pane.left + 0.5 * sx, pane.top));     // …and stop at pane top
+                    new(pane.left + 0.5 * sx, pane.bottom + gap),        // start a bit above bottom
+                    new(pane.left + 0.5 * sx, pane.top    - gap));       // stop a bit below top
                 sb.AppendLine(mid.DrawCommand($"{pen},dotted,very thin"));
 
                 var yR = new TikzLine(new(pane.right, pane.bottom),
