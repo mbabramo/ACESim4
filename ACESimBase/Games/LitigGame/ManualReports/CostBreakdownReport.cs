@@ -64,7 +64,8 @@ namespace ACESimBase.Games.LitigGame.ManualReports
         /// </summary>
         static readonly string[] RegFill =
         {
-            "pattern=north east lines, pattern color=green",
+            "pattern=crosshatch, pattern color=green",
+            "pattern=north east lines, pattern color=yellow",
             "pattern=north west lines, pattern color=yellow",
             "pattern=dots,            pattern color=blue!30",
             "pattern=vertical lines,  pattern color=blue!60",
@@ -77,7 +78,7 @@ namespace ACESimBase.Games.LitigGame.ManualReports
         /// </summary>
         static readonly string[] PresFill =
         {
-            "fill=green!85","fill=yellow!85","fill=blue!30",
+            "fill=green!85","fill=yellow!85","fill=orange!85","fill=blue!30",
             "fill=blue!60","fill=blue!90","fill=red!75"
         };
 
@@ -85,7 +86,7 @@ namespace ACESimBase.Games.LitigGame.ManualReports
         /// Cost category labels, used in order of plotting and in the legend.
         /// </summary>
         static readonly string[] Labels =
-            { "Opportunity","Harm","File","Answer","Bargaining","Trial" };
+            { "Opportunity","Truly Liable Harm","Truly Not Liable Harm","File","Answer","Bargaining","Trial" };
 
         #endregion
 
@@ -158,14 +159,17 @@ namespace ACESimBase.Games.LitigGame.ManualReports
         /// and six cost components.
         /// </summary>
         public sealed record Slice(
-            double width, double opportunity, double harm, double filing,
+            double width, double opportunity, double trulyLiableHarm, double trulyNotLiableHarm, double filing,
             double answer, double bargaining, double trial)
         {
+            public bool IsLeft => trulyLiableHarm + trulyNotLiableHarm + filing + answer +
+                            bargaining + trial == 0;
+
             /// <summary>
             /// The total cost in this slice (sum of components).
             /// </summary>
             public double Total =>
-                opportunity + harm + filing + answer + bargaining + trial;
+                opportunity + trulyLiableHarm + trulyNotLiableHarm + filing + answer + bargaining + trial;
         }
 
         /// <summary>
@@ -178,7 +182,8 @@ namespace ACESimBase.Games.LitigGame.ManualReports
             double m = o.CostsMultiplier;
 
             double opp = p.OpportunityCost;
-            double harm = p.HarmCost;
+            double trulyLiableHarm = p.TrulyLiableHarmCost;
+            double trulyNotLiableHarm = p.TrulyNotLiableHarmCost;
             double file = p.PFiles
                 ? (o.PFilingCost - (!p.DAnswers
                        ? o.PFilingCost_PortionSavedIfDDoesntAnswer
@@ -189,7 +194,7 @@ namespace ACESimBase.Games.LitigGame.ManualReports
                           p.BargainingRoundsComplete * m;
             double tri = p.TrialOccurs ? (o.PTrialCosts + o.DTrialCosts) * m : 0;
 
-            return new(w, opp, harm, file, ans, bar, tri);
+            return new(w, opp, trulyLiableHarm, trulyNotLiableHarm, file, ans, bar, tri);
         }
 
         // ---------------------------------------------------------------------
@@ -242,7 +247,8 @@ namespace ACESimBase.Games.LitigGame.ManualReports
             {
                 var hit = acc.FirstOrDefault(a =>
                     Math.Abs(a.opportunity - s.opportunity) < 1e-7 &&
-                    Math.Abs(a.harm - s.harm) < 1e-7 &&
+                    Math.Abs(a.trulyLiableHarm - s.trulyLiableHarm) < 1e-7 &&
+                    Math.Abs(a.trulyNotLiableHarm - s.trulyNotLiableHarm) < 1e-7 &&
                     Math.Abs(a.filing - s.filing) < 1e-7 &&
                     Math.Abs(a.answer - s.answer) < 1e-7 &&
                     Math.Abs(a.bargaining - s.bargaining) < 1e-7 &&
@@ -268,7 +274,8 @@ namespace ACESimBase.Games.LitigGame.ManualReports
             return src.Select(s => s with
             {
                 opportunity = s.opportunity * k,
-                harm = s.harm * k,
+                trulyLiableHarm = s.trulyLiableHarm * k,
+                trulyNotLiableHarm = s.trulyNotLiableHarm * k,
                 filing = s.filing * k,
                 answer = s.answer * k,
                 bargaining = s.bargaining * k,
@@ -297,7 +304,7 @@ namespace ACESimBase.Games.LitigGame.ManualReports
 
             foreach (var s in slices)
             {
-                bool left = s.harm + s.filing + s.answer +
+                bool left = s.trulyLiableHarm + s.trulyNotLiableHarm + s.filing + s.answer +
                             s.bargaining + s.trial == 0;
                 if (left) hasLeft = true;
                 else hasRight = true;
@@ -509,8 +516,7 @@ namespace ACESimBase.Games.LitigGame.ManualReports
             double l = 0, r = 0;
             foreach (var s in slices)
             {
-                bool left = s.harm + s.filing + s.answer +
-                            s.bargaining + s.trial == 0;
+                bool left = s.IsLeft;
                 if (left) 
                     l += s.width; 
                 else 
@@ -528,8 +534,7 @@ namespace ACESimBase.Games.LitigGame.ManualReports
             foreach (var s in slices.Where(x => x.width > 1E-10))
             {
                 double total = s.Total;
-                bool left = s.harm + s.filing + s.answer +
-                            s.bargaining + s.trial == 0;
+                bool left = s.IsLeft;
                 if (left) leftMax = Math.Max(leftMax, total);
                 else rightMax = Math.Max(rightMax, total);
             }
@@ -590,14 +595,14 @@ namespace ACESimBase.Games.LitigGame.ManualReports
             // --- Split panel: divide into left/right by content ----------------
             // Split into left/right and apply ordering within each panel
             var left = slices
-                .Where(s => s.harm + s.filing + s.answer + s.bargaining + s.trial == 0)
+                .Where(s => s.IsLeft)
                 .OrderBy(s => s.opportunity)
                 .ThenBy(s => s.Total)
                 .ToList();
 
             var right = slices
-                .Where(s => s.harm + s.filing + s.answer + s.bargaining + s.trial > 0)
-                .OrderBy(s => s.harm)
+                .Where(s => !s.IsLeft)
+                .OrderBy(s => s.trulyLiableHarm + s.trulyNotLiableHarm)
                 .ThenBy(s => s.Total)
                 .ToList();
 
@@ -629,7 +634,7 @@ namespace ACESimBase.Games.LitigGame.ManualReports
         {
             double y = 0;
             double[] seg =
-            { s.opportunity, s.harm, s.filing, s.answer, s.bargaining, s.trial };
+            { s.opportunity, s.trulyLiableHarm, s.trulyNotLiableHarm, s.filing, s.answer, s.bargaining, s.trial };
             for (int cat = 0; cat < 6; cat++)
             {
                 if (seg[cat] <= 1e-12) continue;
@@ -824,11 +829,12 @@ namespace ACESimBase.Games.LitigGame.ManualReports
                 foreach (var s in slices)
                 {
                     if (s.opportunity > 1e-12) used[0] = true;
-                    if (s.harm        > 1e-12) used[1] = true;
-                    if (s.filing      > 1e-12) used[2] = true;
-                    if (s.answer      > 1e-12) used[3] = true;
-                    if (s.bargaining  > 1e-12) used[4] = true;
-                    if (s.trial       > 1e-12) used[5] = true;
+                    if (s.trulyLiableHarm        > 1e-12) used[1] = true;
+                    if (s.trulyNotLiableHarm        > 1e-12) used[2] = true;
+                    if (s.filing      > 1e-12) used[3] = true;
+                    if (s.answer      > 1e-12) used[4] = true;
+                    if (s.bargaining  > 1e-12) used[5] = true;
+                    if (s.trial       > 1e-12) used[6] = true;
                 }
                 var active = Enumerable.Range(0, Labels.Length).Where(i => used[i]).ToList();
 
@@ -1094,7 +1100,8 @@ namespace ACESimBase.Games.LitigGame.ManualReports
                 sb.AppendLine(string.Join(",",
                     s.width.ToString("F9", CultureInfo.InvariantCulture),
                     s.opportunity.ToString("G9", CultureInfo.InvariantCulture),
-                    s.harm.ToString("G9", CultureInfo.InvariantCulture),
+                    s.trulyLiableHarm.ToString("G9", CultureInfo.InvariantCulture),
+                    s.trulyNotLiableHarm.ToString("G9", CultureInfo.InvariantCulture),
                     s.filing.ToString("G9", CultureInfo.InvariantCulture),
                     s.answer.ToString("G9", CultureInfo.InvariantCulture),
                     s.bargaining.ToString("G9", CultureInfo.InvariantCulture),
@@ -1130,13 +1137,14 @@ namespace ACESimBase.Games.LitigGame.ManualReports
                 // parse using invariant culture to avoid locale-specific separators
                 double width      = double.Parse(fields[0], CultureInfo.InvariantCulture);
                 double opportunity= double.Parse(fields[1], CultureInfo.InvariantCulture);
-                double harm       = double.Parse(fields[2], CultureInfo.InvariantCulture);
-                double filing     = double.Parse(fields[3], CultureInfo.InvariantCulture);
-                double answer     = double.Parse(fields[4], CultureInfo.InvariantCulture);
-                double bargaining = double.Parse(fields[5], CultureInfo.InvariantCulture);
-                double trial      = double.Parse(fields[6], CultureInfo.InvariantCulture);
+                double trulyLiableHarm       = double.Parse(fields[2], CultureInfo.InvariantCulture);
+                double trulyNotLiableHarm   = double.Parse(fields[3], CultureInfo.InvariantCulture);
+                double filing     = double.Parse(fields[4], CultureInfo.InvariantCulture);
+                double answer     = double.Parse(fields[5], CultureInfo.InvariantCulture);
+                double bargaining = double.Parse(fields[6], CultureInfo.InvariantCulture);
+                double trial      = double.Parse(fields[7], CultureInfo.InvariantCulture);
 
-                slices.Add(new Slice(width, opportunity, harm, filing, answer, bargaining, trial));
+                slices.Add(new Slice(width, opportunity, trulyLiableHarm, trulyNotLiableHarm, filing, answer, bargaining, trial));
             }
 
             return slices;

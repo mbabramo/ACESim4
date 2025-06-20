@@ -18,7 +18,8 @@ namespace ACESimBase.Games.LitigGame.ManualReports
         // ───────────  legend styling copied from CostBreakdownReport  ───────────────
         private static readonly string[] RegFill =
         {
-            "pattern=north east lines, pattern color=green",
+            "pattern=crosshatch, pattern color=green",
+            "pattern=north east lines, pattern color=yellow",
             "pattern=north west lines, pattern color=yellow",
             "pattern=dots,            pattern color=blue!30",
             "pattern=vertical lines,  pattern color=blue!60",
@@ -27,7 +28,7 @@ namespace ACESimBase.Games.LitigGame.ManualReports
         };
 
         private static readonly string[] Labels =
-            { "Opportunity", "Harm", "File", "Answer", "Bargaining", "Trial" };
+            { "Opportunity", "Truly Liable Harm", "Truly Not Liable Harm", "File", "Answer", "Bargaining", "Trial" };
 
         // ─────────────────────────────────────────────────────────────────────────────
         public static string GenerateRepeatedReport(
@@ -56,11 +57,12 @@ namespace ACESimBase.Games.LitigGame.ManualReports
             foreach (var s in sliceGrid.SelectMany(r => r).SelectMany(x => x))
             {
                 if (s.opportunity > 1e-12) used[0] = true;
-                if (s.harm        > 1e-12) used[1] = true;
-                if (s.filing      > 1e-12) used[2] = true;
-                if (s.answer      > 1e-12) used[3] = true;
-                if (s.bargaining  > 1e-12) used[4] = true;
-                if (s.trial       > 1e-12) used[5] = true;
+                if (s.trulyLiableHarm > 1e-12) used[1] = true;
+                if (s.trulyNotLiableHarm > 1e-12) used[2] = true;
+                if (s.filing      > 1e-12) used[3] = true;
+                if (s.answer      > 1e-12) used[4] = true;
+                if (s.bargaining  > 1e-12) used[5] = true;
+                if (s.trial       > 1e-12) used[6] = true;
             }
             var activeCats = Enumerable.Range(0, Labels.Length).Where(i => used[i]).ToList();
 

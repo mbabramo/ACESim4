@@ -14,7 +14,7 @@ namespace ACESimTest
     {
         // handy alias
         private static CostBreakdownReport.Slice S(double w, double opp, double harm) =>
-            new(w, opp, harm, 0, 0, 0, 0);
+            new(w, opp, harm / 2.0, harm / 2.0, 0, 0, 0, 0);
 
         // ---------------------------------------------------------------
         [TestMethod]
@@ -96,7 +96,7 @@ namespace ACESimTest
         private static CostBreakdownReport.Slice S(
             double w, double opp, double harm,
             double file = 0, double ans = 0, double barg = 0, double tri = 0)
-            => new(w, opp, harm, file, ans, barg, tri);
+            => new(w, opp, harm / 2.0, harm / 2.0, file, ans, barg, tri);
 
         // ------------------------------------------------------------
         [TestMethod]
@@ -228,17 +228,17 @@ namespace ACESimTest
             var diagramOne = new List<CostBreakdownReport.Slice>
             {
                 // left-panel slice
-                new(0.60, 10, 0, 0, 0, 0, 0),
+                new(0.60, 10, 0, 0, 0, 0, 0, 0),
                 // right-panel slices
-                new(0.30,  5, 3, 2, 0, 1, 0),
-                new(0.10,  2, 0, 1, 1, 0.5, 0)
+                new(0.30,  5, 1.5, 1.5, 2, 0, 1, 0),
+                new(0.10,  2, 0, 0, 1, 1, 0.5, 0)
             };
 
             // ----- diagram 2 -------------------------------------------------
             var diagramTwo = new List<CostBreakdownReport.Slice>
             {
-                new(0.40, 20, 0, 0, 0, 0, 0),
-                new(0.60,  8, 6, 1, 0, 0, 2)
+                new(0.40, 20, 0, 0, 0, 0, 0, 0),
+                new(0.60,  8, 3, 3, 1, 0, 0, 2)
             };
 
             var diagrams = new List<List<CostBreakdownReport.Slice>>
@@ -261,18 +261,15 @@ namespace ACESimTest
                 var slices = diagrams[d];
                 var info = infos[d];
 
-                bool isSplit = slices.Any(s => s.harm + s.filing + s.answer +
-                                               s.bargaining + s.trial > 0) &&
-                               slices.Any(s => s.harm + s.filing + s.answer +
-                                               s.bargaining + s.trial == 0);
+                bool isSplit = slices.Any(s => s.IsLeft) &&
+                               slices.Any(s => !s.IsLeft);
 
                 // tallest stacks
                 double tallestLeft = 0, tallestRight = 0;
                 foreach (var s in slices)
                 {
                     double total = s.Total;
-                    bool left = s.harm + s.filing + s.answer +
-                                s.bargaining + s.trial == 0;
+                    bool left = s.IsLeft;
                     if (left)  tallestLeft  = Math.Max(tallestLeft, total);
                     else       tallestRight = Math.Max(tallestRight, total);
                 }
@@ -409,7 +406,7 @@ namespace ACESimTest
                 slices.Add(new CostBreakdownReport.Slice(
                     width:       wLeft[i],
                     opportunity: R2(opp),
-                    harm: 0, filing: 0, answer: 0, bargaining: 0, trial: 0));
+                    trulyLiableHarm: 0, trulyNotLiableHarm: 0, filing: 0, answer: 0, bargaining: 0, trial: 0));
             }
 
             // ------------------------------------------------------------------
@@ -435,7 +432,8 @@ namespace ACESimTest
                 slices.Add(new CostBreakdownReport.Slice(
                     width:       w,
                     opportunity: R2(opp),
-                    harm:        R2(harm),
+                    trulyLiableHarm:        R2(harm / 2.0),
+                    trulyNotLiableHarm:        R2(harm / 2.0),
                     filing:      R2(phase[0]),
                     answer:      R2(phase[1]),
                     bargaining:  R2(phase[2]),
@@ -448,7 +446,7 @@ namespace ACESimTest
 
 
         private static bool IsLeftSlice(CostBreakdownReport.Slice s) =>
-            s.harm + s.filing + s.answer + s.bargaining + s.trial == 0;
+            s.IsLeft;
 
     }
 }

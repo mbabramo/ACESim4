@@ -114,6 +114,8 @@ namespace ACESim
         public double OpportunityCost { get => PostGameInfo.OpportunityCost; set { PostGameInfo.OpportunityCost = value; } }
         public double HarmCost { get => PostGameInfo.HarmCost; set { PostGameInfo.HarmCost = value; } }
 
+        public double TrulyLiableHarmCost => IsTrulyLiable == true ? HarmCost : 0.0;
+        public double TrulyNotLiableHarmCost => IsTrulyLiable is false or null ? HarmCost : 0.0; // null will matter here only if there actually is harm
 
         public override string ToString()
         {

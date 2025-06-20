@@ -34,8 +34,8 @@ namespace LitigCharts
         {
             List<string> rowsToGet = new List<string> { "All", "DisputeArises", "Not Litigated", "Litigated", "Settles", "Tried", "P Loses", "P Wins", "Truly Liable", "Truly Not Liable" };
             List<string> replacementRowNames = new List<string> { "All", "Dispute Arises", "Not Litigated", "Litigated", "Settles", "Tried", "P Loses", "P Wins", "Truly Liable", "Truly Not Liable" };
-            List<string> columnsToGet = new List<string> { "Exploit", "Seconds", "PFiles", "DAnswers", "POffer1", "DOffer1", "Trial", "PWinPct", "PWealth", "DWealth", "TotWealth", "WealthLoss", "PWelfare", "DWelfare", "PDSWelfareLoss", "SWelfareLoss", "OpportunityCost", "HarmCost", "TotExpense", "False+", "False-", "ValIfSettled", "PDoesntFile", "DDoesntAnswer", "SettlesBR1", "PAbandonsBR1", "DDefaultsBR1", "P Loses", "P Wins", "PrimaryAction" };
-            List<string> replacementColumnNames = new List<string> { "Exploitability", "Calculation Time", "P Files", "D Answers", "P Offer", "D Offer", "Trial", "P Win Probability", "P Wealth", "D Wealth", "Total Wealth", "Wealth Loss", "P Welfare", "D Welfare", "Pre-Dispute Social Welfare Loss", "Social Welfare Loss", "Opportunity Cost", "Harm Cost", "Expenditures", "False Positive Inaccuracy", "False Negative Inaccuracy", "Value If Settled", "No Suit", "No Answer", "Settles", "P Abandons", "D Defaults", "P Loses", "P Wins", "Appropriation" };
+            List<string> columnsToGet = new List<string> { "Exploit", "Seconds", "PFiles", "DAnswers", "POffer1", "DOffer1", "Trial", "PWinPct", "PWealth", "DWealth", "TotWealth", "WealthLoss", "PWelfare", "DWelfare", "PDSWelfareLoss", "SWelfareLoss", "OpportunityCost", "HarmCost", "TrulyLiableHarmCost", "TrulyNotLiableHarmCost", "TotExpense", "False+", "False-", "ValIfSettled", "PDoesntFile", "DDoesntAnswer", "SettlesBR1", "PAbandonsBR1", "DDefaultsBR1", "P Loses", "P Wins", "PrimaryAction" };
+            List<string> replacementColumnNames = new List<string> { "Exploitability", "Calculation Time", "P Files", "D Answers", "P Offer", "D Offer", "Trial", "P Win Probability", "P Wealth", "D Wealth", "Total Wealth", "Wealth Loss", "P Welfare", "D Welfare", "Pre-Dispute Social Welfare Loss", "Social Welfare Loss", "Opportunity Cost", "Harm Cost", "Truly Liable Harm Cost", "Truly Not Liable Harm Cost","Expenditures", "False Positive Inaccuracy", "False Negative Inaccuracy", "Value If Settled", "No Suit", "No Answer", "Settles", "P Abandons", "D Defaults", "P Loses", "P Wins", "Appropriation" };
             if (article == DataBeingAnalyzed.EndogenousDisputesArticle)
             {
                 columnsToGet.AddRange(["Activity", "Accident", "WrongAttrib", "PrecPower", "PrecLevel", "BCRatio"]);
@@ -821,7 +821,8 @@ namespace LitigCharts
             // locate fixed columns
             int widthIdx      = Array.IndexOf(head, "Width");
             int opportunityIdx= Array.IndexOf(head, "Opportunity");
-            int harmIdx       = Array.IndexOf(head, "Harm");
+            int trulyLiableHarmIdx          = Array.IndexOf(head, "Truly Liable Harm");
+            int trulyNotLiableHarmIdx       = Array.IndexOf(head, "Truly Not Liable Harm");
             int filingIdx     = Array.IndexOf(head, "File");
             int answerIdx     = Array.IndexOf(head, "Answer");
             int bargainIdx    = Array.IndexOf(head, "Bargain");
@@ -853,7 +854,8 @@ namespace LitigCharts
                     new Slice(
                         double.Parse(f[widthIdx], CultureInfo.InvariantCulture),
                         double.Parse(f[opportunityIdx], CultureInfo.InvariantCulture),
-                        double.Parse(f[harmIdx],        CultureInfo.InvariantCulture),
+                        double.Parse(f[trulyLiableHarmIdx],        CultureInfo.InvariantCulture),
+                        double.Parse(f[trulyNotLiableHarmIdx],        CultureInfo.InvariantCulture),
                         double.Parse(f[filingIdx],      CultureInfo.InvariantCulture),
                         double.Parse(f[answerIdx],      CultureInfo.InvariantCulture),
                         double.Parse(f[bargainIdx],     CultureInfo.InvariantCulture),
@@ -875,7 +877,8 @@ namespace LitigCharts
                 {
                     var hit = acc.FirstOrDefault(a =>
                         Math.Abs(a.opportunity - s.opportunity) < 1e-12 &&
-                        Math.Abs(a.harm        - s.harm       ) < 1e-12 &&
+                        Math.Abs(a.trulyLiableHarm - s.trulyLiableHarm) < 1e-12 &&
+                        Math.Abs(a.trulyNotLiableHarm - s.trulyNotLiableHarm) < 1e-12 &&
                         Math.Abs(a.filing      - s.filing     ) < 1e-12 &&
                         Math.Abs(a.answer      - s.answer     ) < 1e-12 &&
                         Math.Abs(a.bargaining  - s.bargaining ) < 1e-12 &&
