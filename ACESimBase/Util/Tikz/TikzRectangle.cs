@@ -29,9 +29,9 @@ namespace ACESimBase.Util.Tikz
             return drawCommand;
         }
 
-        public string DrawTextOnly(string attributes, string text)
+        public string DrawTextOnly(string attributes, string text, bool useContour = false)
         {
-            return TikzHelper.DrawText((left + right) / 2.0, (bottom + top) / 2.0, text, attributes);
+            return TikzHelper.DrawText((left + right) / 2.0, (bottom + top) / 2.0, text, attributes, useContour);
         }
 
         public TikzRectangle ReducedByPadding(double horizontalPadding, double verticalPadding) => new TikzRectangle(left + horizontalPadding, bottom + verticalPadding, right - horizontalPadding, top - verticalPadding);

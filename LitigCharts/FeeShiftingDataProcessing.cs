@@ -465,7 +465,7 @@ namespace LitigCharts
                             if (article == DataBeingAnalyzed.EndogenousDisputesArticle)
                             {
                                 var outputFolderPathOriginal = outputFolderPath;
-                                string subfolderName = "Macro X " + minorXToRun.minorXName;
+                                string subfolderName = "Minor X " + minorXToRun.minorXName;
                                 plannedPath.AddSubpath(subfolderName, 4);
                             }
 

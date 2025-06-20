@@ -673,6 +673,8 @@ namespace ACESimBase.Games.LitigGame.ManualReports
             bool             minimalTicks         = false,
             bool             tickLabelsInside     = false) 
         {
+            slices = RemoveTriviallySmallAreaSlices(slices);
+
             // ── dimensions ─────────────────────────────────────────────────────────
             double W = pres ? PresPanelWidth : LightPanelWidth;
             double H = pres ? PresPanelHeight: LightPanelHeight;
@@ -744,7 +746,7 @@ namespace ACESimBase.Games.LitigGame.ManualReports
             var yL = new TikzLine(new(pane.left, pane.bottom),
                                   new(pane.left, pane.top));
 
-            var ticksLeftRaw = BuildTicks(sc.YMaxLeft);
+            var ticksLeftRaw = BuildTicks(sc.YMaxLeft, tickLabelsInside ? 0.6 : null);
             if (minimalTicks && ticksLeftRaw.Count > 2)
                 ticksLeftRaw = new() { ticksLeftRaw[^1] };
             var ticksLeft = ticksLeftRaw;
@@ -766,13 +768,13 @@ namespace ACESimBase.Games.LitigGame.ManualReports
                 double gap = 0.03 * sy;                                  // 3 % of pane height
                 var mid = new TikzLine(
                     new(pane.left + 0.5 * sx, pane.bottom + gap),        // start a bit above bottom
-                    new(pane.left + 0.5 * sx, pane.top    - gap));       // stop a bit below top
+                    new(pane.left + 0.5 * sx, pane.top - gap));       // stop a bit below top
                 sb.AppendLine(mid.DrawCommand($"{pen},dotted,very thin"));
 
                 var yR = new TikzLine(new(pane.right, pane.bottom),
                                       new(pane.right, pane.top));
 
-                var ticksRightRaw = BuildTicks(sc.YMaxRight);
+                var ticksRightRaw = BuildTicks(sc.YMaxRight, tickLabelsInside ? 0.6 : null);
                 if (minimalTicks && ticksRightRaw.Count > 2)
                     ticksRightRaw = new() { ticksRightRaw[^1] };
                 var ticksRight = ticksRightRaw;
@@ -980,7 +982,7 @@ namespace ACESimBase.Games.LitigGame.ManualReports
         /// - labels printed with one significant figure;
         /// - each tick label positioned by its proportion of axis height.
         /// </summary>
-        private static List<(double proportion, string label)> BuildTicks(double yMax)
+        private static List<(double proportion, string label)> BuildTicks(double yMax, double? hideTickLabelsLessThanProportion)
         {
             double top = RoundDown1SigFig(yMax);
             if (top == 0) top = 1;
@@ -996,7 +998,9 @@ namespace ACESimBase.Games.LitigGame.ManualReports
                 double val = i * step;
                 string lab = val.RoundToSignificantFigures(1)
                                 .ToString(CultureInfo.InvariantCulture);
-                list.Add((proportion: val / yMax, label: lab));
+                double proportion = val / yMax;
+                if (hideTickLabelsLessThanProportion == null || proportion >= hideTickLabelsLessThanProportion.Value)
+                    list.Add((proportion: proportion, label: lab));
             }
 
             return list;

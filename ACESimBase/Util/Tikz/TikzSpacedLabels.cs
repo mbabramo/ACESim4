@@ -62,7 +62,7 @@ namespace ACESimBase.Util.Tikz
             string command = "";
             if (textWidths[i] <= ranges[i].end - ranges[i].start || moveOverlapsFurtherBack)
             {
-                command = TikzHelper.DrawText(anchorPoint.x, anchorPoint.y, useShortText[i] ? shortText[i] : text[i], $"{textStyle}, " + sideOfAnchor + (line.IsVertical ? ", rotate=90" : ""));
+                command = TikzHelper.DrawText(anchorPoint.x, anchorPoint.y, useShortText[i] ? shortText[i] : text[i], $"{textStyle}, " + sideOfAnchor + (line.IsVertical ? ", rotate=90" : ""), true);
                 if (row[i] > 0)
                 {
                     TikzLine smallLine = line.IsVertical ? new TikzLine(new TikzPoint(line.start.x + .1, anchorPoint.y), new TikzPoint(anchorPoint.x, anchorPoint.y)) : new TikzLine(new TikzPoint(anchorPoint.x, line.start.y + .1), new TikzPoint(anchorPoint.x, anchorPoint.y));

@@ -24,7 +24,7 @@ namespace ACESimBase.Util.Tikz
 
         public bool IsVertical => end.x == start.x;
 
-        public string DrawLineWithText(string attributes, string label, string labelAttributes, string anchor, TikzHorizontalAlignment alignment, double shiftX = 0, double shiftY = 0)
+        public string DrawLineWithText(string attributes, string label, string labelAttributes, string anchor, TikzHorizontalAlignment alignment, double shiftX = 0, double shiftY = 0, bool useHalo = true)
         {
             string labelAttributesWithComma = labelAttributes == null ? "" : labelAttributes + ", ";
             (double x, double y) = alignment switch
@@ -34,7 +34,7 @@ namespace ACESimBase.Util.Tikz
                 TikzHorizontalAlignment.Right or _ => (end.x + shiftX, end.y + shiftY),
             };
             return $@"{DrawCommand(attributes)}
-{TikzHelper.DrawText(x, y, label, labelAttributesWithComma + "anchor=" + anchor)}";
+{TikzHelper.DrawText(x, y, label, labelAttributesWithComma + "anchor=" + anchor, useHalo)}";
         }
 
         public string DrawAxis(string attributes, List<(double proportion, string text)> axisMarks, string markTextAttributes, string anchor, string label, string labelAnchor, TikzHorizontalAlignment labelAlignment, string labelAttributes, double labelShiftX, double labelShiftY, double axisMarkShiftX=0, double axisMarkShiftY=0)

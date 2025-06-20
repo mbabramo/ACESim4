@@ -30,6 +30,9 @@ namespace ACESimBase.Util.Tikz
             return $@"\documentclass{{standalone}}
 \usepackage{{tikz}}{packagesString}
 \usetikzlibrary{{patterns, positioning}}
+\usetikzlibrary{{shapes.misc}}
+\usepackage[outline]{{contour}}
+\contourlength{{1.5pt}} 
 {additionalHeaderInfo}
 {contentsBeforeDocument}
 \begin{{document}}
@@ -39,9 +42,23 @@ namespace ACESimBase.Util.Tikz
 \end{{document}}";
         }
 
-        public static string DrawText(double x, double y, string text, string attributes = "black, very thin")
+        public static string DrawText(
+            double x,
+            double y,
+            string text,
+            string attributes = "black, very thin",
+            bool useContour = false
+        )
         {
-            return $"\\node[{attributes}] at ({x.ToSignificantFigures(5)}, {y.ToSignificantFigures(5)}) {{{text}}};";
+            // if useContour, wrap the text in \contour{white}{…}
+            string nodeContent = useContour
+                ? $"\\contour{{white}}{{{text}}}"
+                : text;
+
+            return
+                $"\\node[{attributes}] at " +
+                $"({x.ToSignificantFigures(5)}, {y.ToSignificantFigures(5)}) " +
+                $"{{{nodeContent}}};";
         }
     }
 }
