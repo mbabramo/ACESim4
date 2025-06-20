@@ -217,7 +217,17 @@ namespace ACESimBase.Games.LitigGame.ManualReports
                 throw new ArgumentException(nameof(raw));
 
             // BuildSlice applies cost rules; Merge collapses identical slices.
-            return Merge(raw.Select(t => BuildSlice(t.p, t.w / totalWeight))).ToList();
+            var tentativeResult = Merge(raw.Select(t => BuildSlice(t.p, t.w / totalWeight))).ToList();
+            tentativeResult = RemoveTriviallySmallAreaSlices(tentativeResult);
+
+            // Now normalize again
+            totalWeight = tentativeResult.Sum(t => t.width);
+            var result = tentativeResult.Select(s => s with
+            {
+                width = s.width / totalWeight, // normalize to total mass = 1.0
+            }).ToList();
+
+            return result;
         }
 
         /// <summary>
@@ -332,6 +342,8 @@ namespace ACESimBase.Games.LitigGame.ManualReports
         internal static AxisScalingInfo ComputeScaling(
             List<Slice> slices, double rightAxisTop)
         {
+            slices = RemoveTriviallySmallAreaSlices(slices);
+
             SplitMasses(slices, out var pL, out var pR);
             var (maxL, maxR) = TallestStacks(slices);
 
@@ -350,10 +362,23 @@ namespace ACESimBase.Games.LitigGame.ManualReports
             List<List<Slice>> sliceSets,
             double peakProportion)
         {
+            sliceSets = sliceSets.Select(x => RemoveTriviallySmallAreaSlices(x)).ToList();
+
             if (sliceSets is null || sliceSets.Count == 0)
                 throw new ArgumentException(nameof(sliceSets));
             if (peakProportion <= 0.0 || peakProportion > 1.0)
                 throw new ArgumentOutOfRangeException(nameof(peakProportion));
+
+            sliceSets = sliceSets.Select(x => x.Where(y => y.width > 1E-10).ToList()).ToList();
+
+            StringBuilder DEBUG = new StringBuilder();
+            foreach (var sliceSet in sliceSets)
+            {
+                foreach (var slice in sliceSet)
+                {
+                    DEBUG.AppendLine(slice.ToString());
+                }
+            }
 
             // ---------------------------------------------------------------------
             // Determine the largest area-per-unit value A that satisfies:
@@ -445,6 +470,9 @@ namespace ACESimBase.Games.LitigGame.ManualReports
             List<Slice> reference,
             double referenceRightAxisTop)
         {
+            slices = RemoveTriviallySmallAreaSlices(slices);
+            reference = RemoveTriviallySmallAreaSlices(reference);
+
             SplitMasses(reference, out var pL1, out var pR1);
             double areaRef = (0.5 / pR1) / referenceRightAxisTop;
 
@@ -463,6 +491,18 @@ namespace ACESimBase.Games.LitigGame.ManualReports
 
         // ---------------------------------------------------------------------
         //  utility routines used in scaling -----------------------------------
+
+        static List<Slice> RemoveTriviallySmallAreaSlices(
+            List<Slice> source,
+            double minAreaProportion = 1e-4)
+        {
+            if (source is null || source.Count == 0) return source;
+            double totalArea = source.Sum(s => s.width * s.Total);
+            if (totalArea <= 0) return source;
+            var retained = source.Where(s => (s.width * s.Total) / totalArea >= minAreaProportion).ToList();
+            return retained.Count == 0 ? source : retained;
+        }
+
         static void SplitMasses(IEnumerable<Slice> slices,
                                 out double pL, out double pR)
         {
@@ -471,7 +511,10 @@ namespace ACESimBase.Games.LitigGame.ManualReports
             {
                 bool left = s.harm + s.filing + s.answer +
                             s.bargaining + s.trial == 0;
-                if (left) l += s.width; else r += s.width;
+                if (left) 
+                    l += s.width; 
+                else 
+                    r += s.width;
             }
             if (l <= 0 || r <= 0)
                 throw new InvalidOperationException("one panel empty");
@@ -482,7 +525,7 @@ namespace ACESimBase.Games.LitigGame.ManualReports
             List<Slice> slices)
         {
             double leftMax = 0, rightMax = 0;
-            foreach (var s in slices)
+            foreach (var s in slices.Where(x => x.width > 1E-10))
             {
                 double total = s.Total;
                 bool left = s.harm + s.filing + s.answer +

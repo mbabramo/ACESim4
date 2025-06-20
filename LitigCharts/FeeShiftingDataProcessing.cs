@@ -661,14 +661,7 @@ namespace LitigCharts
                 lineGraphData = lineGraphData,
             };
             var result = r.GetStandaloneDocument();
-
-            string outputPath = plannedPath.GetPlannedPathString();
-            string outputCombinedPath = plannedPath.GetCombinedPlannedPathString(outputFilename);
-            TextFileManage.CreateTextFile(outputCombinedPath, result);
-            TabbedText.WriteLine($"Launching {outputFilename}");
-            string expectedOutput = outputCombinedPath.Replace(".tex", ".pdf");
-            if (!avoidProcessingIfPDFExists || !DataProcessingBase.VirtualizableFileSystem.File.Exists(expectedOutput))
-                ExecuteLatexProcess(outputPath, outputCombinedPath);
+            GenerateLatex(plannedPath, outputFilename, result);
         }
 
         private static double RoundAxisLimit(double value)
@@ -902,58 +895,6 @@ namespace LitigCharts
             return Merge(rows.Where(Match).Select(r => r.Slice));
         }
 
-        private static List<Slice> GetSlices(
-            PermutationalLauncher.SimulationIdentifier sim,
-            IEnumerable<CostRow> rows,
-            double? restrictToCostsMultiplier = null)
-        {
-            return rows
-                .Where(r =>
-                    sim.columnMatches.All(cm =>
-                        r.Vars.TryGetValue(cm.columnName, out var v)
-                        && String.Equals(v, cm.expectedValue, StringComparison.OrdinalIgnoreCase))
-                    && (!restrictToCostsMultiplier.HasValue
-                        || (r.Vars.TryGetValue("Costs Multiplier", out var cm)
-                            && Double.Parse(cm, CultureInfo.InvariantCulture)
-                               .Equals(restrictToCostsMultiplier.Value))))
-                .Select(r => r.Slice)
-                .ToList();
-        }
-
-        // ──────────────────────────────────────────────────────────────────────────────
-        //  Builds the 3‑D structure requested by the caller:  the outer list iterates
-        //  over every Costs Multiplier, the middle list enumerates the panels inside a
-        //  variation, and the inner list is the slice collection for that panel.
-        // ──────────────────────────────────────────────────────────────────────────────
-        private static List<List<List<Slice>>> BuildSlicesMatrix(
-            PermutationalLauncher.SimulationSetsIdentifier variation,
-            IEnumerable<CostRow> rows,
-            double? limitToCostsMultiplier)
-        {
-            var costMultipliers = limitToCostsMultiplier.HasValue
-                ? new List<double> { limitToCostsMultiplier.Value }
-                : variation.simulationIdentifiers
-                    .SelectMany(si =>
-                        si.columnMatches
-                          .Where(cm => cm.columnName == "Costs Multiplier")
-                          .Select(cm => double.Parse(cm.expectedValue, CultureInfo.InvariantCulture)))
-                    .Distinct()
-                    .OrderBy(x => x)
-                    .ToList();
-
-            var matrix = new List<List<List<Slice>>>();
-
-            foreach (double cm in costMultipliers)
-            {
-                var row = new List<List<Slice>>();
-                foreach (var sim in variation.simulationIdentifiers)
-                    row.Add(GetSlices(sim, rows, cm));
-                matrix.Add(row);
-            }
-
-            return matrix;
-        }
-
         public static void ProduceRepeatedCostBreakdownReports(LitigGameLauncherBase launcher, DataBeingAnalyzed article)
         {
             if (article != DataBeingAnalyzed.EndogenousDisputesArticle)
@@ -998,9 +939,8 @@ namespace LitigCharts
         private static void BuildRepeatedCostBreakdownForVariation(LitigGameLauncherBase launcher, IReadOnlyList<CostRow> allRows, double? limitToCostsMultiplier, PlannedPath plannedPath, PermutationalLauncher.SimulationSetsIdentifier variation)
         {
             plannedPath = plannedPath.DeepClone();
-            plannedPath.AddSubpath(variation.nameOfSet, 5); 
+            plannedPath.AddSubpath(variation.nameOfSet, 5);
 
-            // derive the exact set of Costs Multipliers we want in both the data matrix and the Y-axis labels
             var costMultipliersForLabels = limitToCostsMultiplier.HasValue
                 ? new List<double> { limitToCostsMultiplier.Value }
                 : launcher.CriticalCostsMultipliers.OrderBy(x => x).ToList();
@@ -1008,11 +948,11 @@ namespace LitigCharts
             // build the 3-D matrix:  [row = costs-multiplier] × [column = simulation panel] × [Slice list]
             var matrix = costMultipliersForLabels
                 .Select(cm => variation.simulationIdentifiers
-                                       .Select(sim => GetSlices(sim, allRows, cm))
+                                       .Select(sim => sim.With("Costs Multiplier", cm.ToString()))
+                                       .Select(sim => GetSlices(sim, allRows))
                                        .ToList())
                 .ToList();
 
-            // axis-label vectors
             var majorXLabels = variation.simulationIdentifiers
                                          .Select(s => s.nameForSimulation)
                                          .ToList();
@@ -1021,27 +961,25 @@ namespace LitigCharts
                 .Select(x => x.ToString(CultureInfo.InvariantCulture))
                 .ToList();
 
-            // ── build TikZ and write file ────────────────────────────────────────────────
+            GenerateRepeatedReport(limitToCostsMultiplier, plannedPath, variation, matrix, majorXLabels, majorYLabels);
+        }
+
+        private static void GenerateRepeatedReport(double? limitToCostsMultiplier, PlannedPath plannedPath, PermutationalLauncher.SimulationSetsIdentifier variation, List<List<List<Slice>>> matrix, List<string> majorXLabels, List<string> majorYLabels)
+        {
             string tikzSource = RepeatedCostBreakdownReport.GenerateRepeatedReport(
-                matrix,
-                majorXLabels,
-                majorYLabels,
-                variation.nameOfSet,           // big-X caption
-                "Costs Multiplier",            // big-Y caption
-                peakProportion: 0.8,
-                keepAxisLabels: false,
-                keepAxisTicks:  true);
+                            matrix,
+                            majorXLabels,
+                            majorYLabels,
+                            variation.nameOfSet,           // big-X caption
+                            "Costs Multiplier",            // big-Y caption
+                            peakProportion: 0.8,
+                            keepAxisLabels: false,
+                            keepAxisTicks: true);
 
             string core = $"{variation.nameOfSet} " +
                           (limitToCostsMultiplier == 1.0 ? "Cost-1" : "Cost-All");
 
-            string texPath = plannedPath.GetCombinedPlannedPathString($"{core}.tex");
-            TextFileManage.CreateTextFile(texPath, tikzSource);
-
-            string pdfPath = texPath.Replace(".tex", ".pdf");
-            if (!DataProcessingBase.avoidProcessingIfPDFExists
-                || !DataProcessingBase.VirtualizableFileSystem.File.Exists(pdfPath))
-                DataProcessingBase.ExecuteLatexProcess(plannedPath.GetPlannedPathString(), texPath);
+            GenerateLatex(plannedPath, $"{core}.tex", tikzSource);
         }
 
         #endregion
@@ -1123,7 +1061,7 @@ namespace LitigCharts
 
         #endregion
 
-        #region Directory helpers
+        #region Directory and Latex helpers
 
         record PlannedPath(string originalPath, List<(string name, int priority)> prioritizedSubpaths)
         {
@@ -1149,6 +1087,19 @@ namespace LitigCharts
             public string GetCombinedPlannedPathString(string filename) => Path.Combine(GetPlannedPathString(), filename);
 
             public PlannedPath DeepClone() => new PlannedPath(originalPath, prioritizedSubpaths.ToList());
+        }
+
+        private static void GenerateLatex(PlannedPath plannedPath, string outputFilename, string standaloneDocument)
+        {
+            string outputPath = plannedPath.GetPlannedPathString();
+            string outputCombinedPath = plannedPath.GetCombinedPlannedPathString(outputFilename);
+            TextFileManage.CreateTextFile(outputCombinedPath, standaloneDocument);
+            string expectedOutput = outputCombinedPath.Replace(".tex", ".pdf");
+            if (!avoidProcessingIfPDFExists || !DataProcessingBase.VirtualizableFileSystem.File.Exists(expectedOutput))
+            {
+                TabbedText.WriteLine($"Generating {outputFilename} in {outputPath}");
+                ExecuteLatexProcess(outputPath, outputCombinedPath);
+            }
         }
 
         #endregion

@@ -157,6 +157,24 @@ namespace ACESimBase.GameSolvingSupport.Settings
             string nameForSimulation,
             List<(string columnName, string expectedValue)> columnMatches)
         {
+            public SimulationIdentifier With(string columnName, string expectedValue)
+            {
+                var replacementMatches = columnMatches.ToList();
+                bool exists = false;
+                for (int i = 0; i < columnMatches.Count; i++)
+                {
+                    if (replacementMatches[i].columnName == columnName)
+                    {
+                        exists = true;
+                        replacementMatches[i] = (columnName, expectedValue);
+                        break;
+                    }
+                }
+                if (!exists)
+                    replacementMatches.Add((columnName, expectedValue));
+                return new SimulationIdentifier(nameForSimulation, replacementMatches);
+            }
+
             public override string ToString()
             {
                 return $"{nameForSimulation}: {String.Join(",", columnMatches.Select(x => $"{x.columnName}={x.expectedValue}"))}";

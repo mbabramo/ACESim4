@@ -114,6 +114,7 @@ namespace ACESimBase.Games.LitigGame.ManualReports
                 verticalLinesAttribute: "draw=none");
 
             // ── shared scaling across all panels ─────────────────────────────────────
+
             var scales      = ComputeScaling(sliceGrid.SelectMany(r => r).ToList(), peakProportion);
             int scaleCursor = 0;
 
