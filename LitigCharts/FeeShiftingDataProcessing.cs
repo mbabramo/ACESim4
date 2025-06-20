@@ -963,7 +963,7 @@ namespace LitigCharts
             string pathAndFilename = launcher.GetReportFullPath("Combined costbreakdown", ".csv");
             string outputFolderName = "Aggregated Data";
             string outputFolderPath = Path.Combine(reportFolder, outputFolderName);
-
+            var allRows = LoadCombinedCostRows(pathAndFilename);
 
             foreach (bool useRiskAversionForNonRiskReports in new bool[] { false, true })
             {
@@ -984,51 +984,7 @@ namespace LitigCharts
 
                     foreach (PermutationalLauncher.SimulationSetsIdentifier variation in variations)
                     {
-                        var allRows = LoadCombinedCostRows(pathAndFilename);
-
-                        var matrix = BuildSlicesMatrix(variation, allRows, limitToCostsMultiplier);
-
-                        // derive major-axis labels
-                        var costMultipliers = limitToCostsMultiplier.HasValue
-                            ? new List<double> { limitToCostsMultiplier.Value }
-                            : variation.simulationIdentifiers
-                                .SelectMany(si => si.columnMatches
-                                    .Where(cm => cm.columnName == "Costs Multiplier")
-                                    .Select(cm => double.Parse(cm.expectedValue, CultureInfo.InvariantCulture)))
-                                .Distinct()
-                                .OrderBy(x => x)
-                                .ToList();
-
-                        List<string> majorXLabels = variation.simulationIdentifiers
-                            .Select(si => si.nameForSimulation)
-                            .ToList();
-
-                        List<string> majorYLabels = costMultipliers
-                            .Select(cm => cm.ToString(CultureInfo.InvariantCulture))
-                            .ToList();
-
-                        // generate TikZ source
-                        string tikz = RepeatedCostBreakdownReport.GenerateRepeatedReport(
-                            matrix,
-                            majorXLabels,
-                            majorYLabels,
-                            variation.nameOfSet == "Baseline" ? "" : variation.nameOfSet, // x-axis caption
-                            "Costs Multiplier",                                           // y-axis caption
-                            peakProportion: 0.8,
-                            keepAxisLabels: false,
-                            keepAxisTicks: true);                                         // :contentReference[oaicite:0]{index=0}
-
-                        // write .tex and compile
-                        string fnCore     = $"{variation.nameOfSet} {(limitToCostsMultiplier == 1.0 ? "Cost-1" : "Cost-All")}";
-                        string texName    = $"{fnCore}.tex";
-                        string texPath    = plannedPath.GetCombinedPlannedPathString(texName);
-                        string workFolder = plannedPath.GetPlannedPathString();
-
-                        TextFileManage.CreateTextFile(texPath, tikz);
-
-                        string pdfPath = texPath.Replace(".tex", ".pdf");
-                        if (!avoidProcessingIfPDFExists || !DataProcessingBase.VirtualizableFileSystem.File.Exists(pdfPath))
-                            ExecuteLatexProcess(workFolder, texPath);
+                        BuildRepeatedCostBreakdownForVariation(launcher, allRows, limitToCostsMultiplier, plannedPath, variation);
 
                     }
                 }
@@ -1037,6 +993,55 @@ namespace LitigCharts
             WaitForProcessesToFinish();
             Task.Delay(1000);
             DeleteAuxiliaryFiles(outputFolderPath);
+        }
+
+        private static void BuildRepeatedCostBreakdownForVariation(LitigGameLauncherBase launcher, IReadOnlyList<CostRow> allRows, double? limitToCostsMultiplier, PlannedPath plannedPath, PermutationalLauncher.SimulationSetsIdentifier variation)
+        {
+            plannedPath = plannedPath.DeepClone();
+            plannedPath.AddSubpath(variation.nameOfSet, 5); 
+
+            // derive the exact set of Costs Multipliers we want in both the data matrix and the Y-axis labels
+            var costMultipliersForLabels = limitToCostsMultiplier.HasValue
+                ? new List<double> { limitToCostsMultiplier.Value }
+                : launcher.CriticalCostsMultipliers.OrderBy(x => x).ToList();
+
+            // build the 3-D matrix:  [row = costs-multiplier] × [column = simulation panel] × [Slice list]
+            var matrix = costMultipliersForLabels
+                .Select(cm => variation.simulationIdentifiers
+                                       .Select(sim => GetSlices(sim, allRows, cm))
+                                       .ToList())
+                .ToList();
+
+            // axis-label vectors
+            var majorXLabels = variation.simulationIdentifiers
+                                         .Select(s => s.nameForSimulation)
+                                         .ToList();
+
+            var majorYLabels = costMultipliersForLabels
+                .Select(x => x.ToString(CultureInfo.InvariantCulture))
+                .ToList();
+
+            // ── build TikZ and write file ────────────────────────────────────────────────
+            string tikzSource = RepeatedCostBreakdownReport.GenerateRepeatedReport(
+                matrix,
+                majorXLabels,
+                majorYLabels,
+                variation.nameOfSet,           // big-X caption
+                "Costs Multiplier",            // big-Y caption
+                peakProportion: 0.8,
+                keepAxisLabels: false,
+                keepAxisTicks:  true);
+
+            string core = $"{variation.nameOfSet} " +
+                          (limitToCostsMultiplier == 1.0 ? "Cost-1" : "Cost-All");
+
+            string texPath = plannedPath.GetCombinedPlannedPathString($"{core}.tex");
+            TextFileManage.CreateTextFile(texPath, tikzSource);
+
+            string pdfPath = texPath.Replace(".tex", ".pdf");
+            if (!DataProcessingBase.avoidProcessingIfPDFExists
+                || !DataProcessingBase.VirtualizableFileSystem.File.Exists(pdfPath))
+                DataProcessingBase.ExecuteLatexProcess(plannedPath.GetPlannedPathString(), texPath);
         }
 
         #endregion
