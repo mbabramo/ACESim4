@@ -25,6 +25,7 @@ namespace LitigCharts
             bool doDeletion = false; // DEBUG printIndividualLatexDiagrams; // don't delete if we haven't done the diagrams yet
             bool organizeIntoFolders = true;
             bool printAggregatedDiagrams = true;
+            bool printAggregatedCostBreakdown = true;
 
             if (OneTimeDiagrams())
                 return; // if we did the one-time diagrams, we won't do any of the rest of the processing
@@ -39,7 +40,10 @@ namespace LitigCharts
             DataProcessingBase.VirtualizableFileSystem = new ACESimBase.Util.Serialization.VirtualizableFileSystem(launcher.GetReportFolder(), !useVirtualizedFileSystemForIndividualDiagrams);
 
             if (buildMainReport)
+            {
                 FeeShiftingDataProcessing.BuildMainReport(launcher, article);
+                FeeShiftingDataProcessing.BuildCombinedCostBreakdownReport(launcher);
+            }
             if (printIndividualLatexDiagrams)
                 FeeShiftingDataProcessing.ProduceLatexDiagramsFromTexFiles(launcher, article); // this code assumes that all data (including the .tex files) are in the ReportResults folder, so must do before organization
             if (organizeIntoFolders)
@@ -49,6 +53,10 @@ namespace LitigCharts
                 if (useVirtualizedFileSystemForIndividualDiagrams)
                     DataProcessingBase.VirtualizableFileSystem = new VirtualizableFileSystem(launcher.GetReportFolder(), true);
                 FeeShiftingDataProcessing.ProduceLatexDiagramsAggregatingReports(launcher, article); // now we produce diagrams that aggregate info from multiple reports
+            }
+            if (printAggregatedCostBreakdown)
+            {
+                FeeShiftingDataProcessing.ProduceRepeatedCostBreakdownReports(launcher, article);
             }
 
             ////FeeShiftingDataProcessing.BuildOffersReport(); // we're no longer generating the offers data in csv, since we're directly generating a Latex file with the heatmap

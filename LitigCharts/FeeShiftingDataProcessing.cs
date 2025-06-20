@@ -1,6 +1,7 @@
 ﻿using ACESim;
 using ACESimBase;
 using ACESimBase.Games.LitigGame;
+using ACESimBase.Games.LitigGame.ManualReports;
 using ACESimBase.GameSolvingSupport.Settings;
 using ACESimBase.Util.Collections;
 using ACESimBase.Util.Debugging;
@@ -19,6 +20,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Tensorflow;
+using static ACESimBase.Games.LitigGame.ManualReports.CostBreakdownReport;
 using static LitigCharts.DataProcessingUtils;
 using static LitigCharts.Runner;
 
@@ -38,6 +40,11 @@ namespace LitigCharts
             {
                 columnsToGet.AddRange(["Activity", "Accident", "WrongAttrib", "PrecPower", "PrecLevel", "BCRatio"]);
                 replacementColumnNames.AddRange(["Engages in Activity", "Accident Occurs", "Wrongful Attribution", "Precaution Power", "Precaution Level", "Benefit-Cost Ratio"]);
+                for (int i = 1; i <= 5; i++)
+                {
+                    columnsToGet.Add($"PrecPower{i}");
+                    replacementColumnNames.Add($"Precaution Power {i}");
+                }
             }
             BuildReportHelper(launcher, rowsToGet, replacementRowNames, columnsToGet, replacementColumnNames, "output");
         }
@@ -101,73 +108,6 @@ namespace LitigCharts
                 excelRowIndex++;
             }
             TextFileManage.CreateTextFile(outputFileFullPath, cumResults);
-        }
-
-        public static void BuildCombinedCostBreakdownReport(LitigGameLauncherBase launcher)
-        {
-            var optionSets = launcher.GetOptionsSets();
-            var map = launcher.NameMap;
-
-            string outputFile = launcher.GetReportFullPath("Combined costbreakdown", ".csv");  // same folder as the other combined reports
-
-            // keep only unique option-sets in case the launcher list contains repeats
-            var distinctOptionSets = optionSets.DistinctBy(x => map[x.Name]).ToList();
-
-            StringBuilder csv = new StringBuilder();
-            bool wroteHeader = false;
-
-            foreach (var opt in distinctOptionSets)
-            {
-                string coreName = map[opt.Name];
-                string inputPath = Launcher.ReportFullPath(filePrefix(launcher), coreName, "-costbreakdown.csv");
-
-                if (!VirtualizableFileSystem.File.Exists(inputPath))
-                    continue;                             // option-set had no cost-breakdown file
-
-                using var reader = new StreamReader(inputPath);
-
-                string localHeader = reader.ReadLine();   // first row of the source file
-                if (localHeader is null)
-                    continue;
-
-                // write the combined header once (variable columns + group + option + original header)
-                if (!wroteHeader)
-                {
-                    var varHeadings = opt.VariableSettings
-                                          .OrderBy(kv => kv.Key.ToString())
-                                          .Select(kv => kv.Key.ToString());
-
-                    csv.AppendLine(string.Join(",",
-                        varHeadings
-                        .Concat(new[] { "GroupName", "OptionSetName" })
-                        .Concat(localHeader.Split(','))));
-
-                    wroteHeader = true;
-                }
-
-                while (!reader.EndOfStream)
-                {
-                    string line = reader.ReadLine();
-                    if (string.IsNullOrWhiteSpace(line))
-                        continue;
-
-                    var varValues = opt.VariableSettings
-                                       .OrderBy(kv => kv.Key.ToString())
-                                       .Select(kv => (kv.Value?.ToString() ?? "").Replace(",", "-"));
-
-                    IEnumerable<string> combinedRow = varValues
-                        .Concat(new[]
-                        {
-                            (opt.GroupName ?? "").Replace(",", "-"),
-                            coreName.Replace(",", "-")
-                        })
-                        .Concat(line.Split(','));
-
-                    csv.AppendLine(string.Join(",", combinedRow));
-                }
-            }
-
-            TextFileManage.CreateTextFile(outputFile, csv.ToString());
         }
 
         public static void BuildOffersReport(LitigGameLauncherBase launcher)
@@ -243,7 +183,7 @@ namespace LitigCharts
                 ("EFG Files", new[] { ".efg" }),
                 ("Equilibria Files", new[] { "-equ.csv" }),
                 ("Logs", new[] { "-log.txt" }),
-                ("Latex underlying data", expandToIncludeAdditionalEquilibria(new[] { "-offers.csv", "-fileans.csv", "-stagecostlight.csv", "-stagecostdark.csv", "-costbreakdown.csv", "-costbreakdownlight.csv", "-costbreakdowndark.csv" })),
+                ("Latex underlying data", expandToIncludeAdditionalEquilibria(new[] { "-offers.csv", "-fileans.csv", "-stagecostlight.csv", "-stagecostdark.csv", "-costbreakdowndata.csv" })),
                 ("Latex files", expandToIncludeAdditionalEquilibria(new[] { "-offers.tex", "-fileans.tex", "-stagecostlight.tex", "-stagecostdark.tex", "-costbreakdownlight.tex", "-costbreakdowndark.tex" })),
                 ("File-Answer Diagrams", expandToIncludeAdditionalEquilibria( new[] { "-fileans.pdf" })),
                 ("Offer Heatmaps", expandToIncludeAdditionalEquilibria( new[] { "-offers.pdf" })),
@@ -420,9 +360,7 @@ namespace LitigCharts
             var drawCommands = r.GetStandaloneDocument();
         }
 
-        // DEBUG -- add option for using Damages Multiplier, if we make that critical.
         // DEBUG -- try using cost breakdown diagrams instead. Include columns for baseline, fee shifting, damages multiplier, both.
-        // DEBUG -- consider using Damages Multiplier instead of Costs Multiplier on the macro y.
 
         public record AggregatedGraphInfo(string topicName, List<string> columnsToGet, List<string> lineScheme, string minorXAxisLabel = "TBD", string minorXAxisLabelShort = "TBD", string minorYAxisLabel = "\\$", string majorYAxisLabel = "Costs Multiplier", double? maximumValueMicroY = null, TikzAxisSet.GraphType graphType = TikzAxisSet.GraphType.Line, Func<double?, double?> scaleMiniGraphValues = null, string filter = "All");
 
@@ -485,7 +423,7 @@ namespace LitigCharts
                     new AggregatedGraphInfo($"Accuracy{riskAversionString}", new List<string>() { "False Positive Inaccuracy", "False Negative Inaccuracy" }, plaintiffDefendantAndOthersLineScheme.Take(2).ToList(), filter:generalFilter),
                     new AggregatedGraphInfo($"Expenditures{riskAversionString}", new List<string>() { "Expenditures" }, plaintiffDefendantAndOthersLineScheme.Skip(2).Take(1).ToList(), filter:generalFilter),
                     new AggregatedGraphInfo($"Offers{riskAversionString}", new List<string>() { "P Offer", "D Offer" }, plaintiffDefendantAndOthersLineScheme.Take(2).ToList(), filter:generalFilter),
-                    new AggregatedGraphInfo($"Social Welfare Loss{riskAversionString}", new List<string>() { "Opportunity Cost", "Harm Cost", "Expenditures", "Social Welfare Loss" }, lossesLineScheme, maximumValueMicroY: 1.2),
+                    new AggregatedGraphInfo($"Social Welfare Loss{riskAversionString}", new List<string>() { "Opportunity Cost", "Harm Cost", "Expenditures", "Social Welfare Loss" }, lossesLineScheme),
                     new AggregatedGraphInfo($"Wealth Loss{riskAversionString}", new List<string>() { "Wealth Loss" }, plaintiffDefendantAndOthersLineScheme.Take(1).ToList()),
                     new AggregatedGraphInfo($"Trial{riskAversionString}", new List<string>() { "Trial" }, plaintiffDefendantAndOthersLineScheme.Take(1).ToList(), minorYAxisLabel: "Proportion", maximumValueMicroY: 1.0, filter:generalFilter),
                     new AggregatedGraphInfo($"Trial Outcomes{riskAversionString}", new List<string>() { "P Win Probability" }, plaintiffDefendantAndOthersLineScheme.Take(1).ToList(), minorYAxisLabel: "Proportion", maximumValueMicroY: 1.0, filter:generalFilter),
@@ -649,7 +587,7 @@ namespace LitigCharts
                 {
                     // When we get here, we've identified the rows to pull out of the CSV for all equilibria that we need data for.
                     // We're just copying data from the CSV right now. We're not creating the graph yet (that will be in the second step within this method).
-                    bool validate = true; // DEBUG
+                    bool validate = false; // validation is time consuming but can help identify mistakes
                     if (validate)
                         valuesFromCSVAllRows = CSVData.GetCSVData_MultiPassValidated(sourceDataPathAndFilename, collectedRowsToFind.ToArray(), aggregatedGraphInfo.columnsToGet.ToArray(), cacheFile: true);
                     else
@@ -800,6 +738,307 @@ namespace LitigCharts
                     exponentTxt,
                     $"${exponentTxt}$");
         }
+        #endregion
+
+        #region Aggregate cost breakdown reports
+
+        public static void BuildCombinedCostBreakdownReport(LitigGameLauncherBase launcher)
+        {
+            var optionSets = launcher.GetOptionsSets();
+            var map = launcher.NameMap;
+
+            string outputFile = launcher.GetReportFullPath("Combined costbreakdown", ".csv");  // same folder as the other combined reports
+
+            // keep only unique option-sets in case the launcher list contains repeats
+            var distinctOptionSets = optionSets.DistinctBy(x => map[x.Name]).ToList();
+
+            StringBuilder csv = new StringBuilder();
+            bool wroteHeader = false;
+
+            foreach (var opt in distinctOptionSets)
+            {
+                string coreName = map[opt.Name];
+                string inputPath = Launcher.ReportFullPath(filePrefix(launcher), coreName, "-costbreakdowndata.csv");
+
+                if (!VirtualizableFileSystem.File.Exists(inputPath))
+                    continue;                             // option-set had no cost-breakdown file
+
+                using var reader = new StreamReader(inputPath);
+
+                string localHeader = reader.ReadLine();   // first row of the source file
+                if (localHeader is null)
+                    continue;
+
+                // write the combined header once (variable columns + group + option + original header)
+                if (!wroteHeader)
+                {
+                    var varHeadings = opt.VariableSettings
+                                          .OrderBy(kv => kv.Key.ToString())
+                                          .Select(kv => kv.Key.ToString());
+
+                    csv.AppendLine(string.Join(",",
+                        varHeadings
+                        .Concat(new[] { "GroupName", "OptionSetName" })
+                        .Concat(localHeader.Split(','))));
+
+                    wroteHeader = true;
+                }
+
+                while (!reader.EndOfStream)
+                {
+                    string line = reader.ReadLine();
+                    if (string.IsNullOrWhiteSpace(line))
+                        continue;
+
+                    var varValues = opt.VariableSettings
+                                       .OrderBy(kv => kv.Key.ToString())
+                                       .Select(kv => (kv.Value?.ToString() ?? "").Replace(",", "-"));
+
+                    IEnumerable<string> combinedRow = varValues
+                        .Concat(new[]
+                        {
+                            (opt.GroupName ?? "").Replace(",", "-"),
+                            coreName.Replace(",", "-")
+                        })
+                        .Concat(line.Split(','));
+
+                    csv.AppendLine(string.Join(",", combinedRow));
+                }
+            }
+
+            TextFileManage.CreateTextFile(outputFile, csv.ToString());
+        }
+
+        /// <summary>One CSV line parsed into variable settings → <see cref="Slice"/>.</summary>
+        private sealed record CostRow(IDictionary<string, string> Vars, Slice Slice);
+
+        /// <summary>Parses the combined cost-breakdown CSV once and caches the rows.</summary>
+        private static IReadOnlyList<CostRow> LoadCombinedCostRows(string csvPath)
+        {
+            if (!File.Exists(csvPath))
+                throw new FileNotFoundException("Combined cost-breakdown report not found", csvPath);
+
+            using var reader = new StreamReader(csvPath);
+            string? headerLine = reader.ReadLine();
+            if (string.IsNullOrWhiteSpace(headerLine))
+                throw new InvalidDataException("CSV header row missing");
+
+            string[] head = headerLine.Split(',');
+
+            // locate fixed columns
+            int widthIdx      = Array.IndexOf(head, "Width");
+            int opportunityIdx= Array.IndexOf(head, "Opportunity");
+            int harmIdx       = Array.IndexOf(head, "Harm");
+            int filingIdx     = Array.IndexOf(head, "File");
+            int answerIdx     = Array.IndexOf(head, "Answer");
+            int bargainIdx    = Array.IndexOf(head, "Bargain");
+            int trialIdx      = Array.IndexOf(head, "Trial");
+
+            if (trialIdx < 0 || widthIdx < 0)
+                throw new InvalidDataException("Unexpected CSV header format – required columns not found");
+
+            // variable columns come before “GroupName”
+            int groupNameIdx = Array.IndexOf(head, "GroupName");
+            var variableCols = head.Take(groupNameIdx).ToArray();
+
+            var rows = new List<CostRow>();
+
+            string? raw;
+            while ((raw = reader.ReadLine()) is not null)
+            {
+                if (string.IsNullOrWhiteSpace(raw))
+                    continue;
+
+                string[] f = raw.Split(',');
+
+                var vars = new Dictionary<string, string>(variableCols.Length);
+                for (int i = 0; i < variableCols.Length; i++)
+                    vars[variableCols[i]] = f[i];
+
+                rows.Add(new CostRow(
+                    vars,
+                    new Slice(
+                        double.Parse(f[widthIdx], CultureInfo.InvariantCulture),
+                        double.Parse(f[opportunityIdx], CultureInfo.InvariantCulture),
+                        double.Parse(f[harmIdx],        CultureInfo.InvariantCulture),
+                        double.Parse(f[filingIdx],      CultureInfo.InvariantCulture),
+                        double.Parse(f[answerIdx],      CultureInfo.InvariantCulture),
+                        double.Parse(f[bargainIdx],     CultureInfo.InvariantCulture),
+                        double.Parse(f[trialIdx],       CultureInfo.InvariantCulture))));
+            }
+
+            return rows;
+        }
+
+        /// <summary>Returns the merged <see cref="Slice"/> list for a given simulation.</summary>
+        private static List<Slice> GetSlices(
+            PermutationalLauncher.SimulationIdentifier sim,
+            IEnumerable<CostRow> rows)
+        {
+            static List<Slice> Merge(IEnumerable<Slice> src)
+            {
+                var acc = new List<Slice>();
+                foreach (var s in src)
+                {
+                    var hit = acc.FirstOrDefault(a =>
+                        Math.Abs(a.opportunity - s.opportunity) < 1e-12 &&
+                        Math.Abs(a.harm        - s.harm       ) < 1e-12 &&
+                        Math.Abs(a.filing      - s.filing     ) < 1e-12 &&
+                        Math.Abs(a.answer      - s.answer     ) < 1e-12 &&
+                        Math.Abs(a.bargaining  - s.bargaining ) < 1e-12 &&
+                        Math.Abs(a.trial       - s.trial      ) < 1e-12);
+
+                    if (hit is null)
+                        acc.Add(s);
+                    else
+                        acc[acc.IndexOf(hit)] = hit with { width = hit.width + s.width };
+                }
+                return acc;
+            }
+
+            bool Match(CostRow r) => sim.columnMatches.All(cm =>
+                r.Vars.TryGetValue(cm.columnName, out var val) && val == cm.expectedValue);
+
+            return Merge(rows.Where(Match).Select(r => r.Slice));
+        }
+
+        private static List<Slice> GetSlices(
+            PermutationalLauncher.SimulationIdentifier sim,
+            IEnumerable<CostRow> rows,
+            double? restrictToCostsMultiplier = null)
+        {
+            return rows
+                .Where(r =>
+                    sim.columnMatches.All(cm =>
+                        r.Vars.TryGetValue(cm.columnName, out var v)
+                        && String.Equals(v, cm.expectedValue, StringComparison.OrdinalIgnoreCase))
+                    && (!restrictToCostsMultiplier.HasValue
+                        || (r.Vars.TryGetValue("Costs Multiplier", out var cm)
+                            && Double.Parse(cm, CultureInfo.InvariantCulture)
+                               .Equals(restrictToCostsMultiplier.Value))))
+                .Select(r => r.Slice)
+                .ToList();
+        }
+
+        // ──────────────────────────────────────────────────────────────────────────────
+        //  Builds the 3‑D structure requested by the caller:  the outer list iterates
+        //  over every Costs Multiplier, the middle list enumerates the panels inside a
+        //  variation, and the inner list is the slice collection for that panel.
+        // ──────────────────────────────────────────────────────────────────────────────
+        private static List<List<List<Slice>>> BuildSlicesMatrix(
+            PermutationalLauncher.SimulationSetsIdentifier variation,
+            IEnumerable<CostRow> rows,
+            double? limitToCostsMultiplier)
+        {
+            var costMultipliers = limitToCostsMultiplier.HasValue
+                ? new List<double> { limitToCostsMultiplier.Value }
+                : variation.simulationIdentifiers
+                    .SelectMany(si =>
+                        si.columnMatches
+                          .Where(cm => cm.columnName == "Costs Multiplier")
+                          .Select(cm => double.Parse(cm.expectedValue, CultureInfo.InvariantCulture)))
+                    .Distinct()
+                    .OrderBy(x => x)
+                    .ToList();
+
+            var matrix = new List<List<List<Slice>>>();
+
+            foreach (double cm in costMultipliers)
+            {
+                var row = new List<List<Slice>>();
+                foreach (var sim in variation.simulationIdentifiers)
+                    row.Add(GetSlices(sim, rows, cm));
+                matrix.Add(row);
+            }
+
+            return matrix;
+        }
+
+        public static void ProduceRepeatedCostBreakdownReports(LitigGameLauncherBase launcher, DataBeingAnalyzed article)
+        {
+            if (article != DataBeingAnalyzed.EndogenousDisputesArticle)
+                return;
+
+            string reportFolder = Launcher.ReportFolder();
+            string pathAndFilename = launcher.GetReportFullPath("Combined costbreakdown", ".csv");
+            string outputFolderName = "Aggregated Data";
+            string outputFolderPath = Path.Combine(reportFolder, outputFolderName);
+
+
+            foreach (bool useRiskAversionForNonRiskReports in new bool[] { false, true })
+            {
+                var variations = launcher.GetSimulationSetsIdentifiers(useRiskAversionForNonRiskReports ? LitigGameLauncherBase.RequireModerateRiskAversion : null);
+
+                foreach (double? limitToCostsMultiplier in new double?[] { 1.0, null })
+                {
+                    PlannedPath plannedPath = new PlannedPath(outputFolderPath, new List<(string name, int priority)>());
+                    plannedPath.AddSubpath(useRiskAversionForNonRiskReports ? "Risk Averse" : "Risk Neutral", 3);
+                    
+                    if (limitToCostsMultiplier == 1.0)
+                        plannedPath.AddSubpath("Single Row", 2);
+                    else
+                        plannedPath.AddSubpath("All Rows", 2);
+                    
+                    string subfolderName = "Cost Breakdown";
+                    plannedPath.AddSubpath(subfolderName, 4);
+
+                    foreach (PermutationalLauncher.SimulationSetsIdentifier variation in variations)
+                    {
+                        var allRows = LoadCombinedCostRows(pathAndFilename);
+
+                        var matrix = BuildSlicesMatrix(variation, allRows, limitToCostsMultiplier);
+
+                        // derive major-axis labels
+                        var costMultipliers = limitToCostsMultiplier.HasValue
+                            ? new List<double> { limitToCostsMultiplier.Value }
+                            : variation.simulationIdentifiers
+                                .SelectMany(si => si.columnMatches
+                                    .Where(cm => cm.columnName == "Costs Multiplier")
+                                    .Select(cm => double.Parse(cm.expectedValue, CultureInfo.InvariantCulture)))
+                                .Distinct()
+                                .OrderBy(x => x)
+                                .ToList();
+
+                        List<string> majorXLabels = variation.simulationIdentifiers
+                            .Select(si => si.nameForSimulation)
+                            .ToList();
+
+                        List<string> majorYLabels = costMultipliers
+                            .Select(cm => cm.ToString(CultureInfo.InvariantCulture))
+                            .ToList();
+
+                        // generate TikZ source
+                        string tikz = RepeatedCostBreakdownReport.GenerateRepeatedReport(
+                            matrix,
+                            majorXLabels,
+                            majorYLabels,
+                            variation.nameOfSet == "Baseline" ? "" : variation.nameOfSet, // x-axis caption
+                            "Costs Multiplier",                                           // y-axis caption
+                            peakProportion: 0.8,
+                            keepAxisLabels: false,
+                            keepAxisTicks: true);                                         // :contentReference[oaicite:0]{index=0}
+
+                        // write .tex and compile
+                        string fnCore     = $"{variation.nameOfSet} {(limitToCostsMultiplier == 1.0 ? "Cost-1" : "Cost-All")}";
+                        string texName    = $"{fnCore}.tex";
+                        string texPath    = plannedPath.GetCombinedPlannedPathString(texName);
+                        string workFolder = plannedPath.GetPlannedPathString();
+
+                        TextFileManage.CreateTextFile(texPath, tikz);
+
+                        string pdfPath = texPath.Replace(".tex", ".pdf");
+                        if (!avoidProcessingIfPDFExists || !DataProcessingBase.VirtualizableFileSystem.File.Exists(pdfPath))
+                            ExecuteLatexProcess(workFolder, texPath);
+
+                    }
+                }
+            }
+
+            WaitForProcessesToFinish();
+            Task.Delay(1000);
+            DeleteAuxiliaryFiles(outputFolderPath);
+        }
+
         #endregion
 
         #region Coefficient of variation report
