@@ -976,8 +976,8 @@ namespace LitigCharts
                             keepAxisLabels: false,
                             keepAxisTicks: true);
 
-            string core = $"{variation.nameOfSet} " +
-                          (limitToCostsMultiplier == 1.0 ? "Cost-1" : "Cost-All");
+            string core = $"Cost Breakdown {variation.nameOfSet} " +
+                          (limitToCostsMultiplier == 1.0 ? "(Single Row)" : "(All Rows)");
 
             GenerateLatex(plannedPath, $"{core}.tex", tikzSource);
         }

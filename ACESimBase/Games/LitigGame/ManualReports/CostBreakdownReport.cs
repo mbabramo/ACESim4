@@ -499,7 +499,7 @@ namespace ACESimBase.Games.LitigGame.ManualReports
             if (source is null || source.Count == 0) return source;
             double totalArea = source.Sum(s => s.width * s.Total);
             if (totalArea <= 0) return source;
-            var retained = source.Where(s => (s.width * s.Total) / totalArea >= minAreaProportion).ToList();
+            var retained = source.Where(s => s.width >= 0.001 || (s.width * s.Total) / totalArea >= minAreaProportion).ToList();
             return retained.Count == 0 ? source : retained;
         }
 
