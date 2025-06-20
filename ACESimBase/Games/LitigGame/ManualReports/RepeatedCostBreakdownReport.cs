@@ -133,8 +133,6 @@ namespace ACESimBase.Games.LitigGame.ManualReports
 
                     var sc = scales[scaleCursor++];
 
-                    body.AppendLine(@"\begin{scope}");
-                    body.AppendLine($@"\clip ({pane.left},{pane.bottom}) rectangle ({pane.right},{pane.top});");
                     body.AppendLine(
                         TikzScaled(
                             slices, sc, pres: false, title: "",
@@ -150,7 +148,6 @@ namespace ACESimBase.Games.LitigGame.ManualReports
                             adaptivePadding: true,
                             minimalTicks: true,
                             tickLabelsInside: tickLabelsInside));
-                    body.AppendLine(@"\end{scope}");
                 }
             }
 
