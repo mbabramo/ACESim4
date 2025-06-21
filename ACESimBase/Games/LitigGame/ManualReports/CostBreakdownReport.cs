@@ -88,6 +88,8 @@ namespace ACESimBase.Games.LitigGame.ManualReports
         static readonly string[] Labels =
             { "Opportunity","Truly Liable Harm","Truly Not Liable Harm","File","Answer","Bargaining","Trial" };
 
+        public static readonly string[] OutputHeaders = ["Width", "Opportunity", "TLHarm", "TNLHarm", "File", "Answer", "Bargain", "Trial", "Total"];
+
         #endregion
 
         #region Report generation
@@ -1094,8 +1096,7 @@ namespace ACESimBase.Games.LitigGame.ManualReports
         static string Csv(IEnumerable<Slice> ss)
         {
             var sb = new StringBuilder(
-                "Width,Opportunity,Harm,File," +
-                "Answer,Bargain,Trial,Total\n");
+                String.Join(",", OutputHeaders));
             foreach (var s in ss)
                 sb.AppendLine(string.Join(",",
                     s.width.ToString("F9", CultureInfo.InvariantCulture),

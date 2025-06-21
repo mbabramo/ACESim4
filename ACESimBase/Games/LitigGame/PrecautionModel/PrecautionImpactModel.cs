@@ -62,7 +62,7 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
             if (alphaLow <= 0 || alphaHigh <= 0) throw new ArgumentException("α values must be positive.");
             if (marginalPrecautionCost <= 0) throw new ArgumentException(nameof(marginalPrecautionCost));
             if (harmCost <= 0) throw new ArgumentException(nameof(harmCost));
-            if (liabilityThreshold <= 0) throw new ArgumentException(nameof(liabilityThreshold));
+            if (liabilityThreshold < 0) throw new ArgumentException(nameof(liabilityThreshold));
             if (pAccidentWrongfulAttribution < 0 || pAccidentWrongfulAttribution > 1)
                 throw new ArgumentException(nameof(pAccidentWrongfulAttribution));
 

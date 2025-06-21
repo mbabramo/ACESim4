@@ -151,7 +151,7 @@ namespace LitigCharts
                         if (VirtualizableFileSystem.File.Exists(combinedPath.Replace("-Eq1", "")))
                             combinedPath = combinedPath.Replace("-Eq1", "");
                         else
-                            throw new Exception("File not found: " + combinedPath);
+                            throw new Exception("File not found: " + combinedPath + ". Check whether a failure occurred running some simulations by looking for a Failure file in the report directory.");
                     }
                     result.Add((path, combinedPath, gameOptionsSet.Name, fileSuffix));
                 }

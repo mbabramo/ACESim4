@@ -752,7 +752,7 @@ namespace LitigCharts
             {
                 string coreName = map[opt.Name];
                 string inputPath = Launcher.ReportFullPath(filePrefix(launcher), coreName, "-costbreakdowndata.csv");
-
+                
                 if (!VirtualizableFileSystem.File.Exists(inputPath))
                     continue;                             // option-set had no cost-breakdown file
 
@@ -818,18 +818,21 @@ namespace LitigCharts
 
             string[] head = headerLine.Split(',');
 
-            // locate fixed columns
+            // locate fixed columns -- must correspond to OutputHeaders in CostBreakdownReport
             int widthIdx      = Array.IndexOf(head, "Width");
             int opportunityIdx= Array.IndexOf(head, "Opportunity");
-            int trulyLiableHarmIdx          = Array.IndexOf(head, "Truly Liable Harm");
-            int trulyNotLiableHarmIdx       = Array.IndexOf(head, "Truly Not Liable Harm");
+            int trulyLiableHarmIdx          = Array.IndexOf(head, "TLHarm");
+            int trulyNotLiableHarmIdx       = Array.IndexOf(head, "TNLHarm");
             int filingIdx     = Array.IndexOf(head, "File");
             int answerIdx     = Array.IndexOf(head, "Answer");
             int bargainIdx    = Array.IndexOf(head, "Bargain");
             int trialIdx      = Array.IndexOf(head, "Trial");
-
-            if (trialIdx < 0 || widthIdx < 0)
-                throw new InvalidDataException("Unexpected CSV header format – required columns not found");
+            if (widthIdx == -1 || opportunityIdx == -1 ||
+                trulyLiableHarmIdx == -1 || trulyNotLiableHarmIdx == -1 ||
+                filingIdx == -1 || answerIdx == -1 || bargainIdx == -1 || trialIdx == -1)
+            {
+                throw new InvalidDataException("CSV header row missing required columns");
+            }
 
             // variable columns come before “GroupName”
             int groupNameIdx = Array.IndexOf(head, "GroupName");
