@@ -959,6 +959,11 @@ namespace LitigCharts
                                        .ToList())
                 .ToList();
 
+            if (matrix.Any(x => x.Any(y => y.Sum(z => z.width) < 0.05)))
+            {
+                throw new Exception("DEBUG");
+            }
+
             var majorXLabels = variation.simulationIdentifiers
                                          .Select(s => s.nameForSimulation)
                                          .ToList();
@@ -972,6 +977,10 @@ namespace LitigCharts
 
         private static void GenerateRepeatedReport(double? limitToCostsMultiplier, PlannedPath plannedPath, PermutationalLauncher.SimulationSetsIdentifier variation, List<List<List<Slice>>> matrix, List<string> majorXLabels, List<string> majorYLabels)
         {
+            if (limitToCostsMultiplier == null)
+            {
+                var DEBUG = 0;
+            }
             string tikzSource = RepeatedCostBreakdownReport.GenerateRepeatedReport(
                             matrix,
                             majorXLabels,

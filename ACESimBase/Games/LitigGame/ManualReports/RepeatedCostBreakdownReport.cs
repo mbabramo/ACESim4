@@ -19,10 +19,10 @@ namespace ACESimBase.Games.LitigGame.ManualReports
         private static readonly string[] RegFill =
         {
             "pattern=crosshatch, pattern color=green",
-            "pattern=north east lines, pattern color=yellow",
-            "pattern=north west lines, pattern color=yellow",
+            "pattern=vertical lines, pattern color=yellow",
+            "pattern=horizontal lines, pattern color=orange",
             "pattern=dots,            pattern color=blue!30",
-            "pattern=vertical lines,  pattern color=blue!60",
+            "pattern=north east lines,  pattern color=blue!60",
             "pattern=crosshatch,      pattern color=blue!90",
             "pattern=grid,            pattern color=red!70!black"
         };

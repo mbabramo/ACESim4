@@ -65,10 +65,10 @@ namespace ACESimBase.Games.LitigGame.ManualReports
         static readonly string[] RegFill =
         {
             "pattern=crosshatch, pattern color=green",
-            "pattern=north east lines, pattern color=yellow",
-            "pattern=north west lines, pattern color=yellow",
+            "pattern=vertical lines, pattern color=yellow",
+            "pattern=horizontal lines, pattern color=orange",
             "pattern=dots,            pattern color=blue!30",
-            "pattern=vertical lines,  pattern color=blue!60",
+            "pattern=north east lines,  pattern color=blue!60",
             "pattern=crosshatch,      pattern color=blue!90",
             "pattern=grid,            pattern color=red!70!black"
         };
@@ -86,7 +86,7 @@ namespace ACESimBase.Games.LitigGame.ManualReports
         /// Cost category labels, used in order of plotting and in the legend.
         /// </summary>
         static readonly string[] Labels =
-            { "Opportunity","Truly Liable Harm","Truly Not Liable Harm","File","Answer","Bargaining","Trial" };
+            { "Opportunity","TL Harm","TNL Harm","File","Answer","Bargaining","Trial" };
 
         public static readonly string[] OutputHeaders = ["Width", "Opportunity", "TLHarm", "TNLHarm", "File", "Answer", "Bargain", "Trial", "Total"];
 
@@ -306,8 +306,7 @@ namespace ACESimBase.Games.LitigGame.ManualReports
 
             foreach (var s in slices)
             {
-                bool left = s.trulyLiableHarm + s.trulyNotLiableHarm + s.filing + s.answer +
-                            s.bargaining + s.trial == 0;
+                bool left = s.IsLeft;
                 if (left) hasLeft = true;
                 else hasRight = true;
 
@@ -727,7 +726,7 @@ namespace ACESimBase.Games.LitigGame.ManualReports
             string[] fills = pres ? PresFill : RegFill;
             var sb = new StringBuilder();
 
-            // ── background & title (unchanged) ─────────────────────────────────────
+            // ── background & title ─────────────────────────────────────
             if (pres)
                 sb.AppendLine(outer.DrawCommand("fill=black"));
 
@@ -737,9 +736,10 @@ namespace ACESimBase.Games.LitigGame.ManualReports
                 sb.AppendLine(head.DrawCommand($"draw=none,text={pen}", $"\\huge {title}"));
             }
 
-            // ── cost rectangles (unchanged) ────────────────────────────────────────
+            // ── cost rectangles  ────────────────────────────────────────
             double sx = pane.width, sy = pane.height;
-            foreach (var rc in GetComponentRects(slices, sc, splitRareHarmPanel))
+            var rectangles = GetComponentRects(slices, sc, splitRareHarmPanel);
+            foreach (var rc in rectangles)
             {
                 var box = new TikzRectangle(
                     pane.left   + rc.X0 * sx,
