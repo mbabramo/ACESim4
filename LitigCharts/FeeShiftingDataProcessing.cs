@@ -818,7 +818,7 @@ namespace LitigCharts
 
             // locate fixed columns -- must correspond to OutputHeaders in CostBreakdownReport
             int widthIdx      = Array.IndexOf(head, "Width");
-            int opportunityIdx= Array.IndexOf(head, "Opportunity");
+            int opportunityIdx= Array.IndexOf(head, "Precaution");
             int trulyLiableHarmIdx          = Array.IndexOf(head, "TLHarm");
             int trulyNotLiableHarmIdx       = Array.IndexOf(head, "TNLHarm");
             int filingIdx     = Array.IndexOf(head, "File");

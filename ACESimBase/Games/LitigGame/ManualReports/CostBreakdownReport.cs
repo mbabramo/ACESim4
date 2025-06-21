@@ -86,9 +86,9 @@ namespace ACESimBase.Games.LitigGame.ManualReports
         /// Cost category labels, used in order of plotting and in the legend.
         /// </summary>
         static readonly string[] Labels =
-            { "Opportunity","TL Harm","TNL Harm","File","Answer","Bargaining","Trial" };
+            { "Precaution","TL Harm","TNL Harm","File","Answer","Bargaining","Trial" };
 
-        public static readonly string[] OutputHeaders = ["Width", "Opportunity", "TLHarm", "TNLHarm", "File", "Answer", "Bargain", "Trial", "Total"];
+        public static readonly string[] OutputHeaders = ["Width", "Precaution", "TLHarm", "TNLHarm", "File", "Answer", "Bargain", "Trial", "Total"];
 
         #endregion
 

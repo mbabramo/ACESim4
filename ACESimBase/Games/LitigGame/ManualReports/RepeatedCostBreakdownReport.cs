@@ -28,7 +28,7 @@ namespace ACESimBase.Games.LitigGame.ManualReports
         };
 
         private static readonly string[] Labels =
-            { "Opportunity", "Truly Liable Harm", "Truly Not Liable Harm", "File", "Answer", "Bargaining", "Trial" };
+            { "Precaution", "TL Harm", "TNL Harm", "File", "Answer", "Bargaining", "Trial" };
 
         // ─────────────────────────────────────────────────────────────────────────────
         public static string GenerateRepeatedReport(
