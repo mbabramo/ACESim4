@@ -1095,7 +1095,8 @@ namespace ACESimBase.Games.LitigGame.ManualReports
         /// </summary>
         static string Csv(IEnumerable<Slice> ss)
         {
-            var sb = new StringBuilder(
+            var sb = new StringBuilder();
+            sb.AppendLine(
                 String.Join(",", OutputHeaders));
             foreach (var s in ss)
                 sb.AppendLine(string.Join(",",

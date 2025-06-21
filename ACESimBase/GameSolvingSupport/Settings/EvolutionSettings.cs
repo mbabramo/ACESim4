@@ -42,7 +42,7 @@ namespace ACESimBase.GameSolvingSupport.Settings
 
         public bool CreateEquilibriaFile = true;
         public bool UseExistingEquilibriaIfAvailable = true;
-        public bool SkipAltogetherIfEquilibriaFileAlreadyExists = false; // If true, and an equilibrium file exists, then we will skip processing AND reporting. This is useful as a way of just repeating failures.
+        public bool SkipAltogetherIfEquilibriaFileAlreadyExists = true; // DEBUG // If true, and an equilibrium file exists, then we will skip processing AND reporting. This is useful as a way of just repeating failures.
         public bool CreateEFGFile = true;
 
         public bool UseAcceleratedBestResponse = true;
