@@ -327,6 +327,50 @@ namespace ACESimTest
                 empirical[s].Should().BeApproximately(theoretical[s], 0.01);  // ≤1 % error
         }
 
+        [TestMethod]
+        public void IntegerDivisionMappingWorksForTenHiddenFiveSignals()
+        {
+            const int hiddenCount = 10;
+            const int signalLevels = 5;
+
+            var deterministic = new ThreePartyDiscreteSignals(
+                hiddenCount: hiddenCount,
+                signalCounts: new[] { signalLevels, signalLevels, signalLevels },
+                sigmas: new[] { 0.0, 0.0, 0.0 },
+                sourceIncludesExtremes: true);
+
+            var rng = new Random(99);
+
+            for (int h = 0; h < hiddenCount; h++)
+            {
+                int expected = (int)((long)h * signalLevels / hiddenCount);
+                var (p, d, c) = deterministic.GenerateSignalsFromHidden(h, rng);
+
+                p.Should().Be(expected);
+                d.Should().Be(expected);
+                c.Should().Be(expected);
+            }
+        }
+
+        [TestMethod]
+        public void UnreachableSignalReturnsUniformPrior()
+        {
+            const int hiddenCount = 3;
+            const int signalLevels = 5;   // two signals will be unreachable
+
+            var deterministic = new ThreePartyDiscreteSignals(
+                hiddenCount: hiddenCount,
+                signalCounts: new[] { signalLevels, signalLevels, signalLevels },
+                sigmas: new[] { 0.0, 0.0, 0.0 },
+                sourceIncludesExtremes: true);
+
+            int unreachableSignal = 2;    // no hidden maps to this bucket
+            double[] posterior = deterministic.GetHiddenDistributionGivenSignal(2, unreachableSignal);
+
+            posterior.Should().AllBeEquivalentTo(1.0 / hiddenCount, because: "uniform prior is expected when the signal is impossible");
+            posterior.Sum().Should().BeApproximately(1.0, 1e-8);
+        }
+
 
     }
 }

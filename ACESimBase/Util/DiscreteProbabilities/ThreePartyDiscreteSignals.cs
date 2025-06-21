@@ -218,44 +218,75 @@ namespace ACESimBase.Util.DiscreteProbabilities
         double[][][] BuildSignalGivenHidden()
         {
             var result = new double[PartyCount][][];
+
             for (int party = 0; party < PartyCount; party++)
             {
                 result[party] = new double[hiddenCount][];
-                for (int h = 0; h < hiddenCount; h++)
+                bool deterministic = partyParams[party].StdevOfNormalDistribution == 0.0;
+                int sCount = signalCounts[party];
+
+                if (deterministic)
                 {
-                    // DiscreteValueSignal expects 1‑based sourceValue
-                    result[party][h] = DiscreteValueSignal.GetProbabilitiesOfDiscreteSignals(h + 1, partyParams[party]);
+                    // Map each hidden value to one signal bucket by integer division.
+                    for (int h = 0; h < hiddenCount; h++)
+                    {
+                        int s = (int)((long)h * sCount / hiddenCount);
+                        var dist = new double[sCount];
+                        dist[s] = 1.0;
+                        result[party][h] = dist;
+                    }
+                }
+                else
+                {
+                    for (int h = 0; h < hiddenCount; h++)
+                        result[party][h] = DiscreteValueSignal.GetProbabilitiesOfDiscreteSignals(h + 1, partyParams[party]);
                 }
             }
+
             return result;
         }
 
         double[][][] BuildHiddenGivenSignal()
         {
             var result = new double[PartyCount][][];
+
             double priorHidden = 1.0 / hiddenCount;
             for (int party = 0; party < PartyCount; party++)
             {
                 int S = signalCounts[party];
                 result[party] = new double[S][];
+
                 for (int s = 0; s < S; s++)
                 {
-                    double[] posterior = new double[hiddenCount];
-                    double denom = 0;
+                    var posterior = new double[hiddenCount];
+                    double denom = 0.0;
+
                     for (int h = 0; h < hiddenCount; h++)
                     {
                         double val = probSignalGivenHidden[party][h][s] * priorHidden;
                         posterior[h] = val;
                         denom += val;
                     }
-                    if (denom == 0) throw new InvalidOperationException("Zero probability encountered in posterior computation.");
-                    for (int h = 0; h < hiddenCount; h++)
-                        posterior[h] /= denom;
+
+                    if (denom == 0.0)
+                    {
+                        double uniform = 1.0 / hiddenCount;
+                        for (int h = 0; h < hiddenCount; h++)
+                            posterior[h] = uniform;
+                    }
+                    else
+                    {
+                        for (int h = 0; h < hiddenCount; h++)
+                            posterior[h] /= denom;
+                    }
+
                     result[party][s] = posterior;
                 }
             }
+
             return result;
         }
+
 
         double[][][][] BuildSignalGivenSignal()
         {
