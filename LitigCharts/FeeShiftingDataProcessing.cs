@@ -360,8 +360,6 @@ namespace LitigCharts
             var drawCommands = r.GetStandaloneDocument();
         }
 
-        // DEBUG -- try using cost breakdown diagrams instead. Include columns for baseline, fee shifting, damages multiplier, both.
-
         public record AggregatedGraphInfo(string topicName, List<string> columnsToGet, List<string> lineScheme, string minorXAxisLabel = "TBD", string minorXAxisLabelShort = "TBD", string minorYAxisLabel = "\\$", string majorYAxisLabel = "Costs Multiplier", double? maximumValueMicroY = null, TikzAxisSet.GraphType graphType = TikzAxisSet.GraphType.Line, Func<double?, double?> scaleMiniGraphValues = null, string filter = "All");
 
         public static void ProduceLatexDiagramsAggregatingReports(LitigGameLauncherBase launcher, DataBeingAnalyzed article)
@@ -959,9 +957,9 @@ namespace LitigCharts
                                        .ToList())
                 .ToList();
 
-            if (matrix.Any(x => x.Any(y => y.Sum(z => z.width) < 0.05)))
+            if (matrix.Any(x => x.Any(y => y.Sum(z => z.width) < 0.95)))
             {
-                throw new Exception("DEBUG");
+                throw new Exception("Cost breakdown data missing");
             }
 
             var majorXLabels = variation.simulationIdentifiers
@@ -977,10 +975,6 @@ namespace LitigCharts
 
         private static void GenerateRepeatedReport(double? limitToCostsMultiplier, PlannedPath plannedPath, PermutationalLauncher.SimulationSetsIdentifier variation, List<List<List<Slice>>> matrix, List<string> majorXLabels, List<string> majorYLabels)
         {
-            if (limitToCostsMultiplier == null)
-            {
-                var DEBUG = 0;
-            }
             string tikzSource = RepeatedCostBreakdownReport.GenerateRepeatedReport(
                             matrix,
                             majorXLabels,

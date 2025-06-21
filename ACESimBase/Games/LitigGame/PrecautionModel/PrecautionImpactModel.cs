@@ -238,9 +238,7 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
                     double benefit = riskReduction[h][k] * HarmCost;
                     double ratio = benefit / MarginalPrecautionCost;
                     arr[h][k] = ratio;
-                    Debug.Write(ratio.ToString() + ", "); // DEBUG
                 }
-                Debug.WriteLine(""); // DEBUG
             }
             return arr;
         }

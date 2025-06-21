@@ -379,15 +379,6 @@ namespace ACESimBase.Games.LitigGame.ManualReports
 
             sliceSets = sliceSets.Select(x => x.Where(y => y.width > 1E-10).ToList()).ToList();
 
-            StringBuilder DEBUG = new StringBuilder();
-            foreach (var sliceSet in sliceSets)
-            {
-                foreach (var slice in sliceSet)
-                {
-                    DEBUG.AppendLine(slice.ToString());
-                }
-            }
-
             // ---------------------------------------------------------------------
             // Determine the largest area-per-unit value A that satisfies:
             //
