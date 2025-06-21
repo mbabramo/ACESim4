@@ -299,7 +299,7 @@ namespace ACESimBase.Games.LitigGame.ManualReports
         /// (has dispute costs).  When this is false we fall back to the
         /// simple one-panel layout.
         /// </summary>
-        internal static bool HasTwoPanels(List<Slice> slices)
+        public static bool HasTwoPanels(List<Slice> slices)
         {
             bool hasLeft = false;
             bool hasRight = false;
@@ -347,7 +347,7 @@ namespace ACESimBase.Games.LitigGame.ManualReports
         /// Formula:
         ///     yMaxLeft = yMaxRight × (pRight / pLeft)
         /// </summary>
-        internal static AxisScalingInfo ComputeScaling(
+        public static AxisScalingInfo ComputeScaling(
             List<Slice> slices, double rightAxisTop)
         {
             slices = RemoveTriviallySmallAreaSlices(slices);
@@ -366,7 +366,7 @@ namespace ACESimBase.Games.LitigGame.ManualReports
             return new(yL, yR, xL, xR, xR / yR);
         }
 
-        internal static List<AxisScalingInfo> ComputeScaling(
+        public static List<AxisScalingInfo> ComputeScaling(
             List<List<Slice>> sliceSets,
             double peakProportion)
         {
@@ -652,7 +652,7 @@ namespace ACESimBase.Games.LitigGame.ManualReports
         /// Original API now supports optional embedding parameters without breaking old callers.
         /// Adding optional flags for legend/axis labels and optional outer box sizing/offset.
         /// </summary>
-        internal static string TikzScaled(
+        public static string TikzScaled(
             List<Slice>      slices,
             AxisScalingInfo  sc,
             bool             pres,
@@ -784,7 +784,7 @@ namespace ACESimBase.Games.LitigGame.ManualReports
                     $"font=\\small,text={pen}", anchorRight,
                     null, null, TikzHorizontalAlignment.Center,
                     includeAxisLabels ? $"font=\\small,text={pen}" : null,
-                    shiftXRight, 0));
+                    shiftXRight, 0, useContour: tickLabelsInside && !pres));
             }
 
 

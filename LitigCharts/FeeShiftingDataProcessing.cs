@@ -818,14 +818,14 @@ namespace LitigCharts
 
             // locate fixed columns -- must correspond to OutputHeaders in CostBreakdownReport
             int widthIdx      = Array.IndexOf(head, "Width");
-            int opportunityIdx= Array.IndexOf(head, "Precaution");
+            int precautionIdx= Array.IndexOf(head, "Precaution");
             int trulyLiableHarmIdx          = Array.IndexOf(head, "TLHarm");
             int trulyNotLiableHarmIdx       = Array.IndexOf(head, "TNLHarm");
             int filingIdx     = Array.IndexOf(head, "File");
             int answerIdx     = Array.IndexOf(head, "Answer");
             int bargainIdx    = Array.IndexOf(head, "Bargain");
             int trialIdx      = Array.IndexOf(head, "Trial");
-            if (widthIdx == -1 || opportunityIdx == -1 ||
+            if (widthIdx == -1 || precautionIdx == -1 ||
                 trulyLiableHarmIdx == -1 || trulyNotLiableHarmIdx == -1 ||
                 filingIdx == -1 || answerIdx == -1 || bargainIdx == -1 || trialIdx == -1)
             {
@@ -854,7 +854,7 @@ namespace LitigCharts
                     vars,
                     new Slice(
                         double.Parse(f[widthIdx], CultureInfo.InvariantCulture),
-                        double.Parse(f[opportunityIdx], CultureInfo.InvariantCulture),
+                        double.Parse(f[precautionIdx], CultureInfo.InvariantCulture),
                         double.Parse(f[trulyLiableHarmIdx],        CultureInfo.InvariantCulture),
                         double.Parse(f[trulyNotLiableHarmIdx],        CultureInfo.InvariantCulture),
                         double.Parse(f[filingIdx],      CultureInfo.InvariantCulture),
@@ -940,7 +940,12 @@ namespace LitigCharts
             DeleteAuxiliaryFiles(outputFolderPath);
         }
 
-        private static void BuildRepeatedCostBreakdownForVariation(LitigGameLauncherBase launcher, IReadOnlyList<CostRow> allRows, double? limitToCostsMultiplier, PlannedPath plannedPath, PermutationalLauncher.SimulationSetsIdentifier variation)
+        private static void BuildRepeatedCostBreakdownForVariation(
+            LitigGameLauncherBase launcher,
+            IReadOnlyList<CostRow> allRows,
+            double? limitToCostsMultiplier,
+            PlannedPath plannedPath,
+            PermutationalLauncher.SimulationSetsIdentifier variation)
         {
             plannedPath = plannedPath.DeepClone();
             plannedPath.AddSubpath(variation.nameOfSet, 5);
@@ -949,18 +954,13 @@ namespace LitigCharts
                 ? new List<double> { limitToCostsMultiplier.Value }
                 : launcher.CriticalCostsMultipliers.OrderBy(x => x).ToList();
 
-            // build the 3-D matrix:  [row = costs-multiplier] × [column = simulation panel] × [Slice list]
+            // 3-D matrix: [row → costs-multiplier] × [col → simulation] × Slice list
             var matrix = costMultipliersForLabels
                 .Select(cm => variation.simulationIdentifiers
                                        .Select(sim => sim.With("Costs Multiplier", cm.ToString()))
                                        .Select(sim => GetSlices(sim, allRows))
                                        .ToList())
                 .ToList();
-
-            if (matrix.Any(x => x.Any(y => y.Sum(z => z.width) < 0.95)))
-            {
-                throw new Exception("Cost breakdown data missing");
-            }
 
             var majorXLabels = variation.simulationIdentifiers
                                          .Select(s => s.nameForSimulation)
@@ -970,8 +970,80 @@ namespace LitigCharts
                 .Select(x => x.ToString(CultureInfo.InvariantCulture))
                 .ToList();
 
-            GenerateRepeatedReport(limitToCostsMultiplier, plannedPath, variation, matrix, majorXLabels, majorYLabels);
+            // ── combined light-mode grid ────────────────────────────────────────────
+            GenerateRepeatedReport(limitToCostsMultiplier,
+                                   plannedPath,
+                                   variation,
+                                   matrix,
+                                   majorXLabels,
+                                   majorYLabels);
+
+            // ── individual dark-mode panels ─────────────────────────────────────────
+            var sliceGrid = matrix.SelectMany(r => r).ToList();
+            var axisScalingInfos = CostBreakdownReport
+                .ComputeScaling(sliceGrid, peakProportion: 0.8);   // :contentReference[oaicite:0]{index=0}
+
+            BuildIndividualCostBreakdownPanelsForVariation(
+                plannedPath,
+                variation,
+                matrix,
+                axisScalingInfos,
+                majorXLabels,
+                majorYLabels);
         }
+
+        private static void BuildIndividualCostBreakdownPanelsForVariation(
+            PlannedPath                                             plannedPath,
+            PermutationalLauncher.SimulationSetsIdentifier          variation,
+            List<List<List<Slice>>>                                 matrix,
+            List<CostBreakdownReport.AxisScalingInfo>               axisScalingInfos,
+            List<string>                                            majorXLabels,
+            List<string>                                            majorYLabels)
+        {
+            // ── build a base path that is a sibling of the “Single Row” / “All Rows” folders ──
+            var basePath = new PlannedPath(plannedPath.originalPath, new());
+            foreach (var (name, priority) in plannedPath.prioritizedSubpaths)
+                if (priority != 2)                       // skip the existing row-level folder
+                    basePath.AddSubpath(name, priority); // keep everything else (variation, etc.)
+
+            basePath.AddSubpath("Individual Panels", 2);      // same priority as row-folders
+
+            // ── generate one dark-mode panel per simulation ───────────────────────────────────
+            int rows = matrix.Count;
+            int cols = matrix[0].Count;
+            int scaleIdx = 0;
+
+            for (int r = 0; r < rows; r++)
+            {
+                var rowPath = basePath.DeepClone();
+                rowPath.AddSubpath($"Costs {majorYLabels[r]}x", 1); // optional subfolder per row
+
+                for (int c = 0; c < cols; c++)
+                {
+                    var slices  = matrix[r][c];
+                    var scaling = axisScalingInfos[scaleIdx++];
+
+                    string filename =
+                        $"Cost Breakdown – {variation.nameOfSet} – CM {majorYLabels[r]} – {majorXLabels[c]} (dark).tex";
+
+                    string tikz = CostBreakdownReport.TikzScaled(
+                        slices,
+                        scaling,
+                        pres: true,                      // dark mode
+                        title: "",
+                        splitRareHarmPanel: CostBreakdownReport.HasTwoPanels(slices),
+                        standalone: true,
+                        includeLegend: true,
+                        includeAxisLabels: false,
+                        includeDisputeLabels: false);
+
+                    GenerateLatex(rowPath, filename, tikz);
+                }
+            }
+        }
+
+
+
 
         private static void GenerateRepeatedReport(double? limitToCostsMultiplier, PlannedPath plannedPath, PermutationalLauncher.SimulationSetsIdentifier variation, List<List<List<Slice>>> matrix, List<string> majorXLabels, List<string> majorYLabels)
         {

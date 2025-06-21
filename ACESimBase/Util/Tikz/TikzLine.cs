@@ -24,7 +24,7 @@ namespace ACESimBase.Util.Tikz
 
         public bool IsVertical => end.x == start.x;
 
-        public string DrawLineWithText(string attributes, string label, string labelAttributes, string anchor, TikzHorizontalAlignment alignment, double shiftX = 0, double shiftY = 0, bool useHalo = true)
+        public string DrawLineWithText(string attributes, string label, string labelAttributes, string anchor, TikzHorizontalAlignment alignment, double shiftX = 0, double shiftY = 0, bool useContour = false)
         {
             string labelAttributesWithComma = labelAttributes == null ? "" : labelAttributes + ", ";
             (double x, double y) = alignment switch
@@ -34,17 +34,17 @@ namespace ACESimBase.Util.Tikz
                 TikzHorizontalAlignment.Right or _ => (end.x + shiftX, end.y + shiftY),
             };
             return $@"{DrawCommand(attributes)}
-{TikzHelper.DrawText(x, y, label, labelAttributesWithComma + "anchor=" + anchor, useHalo)}";
+{TikzHelper.DrawText(x, y, label, labelAttributesWithComma + "anchor=" + anchor, useContour)}";
         }
 
-        public string DrawAxis(string attributes, List<(double proportion, string text)> axisMarks, string markTextAttributes, string anchor, string label, string labelAnchor, TikzHorizontalAlignment labelAlignment, string labelAttributes, double labelShiftX, double labelShiftY, double axisMarkShiftX=0, double axisMarkShiftY=0)
+        public string DrawAxis(string attributes, List<(double proportion, string text)> axisMarks, string markTextAttributes, string anchor, string label, string labelAnchor, TikzHorizontalAlignment labelAlignment, string labelAttributes, double labelShiftX, double labelShiftY, double axisMarkShiftX=0, double axisMarkShiftY=0, bool useContour=false)
         {
             StringBuilder b = new StringBuilder();
             if (label == null)
                 b.AppendLine(DrawCommand(attributes));
             else
             {
-                b.AppendLine(DrawLineWithText(attributes, label, labelAttributes, labelAnchor, labelAlignment, labelShiftX, labelShiftY));
+                b.AppendLine(DrawLineWithText(attributes, label, labelAttributes, labelAnchor, labelAlignment, labelShiftX, labelShiftY, useContour: useContour));
             }
             if (axisMarks != null)
             {
@@ -68,7 +68,7 @@ namespace ACESimBase.Util.Tikz
                         second = new TikzPoint(point.x, point.y + axisMarkHalfWidth);
                     }
                     TikzLine markLine = new TikzLine(first, second);
-                    string markCommand = markLine.DrawLineWithText(attributes, text, markTextAttributes, anchor, TikzHorizontalAlignment.Left);
+                    string markCommand = markLine.DrawLineWithText(attributes, text, markTextAttributes, anchor, TikzHorizontalAlignment.Left, useContour: useContour);
                     b.AppendLine(markCommand);
                 }
             }

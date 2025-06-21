@@ -25,8 +25,6 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
 
         // calibration parameters for the P(t,p) curve
 
-        Debug; // check truly liable adjusts based on threshold and is not hardcoded
-
         public double ProbabilityAccidentNoPrecaution = 0.0001;  // pMax
         public double ProbabilityAccidentMaxPrecaution_LowPower = 0.0001; // since the power is not at the extreme, we will still end up with interpolated values
         public double ProbabilityAccidentMaxPrecaution_HighPower = 0.00000;
