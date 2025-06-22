@@ -19,12 +19,9 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
         public double BenefitToDefendantOfActivity = 0.001;
         public double CostOfAccident = 1.0;
         public double MarginalPrecautionCost = 0.00001;
-
         public byte PrecautionPowerLevels = 10;
         public byte RelativePrecautionLevels = 5;
-
         // calibration parameters for the P(t,p) curve
-
         public double ProbabilityAccidentNoPrecaution = 0.0001;  // pMax
         public double ProbabilityAccidentMaxPrecaution_LowPower = 0.0001; // since the power is not at the extreme, we will still end up with interpolated values
         public double ProbabilityAccidentMaxPrecaution_HighPower = 0.00000;
@@ -34,6 +31,20 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
         public double LiabilityThreshold = 1.0;
         int numSamplesToMakeForCourtLiablityDetermination = 1000;
 
+        public double DPerceptionOfPrecautionCostNoiseMultiplier = 1.0;
+        private bool ChanceAffectsDPerceptionofPrecautionCost => DPerceptionOfPrecautionCostNoiseMultiplier != 1.0; // if true, then a chance decision will cause the marginal precaution cost to be multiplied by some number in determining the defendant's utility. But this won't affect the actual amount spent. This is a way of modeling a defendant who incorrectly perceives that the precaution cost is changing. 
+        private double[] _PossiblePerceivedPrecautionCostMultipliers = null;
+        private double[] PossiblePerceivedPrecautionCostMultipliers
+        {
+            get
+            {
+                if (_PossiblePerceivedPrecautionCostMultipliers == null)
+                {
+                    _PossiblePerceivedPrecautionCostMultipliers = [1.0 / DPerceptionOfPrecautionCostNoiseMultiplier, 1.0, 1.0 * DPerceptionOfPrecautionCostNoiseMultiplier];
+                }
+                return _PossiblePerceivedPrecautionCostMultipliers;
+            }
+        }
 
         // ----------------------------------------------------------------  linked models
         PrecautionImpactModel impact;
@@ -161,6 +172,22 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
                     Unroll_Parallelize = true
                 });
 
+            if (ChanceAffectsDPerceptionofPrecautionCost)
+            {
+                // defendant perception of precaution cost (relative to everything else)
+                r.Add(new("Defendant Cost Perception", "DCP", true,
+                    (byte)LitigGamePlayers.DPrecautionCostPerceptionChance,
+                    new byte[] { (byte)LitigGamePlayers.Defendant, (byte)LitigGamePlayers.Resolution },
+                    (byte) PossiblePerceivedPrecautionCostMultipliers.Length,
+                    (byte)LitigGameDecisions.DPrecautionCostPerceptionChance,
+                    unevenChanceActions: false)
+                {
+                    IsReversible = true,
+                    DistributedChanceDecision = false,
+                    Unroll_Parallelize = true
+                });
+            }
+
             // defendant signal
             r.Add(new("Defendant Signal", "DLS", true,
                 (byte)LitigGamePlayers.DLiabilitySignalChance,
@@ -253,6 +280,9 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
             var p = (PrecautionNegligenceProgress)progress;
             switch ((LitigGameDecisions)decision)
             {
+                case LitigGameDecisions.DPrecautionCostPerceptionChance:
+                    p.DPrecautionCostPerceptionMultiple = PossiblePerceivedPrecautionCostMultipliers[action - 1];
+                    break;
                 case LitigGameDecisions.EngageInActivity:
                     p.EngagesInActivity = action == 1;
                     progress.GameComplete = !p.EngagesInActivity;
@@ -267,6 +297,15 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
                 default: return false;
             }
             return true;
+        }
+
+        public (double PPerceivedWealthChange, double DPerceivedWealthChange) GetSupplementalPerceivedWealthChange(LitigGameProgress gameProgress)
+        {
+            var precautionProgress = (PrecautionNegligenceProgress)gameProgress;
+            double actualPrecautionCosts = precautionProgress.RelativePrecautionLevel * MarginalPrecautionCost;
+            double perceivedPrecautionCosts = actualPrecautionCosts * precautionProgress.DPrecautionCostPerceptionMultiple;
+            double dPerceivedWealthChange = actualPrecautionCosts - perceivedPrecautionCosts; // i.e., if perceived costs are lower, then d's perceived wealth and thus d's utility goes up, even though all other data reported in progress don't reflect this
+            return (0, dPerceivedWealthChange);
         }
 
         public bool IsTrulyLiable(LitigGameDefinition g, LitigGameStandardDisputeGeneratorActions a,

@@ -37,6 +37,7 @@ namespace ACESim
                     ("Noise Multiplier D", "1"),
                     ("Issue", "Liability"),
                     ("Proportion of Costs at Beginning", "0.5"),
+                    ("Precaution Cost Perception Multiplier", "1"),
                 };
             }
         }
@@ -53,6 +54,7 @@ namespace ACESim
             "Relative Costs",
             // TODO: Add back in "Fee Shifting Mode",
             "Proportion of Costs at Beginning",
+            "Precaution Cost Perception Multiplier"
         };
 
         public override List<(string criticalValueName, string[] criticalValueValues)> CriticalVariableValues
@@ -88,6 +90,8 @@ namespace ACESim
         
         public double[] CriticalDamagesMultipliers => new double[] { 1.0, 0.5, 2.0 };
         public double[] AdditionalDamagesMultipliers => new double[] { 1.0, 4.0 };
+
+        public double[] PrecautionCostPerceptionMultipliers => new double[] { 1.0, 1.5, 2.0 };
 
         public enum UnderlyingGame
         {
@@ -172,6 +176,18 @@ namespace ACESim
             g.VariableSettings["Liability Threshold"] = liabilityThreshold;
         });
 
+        // Perception cost perception
+
+        public List<Func<LitigGameOptions, LitigGameOptions>> PrecautionCostPerceptionMultiplierTransformations(bool includeBaselineValue)
+            => Transform(GetAndTransform_DPrecautionCostPerceptionMultiplier, PrecautionCostPerceptionMultipliers, includeBaselineValue);
+
+        public LitigGameOptions GetAndTransform_DPrecautionCostPerceptionMultiplier(LitigGameOptions options, double precautionCostPerceptionMultiplier) => GetAndTransform(options, " Precaution Cost Perception Multiplier " + precautionCostPerceptionMultiplier, g =>
+        {
+            PrecautionNegligenceDisputeGenerator disputeGenerator = (PrecautionNegligenceDisputeGenerator)options.LitigGameDisputeGenerator;
+            disputeGenerator.DPerceptionOfPrecautionCostNoiseMultiplier = precautionCostPerceptionMultiplier;
+            g.VariableSettings["Precaution Cost Perception Multiplier"] = precautionCostPerceptionMultiplier;
+        });
+
         #endregion
 
 
@@ -224,6 +240,7 @@ namespace ACESim
                PRelativeCostsTransformations(includeBaselineValueForNoncritical),
                // FeeShiftingModeTransformations(includeBaselineValueForNoncritical),  // TODO: Add this back in by providing support for Bayesian logic with the margin-of-victory approach -- then make change in NamesOfVariationSets
                ProportionOfCostsAtBeginningTransformations(includeBaselineValueForNoncritical),
+               PrecautionCostPerceptionMultiplierTransformations(includeBaselineValueForNoncritical),
            };
             List<List<GameOptions>> result = PerformTransformations(allTransformations, numCritical, numSupercritical, useAllPermutationsOfTransformations, includeBaselineValueForNoncritical, LitigGameOptionsGenerator.GetLitigGameOptions);
             return result;
@@ -329,6 +346,13 @@ namespace ACESim
                 new SimulationIdentifier("1", DefaultVariableValues.WithReplacement("Proportion of Costs at Beginning", "1")),
             };
 
+            var varyingPrecautionCostPerceptionMultipliers = new List<SimulationIdentifier>()
+            {
+                new SimulationIdentifier("1", DefaultVariableValues.WithReplacement("Precaution Cost Perception Multiplier", "1")),
+                new SimulationIdentifier("1.5", DefaultVariableValues.WithReplacement("Precaution Cost Perception Multiplier", "1.5")),
+                new SimulationIdentifier("2", DefaultVariableValues.WithReplacement("Precaution Cost Perception Multiplier", "2")),
+            };
+
             // The following does not work. It won't work with the cost breakdown diagrams because
             // those diagrams use the data specifically produced in the manual reports, and those data do not
             // filter by precaution power. And it also doesn't work in the regular diagrams yet.
@@ -360,6 +384,7 @@ namespace ACESim
                 new SimulationSetsIdentifier("Risk Aversion", varyingRiskAversion),
                 new SimulationSetsIdentifier("Risk Aversion Asymmetry", varyingRiskAversionAsymmetry),
                 new SimulationSetsIdentifier("Proportion of Costs at Beginning", varyingTimingOfCosts),
+                new SimulationSetsIdentifier("Precaution Cost Perception Multiplier", varyingPrecautionCostPerceptionMultipliers)
             };
             
             tentativeResults = PerformArticleVariationInfoSetsTransformation(transformer, tentativeResults);

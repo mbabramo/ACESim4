@@ -27,13 +27,14 @@ namespace ACESim
         PDamagesSignalChance = 8,
         DDamagesSignalChance = 9,
         DamagesStrengthChance = 10,
-        CourtLiabilityChance = 11,
-        CourtDamagesChance = 12,
+        DPrecautionCostPerceptionChance = 11,
+        CourtLiabilityChance = 12,
+        CourtDamagesChance = 13,
 
         // chance players (no information sets)
-        PrePrimaryChance = 13,
-        BothGiveUpChance = 14,
-        PreBargainingRoundChance = 15, // no real chance / 1 possible action
-        PostBargainingRoundChance = 16, // no real chance / 1 possible action
+        PrePrimaryChance = 14,
+        BothGiveUpChance = 15,
+        PreBargainingRoundChance = 16, // no real chance / 1 possible action
+        PostBargainingRoundChance = 17, // no real chance / 1 possible action
     }
 }

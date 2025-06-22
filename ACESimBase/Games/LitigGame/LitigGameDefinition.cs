@@ -121,6 +121,7 @@ namespace ACESim
         private static string PLiabilityNoiseChanceName = "PLC";
         private static string DLiabilityNoiseChanceName = "DLC";
         private static string DamagesStrengthChanceName = "DC";
+        private static string DPrecautionCostPerceptionChanceName = "DCP";
         private static string PDamagesNoiseChanceName = "PDC";
         private static string DDamagesNoiseChanceName = "DDC";
         private static string BothGiveUpChanceName = "GUC";
@@ -147,6 +148,7 @@ namespace ACESim
                     new PlayerInfo(PLiabilityNoiseChanceName, (int) LitigGamePlayers.PLiabilitySignalChance, true, false),
                     new PlayerInfo(DLiabilityNoiseChanceName, (int) LitigGamePlayers.DLiabilitySignalChance, true, false),
                     new PlayerInfo(DamagesStrengthChanceName, (int) LitigGamePlayers.DamagesStrengthChance, true, false),
+                    new PlayerInfo(DPrecautionCostPerceptionChanceName, (int) LitigGamePlayers.DPrecautionCostPerceptionChance, true, false),
                     new PlayerInfo(PDamagesNoiseChanceName, (int) LitigGamePlayers.PDamagesSignalChance, true, false),
                     new PlayerInfo(DDamagesNoiseChanceName, (int) LitigGamePlayers.DDamagesSignalChance, true, false),
                     new PlayerInfo(AccidentChanceName, (int) LitigGamePlayers.AccidentChance, true, false),

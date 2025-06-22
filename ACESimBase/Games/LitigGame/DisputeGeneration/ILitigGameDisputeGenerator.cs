@@ -92,6 +92,13 @@ namespace ACESim
                 byte dDamagesSignal,
                 byte? cDamagesSignal,
                 LitigGameProgress baseProgress);
+
+        /// <summary>
+        /// This can be used to change the utility calculation for player(s) without changing anything else calculated
+        /// in the litigation game progress. 
+        /// </summary>
+        /// <returns></returns>
+        (double PPerceivedWealthChange, double DPerceivedWealthChange) GetSupplementalPerceivedWealthChange(LitigGameProgress gameProgress) => (0, 0);
     }
 }
 

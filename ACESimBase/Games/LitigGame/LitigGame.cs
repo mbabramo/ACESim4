@@ -474,6 +474,10 @@ namespace ACESim
             outcome.DFinalWealth = dWealthAfterPrimaryConduct + outcome.DChangeWealth;
             double pPerceivedFinalWealth = outcome.PFinalWealth;
             double dPerceivedFinalWealth = outcome.DFinalWealth;
+            var furtherChanges = options.LitigGameDisputeGenerator.GetSupplementalPerceivedWealthChange(gameProgress);
+            pPerceivedFinalWealth += furtherChanges.PPerceivedWealthChange;
+            dPerceivedFinalWealth += furtherChanges.DPerceivedWealthChange;
+            
             if (options.RegretAversion != 0)
             {
                 if (pFinalWealthWithBestOffer > outcome.PFinalWealth)
