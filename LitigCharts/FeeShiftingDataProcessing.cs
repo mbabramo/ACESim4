@@ -151,8 +151,6 @@ namespace LitigCharts
             BuildReportHelper(launcher, filtersOfRowsToGet, replacementRowNames, columnsToGet, replacementColumnNames, "offers");
         }
 
-
-
         private static List<(string[] stringValues, double[] numericValues)> GetDataFromCSV(string filename, int columnToMatch, string requiredContentsOfColumnToMatch, int[] stringColumns, int[] numericColumns)
         {
             var lines = new List<(string[] stringValues, double[] numericValues)>();

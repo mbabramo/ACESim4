@@ -12,81 +12,74 @@ namespace ACESimBase.GameSolvingSupport.Settings
 {
     /// <summary>
     /// ************************************************************************************************
-    /// <para><b>What this class is for</b></para>
+    /// <para><b>Purpose</b></para>
     ///
-    /// Almost every simulation project needs to run the same solver across a wide set of parameter
-    /// configurations.  The pattern is always:
+    /// Many simulation studies solve the same game under a broad range of parameter choices.  
+    /// The process follows a common pattern:
     ///
-    ///   • Start with a baseline <see cref="GameOptions"/> object (all defaults).
-    ///   • Supply one or more <em>transformation functions</em> for each high‑level variable.  Each
-    ///     function mutates the object <em>and</em> appends a suffix to <c>GameOptions.Name</c> so the
-    ///     final result bears a deterministic, human‑readable ID.
-    ///   • Ask the launcher to turn those functions into a set of <see cref="GameOptions"/> instances
-    ///     according to the rules described below.
+    ///   • Begin with a baseline <see cref="GameOptions"/> that uses default values only.  
+    ///   • Provide one or more <em>transformation functions</em> for each conceptual variable.  
+    ///     Each function both mutates the options object and appends a deterministic, human-readable
+    ///     suffix to <see cref="GameOptions.Name"/>.  
+    ///   • Ask the launcher to expand those functions into a collection of <see cref="GameOptions"/>
+    ///     instances under the permutation rules described below.
     ///
-    /// <para>This class provides three key helpers:</para>
+    /// <para>This type exposes three core helpers:</para>
     ///
-    ///   • <see cref="ApplyPermutationsOfTransformations{T}"/> – the low‑level Cartesian‑product
-    ///     engine that enumerates every way of picking <b>one</b> transform from each list and applies
-    ///     them in order.
-    ///   • <see cref="PerformTransformations{T}(List{List{Func{T,T}}},int,int,bool,bool,Func{T})"/> – the
-    ///     high‑level routine that understands <b>critical</b>, <b>super‑critical</b>, and
-    ///     <b>non‑critical</b> variables and generates the required sweep batches.
-    ///   • <see cref="NameMap"/> – deduplicates filenames so that logically identical games (for
-    ///     example, a baseline reached via two different paths) are solved only once on disk even if
-    ///     they appear multiple times in memory.
+    ///   • <see cref="ApplyPermutationsOfTransformations{T}"/> – a low-level Cartesian product engine  
+    ///     that applies one transform from each supplied list.  
+    ///   • <see cref="GenerateCombinations{T}"/> – a high-level wrapper that understands
+    ///     <b>critical</b>, <b>global</b>, and <b>modifier</b> variables and produces the required
+    ///     set of combinations, optionally collapsing duplicates.  
+    ///   • <see cref="NameMap"/> – maps verbose option names that differ only by redundant suffixes  
+    ///     to a single canonical filename, preventing needless solver runs.
     ///
     /// ************************************************************************************************
-    /// <para><b>Variable classes and the launch‑space rules</b></para>
+    /// <para><b>Variable classes and permutation rules</b></para>
     ///
-    /// • <em>Critical variables</em> are the headline levers. When <b>all</b> non‑critical variables
-    ///   are at their default values the launcher produces the <strong>full Cartesian product</strong>
-    ///   across every critical variable – i.e., it enumerates every possible mutual interaction.
+    /// • <em>Critical variables</em> are the headline levers.  When all modifiers are at their default
+    ///   values, the launcher produces the <strong>full Cartesian product</strong> across every
+    ///   critical variable, enumerating every mutual interaction.  
     ///
-    /// • <em>Super‑critical variables</em> are simply a prefix of the critical list.  They carry one
-    ///   extra guarantee: <strong>if a simulation exists with one value of a super‑critical variable,
-    ///   then a simulation exists with <em>every</em> value of that variable</strong>.  The baseline
-    ///   full‑grid together with the one‑at‑a‑time sweeps described next automatically fulfils the
-    ///   guarantee, so the parameter is retained only for compatibility.
+    /// • <em>Global variables</em> (a prefix of the critical list) have an additional guarantee:
+    ///   <strong>if one value appears, then every value appears</strong>.  The baseline grid together
+    ///   with the one-at-a-time sweeps automatically fulfils this guarantee.  
     ///
-    /// • <em>Non‑critical variables</em> are swept <em>one at a time</em>.  For each non‑critical value
-    ///   the launcher creates <em>one</em> simulation for <em>each value of each critical variable</em>,
-    ///   varying <strong>only one critical variable at a time</strong>.  Non‑critical variables are
-    ///   never permuted against one another – i.e., at most one is off baseline in any simulation.
+    /// • <em>Modifier variables</em> are swept <em>one at a time</em>.  For each non-baseline modifier
+    ///   value the launcher generates exactly one simulation for each value of each critical variable,
+    ///   varying only one critical variable at a time.  Two modifiers are never off baseline together,
+    ///   so no Cartesian product occurs once a modifier is active, keeping the total run count linear.  
     ///
-    ///   Concretely, if criticals are A ∈ {1,2} and B ∈ {10,20} while the non‑critical C ∈ {100,200},
-    ///   then the C‑sweep looks like:
+    ///   Example – let criticals be A ∈ {1, 2} and B ∈ {10, 20} while the modifier C ∈ {100, 200}.  
+    ///   The C-sweep consists of:
     ///
-    ///     A = 1, B = 10, C = 100  (baseline)
-    ///     A = 2, B = 10, C = 100  (vary A)
-    ///     A = 1, B = 10, C = 200  (vary C)
-    ///     A = 1, B = 20, C = 100  (vary B)
-    ///     … and so on for every value of C.
-    ///
-    ///   Because each critical variable is exercised separately, no Cartesian products appear once a
-    ///   non‑critical dimension is off baseline.  This keeps the total run‑count linear in the number
-    ///   of critical values instead of exponential.
+    ///     A = 1, B = 10, C = 100  (baseline)  
+    ///     A = 2, B = 10, C = 100  (vary A)  
+    ///     A = 1, B = 10, C = 200  (vary C)  
+    ///     A = 1, B = 20, C = 100  (vary B)  
+    ///     … and so on.  
     ///
     /// ************************************************************************************************
-    /// <para><b>Redundancies and the “baseline again” row</b></para>
+    /// <para><b>Redundancies and the optional explicit-baseline row</b></para>
     ///
-    /// A non‑critical dimension whose <em>only</em> entry is “baseline” duplicates the null branch.
-    /// Setting <paramref name="includeBaselineValueForNoncritical"/> to <c>true</c> preserves that
-    /// duplicate so that reporting layers can display an explicit baseline row inside each sweep.
-    /// The extra solver work is avoided because <see cref="NameMap"/> resolves both long names to the
-    /// same underlying output file.
+    /// A modifier dimension whose only entry is the baseline value would duplicate the null branch.
+    /// Passing <c>includeBaselineValueForNoncritical = true</c> preserves that explicit baseline row
+    /// for reporting convenience; otherwise it is omitted.  In either case, <see cref="NameMap"/>
+    /// ensures redundant solver work is avoided.
     ///
     /// ************************************************************************************************
-    /// <para><b>How to use from a subclass</b></para>
+    /// <para><b>Integrating a subclass</b></para>
     ///
-    ///   1. Override <see cref="GetVariationSets"/> to build your transform lists and call
-    ///      <see cref="PerformTransformations{T}"/>.
-    ///   2. Point your solver harness at the resulting option sets.
-    ///   3. Use <see cref="VariableInfoPerOption"/> and <see cref="GroupOptionSetsByClassification"/>
-    ///      during post‑processing to organise the results.
+    ///   1. Override <see cref="GetVariationSets"/> to assemble the transformation lists and call
+    ///      either <see cref="GenerateCombinations{T}"/> or the original <c>PerformTransformations</c>
+    ///      family.  
+    ///   2. Feed the resulting option sets to the solver harness.  
+    ///   3. Use <see cref="VariableInfoPerOption"/> and
+    ///      <see cref="GroupOptionSetsByClassification"/> during post-processing.
     ///
     /// ************************************************************************************************
     /// </summary>
+
     public abstract class PermutationalLauncher : Launcher
     {
         #region Variation set definitions
@@ -242,81 +235,6 @@ namespace ACESimBase.GameSolvingSupport.Settings
                 .ToList();
         }
 
-
-        protected List<List<GameOptions>> PerformTransformations<T>(
-            List<List<Func<T, T>>> allTransformations,
-            int numCritical,
-            int numSupercriticals,
-            bool includeBaselineValueForNoncritical,
-            Func<T> optionsFactory)
-            where T : GameOptions
-        {
-            var dimensions = new List<VariableCombinationGenerator.Dimension<T>>();
-
-            // critical (and super-critical) variables, each optionally paired with its modifier list
-            for (int i = 0; i < numCritical; i++)
-            {
-                var criticalTransforms = allTransformations[i];
-
-                List<Func<T, T>> modifierTransforms = null;
-                int modifierIndex = i + numCritical;
-                if (modifierIndex < allTransformations.Count)
-                {
-                    modifierTransforms = includeBaselineValueForNoncritical
-                        ? allTransformations[modifierIndex]
-                        : allTransformations[modifierIndex].Skip(1).ToList();
-
-                    if (modifierTransforms.Count == 0)
-                        modifierTransforms = null;
-                }
-
-                dimensions.Add(new VariableCombinationGenerator.Dimension<T>(
-                    $"D{i}",
-                    criticalTransforms,
-                    modifierTransforms,
-                    IsGlobal: i < numSupercriticals));
-            }
-
-            // remaining lists are modifier-only variables
-            for (int j = 2 * numCritical; j < allTransformations.Count; j++)
-            {
-                var modifierOnlyTransforms = includeBaselineValueForNoncritical
-                    ? allTransformations[j]
-                    : allTransformations[j].Skip(1).ToList();
-
-                if (modifierOnlyTransforms.Count == 0)
-                    continue;
-
-                dimensions.Add(new VariableCombinationGenerator.Dimension<T>(
-                    $"D{j}",
-                    CriticalTransforms: null,
-                    ModifierTransforms: modifierOnlyTransforms,
-                    IsGlobal: false));
-            }
-
-            var combinations = VariableCombinationGenerator
-                .Generate(dimensions, optionsFactory)
-                .Cast<GameOptions>()
-                .ToList();
-
-            return new List<List<GameOptions>> { combinations };
-        }
-
-
-
-
-        // -----------------------------------------------------------------------------
-        //  Helpers (private)
-        // -----------------------------------------------------------------------------
-
-        private void AddDefaultNoncriticalValues<T>(IEnumerable<T> optionSet) where T : GameOptions
-        {
-            var defaults = DefaultVariableValues;
-            foreach (var opt in optionSet)
-                foreach (var (varName, defVal) in defaults)
-                    if (!opt.VariableSettings.ContainsKey(varName))
-                        opt.VariableSettings[varName] = defVal;
-        }
 
         #endregion
 
