@@ -25,10 +25,10 @@ namespace ACESim
             {
                 return new List<(string, string)>()
                 {
+                    ("Risk Aversion", "Risk Neutral"),
                     ("Costs Multiplier", "1"),
                     ("Fee Shifting Multiplier", "0"),
                     ("Damages Multiplier", "1"),
-                    ("Risk Aversion", "Risk Neutral"),
                     ("Liability Threshold", "1"),
                     ("Marginal Precaution Cost", "1E-05"),
                     ("Fee Shifting Rule", "English"),
@@ -44,10 +44,10 @@ namespace ACESim
 
         public override List<string> NamesOfVariationSets => new List<string>()
         {
+            "Risk Aversion",
             "Costs Multipliers",
             "Fee Shifting Multiples",
             "Damages Multiplier",
-            "Risk Aversion",
             "Liability Thresholds",
             "Marginal Precaution Costs",
             "Noise Multipliers", // includes P & D
@@ -63,10 +63,10 @@ namespace ACESim
             {
                 return new List<(string, string[])>()
                 {
+                    ("Risk Aversion", new[] { "Risk Neutral", "Moderately Risk Averse" }),
                     ("Costs Multiplier", CriticalCostsMultipliers.Select(x => x.ToString()).ToArray()),
                     ("Fee Shifting Multiplier", CriticalFeeShiftingMultipliers.Select(x => x.ToString()).ToArray()),
                     ("Damages Multiplier", CriticalDamagesMultipliers.Select(x => x.ToString()).ToArray()),
-                    ("Risk Aversion", new[] { "Risk Neutral", "Moderately Risk Averse" }),
                     ("Liability Threshold", CriticalLiabilityThresholds.Select(x => x.ToString()).ToArray()),
                     ("Marginal Precaution Cost", CriticalPrecautionCosts.Select(x => x.ToString()).ToArray()),
                 };
@@ -204,7 +204,7 @@ namespace ACESim
         public override List<List<GameOptions>> GetVariationSets(bool includeBaselineValueForNoncritical)
         {
             const int numCritical = 6; // critical transformations are all interacted with one another
-            const int numSupercritical = 5; // the supercritical of these are all interacted with all other transformations
+            const int numSupercritical = 1; // the supercritical of these are all interacted with all other transformations
             var criticalCostsMultiplierTransformations = CriticalCostsMultiplierTransformations(true);
             var noncriticalCostsMultiplierTransformations = AdditionalCostsMultiplierTransformations(includeBaselineValueForNoncritical);
             var criticalFeeShiftingMultipleTransformations = CriticalFeeShiftingMultiplierTransformations(true);
@@ -221,18 +221,18 @@ namespace ACESim
            {  
                // IMPORTANT: When changing these, change NamesOfFeeShiftingArticleSets to match each of these  
                // Can always choose any of these:  
+               criticalRiskAversionTransformations,
                criticalCostsMultiplierTransformations,
                criticalFeeShiftingMultipleTransformations,
                criticalDamagesMultiplierTransformations,
-               criticalRiskAversionTransformations,
                criticalLiabilityThresholdTransformations,
                criticalPrecautionCostTransformations,
                // IMPORTANT: Must follow with the corresponding noncritical transformations
-               // And then can vary ONE of these (avoiding inconsistencies with above):  
+               // And then can vary ONE of these (avoiding inconsistencies with above):
+               noncriticalRiskAversionTransformations,
                noncriticalCostsMultiplierTransformations, // i.e., not only the core costs multipliers and other core variables, but also the critical costs multipliers  
                noncriticalFeeShiftingMultipleTransformations,
                noncriticalDamagesMultiplierTransformations,
-               noncriticalRiskAversionTransformations,
                noncriticalLiabilityThresholdTransformations,
                noncriticalPrecautionCostTransformations,
                // Now other noncritical transformations

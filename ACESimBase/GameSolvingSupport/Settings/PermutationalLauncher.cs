@@ -219,27 +219,41 @@ namespace ACESimBase.GameSolvingSupport.Settings
         {
             var dimensions = new List<VariableCombinationGenerator.Dimension<T>>();
 
-            for (int i = 0; i < allTransformations.Count; i++)
+            /* pair each critical / super-critical list with the matching
+               non-critical list that follows the critical block */
+            for (int i = 0; i < numCritical; i++)
             {
-                bool isGlobal   = i < numSupercriticals;
-                bool isCore     = i < numCritical;
-                bool isModifier = i >= numCritical;
-
-                var list = allTransformations[i];
+                var criticalList  = allTransformations[i];
+                var modifierList  =
+                    i + numCritical < allTransformations.Count
+                        ? allTransformations[i + numCritical]
+                        : null;
 
                 dimensions.Add(new VariableCombinationGenerator.Dimension<T>(
                     $"D{i}",
-                    isCore     ? list : null,
-                    isModifier ? list : null,
-                    isGlobal));
+                    criticalList,
+                    modifierList,
+                    i < numSupercriticals));          // globals = super-criticals
             }
 
-            var flat = VariableCombinationGenerator.Generate(dimensions, optionsFactory)
-                                                   .Cast<GameOptions>()
-                                                   .ToList();
+            /* any remaining lists are modifier-only variables */
+            for (int i = 2 * numCritical; i < allTransformations.Count; i++)
+            {
+                dimensions.Add(new VariableCombinationGenerator.Dimension<T>(
+                    $"D{i}",
+                    null,
+                    allTransformations[i],
+                    false));
+            }
+
+            var flat = VariableCombinationGenerator
+                       .Generate(dimensions, optionsFactory)
+                       .Cast<GameOptions>()
+                       .ToList();
 
             return new List<List<GameOptions>> { flat };
         }
+
 
         // -----------------------------------------------------------------------------
         //  Helpers (private)
