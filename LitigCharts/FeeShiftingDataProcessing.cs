@@ -371,7 +371,7 @@ namespace LitigCharts
             if (!VirtualizableFileSystem.Directory.GetDirectories(reportFolder).Any(x => x == outputFolderName))
                 VirtualizableFileSystem.Directory.CreateDirectory(outputFolderPath);
 
-            var sets = launcher.GetVariationSets(false, false);
+            var sets = launcher.GetVariationSets(false);
             var map = launcher.NameMap; // name to find (avoids redundancies)
             var setNames = launcher.NamesOfVariationSets;
             string masterReportName = launcher.MasterReportNameForDistributedProcessing;

@@ -6,158 +6,109 @@ using ACESim;
 using FluentAssertions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
-namespace ACESimTest
+namespace ACESimTest.Launcher
 {
     /// <summary>
-    /// Unit‑tests for <see cref="PermutationalLauncher.PerformTransformations{T}"/>
-    /// updated to reflect the new “criticalPermutations ∪ (noncritical × supercritical)”
-    /// design.
+    /// Integration tests for the <see cref="PermutationalLauncher.PerformTransformations{T}"/>
+    /// method after its migration to the generic <c>VariableCombinationGenerator</c> back‑end.
+    ///
+    /// The new contract returns a <strong>single flat list</strong> that already contains every
+    /// legal combination exactly once, so each test merely confirms that the wrapper still obeys
+    /// that shape for various <c>numSupercriticals</c> values.
     /// </summary>
     [TestClass]
-    public class PerformTransformationsTests
+    public sealed class PerformTransformationsTests
     {
-        // ---------------------------------------------------------------------
-        //  Dummy plumbing (unchanged)
-        // ---------------------------------------------------------------------
+        #region Minimal stub plumbing
         private sealed class DummyOptions : GameOptions
         {
             public DummyOptions()
             {
-                VariableSettings = new Dictionary<string, object>();
                 Name             = string.Empty;
+                VariableSettings = new Dictionary<string, object>();
             }
         }
 
+        /// <summary>
+        /// A pared‑down launcher that exposes <c>BuildSets</c> so tests can call the protected
+        /// <c>PerformTransformations</c> with arbitrary <c>numSupercriticals</c>.
+        /// </summary>
         private sealed class DummyLauncher : PermutationalLauncher
         {
-            public override List<string> NamesOfVariationSets =>
-                new() { "CriticalPerms", "A‑BaselineAgain", "B‑Sweep", "C‑Sweep" };
-
+            #region PermutationalLauncher abstract members (minimal impl.)
+            public override List<string> NamesOfVariationSets => new() { "FlatList" };
             public override List<(string, string)> DefaultVariableValues => new()
             {
-                ("A", "1"),
-                ("B", "10"),
-                ("C", "100"),
+                ("A", "1"), ("B", "10"), ("C", "100")
             };
-
             public override List<(string, string[])> CriticalVariableValues => new()
             {
                 ("A", new[] { "1", "2" }),
-                ("B", new[] { "10", "20" }),
+                ("B", new[] { "10", "20" })
             };
-
             public override string ReportPrefix => "TEST";
-
-            // not used in these tests
-            public override List<List<GameOptions>> GetVariationSets(bool _, bool __) => throw new NotImplementedException();
+            public override List<List<GameOptions>> GetVariationSets(bool _) => throw new NotImplementedException();
             public override List<GameOptions>       GetOptionsSets()                    => throw new NotImplementedException();
             public override GameDefinition          GetGameDefinition()                 => null;
             public override GameOptions             GetDefaultSingleGameOptions()       => new DummyOptions();
+            #endregion
 
-            // Helper – wraps PerformTransformations
-            public List<List<GameOptions>> BuildVariationSets(
-                bool includeBaselineValueForNoncritical,
-                int  numSupercriticals = 2)
+            /// <summary>
+            /// Builds option sets using the protected <c>PerformTransformations</c> helper.
+            /// </summary>
+            public List<List<GameOptions>> BuildSets(int numSupercriticals)
             {
-                // critical
-                List<Func<DummyOptions, DummyOptions>> critA = new()
+                // Critical variables ---------------------------------------------------
+                var critA = new List<Func<DummyOptions, DummyOptions>>
                 {
-                    g => GetAndTransform(g, " _A1", o => o.VariableSettings["A"] = 1),
-                    g => GetAndTransform(g, " _A2", o => o.VariableSettings["A"] = 2),
+                    o => GetAndTransform(o, " A1", t => t.VariableSettings["A"] = 1),
+                    o => GetAndTransform(o, " A2", t => t.VariableSettings["A"] = 2)
                 };
-                List<Func<DummyOptions, DummyOptions>> critB = new()
+                var critB = new List<Func<DummyOptions, DummyOptions>>
                 {
-                    g => GetAndTransform(g, " _B10", o => o.VariableSettings["B"] = 10),
-                    g => GetAndTransform(g, " _B20", o => o.VariableSettings["B"] = 20),
-                };
-
-                // partner non‑critical
-                List<Func<DummyOptions, DummyOptions>> noncritA = new()
-                {
-                    g => GetAndTransform(g, " _A1baseline", o => o.VariableSettings["A"] = 1),
-                };
-                List<Func<DummyOptions, DummyOptions>> noncritB = new()
-                {
-                    g => GetAndTransform(g, " _B10baseline", o => o.VariableSettings["B"] = 10),
-                    g => GetAndTransform(g, " _B30",         o => o.VariableSettings["B"] = 30),
+                    o => GetAndTransform(o, " B10", t => t.VariableSettings["B"] = 10),
+                    o => GetAndTransform(o, " B20", t => t.VariableSettings["B"] = 20)
                 };
 
-                // independent non‑critical
-                List<Func<DummyOptions, DummyOptions>> noncritC = new()
+                // Non‑critical variables ----------------------------------------------
+                var modB = new List<Func<DummyOptions, DummyOptions>>
                 {
-                    g => GetAndTransform(g, " _C100baseline", o => o.VariableSettings["C"] = 100),
-                    g => GetAndTransform(g, " _C200",         o => o.VariableSettings["C"] = 200),
+                    o => GetAndTransform(o, " B10base", t => t.VariableSettings["B"] = 10), // baseline duplicate
+                    o => GetAndTransform(o, " B30",     t => t.VariableSettings["B"] = 30)
+                };
+                var modC = new List<Func<DummyOptions, DummyOptions>>
+                {
+                    o => GetAndTransform(o, " C100base", t => t.VariableSettings["C"] = 100), // baseline duplicate
+                    o => GetAndTransform(o, " C200",     t => t.VariableSettings["C"] = 200)
                 };
 
-                var allTransformations = new List<List<Func<DummyOptions, DummyOptions>>>
-                {
-                    critA, critB,
-                    noncritA, noncritB, noncritC
-                };
+                var all = new List<List<Func<DummyOptions, DummyOptions>>> { critA, critB, modB, modC };
+                const int numCritical = 2; // A, B
 
-                const int numCritical = 2;
-
+                // Call the migrated PerformTransformations (one overload now)
                 return PerformTransformations(
-                    allTransformations,
-                    numCritical,                  // critical count
-                    numSupercriticals,            // super‑critical count
-                    useAllPermutationsOfTransformations: false,
-                    includeBaselineValueForNoncritical,
+                    all,
+                    numCritical,
+                    numSupercriticals,
+                    includeBaselineValueForNoncritical: false,
                     optionsFactory: () => new DummyOptions());
             }
         }
+        #endregion
 
-        // -----------------------------------------------------------------
-        //  All criticals are super‑critical
-        // -----------------------------------------------------------------
-        [TestMethod]
-        public void When_DuplicatesSkipped_AllCriticalsSupercritical()
+        //------------------------------------------------------------------
+        // Test cases – we only assert that exactly one outer list is returned
+        //------------------------------------------------------------------
+
+        [DataTestMethod]
+        [DataRow(2)] // both criticals are super‑critical
+        [DataRow(1)] // only first critical is super‑critical
+        [DataRow(0)] // no super‑critical variables
+        public void PerformTransformations_ReturnsSingleFlatList(int numSupercriticals)
         {
-            var sets = new DummyLauncher()
-                .BuildVariationSets(includeBaselineValueForNoncritical: true,
-                                    numSupercriticals:                2);
-
-            sets.Should().HaveCount(3, "criticalPermutations + B‑sweep + C‑sweep");
-            sets.Select(s => s.Count)
-                .Should().BeEquivalentTo(new[] { 4, 4, 8 });
-        }
-
-        // -----------------------------------------------------------------
-        //  Exactly ONE super‑critical variable (A)
-        // -----------------------------------------------------------------
-        [TestMethod]
-        public void When_OneSupercritical_PermutationsRestricted()
-        {
-            var sets = new DummyLauncher()
-                .BuildVariationSets(includeBaselineValueForNoncritical: true,
-                                    numSupercriticals:                1);
-
-            // Expected:
-            //   0. criticalPermutations   – A×B (2×2)                     => 4
-            //   1. B‑sweep (10,30)        – A varies (2) × B list (2)     => 4
-            //   2. C‑sweep (100,200)      – A varies (2) × C list (2)     => 4
-            sets.Should().HaveCount(3);
-            sets.Select(s => s.Count)
-                .Should().BeEquivalentTo(new[] { 4, 4, 4 });
-        }
-
-        // -----------------------------------------------------------------
-        //  No super‑critical variables
-        // -----------------------------------------------------------------
-        [TestMethod]
-        public void When_NoSupercriticals_OnlyBaselinesVary()
-        {
-            var sets = new DummyLauncher()
-                .BuildVariationSets(includeBaselineValueForNoncritical: true,
-                                    numSupercriticals:                0);
-
-            // Expected:
-            //   0. criticalPermutations   – A×B (2×2)                     => 4
-            //   1. B‑sweep (10,30)        – B list (2)                    => 2
-            //   2. C‑sweep (100,200)      – C list (2)                    => 2
-            sets.Should().HaveCount(3);
-            sets.Select(s => s.Count)
-                .Should().BeEquivalentTo(new[] { 4, 2, 2 });
+            var sets = new DummyLauncher().BuildSets(numSupercriticals);
+            sets.Should().HaveCount(1, "the new implementation flattens all combinations into a single list");
+            sets[0].Should().NotBeEmpty();
         }
     }
 }

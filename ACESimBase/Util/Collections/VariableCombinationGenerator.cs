@@ -98,8 +98,7 @@ namespace ACESimBase.Util.Combinatorics
         }
 
         /// <summary>
-        /// Generates the complete set of option objects under the rules explained in the class‑level
-        /// documentation.
+        /// Generates the complete set of option objects.
         /// </summary>
         /// <typeparam name="T">Type of the option object.</typeparam>
         /// <param name="dimensions">All dimensions with their roles and transforms.</param>

@@ -1,5 +1,6 @@
 ﻿using ACESim;
 using ACESimBase.Util.Collections;
+using ACESimBase.Util.Combinatorics;
 using ACESimBase.Util.Debugging;
 using System;
 using System.Collections.Generic;
@@ -208,148 +209,74 @@ namespace ACESimBase.GameSolvingSupport.Settings
             return result;
         }
 
-        /// <summary>
-        /// Subclasses may override to switch off <strong>all</strong> non‑critical dimensions in the
-        /// variation builder.  Defaults to <c>true</c> so behaviour is unchanged for existing
-        /// launchers.
-        /// </summary>
-        protected virtual bool IncludeNonCriticalTransformations => true;
-
-        /// <summary>
-        /// Convenience overload: treats <paramref name="numCritical"/> critical variables as
-        /// “super‑critical” too (i.e., makes no distinction).
-        /// </summary>
         protected List<List<GameOptions>> PerformTransformations<T>(
             List<List<Func<T, T>>> allTransformations,
             int numCritical,
-            bool useAllPermutationsOfTransformations,
-            bool includeBaselineValueForNoncritical,
-            Func<T> optionsFn)
-            where T : GameOptions
-        {
-            return PerformTransformations(
-                allTransformations,
-                numCritical,
-                numCritical,
-                useAllPermutationsOfTransformations,
-                includeBaselineValueForNoncritical,
-                optionsFn);
-        }
-
-        /// <summary>
-        /// Main workhorse.  Generates a list of batches, where each batch is itself a list of
-        /// <see cref="GameOptions"/>.  Batch 0 is always the full Cartesian product of the critical
-        /// variables.  Each subsequent batch is a one‑at‑a‑time sweep of a single non‑critical
-        /// dimension as described in the class‑level documentation.
-        ///
-        /// <para><b>Parameters</b></para>
-        /// <paramref name="allTransformations"/>  Outer list = dimensions; inner list = values.
-        /// <br/>
-        /// <paramref name="numCritical"/>         Number of leading dimensions that are critical.
-        /// <br/>
-        /// <paramref name="numSupercriticals"/>   Legacy parameter – retained for signature
-        ///                                          compatibility but no longer used, as the coverage
-        ///                                          guarantee for super‑critical variables is now
-        ///                                          automatic.
-        /// <br/>
-        /// <paramref name="useAllPermutationsOfTransformations"/> If <c>true</c> the method produces
-        ///                                          a single batch containing the full Cartesian
-        ///                                          product across <em>all</em> dimensions and returns
-        ///                                          immediately.
-        /// <br/>
-        /// <paramref name="includeBaselineValueForNoncritical"/> If <c>true</c>, keeps any
-        ///                                          non‑critical list that contains only the baseline
-        ///                                          transform so that an explicit “baseline” row
-        ///                                          appears inside its sweep.
-        /// <br/>
-        /// <paramref name="optionsFactory"/>     User‑supplied factory that returns a fresh baseline
-        ///                                          <see cref="GameOptions"/> instance.
-        /// </summary>
-        protected List<List<GameOptions>> PerformTransformations<T>(
-            List<List<Func<T, T>>> allTransformations,
-            int numCritical,
-            int numSupercriticals,    // kept for backwards compatibility – no longer used
-            bool useAllPermutationsOfTransformations,
+            int numSupercriticals,
             bool includeBaselineValueForNoncritical,
             Func<T> optionsFactory)
             where T : GameOptions
         {
-            // ------------------------------------------------------------------
-            // 0. Sanity ‑‑ partition the transform lists
-            // ------------------------------------------------------------------
-            var criticalLists = allTransformations.Take(numCritical).ToList();
-            var noncriticalLists = IncludeNonCriticalTransformations
-                ? allTransformations.Skip(numCritical).ToList()
-                : new List<List<Func<T, T>>>();
-
-            // ------------------------------------------------------------------
-            // 1. Fast‑path: caller wants the full Cartesian product across everything
-            // ------------------------------------------------------------------
-            if (useAllPermutationsOfTransformations)
+            // 1  Map each transformation list to a role understood by VariableCombinationGenerator
+            var dimensions = new List<VariableCombinationGenerator.Dimension<T>>();
+            for (int i = 0; i < allTransformations.Count; i++)
             {
-                var fullGrid = ApplyPermutationsOfTransformations(
-                    optionsFactory,
-                    criticalLists.Concat(noncriticalLists).ToList());
+                var role = i < numSupercriticals
+                    ? VariableCombinationGenerator.DimensionRole.Global
+                    : i < numCritical
+                        ? VariableCombinationGenerator.DimensionRole.Core
+                        : VariableCombinationGenerator.DimensionRole.Modifier;
 
-                return new List<List<GameOptions>> { fullGrid.Cast<GameOptions>().ToList() };
+                dimensions.Add(new VariableCombinationGenerator.Dimension<T>($"D{i}", allTransformations[i], role));
             }
 
-            // ------------------------------------------------------------------
-            // 2. Batch 0 – complete Cartesian product of the critical variables
-            // ------------------------------------------------------------------
-            var resultBatches = new List<List<T>>
+            // 2  Generate every combination once
+            var allOptions = VariableCombinationGenerator.Generate(
+                dimensions,
+                optionsFactory,
+                includeBaselineValueForNoncritical);
+
+            // 3  Re-create the historical batch structure
+            var modifierDims = dimensions
+                .Where(d => d.Role == VariableCombinationGenerator.DimensionRole.Modifier)
+                .ToArray();
+
+            bool IsModifierDefault(T opt, VariableCombinationGenerator.Dimension<T> mod)
             {
-                ApplyPermutationsOfTransformations(optionsFactory, criticalLists)
+                var baseline = optionsFactory();
+                var applied  = mod.Transforms[0](optionsFactory());
+                return opt.ToString() == applied.ToString();   // simple string compare is enough
+            }
+
+            // Batch 0 – all modifiers at default
+            var batches = new List<List<GameOptions>>
+            {
+                allOptions
+                    .Where(o => modifierDims.All(m => IsModifierDefault(o, m)))
+                    .Cast<GameOptions>()
+                    .ToList()
             };
-            foreach (var batch in resultBatches)
-                AddDefaultNoncriticalValues(batch);
+            AddDefaultNoncriticalValues(batches[0]);
 
-            // ------------------------------------------------------------------
-            // 3. One‑non‑critical‑at‑a‑time sweeps
-            // ------------------------------------------------------------------
-            foreach (var noncritList in noncriticalLists)
+            // One batch per modifier dimension
+            foreach (var mod in modifierDims)
             {
-                // Skip empty lists outright
-                if (noncritList is null || noncritList.Count == 0)
-                    continue;
-
-                // Optionally drop lists that contain only the baseline transform
-                if (!includeBaselineValueForNoncritical && noncritList.Count == 1)
-                    continue;
-
-                var sweep = new List<T>();
-
-                foreach (var noncritTransform in noncritList)
-                {
-                    for (int critIndex = 0; critIndex < numCritical; critIndex++)
-                    {
-                        foreach (var critTransform in criticalLists[critIndex])
-                        {
-                            var opts = optionsFactory();
-                            opts = noncritTransform(opts);
-                            opts = critTransform(opts);
-                            sweep.Add(opts);
-                        }
-                    }
-                }
-
-                // Deduplicate by the exact variable‑settings dictionary
-                sweep = sweep
-                    .GroupBy(o => string.Join("|", o.VariableSettings.OrderBy(kv => kv.Key).Select(kv => $"{kv.Key}={kv.Value}")))
-                    .Select(g => g.First())
+                var sweep = allOptions
+                    .Where(o => !IsModifierDefault(o, mod) &&
+                                modifierDims.All(m => m == mod || IsModifierDefault(o, m)))
+                    .Cast<GameOptions>()
                     .ToList();
 
+                if (sweep.Count == 0)
+                    continue;
+
                 AddDefaultNoncriticalValues(sweep);
-                resultBatches.Add(sweep);
+                batches.Add(sweep);
             }
 
-            // ------------------------------------------------------------------
-            // 4. Convert to the public return type and hand back
-            // ------------------------------------------------------------------
-            return resultBatches
-                .Select(batch => batch.Cast<GameOptions>().ToList())
-                .ToList();
+            return batches;
         }
+
 
         // -----------------------------------------------------------------------------
         //  Helpers (private)
@@ -379,7 +306,6 @@ namespace ACESimBase.GameSolvingSupport.Settings
         /// of <see cref="NamesOfVariationSets"/>.
         /// </summary>
         public abstract List<List<GameOptions>> GetVariationSets(
-            bool useAllPermutationsOfTransformations,
             bool includeBaselineValueForNoncritical);
 
         /// <summary>
@@ -397,7 +323,7 @@ namespace ACESimBase.GameSolvingSupport.Settings
         /// </summary>
         public void AddToOptionsSets(List<GameOptions> options, bool allowRedundancies)
         {
-            var gamesSets = GetVariationSets(false, allowRedundancies); // non‑critical sets
+            var gamesSets = GetVariationSets(allowRedundancies); // non‑critical sets
             List<GameOptions> eachGameIndependently = FlattenAndOrderGameSets(gamesSets);
 
             List<string> optionChoices = eachGameIndependently

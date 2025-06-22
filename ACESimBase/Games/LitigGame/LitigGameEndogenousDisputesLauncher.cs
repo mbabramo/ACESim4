@@ -201,7 +201,7 @@ namespace ACESim
             return eachGameIndependently.Select(x => (GameOptions) x).ToList();
         }
 
-        public override List<List<GameOptions>> GetVariationSets(bool useAllPermutationsOfTransformations, bool includeBaselineValueForNoncritical)
+        public override List<List<GameOptions>> GetVariationSets(bool includeBaselineValueForNoncritical)
         {
             const int numCritical = 6; // critical transformations are all interacted with one another
             const int numSupercritical = 5; // the supercritical of these are all interacted with all other transformations
@@ -242,7 +242,7 @@ namespace ACESim
                ProportionOfCostsAtBeginningTransformations(includeBaselineValueForNoncritical),
                PrecautionCostPerceptionMultiplierTransformations(includeBaselineValueForNoncritical),
            };
-            List<List<GameOptions>> result = PerformTransformations(allTransformations, numCritical, numSupercritical, useAllPermutationsOfTransformations, includeBaselineValueForNoncritical, LitigGameOptionsGenerator.GetLitigGameOptions);
+            List<List<GameOptions>> result = PerformTransformations(allTransformations, numCritical, numSupercritical,  includeBaselineValueForNoncritical, LitigGameOptionsGenerator.GetLitigGameOptions);
             return result;
         }
 

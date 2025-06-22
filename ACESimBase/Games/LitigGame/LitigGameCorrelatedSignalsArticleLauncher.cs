@@ -155,7 +155,7 @@ namespace ACESim
             return result;
         }
 
-        public override List<List<GameOptions>> GetVariationSets(bool useAllPermutationsOfTransformations, bool includeBaselineValueForNoncritical)
+        public override List<List<GameOptions>> GetVariationSets(bool includeBaselineValueForNoncritical)
         {
             const int numCritical = 3; // critical transformations are all interacted with one another and then with each of the other transformations
             var criticalCostsMultiplierTransformations = CriticalCostsMultiplierTransformations(true);
@@ -186,7 +186,7 @@ namespace ACESim
                 ProportionOfCostsAtBeginningTransformations(includeBaselineValueForNoncritical),
             };
             
-            List<List<GameOptions>> result = PerformTransformations(allTransformations, numCritical, useAllPermutationsOfTransformations, includeBaselineValueForNoncritical, LitigGameOptionsGenerator.GetLitigGameOptions);
+            List<List<GameOptions>> result = PerformTransformations(allTransformations, numCritical, numCritical,  includeBaselineValueForNoncritical, LitigGameOptionsGenerator.GetLitigGameOptions);
             return result;
         }
 
