@@ -5,6 +5,7 @@ using ACESimBase.Games.LitigGame.PrecautionModel;
 using ACESimBase.GameSolvingSupport.DeepCFRSupport;
 using ACESimBase.GameSolvingSupport.Settings;
 using ACESimBase.Util.Collections;
+using ACESimBase.Util.Combinatorics;
 using ACESimBase.Util.Mathematics;
 using JetBrains.Annotations;
 using System;
@@ -200,50 +201,90 @@ namespace ACESim
                 .ToList();
             return eachGameIndependently.Select(x => (GameOptions) x).ToList();
         }
-
         public override List<List<GameOptions>> GetVariationSets(bool includeBaselineValueForNoncritical)
         {
-            const int numCritical = 6; // critical transformations are all interacted with one another
-            const int numSupercritical = 1; // the supercritical of these are all interacted with all other transformations
-            var criticalCostsMultiplierTransformations = CriticalCostsMultiplierTransformations(true);
-            var noncriticalCostsMultiplierTransformations = AdditionalCostsMultiplierTransformations(includeBaselineValueForNoncritical);
-            var criticalFeeShiftingMultipleTransformations = CriticalFeeShiftingMultiplierTransformations(true);
-            var noncriticalFeeShiftingMultipleTransformations = AdditionalFeeShiftingMultiplierTransformations(includeBaselineValueForNoncritical);
-            var criticalDamagesMultiplierTransformations = CriticalDamagesMultiplierTransformations(true);
-            var noncriticalDamagesMultiplierTransformations = AdditionalDamagesMultiplierTransformations(includeBaselineValueForNoncritical);
-            var criticalRiskAversionTransformations = CriticalRiskAversionTransformations(true);
-            var noncriticalRiskAversionTransformations = AdditionalRiskAversionTransformations(includeBaselineValueForNoncritical);
-            var criticalLiabilityThresholdTransformations = CriticalLiabilityThresholdTransformations(true);
-            var noncriticalLiabilityThresholdTransformations = AdditionalLiabilityThresholdTransformations(includeBaselineValueForNoncritical);
-            var criticalPrecautionCostTransformations = CriticalPrecautionCostTransformations(true);
-            var noncriticalPrecautionCostTransformations = AdditionalPrecautionCostTransformations(includeBaselineValueForNoncritical);
-            List<List<Func<LitigGameOptions, LitigGameOptions>>> allTransformations = new List<List<Func<LitigGameOptions, LitigGameOptions>>>()
-           {  
-               // IMPORTANT: When changing these, change NamesOfFeeShiftingArticleSets to match each of these  
-               // Can always choose any of these:  
-               criticalRiskAversionTransformations,
-               criticalCostsMultiplierTransformations,
-               criticalFeeShiftingMultipleTransformations,
-               criticalDamagesMultiplierTransformations,
-               criticalLiabilityThresholdTransformations,
-               criticalPrecautionCostTransformations,
-               // IMPORTANT: Must follow with the corresponding noncritical transformations
-               // And then can vary ONE of these (avoiding inconsistencies with above):
-               noncriticalRiskAversionTransformations,
-               noncriticalCostsMultiplierTransformations, // i.e., not only the core costs multipliers and other core variables, but also the critical costs multipliers  
-               noncriticalFeeShiftingMultipleTransformations,
-               noncriticalDamagesMultiplierTransformations,
-               noncriticalLiabilityThresholdTransformations,
-               noncriticalPrecautionCostTransformations,
-               // Now other noncritical transformations
-               NoiseTransformations(includeBaselineValueForNoncritical),
-               PRelativeCostsTransformations(includeBaselineValueForNoncritical),
-               // FeeShiftingModeTransformations(includeBaselineValueForNoncritical),  // TODO: Add this back in by providing support for Bayesian logic with the margin-of-victory approach -- then make change in NamesOfVariationSets
-               ProportionOfCostsAtBeginningTransformations(includeBaselineValueForNoncritical),
-               PrecautionCostPerceptionMultiplierTransformations(includeBaselineValueForNoncritical),
-           };
-            List<List<GameOptions>> result = PerformTransformations(allTransformations, numCritical, numSupercritical,  includeBaselineValueForNoncritical, LitigGameOptionsGenerator.GetLitigGameOptions);
-            return result;
+            // helper -------------------------------------------------------------
+            static List<Func<LitigGameOptions, LitigGameOptions>> Trim(
+                List<Func<LitigGameOptions, LitigGameOptions>> list,
+                bool keepBaseline) =>
+                keepBaseline ? list : list.Skip(1).ToList();
+
+            // critical + extras (paired) ----------------------------------------
+            var dims = new List<VariableCombinationGenerator.Dimension<LitigGameOptions>>
+            {
+                // super-critical
+                new("RiskAversion",
+                    CriticalRiskAversionTransformations(true),
+                    Trim(AdditionalRiskAversionTransformations(includeBaselineValueForNoncritical),
+                         includeBaselineValueForNoncritical),
+                    IsGlobal: true),
+
+                new("CostsMultiplier",
+                    CriticalCostsMultiplierTransformations(true),
+                    Trim(AdditionalCostsMultiplierTransformations(includeBaselineValueForNoncritical),
+                         includeBaselineValueForNoncritical)),
+
+                new("FeeShiftingMultiplier",
+                    CriticalFeeShiftingMultiplierTransformations(true),
+                    Trim(AdditionalFeeShiftingMultiplierTransformations(includeBaselineValueForNoncritical),
+                         includeBaselineValueForNoncritical)),
+
+                new("DamagesMultiplier",
+                    CriticalDamagesMultiplierTransformations(true),
+                    Trim(AdditionalDamagesMultiplierTransformations(includeBaselineValueForNoncritical),
+                         includeBaselineValueForNoncritical)),
+
+                new("LiabilityThreshold",
+                    CriticalLiabilityThresholdTransformations(true),
+                    Trim(AdditionalLiabilityThresholdTransformations(includeBaselineValueForNoncritical),
+                         includeBaselineValueForNoncritical)),
+
+                new("PrecautionCost",
+                    CriticalPrecautionCostTransformations(true),
+                    Trim(AdditionalPrecautionCostTransformations(includeBaselineValueForNoncritical),
+                         includeBaselineValueForNoncritical)),
+
+                // modifier-only variables
+                new("Noise",
+                    null,
+                    Trim(NoiseTransformations(includeBaselineValueForNoncritical),
+                         includeBaselineValueForNoncritical)),
+
+                new("RelativeCosts",
+                    null,
+                    Trim(PRelativeCostsTransformations(includeBaselineValueForNoncritical),
+                         includeBaselineValueForNoncritical)),
+
+                new("CostsStartFraction",
+                    null,
+                    Trim(ProportionOfCostsAtBeginningTransformations(includeBaselineValueForNoncritical),
+                         includeBaselineValueForNoncritical)),
+
+                new("PrecautionCostPerception",
+                    null,
+                    Trim(PrecautionCostPerceptionMultiplierTransformations(includeBaselineValueForNoncritical),
+                         includeBaselineValueForNoncritical))
+            };
+
+            // prune empty modifier-only dimensions ------------------------------
+            dims = dims.Where(d => d.CriticalTransforms != null ||
+                                   d.ModifierTransforms?.Count > 0).ToList();
+
+            // generate ----------------------------------------------------------
+            var raw = VariableCombinationGenerator
+                      .Generate(dims, LitigGameOptionsGenerator.GetLitigGameOptions)
+                      .Cast<GameOptions>();
+
+            // de-duplicate on the actual variable assignments -------------------
+            var unique = raw
+                .GroupBy(o => string.Join("|",
+                    o.VariableSettings
+                     .OrderBy(kv => kv.Key)
+                     .Select(kv => $"{kv.Key}={kv.Value}")))
+                .Select(g => g.First())
+                .ToList();
+
+            return new List<List<GameOptions>> { unique };
         }
 
         public override List<SimulationSetsIdentifier> GetSimulationSetsIdentifiers(SimulationSetsTransformer transformer = null)

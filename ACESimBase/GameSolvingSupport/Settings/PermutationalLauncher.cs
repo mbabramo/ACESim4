@@ -209,6 +209,40 @@ namespace ACESimBase.GameSolvingSupport.Settings
             return result;
         }
 
+        /// <summary>
+        /// Builds a single flattened list of <see cref="GameOptions"/> by delegating to
+        /// <see cref="VariableCombinationGenerator"/>. Set <paramref name="removeDuplicates"/> to
+        /// <c>true</c> (default) when identical variable–value assignments should collapse to one row.
+        /// </summary>
+        protected List<GameOptions> GenerateCombinations<T>(
+            IReadOnlyList<VariableCombinationGenerator.Dimension<T>> dimensions,
+            Func<T> optionsFactory,
+            bool removeDuplicates = true)
+            where T : GameOptions
+        {
+            if (dimensions is null)
+                throw new ArgumentNullException(nameof(dimensions));
+            if (optionsFactory is null)
+                throw new ArgumentNullException(nameof(optionsFactory));
+
+            var list = VariableCombinationGenerator
+                .Generate(dimensions, optionsFactory)
+                .Cast<GameOptions>()
+                .ToList();
+
+            if (!removeDuplicates)
+                return list;
+
+            return list
+                .GroupBy(o => string.Join("|",
+                    o.VariableSettings
+                     .OrderBy(kv => kv.Key)
+                     .Select(kv => $"{kv.Key}={kv.Value}")))
+                .Select(g => g.First())
+                .ToList();
+        }
+
+
         protected List<List<GameOptions>> PerformTransformations<T>(
             List<List<Func<T, T>>> allTransformations,
             int numCritical,
@@ -219,40 +253,56 @@ namespace ACESimBase.GameSolvingSupport.Settings
         {
             var dimensions = new List<VariableCombinationGenerator.Dimension<T>>();
 
-            /* pair each critical / super-critical list with the matching
-               non-critical list that follows the critical block */
+            // critical (and super-critical) variables, each optionally paired with its modifier list
             for (int i = 0; i < numCritical; i++)
             {
-                var criticalList  = allTransformations[i];
-                var modifierList  =
-                    i + numCritical < allTransformations.Count
-                        ? allTransformations[i + numCritical]
-                        : null;
+                var criticalTransforms = allTransformations[i];
+
+                List<Func<T, T>> modifierTransforms = null;
+                int modifierIndex = i + numCritical;
+                if (modifierIndex < allTransformations.Count)
+                {
+                    modifierTransforms = includeBaselineValueForNoncritical
+                        ? allTransformations[modifierIndex]
+                        : allTransformations[modifierIndex].Skip(1).ToList();
+
+                    if (modifierTransforms.Count == 0)
+                        modifierTransforms = null;
+                }
 
                 dimensions.Add(new VariableCombinationGenerator.Dimension<T>(
                     $"D{i}",
-                    criticalList,
-                    modifierList,
-                    i < numSupercriticals));          // globals = super-criticals
+                    criticalTransforms,
+                    modifierTransforms,
+                    IsGlobal: i < numSupercriticals));
             }
 
-            /* any remaining lists are modifier-only variables */
-            for (int i = 2 * numCritical; i < allTransformations.Count; i++)
+            // remaining lists are modifier-only variables
+            for (int j = 2 * numCritical; j < allTransformations.Count; j++)
             {
+                var modifierOnlyTransforms = includeBaselineValueForNoncritical
+                    ? allTransformations[j]
+                    : allTransformations[j].Skip(1).ToList();
+
+                if (modifierOnlyTransforms.Count == 0)
+                    continue;
+
                 dimensions.Add(new VariableCombinationGenerator.Dimension<T>(
-                    $"D{i}",
-                    null,
-                    allTransformations[i],
-                    false));
+                    $"D{j}",
+                    CriticalTransforms: null,
+                    ModifierTransforms: modifierOnlyTransforms,
+                    IsGlobal: false));
             }
 
-            var flat = VariableCombinationGenerator
-                       .Generate(dimensions, optionsFactory)
-                       .Cast<GameOptions>()
-                       .ToList();
+            var combinations = VariableCombinationGenerator
+                .Generate(dimensions, optionsFactory)
+                .Cast<GameOptions>()
+                .ToList();
 
-            return new List<List<GameOptions>> { flat };
+            return new List<List<GameOptions>> { combinations };
         }
+
+
 
 
         // -----------------------------------------------------------------------------
