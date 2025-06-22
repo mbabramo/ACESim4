@@ -24,24 +24,6 @@ namespace ACESim
         public bool LimitToAmerican = true;
         public bool UseSmallerTree = true; 
 
-
-        public override List<string> NamesOfVariationSets => new List<string>()
-        {
-           // "Additional Costs Multipliers",
-           // "Additional Fee Shifting Multipliers",
-           // "Additional Risk Options",
-            "Costs Multipliers",
-            "Fee Shifting Multiples",
-            "Risk Aversion",
-            "Noise Multipliers", // includes P & D
-            "Relative Costs",
-            "Fee Shifting Mode",
-            "Allowing Abandon and Defaults",
-            "Probability Truly Liable",
-            "Noise to Produce Case Strength",
-            "Liability vs Damages",
-            "Proportion of Costs at Beginning",
-        };
         public override List<(string, string)> DefaultVariableValues
         {
             get
@@ -120,8 +102,7 @@ namespace ACESim
 
         public void AddFeeShiftingArticleGames(List<GameOptions> options)
         {
-            bool includeBaselineValueForNoncritical = false; // By setting this to false, we avoid repeating the baseline value for noncritical transformations, which would produce redundant options sets.
-            AddToOptionsSets(options, includeBaselineValueForNoncritical);
+            AddToOptionsSets(options);
             if (UseSmallerTree)
             {
                 foreach (var option in options)
@@ -156,92 +137,75 @@ namespace ACESim
             return result;
         }
 
-        public override List<List<GameOptions>> GetVariationSets(bool includeBaselineValueForNoncritical)
+        public override List<GameOptions> GetVariationSets()
         {
-            static List<Func<LitigGameOptions, LitigGameOptions>> Trim(
-                List<Func<LitigGameOptions, LitigGameOptions>> list,
-                bool keepBaseline) =>
-                keepBaseline ? list : list.Skip(1).ToList();
-
             var dims = new List<VariableCombinationGenerator.Dimension<LitigGameOptions>>
             {
                 // global critical dimensions (three)
                 new("CostsMultiplier",
-                    CriticalCostsMultiplierTransformations(true),
-                    Trim(AdditionalCostsMultiplierTransformations(includeBaselineValueForNoncritical),
-                         includeBaselineValueForNoncritical),
+                    CriticalCostsMultiplierTransformations(),
+                    AdditionalCostsMultiplierTransformations(),
                     IsGlobal: true),
 
                 new("FeeShiftingMultiplier",
-                    CriticalFeeShiftingMultiplierTransformations(true),
-                    Trim(AdditionalFeeShiftingMultiplierTransformations(includeBaselineValueForNoncritical),
-                         includeBaselineValueForNoncritical),
+                    CriticalFeeShiftingMultiplierTransformations(),
+                    AdditionalFeeShiftingMultiplierTransformations(),
                     IsGlobal: true),
 
                 new("RiskAversion",
-                    CriticalRiskAversionTransformations(true),
-                    Trim(AdditionalRiskAversionTransformations(includeBaselineValueForNoncritical),
-                         includeBaselineValueForNoncritical),
+                    CriticalRiskAversionTransformations(),
+                    AdditionalRiskAversionTransformations(),
                     IsGlobal: true),
 
                 // modifier-only variables
                 new("Noise",
                     null,
-                    Trim(NoiseTransformations(includeBaselineValueForNoncritical),
-                         includeBaselineValueForNoncritical)),
+                    NoiseTransformations()
+                    ),
 
                 new("RelativeCosts",
                     null,
-                    Trim(PRelativeCostsTransformations(includeBaselineValueForNoncritical),
-                         includeBaselineValueForNoncritical)),
+                    PRelativeCostsTransformations()
+                    ),
 
                 new("FeeShiftingMode",
                     null,
-                    Trim(FeeShiftingModeTransformations(includeBaselineValueForNoncritical),
-                         includeBaselineValueForNoncritical)),
+                    FeeShiftingModeTransformations()
+                    ),
 
                 new("AllowAbandon",
                     null,
-                    Trim(AllowAbandonAndDefaultsTransformations(includeBaselineValueForNoncritical),
-                         includeBaselineValueForNoncritical)),
+                    AllowAbandonAndDefaultsTransformations()
+                    ),
 
                 new("ProbabilityTrulyLiable",
                     null,
-                    Trim(ProbabilityTrulyLiableTransformations(includeBaselineValueForNoncritical),
-                         includeBaselineValueForNoncritical)),
+                    ProbabilityTrulyLiableTransformations()
+                    ),
 
                 new("NoiseForCaseStrength",
                     null,
-                    Trim(NoiseToProduceCaseStrengthTransformations(includeBaselineValueForNoncritical),
-                         includeBaselineValueForNoncritical)),
+                    NoiseToProduceCaseStrengthTransformations()
+                    ),
 
                 new("LiabilityVsDamages",
                     null,
-                    Trim(LiabilityVsDamagesTransformations(includeBaselineValueForNoncritical),
-                         includeBaselineValueForNoncritical)),
+                    LiabilityVsDamagesTransformations()
+                    ),
 
                 new("CostsStartFraction",
                     null,
-                    Trim(ProportionOfCostsAtBeginningTransformations(includeBaselineValueForNoncritical),
-                         includeBaselineValueForNoncritical))
+                    ProportionOfCostsAtBeginningTransformations()
+                    )
             };
 
             dims = dims.Where(d => d.CriticalTransforms != null ||
                                    d.ModifierTransforms?.Count > 0).ToList();
 
-            var unique = VariableCombinationGenerator
-                .Generate(dims, LitigGameOptionsGenerator.GetLitigGameOptions)
-                .Cast<GameOptions>()
-                .GroupBy(o => string.Join("|",
-                    o.VariableSettings
-                     .OrderBy(kv => kv.Key)
-                     .Select(kv => $"{kv.Key}={kv.Value}")))
-                .Select(g => g.First())
-                .ToList();
+            var result = GenerateCombinations(dims, LitigGameOptionsGenerator.GetLitigGameOptions, true);
 
-            return new List<List<GameOptions>> { unique };
+            return result;
         }
-
 
         public override List<SimulationSetsIdentifier> GetSimulationSetsIdentifiers(SimulationSetsTransformer transformer = null)
         {

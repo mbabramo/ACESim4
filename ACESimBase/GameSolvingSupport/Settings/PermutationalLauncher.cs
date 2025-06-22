@@ -4,6 +4,7 @@ using ACESimBase.Util.Combinatorics;
 using ACESimBase.Util.Debugging;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -80,12 +81,6 @@ namespace ACESimBase.GameSolvingSupport.Settings
     public abstract class PermutationalLauncher : Launcher
     {
         #region Variation set definitions
-
-        /// <summary>
-        /// Ordered list of human‑readable names used to label the folders that hold simulation results
-        /// for each outer batch produced by <see cref="GetVariationSets"/>.
-        /// </summary>
-        public abstract List<string> NamesOfVariationSets { get; }
 
         /// <summary>
         /// Tuple list mapping each variable name to the <strong>string form of its default value</strong>.
@@ -244,40 +239,17 @@ namespace ACESimBase.GameSolvingSupport.Settings
             gamesSets.SelectMany(x => x).ToList();
 
         /// <summary>
-        /// Subclasses must return a <em>list of lists</em>, where each outer element corresponds to one
-        /// of <see cref="NamesOfVariationSets"/>.
+        /// Return a flat list of game options.
         /// </summary>
-        public abstract List<List<GameOptions>> GetVariationSets(
-            bool includeBaselineValueForNoncritical);
+        public abstract List<GameOptions> GetVariationSets();
 
         /// <summary>
-        /// Convenience wrapper that excludes redundant baseline entries.
+        /// Add variation sets to existing list.
         /// </summary>
         public void AddToOptionsSets(List<GameOptions> options)
         {
-            bool includeBaselineValueForNoncritical = false; // default behaviour
-            AddToOptionsSets(options, includeBaselineValueForNoncritical);
-        }
-
-        /// <summary>
-        /// Adds every generated <see cref="GameOptions"/> to <paramref name="options"/>.  Throws if
-        /// redundancies are detected while <paramref name="allowRedundancies"/> is <c>false</c>.
-        /// </summary>
-        public void AddToOptionsSets(List<GameOptions> options, bool allowRedundancies)
-        {
-            var gamesSets = GetVariationSets(allowRedundancies); // non‑critical sets
-            List<GameOptions> eachGameIndependently = FlattenAndOrderGameSets(gamesSets);
-
-            List<string> optionChoices = eachGameIndependently
-                .Select(x => ToCompleteString(x.VariableSettings)).ToList();
-
-            static string ToCompleteString<TKey, TValue>(IDictionary<TKey, TValue> dictionary) =>
-                "{" + string.Join(",", dictionary.Select(kv => kv.Key + "=" + kv.Value)) + "}";
-
-            if (!allowRedundancies && optionChoices.Distinct().Count() != optionChoices.Count())
-                throw new Exception("redundancies found");
-
-            options.AddRange(eachGameIndependently);
+            var gamesSets = GetVariationSets();
+            options.AddRange(gamesSets);
         }
 
         /// <summary>

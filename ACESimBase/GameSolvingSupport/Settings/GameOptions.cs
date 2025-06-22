@@ -28,6 +28,24 @@ namespace ACESimBase.GameSolvingSupport.Settings
         /// </summary>
         public Dictionary<string, object> VariableSettings = new Dictionary<string, object>();
 
+        public bool HasSameVariableSettings(GameOptions other)
+        {
+            if (other is null) return false;
+            if (ReferenceEquals(this, other)) return true;
+
+            var otherSettings = other.VariableSettings;
+
+            if (VariableSettings.Count != otherSettings.Count) return false;
+
+            foreach (var kvp in VariableSettings)
+            {
+                if (!otherSettings.TryGetValue(kvp.Key, out var otherValue)) return false;
+                if (!Equals(kvp.Value, otherValue)) return false;
+            }
+
+            return true;
+        }
+
         public virtual void Simplify()
         {
 
