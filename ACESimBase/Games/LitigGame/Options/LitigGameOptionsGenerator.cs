@@ -156,7 +156,7 @@ namespace ACESim
             options.CollapseChanceDecisions = collapseChanceDecisions;
 
             options.AllowAbandonAndDefaults = allowQuitting;
-            options.NumLiabilitySignals = options.NumLiabilityStrengthPoints = options.NumOffers = numSignalsAndOffers;
+            options.NumLiabilitySignals = options.NumLiabilityStrengthPoints = options.NumOffers = 2; // DEBUG numSignalsAndOffers;
             options.SkipFileAndAnswerDecisions = !allowQuitting;
             options.NumPotentialBargainingRounds = numPotentialBargainingRounds;
 
@@ -178,7 +178,7 @@ namespace ACESim
         }
 
         static bool UseSimplifiedPrecautionNegligenceGame = false;
-        static bool CollapseDecisionsInSimplifiedPrecautionNegligenceGame = true;
+        static bool CollapseDecisionsInSimplifiedPrecautionNegligenceGame = false;
         public static LitigGameOptions PrecautionNegligenceGame() => UseSimplifiedPrecautionNegligenceGame ? PrecautionNegligenceGame(CollapseDecisionsInSimplifiedPrecautionNegligenceGame, false, 2, 0, 2, 2) : PrecautionNegligenceGame(true, true, 5, 1, 10, 5);
     } 
 }
