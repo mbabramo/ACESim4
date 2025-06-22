@@ -349,8 +349,8 @@ namespace ACESim
             var varyingPrecautionCostPerceptionMultipliers = new List<SimulationIdentifier>()
             {
                 new SimulationIdentifier("1", DefaultVariableValues.WithReplacement("Precaution Cost Perception Multiplier", "1")),
-                new SimulationIdentifier("1.5", DefaultVariableValues.WithReplacement("Precaution Cost Perception Multiplier", "1.5")),
-                new SimulationIdentifier("2", DefaultVariableValues.WithReplacement("Precaution Cost Perception Multiplier", "2")),
+                new SimulationIdentifier("1.5", DefaultVariableValues.WithReplacement("Precaution Cost Perception Multiplier", "2")),
+                new SimulationIdentifier("2", DefaultVariableValues.WithReplacement("Precaution Cost Perception Multiplier", "3")),
             };
 
             // The following does not work. It won't work with the cost breakdown diagrams because
