@@ -8,15 +8,8 @@ using System.Linq;
 namespace ACESimTest.Util.Combinatorics
 {
     /// <summary>
-    /// Exhaustive unit tests for <see cref="VariableCombinationGenerator"/> covering two scenarios:
-    /// <list type="number">
-    ///   <item><b>Scenario 1</b> – six independent dimensions (2 Global, 2 Core, 2 Modifier) each
-    ///     with two values: "A" (default) and "B" (alternative). The expected enumeration contains
-    ///     40 rows and is written explicitly so it can be inspected without running the test.</item>
-    ///   <item><b>Scenario 2</b> – one variable (<c>C1</c>) appears both as a Core dimension (values
-    ///     "A", "B") and as a Modifier dimension (value "Z"). No Globals are present. The expected
-    ///     enumeration contains 6 rows.</item>
-    /// </list>
+    /// Unit-test suite for the <see cref="VariableCombinationGenerator"/> after its rewrite that
+    /// allows a single dimension to carry both critical and modifier value sets.
     /// </summary>
     [TestClass]
     public sealed class VariableCombinationGeneratorTests
@@ -42,123 +35,107 @@ namespace ACESimTest.Util.Combinatorics
         #endregion
 
         //------------------------------------------------------------------
-        // Scenario 1 – 2 Globals × 2 Cores × 2 Modifiers
+        // Scenario 1 – 2 Globals × 2 Cores × 2 Modifiers (40 rows)
         //------------------------------------------------------------------
         [TestMethod]
         public void FullScenario_EnumeratesFortyRows()
         {
-            // Dimensions -----------------------------------------------------
-            var dims = new[]
+            var dims = new List<VariableCombinationGenerator.Dimension<TestOptions>>
             {
-                // Globals
-                new VariableCombinationGenerator.Dimension<TestOptions>(
-                    "G1", new[] { Mutate(_ => {}), Mutate(o => o.G1 = "B") },
-                    VariableCombinationGenerator.DimensionRole.Global),
-                new VariableCombinationGenerator.Dimension<TestOptions>(
-                    "G2", new[] { Mutate(_ => {}), Mutate(o => o.G2 = "B") },
-                    VariableCombinationGenerator.DimensionRole.Global),
+                // Globals ----------------------------------------------------
+                new("G1",
+                    new[]{ Mutate(_=>{}), Mutate(o=>o.G1="B") },   // critical list
+                    null,
+                    IsGlobal:true),
+                new("G2",
+                    new[]{ Mutate(_=>{}), Mutate(o=>o.G2="B") },
+                    null,
+                    IsGlobal:true),
 
-                // Cores
-                new VariableCombinationGenerator.Dimension<TestOptions>(
-                    "C1", new[] { Mutate(_ => {}), Mutate(o => o.C1 = "B") },
-                    VariableCombinationGenerator.DimensionRole.Core),
-                new VariableCombinationGenerator.Dimension<TestOptions>(
-                    "C2", new[] { Mutate(_ => {}), Mutate(o => o.C2 = "B") },
-                    VariableCombinationGenerator.DimensionRole.Core),
+                // Cores ------------------------------------------------------
+                new("C1",
+                    new[]{ Mutate(_=>{}), Mutate(o=>o.C1="B") },
+                    null),
+                new("C2",
+                    new[]{ Mutate(_=>{}), Mutate(o=>o.C2="B") },
+                    null),
 
-                // Modifiers
-                new VariableCombinationGenerator.Dimension<TestOptions>(
-                    "M1", new[] { Mutate(_ => {}), Mutate(o => o.M1 = "B") },
-                    VariableCombinationGenerator.DimensionRole.Modifier),
-                new VariableCombinationGenerator.Dimension<TestOptions>(
-                    "M2", new[] { Mutate(_ => {}), Mutate(o => o.M2 = "B") },
-                    VariableCombinationGenerator.DimensionRole.Modifier)
+                // Modifiers (modifier-only) ---------------------------------
+                new("M1",
+                    null,
+                    new[]{ Mutate(_=>{}), Mutate(o=>o.M1="B") }),
+                new("M2",
+                    null,
+                    new[]{ Mutate(_=>{}), Mutate(o=>o.M2="B") })
             };
 
-            // Actual ---------------------------------------------------------
             var actual = VariableCombinationGenerator.Generate(
                 dims,
-                () => new TestOptions(),
-                includeBaselineModifierValue: false);
+                () => new TestOptions());
 
-            // Expected -------------------------------------------------------
+            // Build expected -------------------------------------------------
             var expected = new List<string>();
             string[] AB = { "A", "B" };
 
             foreach (var g1 in AB)
             foreach (var g2 in AB)
             {
-                // Baseline core grid (4 rows)
+                // Baseline core grid
                 foreach (var c1 in AB)
                 foreach (var c2 in AB)
-                    expected.Add(Row(g1, g2, c1, c2, "A", "A"));
+                    expected.Add(Row(g1,g2,c1,c2,"A","A"));
 
-                // Modifier M1 = B (3 rows)
-                expected.Add(Row(g1, g2, "A", "A", "B", "A"));
-                expected.Add(Row(g1, g2, "B", "A", "B", "A"));
-                expected.Add(Row(g1, g2, "A", "B", "B", "A"));
+                // Modifier M1 = B
+                expected.Add(Row(g1,g2,"A","A","B","A"));
+                expected.Add(Row(g1,g2,"B","A","B","A"));
+                expected.Add(Row(g1,g2,"A","B","B","A"));
 
-                // Modifier M2 = B (3 rows)
-                expected.Add(Row(g1, g2, "A", "A", "A", "B"));
-                expected.Add(Row(g1, g2, "B", "A", "A", "B"));
-                expected.Add(Row(g1, g2, "A", "B", "A", "B"));
+                // Modifier M2 = B
+                expected.Add(Row(g1,g2,"A","A","A","B"));
+                expected.Add(Row(g1,g2,"B","A","A","B"));
+                expected.Add(Row(g1,g2,"A","B","A","B"));
             }
 
             expected.Should().HaveCount(40);
-            actual.Select(o => o.ToString())
-                  .Should()
-                  .BeEquivalentTo(expected, opt => opt.WithoutStrictOrdering(),
-                      "Scenario 1 requires exactly the 40 predefined combinations.");
+            actual.Select(o=>o.ToString())
+                  .Should().BeEquivalentTo(expected, cfg=>cfg.WithoutStrictOrdering());
         }
 
         //------------------------------------------------------------------
-        // Scenario 2 – C1 as Core (A,B) and Modifier (Z)
+        // Scenario 2 – C1 has critical (A,B) + modifier Z (6 rows)
         //------------------------------------------------------------------
         [TestMethod]
         public void CoreModifierOverlap_EnumeratesSixRows()
         {
-            // Dimensions -----------------------------------------------------
-            var dims = new[]
+            var dims = new List<VariableCombinationGenerator.Dimension<TestOptions>>
             {
-                // Core dimensions
-                new VariableCombinationGenerator.Dimension<TestOptions>(
-                    "C1", new[] { Mutate(_ => {}), Mutate(o => o.C1 = "B") },
-                    VariableCombinationGenerator.DimensionRole.Core),
-                new VariableCombinationGenerator.Dimension<TestOptions>(
-                    "C2", new[] { Mutate(_ => {}), Mutate(o => o.C2 = "B") },
-                    VariableCombinationGenerator.DimensionRole.Core),
-
-                // Modifier using same variable name (non‑critical value Z)
-                new VariableCombinationGenerator.Dimension<TestOptions>(
-                    "C1", new[] { Mutate(_ => {}), Mutate(o => o.C1 = "Z") },
-                    VariableCombinationGenerator.DimensionRole.Modifier)
+                // C1 appears once with both lists ---------------------------
+                new("C1",
+                    new[]{ Mutate(_=>{}), Mutate(o=>o.C1="B") },          // critical values A,B
+                    new[]{ Mutate(_=>{}), Mutate(o=>o.C1="Z") }),          // modifier value Z
+                // C2 core only
+                new("C2",
+                    new[]{ Mutate(_=>{}), Mutate(o=>o.C2="B") },
+                    null)
             };
 
-            // Actual ---------------------------------------------------------
             var actual = VariableCombinationGenerator.Generate(
                 dims,
-                () => new TestOptions(),
-                includeBaselineModifierValue: false);
+                () => new TestOptions());
 
-            // Expected -------------------------------------------------------
             var expected = new List<string>
             {
-                // Baseline core grid (4 rows)
                 Row("A","A","A","A","A","A"),
                 Row("A","A","B","A","A","A"),
                 Row("A","A","A","B","A","A"),
                 Row("A","A","B","B","A","A"),
-
-                // Modifier C1 = Z (2 rows)
                 Row("A","A","Z","A","A","A"),
                 Row("A","A","Z","B","A","A")
             };
 
             expected.Should().HaveCount(6);
-            actual.Select(o => o.ToString())
-                  .Should()
-                  .BeEquivalentTo(expected, opt => opt.WithoutStrictOrdering(),
-                      "Scenario 2 requires exactly the 6 predefined combinations.");
+            actual.Select(o=>o.ToString())
+                  .Should().BeEquivalentTo(expected, cfg=>cfg.WithoutStrictOrdering());
         }
     }
 }

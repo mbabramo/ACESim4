@@ -217,66 +217,29 @@ namespace ACESimBase.GameSolvingSupport.Settings
             Func<T> optionsFactory)
             where T : GameOptions
         {
-            // 1  Map each transformation list to a role understood by VariableCombinationGenerator
             var dimensions = new List<VariableCombinationGenerator.Dimension<T>>();
+
             for (int i = 0; i < allTransformations.Count; i++)
             {
-                var role = i < numSupercriticals
-                    ? VariableCombinationGenerator.DimensionRole.Global
-                    : i < numCritical
-                        ? VariableCombinationGenerator.DimensionRole.Core
-                        : VariableCombinationGenerator.DimensionRole.Modifier;
+                bool isGlobal   = i < numSupercriticals;
+                bool isCore     = i < numCritical;
+                bool isModifier = i >= numCritical;
 
-                dimensions.Add(new VariableCombinationGenerator.Dimension<T>($"D{i}", allTransformations[i], role));
+                var list = allTransformations[i];
+
+                dimensions.Add(new VariableCombinationGenerator.Dimension<T>(
+                    $"D{i}",
+                    isCore     ? list : null,
+                    isModifier ? list : null,
+                    isGlobal));
             }
 
-            // 2  Generate every combination once
-            var allOptions = VariableCombinationGenerator.Generate(
-                dimensions,
-                optionsFactory,
-                includeBaselineValueForNoncritical);
+            var flat = VariableCombinationGenerator.Generate(dimensions, optionsFactory)
+                                                   .Cast<GameOptions>()
+                                                   .ToList();
 
-            // 3  Re-create the historical batch structure
-            var modifierDims = dimensions
-                .Where(d => d.Role == VariableCombinationGenerator.DimensionRole.Modifier)
-                .ToArray();
-
-            bool IsModifierDefault(T opt, VariableCombinationGenerator.Dimension<T> mod)
-            {
-                var baseline = optionsFactory();
-                var applied  = mod.Transforms[0](optionsFactory());
-                return opt.ToString() == applied.ToString();   // simple string compare is enough
-            }
-
-            // Batch 0 – all modifiers at default
-            var batches = new List<List<GameOptions>>
-            {
-                allOptions
-                    .Where(o => modifierDims.All(m => IsModifierDefault(o, m)))
-                    .Cast<GameOptions>()
-                    .ToList()
-            };
-            AddDefaultNoncriticalValues(batches[0]);
-
-            // One batch per modifier dimension
-            foreach (var mod in modifierDims)
-            {
-                var sweep = allOptions
-                    .Where(o => !IsModifierDefault(o, mod) &&
-                                modifierDims.All(m => m == mod || IsModifierDefault(o, m)))
-                    .Cast<GameOptions>()
-                    .ToList();
-
-                if (sweep.Count == 0)
-                    continue;
-
-                AddDefaultNoncriticalValues(sweep);
-                batches.Add(sweep);
-            }
-
-            return batches;
+            return new List<List<GameOptions>> { flat };
         }
-
 
         // -----------------------------------------------------------------------------
         //  Helpers (private)
