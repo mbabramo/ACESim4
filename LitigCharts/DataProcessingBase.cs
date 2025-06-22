@@ -130,8 +130,6 @@ namespace LitigCharts
             List<GameOptions> optionSets = launcher.GetOptionsSets();
             string path = Launcher.ReportFolder();
 
-            var map = launcher.NameMap; // name to find (avoids redundancies)
-
             foreach (var gameOptionsSet in optionSets)
             {
                 string filenameCore, combinedPath;
@@ -139,13 +137,13 @@ namespace LitigCharts
                 if (skipIfPDFAlreadyExists)
                 {
                     string fileSuffixCopy = fileSuffix;
-                    GetFileInfo(map, filePrefix(launcher), ".pdf", ref fileSuffixCopy, path, gameOptionsSet, out filenameCore, out combinedPath, out bool exists);
+                    GetFileInfo(filePrefix(launcher), ".pdf", ref fileSuffixCopy, path, gameOptionsSet, out filenameCore, out combinedPath, out bool exists);
                     if (VirtualizableFileSystem.File.Exists(combinedPath))
                         processingNeeded = false;
                 }
                 if (processingNeeded)
                 {
-                    GetFileInfo(map, filePrefix(launcher), ".tex", ref fileSuffix, path, gameOptionsSet, out filenameCore, out combinedPath, out bool exists);
+                    GetFileInfo(filePrefix(launcher), ".tex", ref fileSuffix, path, gameOptionsSet, out filenameCore, out combinedPath, out bool exists);
                     if (!VirtualizableFileSystem.File.Exists(combinedPath))
                     {
                         if (VirtualizableFileSystem.File.Exists(combinedPath.Replace("-Eq1", "")))
@@ -279,7 +277,6 @@ namespace LitigCharts
             string reportFolder, individualResultsRoot;
             PrepareFolders(out reportFolder, out individualResultsRoot);
 
-            var map = launcher.NameMap;
             string masterReportName = launcher.ReportPrefix;
             var allOptionSets = launcher.GetOptionsSets();
 
@@ -301,7 +298,6 @@ namespace LitigCharts
                 {
                     if (!optionNameToOptionSet.TryGetValue(optionSetName, out var optionSet))
                         continue;
-                    string mappedName = map[optionSetName];
 
                     foreach (var (folderName, extensions) in placementRules)
                     {
@@ -309,12 +305,12 @@ namespace LitigCharts
 
                         foreach (var ext in extensions)
                         {
-                            string sourceFileName = Launcher.ReportFilename(masterReportName, mappedName, ext);
+                            string sourceFileName = Launcher.ReportFilename(masterReportName, optionSetName, ext);
 
                             if (!originalFileNames.Contains(sourceFileName)) 
                                 continue;
 
-                            string sourcePath = Launcher.ReportFullPath(masterReportName, mappedName, ext);
+                            string sourcePath = Launcher.ReportFullPath(masterReportName, optionSetName, ext);
                             string targetFileName = sourceFileName;
                             string destPath = Path.Combine(targetDir, targetFileName);
                             VirtualizableFileSystem.File.Copy(sourcePath, destPath, true);

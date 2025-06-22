@@ -32,7 +32,6 @@ namespace ACESim
                     ("Damages Multiplier", "1"),
                     ("Liability Threshold", "1"),
                     ("Marginal Precaution Cost", "1E-05"),
-                    ("Fee Shifting Rule", "English"),
                     ("Relative Costs", "1"),
                     ("Noise Multiplier P", "1"),
                     ("Noise Multiplier D", "1"),
@@ -53,7 +52,6 @@ namespace ACESim
             "Marginal Precaution Costs",
             "Noise Multipliers", // includes P & D
             "Relative Costs",
-            // TODO: Add back in "Fee Shifting Mode",
             "Proportion of Costs at Beginning",
             "Precaution Cost Perception Multiplier"
         };

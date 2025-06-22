@@ -31,8 +31,6 @@ namespace ACESimBase.GameSolvingSupport.Settings
     ///   • <see cref="GenerateCombinations{T}"/> – a high-level wrapper that understands
     ///     <b>critical</b>, <b>global</b>, and <b>modifier</b> variables and produces the required
     ///     set of combinations, optionally collapsing duplicates.  
-    ///   • <see cref="NameMap"/> – maps verbose option names that differ only by redundant suffixes  
-    ///     to a single canonical filename, preventing needless solver runs.
     ///
     /// ************************************************************************************************
     /// <para><b>Variable classes and permutation rules</b></para>
@@ -64,8 +62,7 @@ namespace ACESimBase.GameSolvingSupport.Settings
     ///
     /// A modifier dimension whose only entry is the baseline value would duplicate the null branch.
     /// Passing <c>includeBaselineValueForNoncritical = true</c> preserves that explicit baseline row
-    /// for reporting convenience; otherwise it is omitted.  In either case, <see cref="NameMap"/>
-    /// ensures redundant solver work is avoided.
+    /// for reporting convenience; otherwise it is omitted.  
     ///
     /// ************************************************************************************************
     /// <para><b>Integrating a subclass</b></para>
@@ -301,34 +298,6 @@ namespace ACESimBase.GameSolvingSupport.Settings
                               BuildGroupingVariableInfo(opt, defaultValues, criticalVars)));
 
                 return list;
-            }
-        }
-
-        /// <summary>
-        /// Maps every verbose option‑set name (possibly redundant baseline) to the canonical
-        /// non‑redundant name that actually appears on disk.  The algorithm repeatedly strips the
-        /// last suffix until a match is found.
-        /// </summary>
-        public Dictionary<string, string> NameMap
-        {
-            get
-            {
-                var withRedundancies = new List<GameOptions>();
-                AddToOptionsSets(withRedundancies, true);
-
-                var withoutRedundancies = new List<GameOptions>();
-                AddToOptionsSets(withoutRedundancies, false);
-
-                var result = new Dictionary<string, string>();
-
-                foreach (var gameOptions in withRedundancies)
-                {
-                    string runAsName = gameOptions.Name;
-                    while (!withoutRedundancies.Any(x => x.Name == runAsName))
-                        runAsName = runAsName.Substring(0, runAsName.LastIndexOf(' '));
-                    result[gameOptions.Name] = runAsName;
-                }
-                return result;
             }
         }
 

@@ -59,24 +59,20 @@ namespace LitigCharts
             }
 
             var gameOptionsSets = launcher.GetOptionsSets();
-            var map = launcher.NameMap; // name to find (avoids redundancies in naming)
             string path = launcher.GetReportFolder();
             string outputFileFullPath = launcher.GetReportFullPath(filenameCore, ".csv");
             string cumResults = "";
-
-            var distinctOptionSets = gameOptionsSets.DistinctBy(x => map[x.Name]).ToList();
 
             // look up particular settings here if desired (not usually needed, so findSpecificSettings should be false)
             // Note that the settings are determined by specific launcher classes, including values in DefaultVariableValues (if something is omitted then the output file may be out of alignment)
             bool findSpecificSettings = false;
             List<(string, string)> settingsToFind = launcher.DefaultVariableValues;
-            var matches = distinctOptionSets.Where(x => !findSpecificSettings || settingsToFind.All(y => x.VariableSettings[y.Item1].ToString() == y.Item2.ToString())).ToList();
+            var matches = gameOptionsSets.Where(x => !findSpecificSettings || settingsToFind.All(y => x.VariableSettings[y.Item1].ToString() == y.Item2.ToString())).ToList();
             var namesOfMatches = matches.Select(x => x.Name).ToList();
-            var mappedNamesOfMatches = namesOfMatches.Select(x => map[x]).ToList();
 
-            var mappedNames = distinctOptionSets.OrderBy(x => x.Name).ToList();
+            var mappedNames = gameOptionsSets.OrderBy(x => x.Name).ToList();
             var numDistinctNames = mappedNames.OrderBy(x => x.Name).Distinct().Count();
-            if (numDistinctNames != distinctOptionSets.Count())
+            if (numDistinctNames != gameOptionsSets.Count())
                 throw new Exception();
             var numFullNames = gameOptionsSets.Select(x => x.Name).Distinct().Count();
             var variableSettingsList = gameOptionsSets.Select(x => x.VariableSettings).ToList();
@@ -90,7 +86,7 @@ namespace LitigCharts
             {
                 TabbedText.WriteLine($"Processing equilibrium type {fileSuffix}");
                 bool includeHeader = singleEquilibriumOnly || fileSuffix == correlatedEquilibriumFileSuffix;
-                List<List<string>> outputLines = GetCSVLines(distinctOptionSets.Select(x => (GameOptions)x).ToList(), map, rowsToGet, replacementRowNames, filePrefix(launcher), fileSuffix, path, includeHeader, columnsToGet, replacementColumnNames);
+                List<List<string>> outputLines = GetCSVLines(gameOptionsSets.Select(x => (GameOptions)x).ToList(), rowsToGet, replacementRowNames, filePrefix(launcher), fileSuffix, path, includeHeader, columnsToGet, replacementColumnNames);
                 if (includeHeader)
                     outputLines[0].Insert(0, "Equilibrium Type");
                 string equilibriumType = fileSuffix switch
@@ -370,7 +366,6 @@ namespace LitigCharts
                 VirtualizableFileSystem.Directory.CreateDirectory(outputFolderPath);
 
             var sets = launcher.GetVariationSets(false);
-            var map = launcher.NameMap; // name to find (avoids redundancies)
             var setNames = launcher.NamesOfVariationSets;
             string masterReportName = launcher.MasterReportNameForDistributedProcessing;
             List<(List<GameOptions> theSet, string setName)> setsWithNames = sets.Zip(setNames, (s, sn) => (s, sn)).ToList();
@@ -734,19 +729,15 @@ namespace LitigCharts
         public static void BuildCombinedCostBreakdownReport(LitigGameLauncherBase launcher)
         {
             var optionSets = launcher.GetOptionsSets();
-            var map = launcher.NameMap;
 
             string outputFile = launcher.GetReportFullPath("Combined costbreakdown", ".csv");  // same folder as the other combined reports
-
-            // keep only unique option-sets in case the launcher list contains repeats
-            var distinctOptionSets = optionSets.DistinctBy(x => map[x.Name]).ToList();
 
             StringBuilder csv = new StringBuilder();
             bool wroteHeader = false;
 
-            foreach (var opt in distinctOptionSets)
+            foreach (var opt in optionSets)
             {
-                string coreName = map[opt.Name];
+                string coreName = opt.Name;
                 string inputPath = Launcher.ReportFullPath(filePrefix(launcher), coreName, "-costbreakdowndata.csv");
                 
                 if (!VirtualizableFileSystem.File.Exists(inputPath))
