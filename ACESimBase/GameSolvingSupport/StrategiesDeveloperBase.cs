@@ -2623,7 +2623,7 @@ namespace ACESim
 
             public bool ScoreRangeExists => !(ScoreRange == null || ScoreRange.Any(x => x == 0));
             public double[] BestResponseImprovementAdj => ScoreRangeExists && BestResponseImprovement != null ? BestResponseImprovement.Zip(ScoreRange, (bri, sr) => bri / sr).ToArray() : BestResponseImprovement;
-            public int NumNonChancePlayers => BestResponseImprovement == null ? 2 : BestResponseImprovement.Length;
+            public int NumNonChancePlayers { get; set; }
 
             public bool BestResponseTargetMet(double target) => BestResponseImprovementAdj != null && BestResponseImprovementAdjAvg < target;
             public double BestResponseImprovementAdjAvg => BestResponseImprovementAdj.Average();
@@ -2645,7 +2645,16 @@ namespace ACESim
             }
         }
 
-        public DevelopmentStatus Status = new DevelopmentStatus();
+        private DevelopmentStatus _Status;
+        public DevelopmentStatus Status
+        {
+            get
+            {
+                if (_Status == null)
+                    _Status = new DevelopmentStatus() { NumNonChancePlayers = NumNonChancePlayers };
+                return _Status;
+            }
+        }
 
         
 
