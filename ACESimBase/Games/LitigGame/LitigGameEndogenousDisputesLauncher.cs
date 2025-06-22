@@ -91,7 +91,7 @@ namespace ACESim
         public double[] CriticalDamagesMultipliers => new double[] { 1.0, 0.5, 2.0 };
         public double[] AdditionalDamagesMultipliers => new double[] { 1.0, 4.0 };
 
-        public double[] PrecautionCostPerceptionMultipliers => new double[] { 1.0, 1.5, 2.0 };
+        public double[] PrecautionCostPerceptionMultipliers => new double[] { 1.0, 2.0, 3.0 };
 
         public enum UnderlyingGame
         {
@@ -204,7 +204,7 @@ namespace ACESim
         public override List<List<GameOptions>> GetVariationSets(bool useAllPermutationsOfTransformations, bool includeBaselineValueForNoncritical)
         {
             const int numCritical = 6; // critical transformations are all interacted with one another
-            const int numSupercritical = 4; // the supercritical of these are all interacted with all other transformations
+            const int numSupercritical = 5; // the supercritical of these are all interacted with all other transformations
             var criticalCostsMultiplierTransformations = CriticalCostsMultiplierTransformations(true);
             var noncriticalCostsMultiplierTransformations = AdditionalCostsMultiplierTransformations(includeBaselineValueForNoncritical);
             var criticalFeeShiftingMultipleTransformations = CriticalFeeShiftingMultiplierTransformations(true);
