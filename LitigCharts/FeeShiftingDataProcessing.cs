@@ -365,11 +365,6 @@ namespace LitigCharts
             if (!VirtualizableFileSystem.Directory.GetDirectories(reportFolder).Any(x => x == outputFolderName))
                 VirtualizableFileSystem.Directory.CreateDirectory(outputFolderPath);
 
-            var sets = launcher.GetVariationSets();
-            var setNames = launcher.NamesOfVariationSets;
-            string masterReportName = launcher.MasterReportNameForDistributedProcessing;
-            List<(List<GameOptions> theSet, string setName)> setsWithNames = sets.Zip(setNames, (s, sn) => (s, sn)).ToList();
-
             foreach (bool useRiskAversionForNonRiskReports in new bool[] { false, true })
             {
                 var variations = launcher.GetSimulationSetsIdentifiers(useRiskAversionForNonRiskReports ? LitigGameLauncherBase.RequireModerateRiskAversion : null);

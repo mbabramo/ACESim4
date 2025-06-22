@@ -156,7 +156,7 @@ namespace ACESim
             options.CollapseChanceDecisions = collapseChanceDecisions;
 
             options.AllowAbandonAndDefaults = allowQuitting;
-            options.NumLiabilitySignals = options.NumLiabilityStrengthPoints = options.NumOffers = 2; // DEBUG numSignalsAndOffers;
+            options.NumLiabilitySignals = options.NumLiabilityStrengthPoints = options.NumOffers = numSignalsAndOffers;
             options.SkipFileAndAnswerDecisions = !allowQuitting;
             options.NumPotentialBargainingRounds = numPotentialBargainingRounds;
 

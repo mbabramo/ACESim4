@@ -2,6 +2,7 @@
 using ACESimBase.Util.Collections;
 using ACESimBase.Util.Combinatorics;
 using ACESimBase.Util.Debugging;
+using JetBrains.Annotations;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -171,6 +172,7 @@ namespace ACESimBase.GameSolvingSupport.Settings
             return g;
         }
 
+
         /// <summary>
         /// Core Cartesian‑product engine.  Takes <paramref name="transformLists"/> where each inner
         /// list represents one dimension, enumerates every way of choosing <b>one</b> transform from
@@ -238,10 +240,25 @@ namespace ACESimBase.GameSolvingSupport.Settings
             List<List<GameOptions>> gamesSets) =>
             gamesSets.SelectMany(x => x).ToList();
 
+        public abstract List<VariableCombinationGenerator.Dimension<LitigGameOptions>> GetVariationSetsInfo();
+
         /// <summary>
         /// Return a flat list of game options.
         /// </summary>
-        public abstract List<GameOptions> GetVariationSets();
+        public List<GameOptions> GetVariationSets()
+        {
+            var dims = GetVariationSetsInfo();
+            List<GameOptions> combinations = GenerateCombinations(dims, GetLitigGameOptions_InitializedVariableSettings);
+            return combinations;
+        }
+
+        private LitigGameOptions GetLitigGameOptions_InitializedVariableSettings()
+        {
+            var options = LitigGameOptionsGenerator.GetLitigGameOptions();
+            foreach (var keyValue in DefaultVariableValues)
+                options.VariableSettings[keyValue.Item1] = keyValue.Item2.ToString();
+            return options;
+        }
 
         /// <summary>
         /// Add variation sets to existing list.

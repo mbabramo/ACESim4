@@ -137,7 +137,7 @@ namespace ACESim
             return result;
         }
 
-        public override List<GameOptions> GetVariationSets()
+        public override List<VariableCombinationGenerator.Dimension<LitigGameOptions>> GetVariationSetsInfo()
         {
             var dims = new List<VariableCombinationGenerator.Dimension<LitigGameOptions>>
             {
@@ -202,9 +202,7 @@ namespace ACESim
             dims = dims.Where(d => d.CriticalTransforms != null ||
                                    d.ModifierTransforms?.Count > 0).ToList();
 
-            var result = GenerateCombinations(dims, LitigGameOptionsGenerator.GetLitigGameOptions, true);
-
-            return result;
+            return dims;
         }
 
         public override List<SimulationSetsIdentifier> GetSimulationSetsIdentifiers(SimulationSetsTransformer transformer = null)

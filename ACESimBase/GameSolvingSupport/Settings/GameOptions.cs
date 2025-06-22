@@ -8,7 +8,11 @@ namespace ACESimBase.GameSolvingSupport.Settings
     public class GameOptions
     {
         public string GroupName;
-        public string Name = "";
+        public string Name
+        {
+            get;
+            set;
+        } = "";
 
         public GameOptions WithName(string name)
         {

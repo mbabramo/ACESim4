@@ -139,7 +139,7 @@ namespace ACESim
         public List<Func<LitigGameOptions, LitigGameOptions>> AdditionalPrecautionCostTransformations()
             => Transform(GetAndTransform_PrecautionCost, AdditionalPrecautionCosts);
 
-        public LitigGameOptions GetAndTransform_PrecautionCost(LitigGameOptions options, double marginalPrecautionCost) => GetAndTransform(options, " Marginal Precaution Cost " + marginalPrecautionCost, g =>
+        public LitigGameOptions GetAndTransform_PrecautionCost(LitigGameOptions options, double marginalPrecautionCost) => GetAndTransform(options, " MPC " + marginalPrecautionCost, g =>
         {
             PrecautionNegligenceDisputeGenerator disputeGenerator = (PrecautionNegligenceDisputeGenerator)options.LitigGameDisputeGenerator;
             disputeGenerator.MarginalPrecautionCost = marginalPrecautionCost;
@@ -154,7 +154,7 @@ namespace ACESim
         public List<Func<LitigGameOptions, LitigGameOptions>> AdditionalLiabilityThresholdTransformations()
             => Transform(GetAndTransform_LiabilityThreshold, AdditionalLiabilityThresholds);
 
-        public LitigGameOptions GetAndTransform_LiabilityThreshold(LitigGameOptions options, double liabilityThreshold) => GetAndTransform(options, " Liability Threshold " + liabilityThreshold, g =>
+        public LitigGameOptions GetAndTransform_LiabilityThreshold(LitigGameOptions options, double liabilityThreshold) => GetAndTransform(options, " LT " + liabilityThreshold, g =>
         {
             PrecautionNegligenceDisputeGenerator disputeGenerator = (PrecautionNegligenceDisputeGenerator)options.LitigGameDisputeGenerator;
             disputeGenerator.LiabilityThreshold = liabilityThreshold;
@@ -166,7 +166,7 @@ namespace ACESim
         public List<Func<LitigGameOptions, LitigGameOptions>> PrecautionCostPerceptionMultiplierTransformations()
             => Transform(GetAndTransform_DPrecautionCostPerceptionMultiplier, PrecautionCostPerceptionMultipliers);
 
-        public LitigGameOptions GetAndTransform_DPrecautionCostPerceptionMultiplier(LitigGameOptions options, double precautionCostPerceptionMultiplier) => GetAndTransform(options, " Precaution Cost Perception Multiplier " + precautionCostPerceptionMultiplier, g =>
+        public LitigGameOptions GetAndTransform_DPrecautionCostPerceptionMultiplier(LitigGameOptions options, double precautionCostPerceptionMultiplier) => GetAndTransform(options, " PCPM " + precautionCostPerceptionMultiplier, g =>
         {
             PrecautionNegligenceDisputeGenerator disputeGenerator = (PrecautionNegligenceDisputeGenerator)options.LitigGameDisputeGenerator;
             disputeGenerator.DPerceptionOfPrecautionCostNoiseMultiplier = precautionCostPerceptionMultiplier;
@@ -185,8 +185,11 @@ namespace ACESim
                 .ToList();
             return eachGameIndependently.Select(x => (GameOptions) x).ToList();
         }
-        public override List<GameOptions> GetVariationSets()
+
+        public override List<VariableCombinationGenerator.Dimension<LitigGameOptions>> GetVariationSetsInfo()
         {
+            
+            
             // critical + extras (paired) ----------------------------------------
             var dims = new List<VariableCombinationGenerator.Dimension<LitigGameOptions>>
             {
@@ -246,10 +249,7 @@ namespace ACESim
             dims = dims.Where(d => d.CriticalTransforms != null ||
                                    d.ModifierTransforms?.Count > 0).ToList();
 
-            // generate ----------------------------------------------------------
-            List<GameOptions> combinations = GenerateCombinations(dims, LitigGameOptionsGenerator.GetLitigGameOptions);
-
-            return combinations;
+            return dims;
         }
 
         public override List<SimulationSetsIdentifier> GetSimulationSetsIdentifiers(SimulationSetsTransformer transformer = null)
@@ -355,8 +355,8 @@ namespace ACESim
             var varyingPrecautionCostPerceptionMultipliers = new List<SimulationIdentifier>()
             {
                 new SimulationIdentifier("1", DefaultVariableValues.WithReplacement("Precaution Cost Perception Multiplier", "1")),
-                new SimulationIdentifier("1.5", DefaultVariableValues.WithReplacement("Precaution Cost Perception Multiplier", "2")),
-                new SimulationIdentifier("2", DefaultVariableValues.WithReplacement("Precaution Cost Perception Multiplier", "3")),
+                new SimulationIdentifier("2", DefaultVariableValues.WithReplacement("Precaution Cost Perception Multiplier", "2")),
+                new SimulationIdentifier("3", DefaultVariableValues.WithReplacement("Precaution Cost Perception Multiplier", "3")),
             };
 
             // The following does not work. It won't work with the cost breakdown diagrams because
