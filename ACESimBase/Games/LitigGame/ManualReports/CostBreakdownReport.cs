@@ -594,6 +594,7 @@ namespace ACESimBase.Games.LitigGame.ManualReports
 
             var right = slices
                 .Where(s => !s.IsLeft)
+                .OrderBy(s => s.opportunity) // we're still going to order by opportunity cost, so that we can mentally correspond to what level of precaution truly liability and trial correspond
                 .OrderBy(s => s.trulyLiableHarm + s.trulyNotLiableHarm)
                 .ThenBy(s => s.Total)
                 .ToList();

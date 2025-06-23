@@ -174,7 +174,7 @@ namespace ACESim
             disputeGenerator.ProbabilityAccidentMaxPrecaution_LowPower = 0.00008;
             disputeGenerator.ProbabilityAccidentMaxPrecaution_HighPower = 0.00002;
             disputeGenerator.ProbabilityAccidentWrongfulAttribution = 0.00001;
-            options.CourtLiabilityNoiseStdev = 0.0;
+            // options.CourtLiabilityNoiseStdev = 0.0; // DEBUG -- the idea here was to increase the spread of precaution but that may also have discouraged litigation
 
             options.LitigGameDisputeGenerator = disputeGenerator;
 

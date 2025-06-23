@@ -35,6 +35,7 @@ namespace ACESim
                     ("Relative Costs", "1"),
                     ("Noise Multiplier P", "1"),
                     ("Noise Multiplier D", "1"),
+                    ("Court Noise", "0.2"),
                     ("Issue", "Liability"),
                     ("Proportion of Costs at Beginning", "0.5"),
                     ("Precaution Cost Perception Multiplier", "1"),
@@ -76,7 +77,11 @@ namespace ACESim
         public double[] CriticalDamagesMultipliers => new double[] { 1.0, 0.5, 2.0 };
         public double[] AdditionalDamagesMultipliers => new double[] { 1.0, 4.0 };
 
+        public double[] CourtNoiseValues = new double[] { 0.2, 0, 0.4 };
+
         public double[] PrecautionCostPerceptionMultipliers => new double[] { 1.0, 2.0, 3.0 };
+
+        
 
         public enum UnderlyingGame
         {
@@ -121,6 +126,12 @@ namespace ACESim
 
         #region Custom transformations
 
+        // Steps:
+        // * Define default value above
+        // * Default range of values above in double[], listing default first
+        // * Follow form here to define transformations function
+        // * Below, add to GetVariationSetsInfo
+
         // Damages multiplier
 
         public List<Func<LitigGameOptions, LitigGameOptions>> CriticalDamagesMultiplierTransformations()
@@ -161,6 +172,18 @@ namespace ACESim
             g.VariableSettings["Liability Threshold"] = liabilityThreshold;
         });
 
+        // CourtNoise
+        
+        public List<Func<LitigGameOptions, LitigGameOptions>> CourtNoiseTransformations()
+            => Transform(GetAndTransform_CourtNoise, CourtNoiseValues);
+
+        public LitigGameOptions GetAndTransform_CourtNoise(LitigGameOptions options, double courtNoise) => GetAndTransform(options, " CN " + courtNoise, g =>
+        {
+            PrecautionNegligenceDisputeGenerator disputeGenerator = (PrecautionNegligenceDisputeGenerator)options.LitigGameDisputeGenerator;
+            disputeGenerator.Options.CourtLiabilityNoiseStdev = courtNoise;
+            g.VariableSettings["Court Noise"] = courtNoise;
+        });
+
         // Perception cost perception
 
         public List<Func<LitigGameOptions, LitigGameOptions>> PrecautionCostPerceptionMultiplierTransformations()
@@ -188,8 +211,6 @@ namespace ACESim
 
         public override List<VariableCombinationGenerator.Dimension<LitigGameOptions>> GetVariationSetsInfo()
         {
-            
-            
             // critical + extras (paired) ----------------------------------------
             var dims = new List<VariableCombinationGenerator.Dimension<LitigGameOptions>>
             {
@@ -232,6 +253,11 @@ namespace ACESim
                 new("RelativeCosts",
                     null,
                     PRelativeCostsTransformations()
+                    ),
+
+                new ("CourtNoise",
+                    null,
+                    CourtNoiseTransformations()
                     ),
 
                 new("CostsStartFraction",
@@ -320,6 +346,13 @@ namespace ACESim
                 new SimulationIdentifier("D Better", DefaultVariableValues.WithReplacement("Noise Multiplier P", "2").WithReplacement("Noise Multiplier D", "0.5")),
             };
 
+            var varyingCourtNoise = new List<SimulationIdentifier>()
+            {
+                new SimulationIdentifier("Perfect", DefaultVariableValues.WithReplacement("Court Noise", "0")),
+                new SimulationIdentifier("Normal", DefaultVariableValues.WithReplacement("Court Noise", "0.2")),
+                new SimulationIdentifier("Noisy", DefaultVariableValues.WithReplacement("Court Noise", "0.4")),
+            };
+
             var varyingRelativeCosts = new List<SimulationIdentifier>()
             {
                 new SimulationIdentifier("P Lower Costs", DefaultVariableValues.WithReplacement("Relative Costs", "0.5")),
@@ -356,7 +389,8 @@ namespace ACESim
             {
                 new SimulationIdentifier("1", DefaultVariableValues.WithReplacement("Precaution Cost Perception Multiplier", "1")),
                 new SimulationIdentifier("2", DefaultVariableValues.WithReplacement("Precaution Cost Perception Multiplier", "2")),
-                new SimulationIdentifier("3", DefaultVariableValues.WithReplacement("Precaution Cost Perception Multiplier", "3")),
+                new SimulationIdentifier("5", DefaultVariableValues.WithReplacement("Precaution Cost Perception Multiplier", "5")),
+                new SimulationIdentifier("10", DefaultVariableValues.WithReplacement("Precaution Cost Perception Multiplier", "10")), // DEBUG
             };
 
             // The following does not work. It won't work with the cost breakdown diagrams because
@@ -386,6 +420,7 @@ namespace ACESim
                 // TODO new ArticleVariationInfoSets("Fee Shifting Rule (Liability Issue)", varyingFeeShiftingRule_LiabilityUncertain),
                 new SimulationSetsIdentifier("Noise Multiplier", varyingNoiseMultipliersBoth),
                 new SimulationSetsIdentifier("Information Asymmetry", varyingNoiseMultipliersAsymmetric),
+                new SimulationSetsIdentifier("Court Quality", varyingCourtNoise),
                 new SimulationSetsIdentifier("Relative Costs", varyingRelativeCosts),
                 new SimulationSetsIdentifier("Risk Aversion", varyingRiskAversion),
                 new SimulationSetsIdentifier("Risk Aversion Asymmetry", varyingRiskAversionAsymmetry),
