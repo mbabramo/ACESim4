@@ -25,16 +25,20 @@ namespace ACESim
         // This choice has an effect only when in ACESimConsole mode (playing a single game). 
         static LitigGameOptionSetChoices LitigGameChoice => LitigGameOptionSetChoices.PrecautionNegligenceGame;
 
-        public static LitigGameOptions GetLitigGameOptions() => LitigGameChoice switch
+        public static LitigGameOptions GetLitigGameOptions()
         {
-            LitigGameOptionSetChoices.EndogenousArticleBase => BaseBeforeApplyingEndogenousGenerator(),
-            LitigGameOptionSetChoices.AppropriationGame => AppropriationGame(),
-            LitigGameOptionSetChoices.PrecautionNegligenceGame => PrecautionNegligenceGame(),
-            LitigGameOptionSetChoices.FeeShiftingBaseSmallTree => FeeShiftingBase(true),
-            LitigGameOptionSetChoices.FeeShiftingBaseLargeTree => FeeShiftingBase(false),
-            LitigGameOptionSetChoices.SmallGame => SmallGame(),
-            _ => throw new Exception()
-        };
+            var result = LitigGameChoice switch
+            {
+                LitigGameOptionSetChoices.EndogenousArticleBase => BaseBeforeApplyingEndogenousGenerator(),
+                LitigGameOptionSetChoices.AppropriationGame => AppropriationGame(),
+                LitigGameOptionSetChoices.PrecautionNegligenceGame => PrecautionNegligenceGame(),
+                LitigGameOptionSetChoices.FeeShiftingBaseSmallTree => FeeShiftingBase(true),
+                LitigGameOptionSetChoices.FeeShiftingBaseLargeTree => FeeShiftingBase(false),
+                LitigGameOptionSetChoices.SmallGame => SmallGame(),
+                _ => throw new Exception()
+            };
+            return result;
+        }
 
         private static LitigGameOptions BaseBeforeApplyingEndogenousGenerator()
         {
