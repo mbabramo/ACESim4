@@ -179,8 +179,7 @@ namespace ACESim
 
         public LitigGameOptions GetAndTransform_CourtNoise(LitigGameOptions options, double courtNoise) => GetAndTransform(options, " CN " + courtNoise, g =>
         {
-            PrecautionNegligenceDisputeGenerator disputeGenerator = (PrecautionNegligenceDisputeGenerator)options.LitigGameDisputeGenerator;
-            disputeGenerator.Options.CourtLiabilityNoiseStdev = courtNoise;
+            options.CourtLiabilityNoiseStdev = courtNoise;
             g.VariableSettings["Court Noise"] = courtNoise;
         });
 
