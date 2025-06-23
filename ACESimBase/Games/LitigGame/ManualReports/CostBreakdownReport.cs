@@ -66,9 +66,9 @@ namespace ACESimBase.Games.LitigGame.ManualReports
         {
             "pattern=crosshatch, pattern color=green",
             "pattern=vertical lines, pattern color=orange",
-            "pattern=horizontal lines, pattern color=yellow",
-            "pattern=dots,            pattern color=blue!30",
-            "pattern=north east lines,  pattern color=blue!60",
+            "pattern=crosshatch dots, pattern color=yellow",
+            "pattern=north east lines, pattern color=blue!30",
+            "pattern=dots,  pattern color=blue!60",
             "pattern=crosshatch,      pattern color=blue!90",
             "pattern=grid,            pattern color=red!70!black"
         };
@@ -408,10 +408,13 @@ namespace ACESimBase.Games.LitigGame.ManualReports
                 }
                 else
                 {
-                    double tallestTotal = slices.Max(s => s.Total);
-                    double diagramLimit = peakProportion / tallestTotal;
-                    if (diagramLimit < sharedAreaPerUnit)
-                        sharedAreaPerUnit = diagramLimit;
+                    if (slices.Any())
+                    {
+                        double tallestTotal = slices.Max(s => s.Total);
+                        double diagramLimit = peakProportion / tallestTotal;
+                        if (diagramLimit < sharedAreaPerUnit)
+                            sharedAreaPerUnit = diagramLimit;
+                    }
                 }
             }
 
