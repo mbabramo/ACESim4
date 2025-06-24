@@ -81,6 +81,7 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
             catch (OutOfMemoryException)
             {
                 GeneratedCode = "Insufficient memory to keep generated code.";
+                throw;
             }
         }
 

@@ -365,7 +365,7 @@ namespace ACESim
             catch (OutOfMemoryException ex)
             {
                 numRetries++;
-                if (numRetries <= 10)
+                if (numRetries <= 100)
                 {
                     int delayPeriod = 60_000 + (int)(60000.0 * new Random((int)DateTime.Now.Ticks).NextDouble());
                     TabbedText.WriteLine($"Delaying {delayPeriod} milliseconds following out-of-memory exception");
