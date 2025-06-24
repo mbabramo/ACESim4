@@ -12,7 +12,7 @@
         }
 
         // Decision outcomes
-        public double DPrecautionCostPerceptionMultiple { get; set; } // in calculating d's utility, we multiply precaution cost times this (to model miscalculating defendants)
+        public double DPrecautionCostPerceptionMultiple { get; set; } = 1; // in calculating d's utility, we multiply precaution cost times this (to model miscalculating defendants)
         public bool EngagesInActivity { get; set; }              // whether the plaintiff engaged (filed the lawsuit)
         public int RelativePrecautionLevel { get; set; }       // defendant's chosen precaution level
         public bool AccidentOccurs { get; set; }     // whether an accident occurred

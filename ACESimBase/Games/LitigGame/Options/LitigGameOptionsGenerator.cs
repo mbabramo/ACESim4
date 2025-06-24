@@ -37,7 +37,6 @@ namespace ACESim
                 LitigGameOptionSetChoices.SmallGame => SmallGame(),
                 _ => throw new Exception()
             };
-            options.NumLiabilitySignals = options.NumOffers = 10; // DEBUG
             return options;
         }
 
@@ -179,6 +178,9 @@ namespace ACESim
             options.NumLiabilityStrengthPoints = disputeGenerator.PrecautionPowerLevels;
 
             options.LitigGameDisputeGenerator = disputeGenerator;
+
+            disputeGenerator.PrecautionPowerLevels = 1; // DEBUG
+            options.CostsMultiplier = 0; // DEBUG
 
             return options;
         }
