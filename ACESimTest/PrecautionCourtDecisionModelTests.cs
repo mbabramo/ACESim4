@@ -49,9 +49,10 @@ namespace ACESimTest
                 alphaHigh: AlphaHigh,
                 marginalPrecautionCost: MarginalPrecautionCost,
                 harmCost: HarmCost,
-                liabilityThreshold: LiabilityThreshold);
+                liabilityThreshold: LiabilityThreshold,
+                benefitRule: MarginalBenefitRule.RelativeToNextDiscreteLevel);   // ensure monotone ratios
 
-            // almost noise-free model → “deterministic” signals
+            // almost noise-free ⇒ deterministic
             var detSignals = new PrecautionSignalModel(
                 HiddenStates, 2, 2, 2,
                 1e-4, 1e-4, 1e-4);
@@ -63,6 +64,7 @@ namespace ACESimTest
                 0.20, 0.20, 0.20);
             courtNoisy = new PrecautionCourtDecisionModel(impact, noisySignals);
         }
+
 
         // ------------------------------------------------------------------  deterministic baseline
         [TestMethod]
@@ -121,7 +123,8 @@ namespace ACESimTest
                 alphaHigh: AlphaHigh,
                 marginalPrecautionCost: MarginalPrecautionCost,
                 harmCost: HarmCost,
-                liabilityThreshold: 3.0);
+                liabilityThreshold: 3.0,
+                benefitRule: MarginalBenefitRule.RelativeToNextDiscreteLevel);
 
             var sig = new PrecautionSignalModel(
                 HiddenStates, 2, 2, 2,
@@ -130,6 +133,7 @@ namespace ACESimTest
             var stricter = new PrecautionCourtDecisionModel(stricterImpact, sig);
             stricter.IsLiable(1, 0).Should().BeFalse();
         }
+
 
         // ------------------------------------------------------------------  court-signal distributions (deterministic model)
         [TestMethod]
