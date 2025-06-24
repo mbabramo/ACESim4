@@ -19,7 +19,7 @@ namespace ACESimTest
         const double AlphaLow = 1.0;
         const double AlphaHigh = 1.0;
         const double HarmCost = 1.0;
-        const double MarginalPrecautionCost = 0.07;
+        const double UnitPrecautionCost = 0.07;
         const double LiabilityThreshold = 1.0;
         const int NumCourtSignalsNoisy = 100;
 
@@ -47,7 +47,7 @@ namespace ACESimTest
                 pMinHigh: PMinHigh,
                 alphaLow: AlphaLow,
                 alphaHigh: AlphaHigh,
-                marginalPrecautionCost: MarginalPrecautionCost,
+                marginalPrecautionCost: UnitPrecautionCost,
                 harmCost: HarmCost,
                 liabilityThreshold: LiabilityThreshold,
                 benefitRule: MarginalBenefitRule.RelativeToNextDiscreteLevel);   // ensure monotone ratios
@@ -104,7 +104,7 @@ namespace ACESimTest
                 {
                     double benefit = courtNoisy.GetExpectedBenefit(c, k);
                     double ratio = courtNoisy.GetBenefitCostRatio(c, k);
-                    benefit.Should().BeApproximately(ratio * MarginalPrecautionCost, 1e-9);
+                    benefit.Should().BeApproximately(ratio * UnitPrecautionCost, 1e-9);
                 }
         }
 
@@ -121,7 +121,7 @@ namespace ACESimTest
                 pMinHigh: PMinHigh,
                 alphaLow: AlphaLow,
                 alphaHigh: AlphaHigh,
-                marginalPrecautionCost: MarginalPrecautionCost,
+                marginalPrecautionCost: UnitPrecautionCost,
                 harmCost: HarmCost,
                 liabilityThreshold: 3.0,
                 benefitRule: MarginalBenefitRule.RelativeToNextDiscreteLevel);

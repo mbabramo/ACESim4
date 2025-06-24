@@ -210,9 +210,9 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
                     double benefit = delta * impact.HarmCost;
                     expBenefit[courtSignal][precautionLevel] = benefit;
 
-                    double ratio = impact.MarginalPrecautionCost == 0.0
+                    double ratio = impact.UnitPrecautionCost == 0.0
                         ? double.PositiveInfinity
-                        : benefit / impact.MarginalPrecautionCost;
+                        : benefit / impact.UnitPrecautionCost;
                     benefitCostRatio[courtSignal][precautionLevel] = ratio;
 
                     // ---- Court’s liability finding (strict inequality avoids ties) ----

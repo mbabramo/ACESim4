@@ -18,7 +18,7 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
         // ----------------------------------------------------------------  public configuration -- OVERRIDDEN BY LITIGGAMEOPTIONSGENERATOR
         public double BenefitToDefendantOfActivity = 0.001;
         public double CostOfAccident = 1.0;
-        public double MarginalPrecautionCost = 0.00001;
+        public double UnitPrecautionCost = 0.00001;
         public byte PrecautionPowerLevels = 10;
         public byte RelativePrecautionLevels = 5;
         // calibration parameters for the P(t,p) curve
@@ -75,7 +75,7 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
             new PrecautionNegligenceProgress(fullHistoryRequired);
 
         public string OptionsString =>
-            $"{nameof(CostOfAccident)} {CostOfAccident}  {nameof(MarginalPrecautionCost)} {MarginalPrecautionCost} {nameof(PrecautionPowerLevels)} {PrecautionPowerLevels} {nameof(RelativePrecautionLevels)} {RelativePrecautionLevels} {nameof(ProbabilityAccidentNoPrecaution)} {ProbabilityAccidentNoPrecaution} {nameof(ProbabilityAccidentMaxPrecaution_LowPower)} {ProbabilityAccidentMaxPrecaution_LowPower} {nameof(ProbabilityAccidentMaxPrecaution_HighPower)} {ProbabilityAccidentMaxPrecaution_HighPower} {nameof(AlphaLowPower)} {AlphaLowPower} {nameof(AlphaHighPower)} {AlphaHighPower} ";
+            $"{nameof(CostOfAccident)} {CostOfAccident}  {nameof(UnitPrecautionCost)} {UnitPrecautionCost} {nameof(PrecautionPowerLevels)} {PrecautionPowerLevels} {nameof(RelativePrecautionLevels)} {RelativePrecautionLevels} {nameof(ProbabilityAccidentNoPrecaution)} {ProbabilityAccidentNoPrecaution} {nameof(ProbabilityAccidentMaxPrecaution_LowPower)} {ProbabilityAccidentMaxPrecaution_LowPower} {nameof(ProbabilityAccidentMaxPrecaution_HighPower)} {ProbabilityAccidentMaxPrecaution_HighPower} {nameof(AlphaLowPower)} {AlphaLowPower} {nameof(AlphaHighPower)} {AlphaHighPower} ";
 
         public string GetGeneratorName() => "PrecautionNegligence";
         public bool SupportsSymmetry() => false;
@@ -96,7 +96,7 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
                 pMinHigh: ProbabilityAccidentMaxPrecaution_HighPower,
                 alphaLow: AlphaLowPower,
                 alphaHigh: AlphaHighPower,
-                marginalPrecautionCost: MarginalPrecautionCost,
+                marginalPrecautionCost: UnitPrecautionCost,
                 harmCost: CostOfAccident,
                 liabilityThreshold: LiabilityThreshold,
                 pAccidentWrongfulAttribution: ProbabilityAccidentWrongfulAttribution);
@@ -302,7 +302,7 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
         public (double PPerceivedWealthChange, double DPerceivedWealthChange) GetSupplementalPerceivedWealthChange(LitigGameProgress gameProgress)
         {
             var precautionProgress = (PrecautionNegligenceProgress)gameProgress;
-            double actualPrecautionCosts = precautionProgress.RelativePrecautionLevel * MarginalPrecautionCost;
+            double actualPrecautionCosts = precautionProgress.RelativePrecautionLevel * UnitPrecautionCost;
             double perceivedPrecautionCosts = actualPrecautionCosts * precautionProgress.DPrecautionCostPerceptionMultiple;
             double dPerceivedWealthChange = actualPrecautionCosts - perceivedPrecautionCosts; // i.e., if perceived costs are lower, then d's perceived wealth and thus d's utility goes up, even though all other data reported in progress don't reflect this
             return (0, dPerceivedWealthChange);
@@ -344,7 +344,7 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
         {
             var p = (PrecautionNegligenceProgress)prog;
             double opp = p.EngagesInActivity ? 0 : BenefitToDefendantOfActivity;
-            opp += p.RelativePrecautionLevel * MarginalPrecautionCost;
+            opp += p.RelativePrecautionLevel * UnitPrecautionCost;
             double harm = p.AccidentProperlyCausallyAttributedToDefendant ? CostOfAccident : 0;
             return (opp, harm);
         }

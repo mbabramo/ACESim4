@@ -103,72 +103,74 @@ namespace ACESimTest
         [TestMethod]
         public void GroundTruthNegligence_BothRules()
         {
-            // shared calibration
+            // shared parameters
             const int HLevels = 2, KLevels = 2;
             const double pMax = 0.25, pMinLow = 0.20, pMinHigh = 0.10;
             const double alpha = 1.0, cost = 0.04, harm = 1.0, thresh = 1.0;
 
-            // ε-based rule (default) — nobody liable
+            // ε-based marginal-benefit rule
             var epsImpact = new PrecautionImpactModel(
                 HLevels, KLevels, pMax, pMinLow, pMinHigh, alpha, alpha,
                 cost, harm, thresh,
                 benefitRule: MarginalBenefitRule.AtChosenPrecautionLevel,
                 epsilonForBenefit: 1e-6);
 
-            epsImpact.IsTrulyLiable(0, 0).Should().BeFalse();
-            epsImpact.IsTrulyLiable(0, 1).Should().BeFalse();
-            epsImpact.IsTrulyLiable(1, 0).Should().BeFalse();
-            epsImpact.IsTrulyLiable(1, 1).Should().BeFalse();
+            // With the 1 / ε scaling, every level’s benefit-cost ratio exceeds the threshold
+            for (int h = 0; h < HLevels; h++)
+                for (int k = 0; k < KLevels; k++)
+                    epsImpact.IsTrulyLiable(h, k).Should().BeTrue();
 
-            // discrete-step rule — only non-top levels can be liable
+            // discrete-step rule (forward one notch)
             var discImpact = new PrecautionImpactModel(
                 HLevels, KLevels, pMax, pMinLow, pMinHigh, alpha, alpha,
                 cost, harm, thresh,
                 benefitRule: MarginalBenefitRule.RelativeToNextDiscreteLevel);
 
+            // Only the *non-top* level can still reduce risk, so only it can be liable
             discImpact.IsTrulyLiable(0, 0).Should().BeTrue();
-            discImpact.IsTrulyLiable(0, 1).Should().BeFalse();   // top level ⇒ ΔP = 0
             discImpact.IsTrulyLiable(1, 0).Should().BeTrue();
+            discImpact.IsTrulyLiable(0, 1).Should().BeFalse();   // top level ⇒ ΔP = 0
             discImpact.IsTrulyLiable(1, 1).Should().BeFalse();
         }
 
+
         [TestMethod]
-        public void EpsilonRuleDerivativeSanity()
+        public void EpsilonRuleDerivativeMatchesAnalytic()
         {
-            // model with clearly analytic curve
-            const int HiddenStates   = 2;
-            const int PrecLevels     = 4;
-            const double pMax        = 0.30;
-            const double pMinLow     = 0.15;
-            const double pMinHigh    = 0.05;
-            const double alpha       = 1.2;
-            const double cost        = 0.01;
-            const double harm        = 1.0;
-            const double thresh      = 1.0;
-            const double eps         = 1e-6;
+            // calibration chosen so the analytic derivative is easy to verify
+            const int HiddenStates = 2;
+            const int PrecLevels   = 4;
+            const double pMax      = 0.30;
+            const double pMinLow   = 0.15;
+            const double pMinHigh  = 0.05;
+            const double alpha     = 1.2;
+            const double cost      = 0.01;
+            const double harm      = 1.0;
+            const double eps       = 1e-6;
 
             var model = new PrecautionImpactModel(
                 HiddenStates, PrecLevels, pMax, pMinLow, pMinHigh, alpha, alpha,
-                cost, harm, thresh,
+                cost, harm,
                 benefitRule: MarginalBenefitRule.AtChosenPrecautionLevel,
                 epsilonForBenefit: eps);
 
-            int h = 0;          // sample hidden index
-            int k = 2;          // interior precaution level
+            int h = 0;      // sample hidden index
+            int k = 2;      // interior precaution level
 
-            // finite-difference from the model
-            double delta = model.GetRiskReduction(h, k);
-            double fdDerivative = delta / eps;
+            // model already returns dP/dk (benefit of one full unit of precaution)
+            double numeric = model.GetRiskReduction(h, k);
 
-            // analytic derivative (see model’s closed form)
-            double hiddenFrac = (h + 1.0) / (HiddenStates + 1.0);
-            double pMin       = pMinLow + (pMinHigh - pMinLow) * hiddenFrac;
-            double A          = pMax - pMin;
-            double t          = k / (double)PrecLevels;
-            double analytic   = -A * alpha * Math.Pow(1.0 - t, alpha - 1.0) / PrecLevels;
+            // analytic dP/dk magnitude
+            double frac      = (h + 1.0) / (HiddenStates + 1.0);
+            double pMin      = pMinLow + (pMinHigh - pMinLow) * frac;
+            double A         = pMax - pMin;
+            double t         = k / (double)PrecLevels;
+            double analytic  = A * alpha * Math.Pow(1.0 - t, alpha - 1.0) / PrecLevels;
 
-            Math.Abs(fdDerivative - (-analytic)).Should().BeLessThan(1e-3);
+            Math.Abs(numeric - analytic).Should().BeLessThan(1e-3);
         }
+
+
 
 
         // ---------------------------------------------------------------------

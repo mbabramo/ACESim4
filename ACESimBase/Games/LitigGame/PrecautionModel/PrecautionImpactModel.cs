@@ -28,7 +28,7 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
         public int TotalLevelsForRisk { get; }
         public double PAccidentNoPrecaution { get; }
         public double PAccidentWrongfulAttribution { get; }
-        public double MarginalPrecautionCost { get; }
+        public double UnitPrecautionCost { get; }
         public double HarmCost { get; }
         public double LiabilityThreshold { get; }
 
@@ -90,7 +90,7 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
             _pMinHigh = pMinHigh;
             _alphaLow = alphaLow;
             _alphaHigh = alphaHigh;
-            MarginalPrecautionCost = marginalPrecautionCost;
+            UnitPrecautionCost = marginalPrecautionCost;
             HarmCost = harmCost;
             LiabilityThreshold = liabilityThreshold;
             PAccidentWrongfulAttribution = pAccidentWrongfulAttribution;
@@ -210,9 +210,11 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
         double[][] BuildRiskReductionTable()
         {
             var arr = new double[HiddenCount][];
+
             for (int h = 0; h < HiddenCount; h++)
             {
                 arr[h] = new double[PrecautionLevels];
+
                 for (int k = 0; k < PrecautionLevels; k++)
                 {
                     double pCurrent = accidentProb[h][k];
@@ -220,28 +222,30 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
 
                     if (_benefitRule == MarginalBenefitRule.AtChosenPrecautionLevel)
                     {
+                        // forward ε step on the same continuous curve
                         double pPlusE = CausedAccidentProbability(h, k + _epsilon);
                         double pWrongful = (1.0 - pPlusE) * PAccidentWrongfulAttribution;
                         double pNext = Math.Clamp(pPlusE + pWrongful, 0.0, 1.0);
 
-                        delta = pCurrent - pNext;
+                        // scale by 1/ε ⇒ benefit of a *unit* of precaution, not an ε-sliver
+                        delta = (pCurrent - pNext) / _epsilon;
                     }
                     else
                     {
+                        // discrete forward one-level; top level ⇒ ΔP = 0
                         if (k == PrecautionLevels - 1)
                             delta = 0.0;
                         else
-                        {
-                            double pNext = accidentProb[h][k + 1];
-                            delta = pCurrent - pNext;
-                        }
+                            delta = pCurrent - accidentProb[h][k + 1];
                     }
 
-                    arr[h][k] = delta < 0 ? 0.0 : delta;
+                    arr[h][k] = delta < 0.0 ? 0.0 : delta;
                 }
             }
+
             return arr;
         }
+
 
         double[][] BuildBenefitCostRatioTable()
         {
@@ -252,7 +256,7 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
                 for (int k = 0; k < PrecautionLevels; k++)
                 {
                     double benefit = riskReduction[h][k] * HarmCost;
-                    double ratio = benefit / MarginalPrecautionCost;
+                    double ratio = benefit / UnitPrecautionCost;
                     arr[h][k] = ratio;
                 }
             }
@@ -268,7 +272,7 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
                 for (int k = 0; k < PrecautionLevels; k++)
                 {
                     double benefit = riskReduction[h][k] * HarmCost;
-                    double ratio = benefit / MarginalPrecautionCost;
+                    double ratio = benefit / UnitPrecautionCost;
                     arr[h][k] = ratio > LiabilityThreshold;
                 }
             }

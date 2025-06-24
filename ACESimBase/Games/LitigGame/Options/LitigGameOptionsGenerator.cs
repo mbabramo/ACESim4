@@ -167,7 +167,7 @@ namespace ACESim
             var disputeGenerator = new PrecautionNegligenceDisputeGenerator();
             disputeGenerator.PrecautionPowerLevels = numPrecautionPowerLevels;
             disputeGenerator.RelativePrecautionLevels = precautionLevels;
-            disputeGenerator.MarginalPrecautionCost = 0.00001; // chosen so that the bc ratio varies below and above 1 depending on precaution power
+            disputeGenerator.UnitPrecautionCost = 0.00001; // chosen so that the bc ratio varies below and above 1 depending on precaution power
             disputeGenerator.ProbabilityAccidentNoPrecaution = 0.0001;
             disputeGenerator.AlphaLowPower = 2;
             disputeGenerator.AlphaHighPower = 1.5;
@@ -178,9 +178,6 @@ namespace ACESim
             options.NumLiabilityStrengthPoints = disputeGenerator.PrecautionPowerLevels;
 
             options.LitigGameDisputeGenerator = disputeGenerator;
-
-            disputeGenerator.PrecautionPowerLevels = 1; // DEBUG
-            options.CostsMultiplier = 0; // DEBUG
 
             return options;
         }

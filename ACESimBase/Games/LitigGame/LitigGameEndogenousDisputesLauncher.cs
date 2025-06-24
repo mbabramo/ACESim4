@@ -31,7 +31,7 @@ namespace ACESim
                     ("Fee Shifting Multiplier", "0"),
                     ("Damages Multiplier", "1"),
                     ("Liability Threshold", "1"),
-                    ("Marginal Precaution Cost", "1E-05"),
+                    ("Unit Precaution Cost", "1E-05"),
                     ("Relative Costs", "1"),
                     ("Noise Multiplier P", "1"),
                     ("Noise Multiplier D", "1"),
@@ -54,7 +54,7 @@ namespace ACESim
                     ("Fee Shifting Multiplier", CriticalFeeShiftingMultipliers.Select(x => x.ToString()).ToArray()),
                     ("Damages Multiplier", CriticalDamagesMultipliers.Select(x => x.ToString()).ToArray()),
                     ("Liability Threshold", CriticalLiabilityThresholds.Select(x => x.ToString()).ToArray()),
-                    ("Marginal Precaution Cost", CriticalPrecautionCosts.Select(x => x.ToString()).ToArray()),
+                    ("Unit Precaution Cost", CriticalPrecautionCosts.Select(x => x.ToString()).ToArray()),
                 };
             }
         }
@@ -153,11 +153,11 @@ namespace ACESim
         public List<Func<LitigGameOptions, LitigGameOptions>> AdditionalPrecautionCostTransformations()
             => Transform(GetAndTransform_PrecautionCost, AdditionalPrecautionCosts);
 
-        public LitigGameOptions GetAndTransform_PrecautionCost(LitigGameOptions options, double marginalPrecautionCost) => GetAndTransform(options, " MPC " + marginalPrecautionCost, g =>
+        public LitigGameOptions GetAndTransform_PrecautionCost(LitigGameOptions options, double marginalPrecautionCost) => GetAndTransform(options, " UPC " + marginalPrecautionCost, g =>
         {
             PrecautionNegligenceDisputeGenerator disputeGenerator = (PrecautionNegligenceDisputeGenerator)options.LitigGameDisputeGenerator;
-            disputeGenerator.MarginalPrecautionCost = marginalPrecautionCost;
-            g.VariableSettings["Marginal Precaution Cost"] = marginalPrecautionCost;
+            disputeGenerator.UnitPrecautionCost = marginalPrecautionCost;
+            g.VariableSettings["Unit Precaution Cost"] = marginalPrecautionCost;
         });
 
         // Liability threshold
@@ -356,11 +356,11 @@ namespace ACESim
                 new SimulationIdentifier("High", DefaultVariableValues.WithReplacement("Liability Threshold", "1.2")),
             };
             
-            var varyingMarginalPrecautionCost = new List<SimulationIdentifier>()
+            var varyingUnitPrecautionCost = new List<SimulationIdentifier>()
             {
-                new SimulationIdentifier("Low", DefaultVariableValues.WithReplacement("Marginal Precaution Cost", "8E-06")),
-                new SimulationIdentifier("Normal", DefaultVariableValues.WithReplacement("Marginal Precaution Cost", "1E-05")),
-                new SimulationIdentifier("High", DefaultVariableValues.WithReplacement("Marginal Precaution Cost", "1.2E-05")),
+                new SimulationIdentifier("Low", DefaultVariableValues.WithReplacement("Unit Precaution Cost", "8E-06")),
+                new SimulationIdentifier("Normal", DefaultVariableValues.WithReplacement("Unit Precaution Cost", "1E-05")),
+                new SimulationIdentifier("High", DefaultVariableValues.WithReplacement("Unit Precaution Cost", "1.2E-05")),
             };
 
             //var varyingFeeShiftingRule_LiabilityUncertain = new List<ArticleVariationInfo>()
@@ -469,7 +469,7 @@ namespace ACESim
                 new SimulationSetsIdentifier("Baseline", varyingNothing),
                 new SimulationSetsIdentifier("Fee Shifting Multiplier", varyingFeeShiftingMultiplier),
                 new SimulationSetsIdentifier("Liability Threshold", varyingLiabilityThreshold),
-                new SimulationSetsIdentifier("Marginal Precaution Cost", varyingMarginalPrecautionCost),
+                new SimulationSetsIdentifier("Unit Precaution Cost", varyingUnitPrecautionCost),
                 new SimulationSetsIdentifier("Damages Multiplier", varyingDamagesMultiplier),
                 // TODO new ArticleVariationInfoSets("Fee Shifting Rule (Liability Issue)", varyingFeeShiftingRule_LiabilityUncertain),
                 new SimulationSetsIdentifier("Noise Multiplier", varyingNoiseMultipliersBoth),
