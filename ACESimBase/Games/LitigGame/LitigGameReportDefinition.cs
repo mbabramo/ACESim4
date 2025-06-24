@@ -1,6 +1,7 @@
 using ACESimBase.Games.LitigGame.PrecautionModel;
 using ACESimBase.Util.Reporting;
 using ACESimBase.Util.Statistical;
+using JetBrains.Annotations;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -79,7 +80,8 @@ namespace ACESim
                 );
                 for (int i = 1; i <= precautionNegligenceDisputeGenerator.PrecautionPowerLevels; i++)
                 {
-                    colItems.Add(new SimpleReportColumnFilter("PrecPower" + i, (GameProgress gp) => MyPNP(gp).LiabilityStrengthDiscrete == i, SimpleReportColumnFilterOptions.ProportionOfRow)); // note that this is a filter, whereas the other above is a variable.
+                    byte icopy = (byte) i; // avoid closure
+                    colItems.Add(new SimpleReportColumnFilter("PrecPower" + icopy, (GameProgress gp) => MyPNP(gp).LiabilityStrengthDiscrete == icopy, SimpleReportColumnFilterOptions.ProportionOfRow)); // note that this is a filter, whereas the other above is a variable.
                 }
             }
 
@@ -174,6 +176,18 @@ namespace ACESim
                 new SimpleReportColumnVariable("PrimaryAction", (GameProgress gp) => (double) MyGP(gp).DisputeGeneratorActions.PrimaryAction),
                 new SimpleReportColumnVariable("MutualOptimism", (GameProgress gp) => (double) MyGP(gp).PLiabilitySignalDiscrete - (double) MyGP(gp).DLiabilitySignalDiscrete),
             });
+            for (byte signal = 1; signal <= Options.NumLiabilitySignals; signal++)
+            {
+                byte s = signal; // avoid closure
+                colItems.Add(
+                    new SimpleReportColumnFilter("PLiabilitySignal" + s, (GameProgress gp) => MyGP(gp).PLiabilitySignalDiscrete == s, SimpleReportColumnFilterOptions.ProportionOfRow));
+            }
+            for (byte signal = 1; signal <= Options.NumLiabilitySignals; signal++)
+            {
+                byte s = signal; // avoid closure
+                colItems.Add(
+                    new SimpleReportColumnFilter("DLiabilitySignal" + s, (GameProgress gp) => MyGP(gp).DLiabilitySignalDiscrete == s, SimpleReportColumnFilterOptions.ProportionOfRow));
+            }
             // Now go through bargaining rounds again for our litigation flow diagram
             colItems.Add(
                 new SimpleReportColumnFilter($"P Files",
