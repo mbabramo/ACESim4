@@ -27,7 +27,7 @@ namespace ACESim
 
         public static LitigGameOptions GetLitigGameOptions()
         {
-            var result = LitigGameChoice switch
+            var options = LitigGameChoice switch
             {
                 LitigGameOptionSetChoices.EndogenousArticleBase => BaseBeforeApplyingEndogenousGenerator(),
                 LitigGameOptionSetChoices.AppropriationGame => AppropriationGame(),
@@ -37,7 +37,8 @@ namespace ACESim
                 LitigGameOptionSetChoices.SmallGame => SmallGame(),
                 _ => throw new Exception()
             };
-            return result;
+            options.NumLiabilitySignals = options.NumOffers = 10; // DEBUG
+            return options;
         }
 
         private static LitigGameOptions BaseBeforeApplyingEndogenousGenerator()
@@ -174,6 +175,8 @@ namespace ACESim
             disputeGenerator.ProbabilityAccidentMaxPrecaution_LowPower = 0.00008;
             disputeGenerator.ProbabilityAccidentMaxPrecaution_HighPower = 0.00002;
             disputeGenerator.ProbabilityAccidentWrongfulAttribution = 0.00001;
+
+            options.NumLiabilityStrengthPoints = disputeGenerator.PrecautionPowerLevels;
 
             options.LitigGameDisputeGenerator = disputeGenerator;
 
