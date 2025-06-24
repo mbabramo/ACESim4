@@ -99,7 +99,7 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
                 marginalPrecautionCost: MarginalPrecautionCost,
                 harmCost: CostOfAccident,
                 liabilityThreshold: LiabilityThreshold,
-                pAccidentWrongfulAttribution: ProbabilityAccidentWrongfulAttribution, benefitAtChosenLevel: true);
+                pAccidentWrongfulAttribution: ProbabilityAccidentWrongfulAttribution);
 
             signal = new PrecautionSignalModel(
                 numPrecautionPowerLevels: PrecautionPowerLevels,

@@ -22,8 +22,7 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
         public double LiabilityThreshold { get; }
 
         // -------------------- Internal data ---------------------------
-        readonly bool _benefitAtChosenLevel; // true if benefit/cost ratio is calculated at the chosen precaution level, false if at the next level
-
+        // -------------------- Internal data ---------------------------
         readonly double _pMinLow;
         readonly double _pMinHigh;
         readonly double _alphaLow;
@@ -54,7 +53,6 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
             double harmCost,
             double liabilityThreshold = 1.0,
             double pAccidentWrongfulAttribution = 0.0,
-            bool benefitAtChosenLevel = true, 
             Func<int, int, double> accidentProbabilityOverride = null)
         {
             if (precautionPowerLevels <= 0) throw new ArgumentException(nameof(precautionPowerLevels));
@@ -71,8 +69,6 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
             HiddenCount = precautionPowerLevels;
             PrecautionLevels = precautionLevels;
             TotalLevelsForRisk = precautionLevels + 1;
-
-            _benefitAtChosenLevel = benefitAtChosenLevel;
 
             PAccidentNoPrecaution = pAccidentNoPrecaution;      // pMax
             _pMinLow = pMinLow;
@@ -216,37 +212,20 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
                 arr[h] = new double[PrecautionLevels];
                 for (int k = 0; k < PrecautionLevels; k++)
                 {
-                    double pCurrent = accidentFuncOverride != null
+                    double p0 = accidentFuncOverride != null
                         ? accidentFuncOverride(h, k)
                         : CausedAccidentProbability(h, k);
 
-                    double delta;
+                    double p1 = accidentFuncOverride != null
+                        ? accidentFuncOverride(h, k + 1)
+                        : CausedAccidentProbability(h, k + 1);
 
-                    if (_benefitAtChosenLevel)            // NEW branch
-                    {
-                        double pPrev = k == 0
-                            ? PAccidentNoPrecaution
-                            : (accidentFuncOverride != null
-                                    ? accidentFuncOverride(h, k - 1)
-                                    : CausedAccidentProbability(h, k - 1));
-
-                        delta = pPrev - pCurrent;          // benefit of level k itself
-                    }
-                    else                                   // ORIGINAL behaviour
-                    {
-                        double pNext = accidentFuncOverride != null
-                            ? accidentFuncOverride(h, k + 1)
-                            : CausedAccidentProbability(h, k + 1);
-
-                        delta = pCurrent - pNext;          // benefit of next (untaken) level
-                    }
-
+                    double delta = p0 - p1;
                     arr[h][k] = delta < 0 ? 0 : delta;
                 }
             }
             return arr;
         }
-
 
         double[][] BuildBenefitCostRatioTable()
         {
