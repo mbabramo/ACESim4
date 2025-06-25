@@ -244,12 +244,13 @@ namespace ACESim
             // critical + extras (paired) ----------------------------------------
             var dims = new List<VariableCombinationGenerator.Dimension<LitigGameOptions>>
             {
-                // super-critical
+                // super-critical (everything is always run against both of these)
                 new("RiskAversion",
                     CriticalRiskAversionTransformations(),
                     AdditionalRiskAversionTransformations(),
                     IsGlobal: true),
 
+                // critical with modifiers (critical are always permuted against one another)
                 new("CostsMultiplier",
                     CriticalCostsMultiplierTransformations(),
                     AdditionalCostsMultiplierTransformations()
@@ -325,20 +326,14 @@ namespace ACESim
                 new SimulationIdentifier("Baseline", DefaultVariableValues),
             };
 
-            var varyingMisc = new List<SimulationIdentifier>()
-            {
-                new SimulationIdentifier("Baseline", DefaultVariableValues),
-                new SimulationIdentifier("English", DefaultVariableValues.WithReplacement("Fee Shifting Multiplier", "1")),
-                new SimulationIdentifier("Mix", DefaultVariableValues.WithReplacement("Damages Multiplier", "2").WithReplacement("Liability Threshold", "1.5")),
-            };
-
             
             var varyingFeeShiftingMultiplier = new List<SimulationIdentifier>()
             {
                 new SimulationIdentifier("American", DefaultVariableValues.WithReplacement("Fee Shifting Multiplier", "0")),
+                new SimulationIdentifier("Half", DefaultVariableValues.WithReplacement("Fee Shifting Multiplier", "0.5")),
                 new SimulationIdentifier("English", DefaultVariableValues.WithReplacement("Fee Shifting Multiplier", "1")),
                 new SimulationIdentifier("Double", DefaultVariableValues.WithReplacement("Fee Shifting Multiplier", "2")),
-                // omit additional (we could add this back in, but not in combination with other things): new SimulationIdentifier("4", DefaultVariableValues.WithReplacement("Damages Multiplier", "4")),
+                new SimulationIdentifier("X Five", DefaultVariableValues.WithReplacement("Fee Shifting Multiplier", "5")),
             };
 
             var varyingDamagesMultiplier = new List<SimulationIdentifier>()
@@ -351,16 +346,20 @@ namespace ACESim
 
             var varyingLiabilityThreshold = new List<SimulationIdentifier>()
             {
+                new SimulationIdentifier("Strict Liability", DefaultVariableValues.WithReplacement("Liability Threshold", "0")),
                 new SimulationIdentifier("Low", DefaultVariableValues.WithReplacement("Liability Threshold", "0.8")),
                 new SimulationIdentifier("Normal", DefaultVariableValues.WithReplacement("Liability Threshold", "1")),
                 new SimulationIdentifier("High", DefaultVariableValues.WithReplacement("Liability Threshold", "1.2")),
+                new SimulationIdentifier("Very High", DefaultVariableValues.WithReplacement("Liability Threshold", "2")),
             };
             
             var varyingUnitPrecautionCost = new List<SimulationIdentifier>()
             {
+                new SimulationIdentifier("Very Low", DefaultVariableValues.WithReplacement("Unit Precaution Cost", "1E-06")),
                 new SimulationIdentifier("Low", DefaultVariableValues.WithReplacement("Unit Precaution Cost", "8E-06")),
                 new SimulationIdentifier("Normal", DefaultVariableValues.WithReplacement("Unit Precaution Cost", "1E-05")),
                 new SimulationIdentifier("High", DefaultVariableValues.WithReplacement("Unit Precaution Cost", "1.2E-05")),
+                // DEBUG -- add later new SimulationIdentifier("Very High", DefaultVariableValues.WithReplacement("Unit Precaution Cost", "2E-05")),
             };
 
             //var varyingFeeShiftingRule_LiabilityUncertain = new List<ArticleVariationInfo>()
@@ -442,29 +441,12 @@ namespace ACESim
 
             var varyingDamagesWithHighMisestimation = new List<SimulationIdentifier>()
             {
-                new SimulationIdentifier("1", DefaultVariableValues.WithReplacement("Cost Misestimation", "5").WithReplacement("Damages Multiplier", "1")),
                 new SimulationIdentifier("0.5", DefaultVariableValues.WithReplacement("Cost Misestimation", "5").WithReplacement("Damages Multiplier", "0.5")),
+                new SimulationIdentifier("1", DefaultVariableValues.WithReplacement("Cost Misestimation", "5").WithReplacement("Damages Multiplier", "1")),
                 new SimulationIdentifier("2", DefaultVariableValues.WithReplacement("Cost Misestimation", "5").WithReplacement("Damages Multiplier", "2")),
             };
 
-            // The following does not work. It won't work with the cost breakdown diagrams because
-            // those diagrams use the data specifically produced in the manual reports, and those data do not
-            // filter by precaution power. And it also doesn't work in the regular diagrams yet.
-            //var varyingPrecautionPower = new List<SimulationIdentifier>()
-            //{
-            //    new SimulationIdentifier("1", DefaultVariableValues.WithReplacement("Filter", "PrecPower1")),
-            //    new SimulationIdentifier("2", DefaultVariableValues.WithReplacement("Filter", "PrecPower2")),
-            //    new SimulationIdentifier("3", DefaultVariableValues.WithReplacement("Filter", "PrecPower3")),
-            //    new SimulationIdentifier("4", DefaultVariableValues.WithReplacement("Filter", "PrecPower4")),
-            //    new SimulationIdentifier("5", DefaultVariableValues.WithReplacement("Filter", "PrecPower5")),
-            //    new SimulationIdentifier("6", DefaultVariableValues.WithReplacement("Filter", "PrecPower6")),
-            //    new SimulationIdentifier("7", DefaultVariableValues.WithReplacement("Filter", "PrecPower7")),
-            //    new SimulationIdentifier("8", DefaultVariableValues.WithReplacement("Filter", "PrecPower8")),
-            //    new SimulationIdentifier("9", DefaultVariableValues.WithReplacement("Filter", "PrecPower9")),
-            //    new SimulationIdentifier("10", DefaultVariableValues.WithReplacement("Filter", "PrecPower10")),
-            //}; // it would be nice if we could set this to the number of levels of precaution power in the PrecautionNegligenceDisputeGenerator, but we don't have access to the game definition and thus the dispute generator (or other options) here, in part because they change for every simulation, and we're making general settings. Possibly, we could have a static variable in the options generator that then controls the value in the dispute generator.
-
-            var tentativeResults = new List<SimulationSetsIdentifier>()
+            var simulationSetsIdentifiers = new List<SimulationSetsIdentifier>()
             {
                 new SimulationSetsIdentifier("Baseline", varyingNothing),
                 new SimulationSetsIdentifier("Fee Shifting Multiplier", varyingFeeShiftingMultiplier),
@@ -484,9 +466,79 @@ namespace ACESim
                 new SimulationSetsIdentifier("Damages Multiplier (High Misestimation)", varyingDamagesWithHighMisestimation),
             };
             
-            tentativeResults = PerformArticleVariationInfoSetsTransformation(transformer, tentativeResults);
+            simulationSetsIdentifiers = PerformArticleVariationInfoSetsTransformation(transformer, simulationSetsIdentifiers);
+            AddPairwiseSimulationSets(simulationSetsIdentifiers);
 
-            return tentativeResults;
+            return simulationSetsIdentifiers;
+        }
+
+        private void AddPairwiseSimulationSets(List<SimulationSetsIdentifier> simulationSetsIdentifiers)
+        {
+            var extremes = new Dictionary<string, (string Low, string High)>
+            {
+                { "Fee Shifting Multiplier", ( "1",       "2"       ) },
+                { "Damages Multiplier",      ( "0.5",     "2"       ) },
+                { "Liability Threshold",     ( "0.8",     "1.2"     ) },
+                { "Unit Precaution Cost",    ( "8E-06",   "1.2E-05" ) },
+            };
+
+            var variableNames = new[]
+            {
+                "Fee Shifting Multiplier",
+                "Damages Multiplier",
+                "Liability Threshold",
+                "Unit Precaution Cost",
+            };
+
+            for (int i = 0; i < variableNames.Length - 1; i++)
+            {
+                for (int j = i + 1; j < variableNames.Length; j++)
+                {
+                    var a = variableNames[i];
+                    var b = variableNames[j];
+                    var setName = $"{a} and {b}";
+                    simulationSetsIdentifiers.Add(
+                        CreatePairSimulationSet(setName, a, b, extremes[a], extremes[b]));
+                }
+            }
+        }
+
+        private static readonly Dictionary<string, string> VariableAbbreviations = new Dictionary<string, string>
+        {
+            { "Fee Shifting Multiplier", "F" },
+            { "Damages Multiplier",      "D"  },
+            { "Liability Threshold",     "L"  },
+            { "Unit Precaution Cost",    "P" },
+        };
+
+        private SimulationSetsIdentifier CreatePairSimulationSet(
+            string setName,
+            string variableAName,
+            string variableBName,
+            (string Low, string High) variableAExtremes,
+            (string Low, string High) variableBExtremes)
+        {
+            string a = VariableAbbreviations[variableAName];
+            string b = VariableAbbreviations[variableBName];
+
+            var ids = new List<SimulationIdentifier>
+            {
+                new SimulationIdentifier("Baseline", DefaultVariableValues),
+                new SimulationIdentifier($"Low {a}, Low {b}",
+                    DefaultVariableValues.WithReplacement(variableAName, variableAExtremes.Low)
+                                         .WithReplacement(variableBName, variableBExtremes.Low)),
+                new SimulationIdentifier($"Low {a}, High {b}",
+                    DefaultVariableValues.WithReplacement(variableAName, variableAExtremes.Low)
+                                         .WithReplacement(variableBName, variableBExtremes.High)),
+                new SimulationIdentifier($"High {a}, Low {b}",
+                    DefaultVariableValues.WithReplacement(variableAName, variableAExtremes.High)
+                                         .WithReplacement(variableBName, variableBExtremes.Low)),
+                new SimulationIdentifier($"High {a}, High {b}",
+                    DefaultVariableValues.WithReplacement(variableAName, variableAExtremes.High)
+                                         .WithReplacement(variableBName, variableBExtremes.High)),
+            };
+
+            return new SimulationSetsIdentifier(setName, ids);
         }
 
         private static void ChangeToDamagesIssue(LitigGameOptions g)
