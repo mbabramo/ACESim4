@@ -631,7 +631,7 @@ namespace ACESimBase.Games.LitigGame.ManualReports
             double y = 0;
             double[] seg =
             { s.opportunity, s.trulyLiableHarm, s.trulyNotLiableHarm, s.filing, s.answer, s.bargaining, s.trial };
-            for (int cat = 0; cat < 6; cat++)
+            for (int cat = 0; cat < seg.Length; cat++)
             {
                 if (seg[cat] <= 1e-12) continue;
                 double y1 = y + seg[cat] / yMax; // height scaled to y-axis max
@@ -1140,6 +1140,11 @@ namespace ACESimBase.Games.LitigGame.ManualReports
                 double answer     = double.Parse(fields[5], CultureInfo.InvariantCulture);
                 double bargaining = double.Parse(fields[6], CultureInfo.InvariantCulture);
                 double trial      = double.Parse(fields[7], CultureInfo.InvariantCulture);
+
+                if (trial > 0)
+                {
+                    var DEBUG = 0;
+                }
 
                 slices.Add(new Slice(width, opportunity, trulyLiableHarm, trulyNotLiableHarm, filing, answer, bargaining, trial));
             }
