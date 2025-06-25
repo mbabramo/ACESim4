@@ -155,7 +155,9 @@ namespace ACESimBase.Games.LitigGame.ManualReports
                             yOffset:      pane.bottom,
                             adaptivePadding: true,
                             minimalTicks: true,
-                            tickLabelsInside: tickLabelsInside));
+                            tickLabelsInside: tickLabelsInside,
+                            showTotalCost: true,
+                            includeTotalPrefix: cols <= 3));
                 }
             }
 

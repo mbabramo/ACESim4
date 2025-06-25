@@ -670,9 +670,11 @@ namespace ACESimBase.Games.LitigGame.ManualReports
             double?          targetHeight         = null,
             double?          xOffset              = null,
             double?          yOffset              = null,
-            bool             adaptivePadding      = false, 
+            bool             adaptivePadding      = false,
             bool             minimalTicks         = false,
-            bool             tickLabelsInside     = false) 
+            bool             tickLabelsInside     = false,
+            bool             showTotalCost        = false,
+            bool             includeTotalPrefix   = true)
         {
             slices = RemoveTriviallySmallAreaSlices(slices);
 
@@ -688,14 +690,9 @@ namespace ACESimBase.Games.LitigGame.ManualReports
             var outer = new TikzRectangle(originX, originY, originX + W, originY + H);
 
             // ── padding ────────────────────────────────────────────────────────────
-            double NeedLeft = tickLabelsInside ? 0.15               // no outside ticks → slim edge
-                                               : 0.40;              // room for tick labels
-
-            double NeedBot  = includeAxisLabels ? 0.60              // x-axis label + ticks
-                                               : 0.20;              // keep at least 0.20 cm
-
-            double NeedTop  = includeLegend     ? 0.60              // legend title line
-                                               : 0.10;              // tiny headroom
+            double NeedLeft = tickLabelsInside ? 0.15 : 0.40;
+            double NeedBot  = includeAxisLabels ? 0.60 : 0.20;
+            double NeedTop  = includeLegend     ? 0.60 : 0.10;
 
             double padLR, padTop, padBot;
             if (!adaptivePadding)
@@ -706,14 +703,13 @@ namespace ACESimBase.Games.LitigGame.ManualReports
             }
             else
             {
-                double relLR = W < 6.0 ? 0.04 : 0.08;   // 4 % if the pane is < 6 cm wide
+                double relLR = W < 6.0 ? 0.04 : 0.08;
                 double relTB = H < 6.0 ? 0.04 : 0.08;
 
                 padLR  = Math.Max(NeedLeft, Math.Min(1.0, W * relLR));
                 padBot = Math.Max(NeedBot,  Math.Min(1.0, H * relTB));
                 padTop = Math.Max(NeedTop,  Math.Min(1.5, H * relTB * 1.5));
             }
-
 
             var pane = outer.ReducedByPadding(padLR, padTop, padLR, padBot);
 
@@ -744,33 +740,74 @@ namespace ACESimBase.Games.LitigGame.ManualReports
                 sb.AppendLine(box.DrawCommand($"{fills[rc.Category]},draw={pen},very thin"));
             }
 
-            // ── left y-axis ───────────────────────────────────────────────────
+            // ── total‑cost label (optional) ─────────────────────────────
+            if (showTotalCost)
+            {
+                // local helper: choose plain‑decimal vs. LaTeX scientific notation
+                static string FormatTotalCost(double value)
+                {
+                    double absVal = Math.Abs(value);
+                    double rounded = Math.Round(value, 2, MidpointRounding.AwayFromZero);
+
+                    bool useScientific =
+                        (absVal > 0 && Math.Abs(rounded) < 0.005) ||   // would display as 0.00
+                        absVal >= 10.0;                                // too large for 2‑dp
+
+                    if (!useScientific)
+                        return rounded.ToString("0.00", CultureInfo.InvariantCulture);
+
+                    int exponent = (int)Math.Floor(Math.Log10(absVal));
+                    double mantissa = value / Math.Pow(10, exponent);
+
+                    // two significant figures in the mantissa
+                    string mantissaStr = mantissa
+                        .ToString("0.##", CultureInfo.InvariantCulture)
+                        .TrimEnd('0')
+                        .TrimEnd('.');
+
+                    // typeset as “1.23×10^{4}” in LaTeX math mode
+                    return $"${mantissaStr}\\times 10^{{{exponent}}}$";
+                }
+
+                double totalCost  = slices.Sum(s => s.Total * s.width);
+                string formatted  = FormatTotalCost(totalCost);   // helper added previously
+                string totalLabel = includeTotalPrefix ? $"Total: {formatted}" : formatted;
+
+                sb.AppendLine(
+                    TikzHelper.DrawText(
+                        pane.left + pane.width / 2.0,
+                        pane.top,
+                        totalLabel,
+                        $"font=\\small,text={pen},anchor=north"));
+
+            }
+
+            // ── left y‑axis ─────────────────────────────────────────────
             var yL = new TikzLine(new(pane.left, pane.bottom),
                                   new(pane.left, pane.top));
 
             var ticksLeftRaw = BuildTicks(sc.YMaxLeft, tickLabelsInside ? 0.6 : null);
             if (minimalTicks && ticksLeftRaw.Count > 2)
                 ticksLeftRaw = new() { ticksLeftRaw[^1] };
-            var ticksLeft = ticksLeftRaw;
 
             string  anchorLeft  = tickLabelsInside ? "west" : "east";
             double   shiftXLeft = tickLabelsInside ?  0.15 : -0.40;
-            double   shiftYL    = BestLabelShiftY(ticksLeft, pane.height);
+            double   shiftYL    = BestLabelShiftY(ticksLeftRaw, pane.height);
 
-            sb.AppendLine(yL.DrawAxis($"{pen},very thin", ticksLeft,
+            sb.AppendLine(yL.DrawAxis($"{pen},very thin", ticksLeftRaw,
                 $"font=\\small,text={pen}", anchorLeft,
                 includeAxisLabels ? "Cost" : null, "center",
                 TikzHorizontalAlignment.Center,
                 includeAxisLabels ? $"font=\\small,rotate=90,text={pen}" : null,
                 shiftXLeft, shiftYL));
 
-            // ── right y-axis (split-panel only) ───────────────────────────────
+            // ── right y‑axis (split‑panel only) ─────────────────────────
             if (splitRareHarmPanel)
             {
-                double gap = 0.03 * sy;                                  // 3 % of pane height
+                double gap = 0.03 * sy;
                 var mid = new TikzLine(
-                    new(pane.left + 0.5 * sx, pane.bottom + gap),        // start a bit above bottom
-                    new(pane.left + 0.5 * sx, pane.top - gap));       // stop a bit below top
+                    new(pane.left + 0.5 * sx, pane.bottom + gap),
+                    new(pane.left + 0.5 * sx, pane.top - gap));
                 sb.AppendLine(mid.DrawCommand($"{pen},dotted,very thin"));
 
                 var yR = new TikzLine(new(pane.right, pane.bottom),
@@ -779,23 +816,21 @@ namespace ACESimBase.Games.LitigGame.ManualReports
                 var ticksRightRaw = BuildTicks(sc.YMaxRight, tickLabelsInside ? 0.6 : null);
                 if (minimalTicks && ticksRightRaw.Count > 2)
                     ticksRightRaw = new() { ticksRightRaw[^1] };
-                var ticksRight = ticksRightRaw;
 
                 string anchorRight  = tickLabelsInside ? "east" : "west";
                 double shiftXRight  = tickLabelsInside ? -0.15 :  0.65;
 
-                sb.AppendLine(yR.DrawAxis($"{pen},very thin", ticksRight,
+                sb.AppendLine(yR.DrawAxis($"{pen},very thin", ticksRightRaw,
                     $"font=\\small,text={pen}", anchorRight,
                     null, null, TikzHorizontalAlignment.Center,
                     includeAxisLabels ? $"font=\\small,text={pen}" : null,
                     shiftXRight, 0, useContour: tickLabelsInside && !pres));
             }
 
-
-            // ── x-axis & (optional) panel captions  ─────────────────────
+            // ── x‑axis & panel captions ────────────────────────────────
             var xB = new TikzLine(new(pane.left, pane.bottom), new(pane.right, pane.bottom));
             var xTicks = includeAxisLabels
-                ? new List<(double, string)> { (0, "0\\%"), (1, "100\\%") } // this is really tick marks but we make them disappear when dropping the labels
+                ? new List<(double, string)> { (0, "0\\%"), (1, "100\\%") }
                 : new List<(double, string)> { (0, ""), (1, "") };
 
             sb.AppendLine(xB.DrawAxis($"{pen},very thin", xTicks,
@@ -810,8 +845,8 @@ namespace ACESimBase.Games.LitigGame.ManualReports
                 double pRight = 0.5 / sc.XScaleRight;
                 double yLabel = pane.bottom - 0.6;
 
-                string leftLbl  = includeDisputeLabels  ? $"No\\ Dispute\\ ({Pct(pLeft)})"  : Pct(pLeft);
-                string rightLbl = includeDisputeLabels  ? $"Dispute\\ ({Pct(pRight)})"     : Pct(pRight);
+                string leftLbl  = includeDisputeLabels ? $"No\\ Dispute\\ ({Pct(pLeft)})"  : Pct(pLeft);
+                string rightLbl = includeDisputeLabels ? $"Dispute\\ ({Pct(pRight)})"     : Pct(pRight);
 
                 sb.AppendLine(TikzHelper.DrawText(pane.left + 0.25 * sx, yLabel,
                     leftLbl,  $"font=\\small,text={pen},anchor=south"));
@@ -819,19 +854,19 @@ namespace ACESimBase.Games.LitigGame.ManualReports
                     rightLbl, $"font=\\small,text={pen},anchor=south"));
             }
 
-            // ── legend (identical to current code) ─────────────────────────────────
+            // ── legend ─────────────────────────────────────────────────
             if (includeLegend)
             {
                 bool[] used = new bool[Labels.Length];
                 foreach (var s in slices)
                 {
-                    if (s.opportunity > 1e-12) used[0] = true;
-                    if (s.trulyLiableHarm        > 1e-12) used[1] = true;
-                    if (s.trulyNotLiableHarm        > 1e-12) used[2] = true;
-                    if (s.filing      > 1e-12) used[3] = true;
-                    if (s.answer      > 1e-12) used[4] = true;
-                    if (s.bargaining  > 1e-12) used[5] = true;
-                    if (s.trial       > 1e-12) used[6] = true;
+                    if (s.opportunity      > 1e-12) used[0] = true;
+                    if (s.trulyLiableHarm  > 1e-12) used[1] = true;
+                    if (s.trulyNotLiableHarm > 1e-12) used[2] = true;
+                    if (s.filing           > 1e-12) used[3] = true;
+                    if (s.answer           > 1e-12) used[4] = true;
+                    if (s.bargaining       > 1e-12) used[5] = true;
+                    if (s.trial            > 1e-12) used[6] = true;
                 }
                 var active = Enumerable.Range(0, Labels.Length).Where(i => used[i]).ToList();
 
@@ -851,7 +886,7 @@ namespace ACESimBase.Games.LitigGame.ManualReports
                 }
             }
 
-            // ── return ─────────────────────────────────────────────────────────────
+            // ── return ─────────────────────────────────────────────────
             if (!standalone)
                 return sb.ToString();
 
