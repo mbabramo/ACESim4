@@ -39,6 +39,8 @@ namespace ACESim
                     ("Issue", "Liability"),
                     ("Proportion of Costs at Beginning", "0.5"),
                     ("Cost Misestimation", "1"),
+                    ("Num Signals and Offers", "Baseline"),
+                    ("Wrongful Attribution Probability", "1E-05")
                 };
             }
         }
@@ -80,6 +82,8 @@ namespace ACESim
         public double[] CourtNoiseValues = new double[] { 0.2, 0, 0.4 };
 
         public double[] CostMisestimations => new double[] { 1.0, 2.0, 5.0, 10.0 };
+
+        public double[] WrongfulAttributionProbabilities => new double[] { 1E-05, 0, 1E-04 /* high value */ };
 
         public (double precautionCostPerception, double feeShiftingMultiplier)[] HighMisestimationFeeShiftingMultipliers => [(5.0, 0.0), (5.0, 1.0), (5.0, 2.0)];
         public (double precautionCostPerception, double damagesMultipliers)[] HighMisestimationDamagesMultipliers => [(5.0, 1.0), (5.0, 0.5), (5.0, 2.0)];
@@ -186,7 +190,27 @@ namespace ACESim
             g.VariableSettings["Court Noise"] = courtNoise;
         });
 
+        // Wrongful attribution probability
+        
+        public List<Func<LitigGameOptions, LitigGameOptions>> WrongfulAttributionTransformations()
+            => Transform(GetAndTransform_WrongfulAttributionProbability, WrongfulAttributionProbabilities);
+
+        public LitigGameOptions GetAndTransform_WrongfulAttributionProbability(LitigGameOptions options, double wrongfulAttributionProbability) => GetAndTransform(options, " WA " + wrongfulAttributionProbability, g =>
+        {
+            PrecautionNegligenceDisputeGenerator disputeGenerator = (PrecautionNegligenceDisputeGenerator)options.LitigGameDisputeGenerator;
+            disputeGenerator.ProbabilityAccidentWrongfulAttribution = wrongfulAttributionProbability;
+            g.VariableSettings["Wrongful Attribution Probability"] = wrongfulAttributionProbability switch
+            {
+                0 => "None",
+                0.00001 => "Normal",
+                0.0001 => "High",
+                _ => throw new NotImplementedException()
+            };
+        });
+
         // Misestimation (precaution cost perception multiplier)
+
+        const int maxSignalsAndOffersWhenMisestimatingCost = 5;
 
         public List<Func<LitigGameOptions, LitigGameOptions>> CostMisestimationTransformations()
             => Transform(GetAndTransform_DCostMisestimation, CostMisestimations);
@@ -194,8 +218,25 @@ namespace ACESim
         public LitigGameOptions GetAndTransform_DCostMisestimation(LitigGameOptions options, double precautionCostPerceptionMultiplier) => GetAndTransform(options, " PCPM " + precautionCostPerceptionMultiplier, g =>
         {
             PrecautionNegligenceDisputeGenerator disputeGenerator = (PrecautionNegligenceDisputeGenerator)options.LitigGameDisputeGenerator;
-            disputeGenerator.DPerceptionOfPrecautionCostNoiseMultiplier = precautionCostPerceptionMultiplier;
+            disputeGenerator.CostMistestimationFactor = precautionCostPerceptionMultiplier;
+            bool reducedNumSignalsOrOffers = false;
+            if (options.NumOffers > maxSignalsAndOffersWhenMisestimatingCost)
+            {
+                options.NumOffers = maxSignalsAndOffersWhenMisestimatingCost;
+                reducedNumSignalsOrOffers = true;
+            }
+            if (options.NumLiabilityStrengthPoints > maxSignalsAndOffersWhenMisestimatingCost)
+            {
+                options.NumLiabilityStrengthPoints = maxSignalsAndOffersWhenMisestimatingCost;
+                reducedNumSignalsOrOffers = true;
+            }
+            if (options.NumLiabilitySignals > maxSignalsAndOffersWhenMisestimatingCost)
+            {
+                options.NumLiabilitySignals = maxSignalsAndOffersWhenMisestimatingCost;
+                reducedNumSignalsOrOffers = true;
+            }
             g.VariableSettings["Cost Misestimation"] = precautionCostPerceptionMultiplier;
+            g.VariableSettings["Num Signals and Offers"] = reducedNumSignalsOrOffers ? "Reduced": "Baseline";
         });
 
         // High misestimation (perception cost perception) PLUS fee-shifting
@@ -208,7 +249,7 @@ namespace ACESim
             PrecautionNegligenceDisputeGenerator disputeGenerator = (PrecautionNegligenceDisputeGenerator)options.LitigGameDisputeGenerator;
             options.LoserPaysMultiple = setting.feeShiftingMultiplier;
             g.VariableSettings["Fee Shifting Multiplier"] = setting.feeShiftingMultiplier;
-            disputeGenerator.DPerceptionOfPrecautionCostNoiseMultiplier = setting.precautionCostPerceptionMultiplier;
+            disputeGenerator.CostMistestimationFactor = setting.precautionCostPerceptionMultiplier;
             g.VariableSettings["Cost Misestimation"] = setting.precautionCostPerceptionMultiplier;
         });
 
@@ -222,7 +263,7 @@ namespace ACESim
             PrecautionNegligenceDisputeGenerator disputeGenerator = (PrecautionNegligenceDisputeGenerator)options.LitigGameDisputeGenerator;
             options.LoserPaysMultiple = setting.feeShiftingMultiplier;
             g.VariableSettings["Damages Multiplier"] = setting.feeShiftingMultiplier;
-            disputeGenerator.DPerceptionOfPrecautionCostNoiseMultiplier = setting.precautionCostPerceptionMultiplier;
+            disputeGenerator.CostMistestimationFactor = setting.precautionCostPerceptionMultiplier;
             g.VariableSettings["Cost Misestimation"] = setting.precautionCostPerceptionMultiplier;
         });
 
@@ -291,6 +332,11 @@ namespace ACESim
                     CourtNoiseTransformations()
                     ),
 
+                new ("WrongfulAttributionProbability",
+                    null,
+                    WrongfulAttributionTransformations()
+                    ),
+
                 new("CostsStartFraction",
                     null,
                     ProportionOfCostsAtBeginningTransformations()
@@ -321,6 +367,8 @@ namespace ACESim
 
         public override List<SimulationSetsIdentifier> GetSimulationSetsIdentifiers(SimulationSetsTransformer transformer = null)
         {
+            var variationSets = GetVariationSets(); // for specifying what diagrams etc. to produce if that depends on the options as they have been set, e.g. in LitigGameOptionsGenerator.
+
             var varyingNothing = new List<SimulationIdentifier>()
             {
                 new SimulationIdentifier("Baseline", DefaultVariableValues),
@@ -359,7 +407,7 @@ namespace ACESim
                 new SimulationIdentifier("Low", DefaultVariableValues.WithReplacement("Unit Precaution Cost", "8E-06")),
                 new SimulationIdentifier("Normal", DefaultVariableValues.WithReplacement("Unit Precaution Cost", "1E-05")),
                 new SimulationIdentifier("High", DefaultVariableValues.WithReplacement("Unit Precaution Cost", "1.2E-05")),
-                // DEBUG -- add later new SimulationIdentifier("Very High", DefaultVariableValues.WithReplacement("Unit Precaution Cost", "2E-05")),
+                // DEBUG -- add later or consider changing Low to 5E-06 and High to 1.5E-05 new SimulationIdentifier("Very High", DefaultVariableValues.WithReplacement("Unit Precaution Cost", "2E-05")),
             };
 
             //var varyingFeeShiftingRule_LiabilityUncertain = new List<ArticleVariationInfo>()
@@ -424,12 +472,18 @@ namespace ACESim
                 new SimulationIdentifier("1", DefaultVariableValues.WithReplacement("Proportion of Costs at Beginning", "1")),
             };
 
+            // for cost misestimation, we also need to specify if the number of signals or offers is reduced
+            var disputeGeneratorSettings = variationSets.Select(x => (((LitigGameOptions)x), ((LitigGameOptions)x).LitigGameDisputeGenerator as PrecautionNegligenceDisputeGenerator)).ToList();
+            var exampleWithoutCostMisestimation = disputeGeneratorSettings.Where(x => x.Item2.CostMistestimationFactor == 1).First();
+            var exampleWithCostMisestimation = disputeGeneratorSettings.Where(x => x.Item2.CostMistestimationFactor != 1).First();
+            bool reducedSignalsOrOffers = exampleWithCostMisestimation.Item1.NumLiabilitySignals + exampleWithCostMisestimation.Item1.NumOffers < exampleWithoutCostMisestimation.Item1.NumLiabilitySignals + exampleWithoutCostMisestimation.Item1.NumOffers;
+            string numSignalsAndOffersString = reducedSignalsOrOffers ? "Reduced" : "Baseline";
             var varyingCostMisestimations = new List<SimulationIdentifier>()
             {
-                new SimulationIdentifier("1", DefaultVariableValues.WithReplacement("Cost Misestimation", "1")),
-                new SimulationIdentifier("2", DefaultVariableValues.WithReplacement("Cost Misestimation", "2")),
-                new SimulationIdentifier("5", DefaultVariableValues.WithReplacement("Cost Misestimation", "5")),
-                new SimulationIdentifier("10", DefaultVariableValues.WithReplacement("Cost Misestimation", "10")),
+                new SimulationIdentifier("1", DefaultVariableValues.WithReplacement("Cost Misestimation", "1").WithReplacement("Num Signals and Offers", numSignalsAndOffersString)), // this is the key -- we need the baseline value to be with lower number of signals and offers for comparability
+                new SimulationIdentifier("2", DefaultVariableValues.WithReplacement("Cost Misestimation", "2").WithReplacement("Num Signals and Offers", numSignalsAndOffersString)),
+                new SimulationIdentifier("5", DefaultVariableValues.WithReplacement("Cost Misestimation", "5").WithReplacement("Num Signals and Offers", numSignalsAndOffersString)),
+                new SimulationIdentifier("10", DefaultVariableValues.WithReplacement("Cost Misestimation", "10").WithReplacement("Num Signals and Offers", numSignalsAndOffersString)),
             };
 
             var varyingFeeShiftingWithHighMisestimation = new List<SimulationIdentifier>()
@@ -444,6 +498,13 @@ namespace ACESim
                 new SimulationIdentifier("0.5", DefaultVariableValues.WithReplacement("Cost Misestimation", "5").WithReplacement("Damages Multiplier", "0.5")),
                 new SimulationIdentifier("1", DefaultVariableValues.WithReplacement("Cost Misestimation", "5").WithReplacement("Damages Multiplier", "1")),
                 new SimulationIdentifier("2", DefaultVariableValues.WithReplacement("Cost Misestimation", "5").WithReplacement("Damages Multiplier", "2")),
+            };
+            
+            var varyingWrongfulAttribution = new List<SimulationIdentifier>()
+            {
+                new SimulationIdentifier("None", DefaultVariableValues.WithReplacement("Wrongful Attribution Probability", "None")),
+                new SimulationIdentifier("Normal", DefaultVariableValues.WithReplacement("Wrongful Attribution Probability", "Normal")),
+                new SimulationIdentifier("High", DefaultVariableValues.WithReplacement("Wrongful Attribution Probability", "High")),
             };
 
             var simulationSetsIdentifiers = new List<SimulationSetsIdentifier>()
@@ -464,6 +525,7 @@ namespace ACESim
                 new SimulationSetsIdentifier("Misestimation Level", varyingCostMisestimations),
                 new SimulationSetsIdentifier("Fee Shifting Multiplier (High Misestimation)", varyingFeeShiftingWithHighMisestimation),
                 new SimulationSetsIdentifier("Damages Multiplier (High Misestimation)", varyingDamagesWithHighMisestimation),
+                new SimulationSetsIdentifier("Wrongful Attribution Probability", varyingWrongfulAttribution),
             };
             
             simulationSetsIdentifiers = PerformArticleVariationInfoSetsTransformation(transformer, simulationSetsIdentifiers);
