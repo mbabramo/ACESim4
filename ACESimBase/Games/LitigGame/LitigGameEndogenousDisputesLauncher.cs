@@ -218,7 +218,7 @@ namespace ACESim
         public LitigGameOptions GetAndTransform_DCostMisestimation(LitigGameOptions options, double precautionCostPerceptionMultiplier) => GetAndTransform(options, " PCPM " + precautionCostPerceptionMultiplier, g =>
         {
             PrecautionNegligenceDisputeGenerator disputeGenerator = (PrecautionNegligenceDisputeGenerator)options.LitigGameDisputeGenerator;
-            disputeGenerator.CostMistestimationFactor = precautionCostPerceptionMultiplier;
+            disputeGenerator.CostMisestimationFactor = precautionCostPerceptionMultiplier;
             bool reducedNumSignalsOrOffers = false;
             if (options.NumOffers > maxSignalsAndOffersWhenMisestimatingCost)
             {
@@ -249,7 +249,7 @@ namespace ACESim
             PrecautionNegligenceDisputeGenerator disputeGenerator = (PrecautionNegligenceDisputeGenerator)options.LitigGameDisputeGenerator;
             options.LoserPaysMultiple = setting.feeShiftingMultiplier;
             g.VariableSettings["Fee Shifting Multiplier"] = setting.feeShiftingMultiplier;
-            disputeGenerator.CostMistestimationFactor = setting.precautionCostPerceptionMultiplier;
+            disputeGenerator.CostMisestimationFactor = setting.precautionCostPerceptionMultiplier;
             g.VariableSettings["Cost Misestimation"] = setting.precautionCostPerceptionMultiplier;
         });
 
@@ -263,7 +263,7 @@ namespace ACESim
             PrecautionNegligenceDisputeGenerator disputeGenerator = (PrecautionNegligenceDisputeGenerator)options.LitigGameDisputeGenerator;
             options.LoserPaysMultiple = setting.feeShiftingMultiplier;
             g.VariableSettings["Damages Multiplier"] = setting.feeShiftingMultiplier;
-            disputeGenerator.CostMistestimationFactor = setting.precautionCostPerceptionMultiplier;
+            disputeGenerator.CostMisestimationFactor = setting.precautionCostPerceptionMultiplier;
             g.VariableSettings["Cost Misestimation"] = setting.precautionCostPerceptionMultiplier;
         });
 
@@ -474,8 +474,8 @@ namespace ACESim
 
             // for cost misestimation, we also need to specify if the number of signals or offers is reduced
             var disputeGeneratorSettings = variationSets.Select(x => (((LitigGameOptions)x), ((LitigGameOptions)x).LitigGameDisputeGenerator as PrecautionNegligenceDisputeGenerator)).ToList();
-            var exampleWithoutCostMisestimation = disputeGeneratorSettings.Where(x => x.Item2.CostMistestimationFactor == 1).First();
-            var exampleWithCostMisestimation = disputeGeneratorSettings.Where(x => x.Item2.CostMistestimationFactor != 1).First();
+            var exampleWithoutCostMisestimation = disputeGeneratorSettings.Where(x => x.Item2.CostMisestimationFactor == 1).First();
+            var exampleWithCostMisestimation = disputeGeneratorSettings.Where(x => x.Item2.CostMisestimationFactor != 1).First();
             bool reducedSignalsOrOffers = exampleWithCostMisestimation.Item1.NumLiabilitySignals + exampleWithCostMisestimation.Item1.NumOffers < exampleWithoutCostMisestimation.Item1.NumLiabilitySignals + exampleWithoutCostMisestimation.Item1.NumOffers;
             string numSignalsAndOffersString = reducedSignalsOrOffers ? "Reduced" : "Baseline";
             var varyingCostMisestimations = new List<SimulationIdentifier>()

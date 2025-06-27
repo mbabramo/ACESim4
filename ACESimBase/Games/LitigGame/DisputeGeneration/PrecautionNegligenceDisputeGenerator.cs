@@ -31,8 +31,8 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
         public double LiabilityThreshold = 1.0;
         int numSamplesToMakeForCourtLiablityDetermination = 1000;
 
-        public double CostMistestimationFactor = 1.0;
-        private bool ChanceAffectsDPerceptionofPrecautionCost => CostMistestimationFactor != 1.0; // if true, then a chance decision will cause the marginal precaution cost to be multiplied by some number in determining the defendant's utility. But this won't affect the actual amount spent. This is a way of modeling a defendant who incorrectly perceives that the precaution cost is changing. 
+        public double CostMisestimationFactor = 1.0;
+        private bool ChanceAffectsDPerceptionofPrecautionCost => CostMisestimationFactor != 1.0; // if true, then a chance decision will cause the marginal precaution cost to be multiplied by some number in determining the defendant's utility. But this won't affect the actual amount spent. This is a way of modeling a defendant who incorrectly perceives that the precaution cost is changing. 
         private double[] _PossiblePerceivedPrecautionCostMultipliers = null;
         private double[] PossiblePerceivedPrecautionCostMultipliers
         {
@@ -40,7 +40,7 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
             {
                 if (_PossiblePerceivedPrecautionCostMultipliers == null)
                 {
-                    _PossiblePerceivedPrecautionCostMultipliers = [1.0 / CostMistestimationFactor, 1.0, 1.0 * CostMistestimationFactor];
+                    _PossiblePerceivedPrecautionCostMultipliers = [1.0 / CostMisestimationFactor, 1.0, 1.0 * CostMisestimationFactor];
                 }
                 return _PossiblePerceivedPrecautionCostMultipliers;
             }
@@ -75,7 +75,7 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
             new PrecautionNegligenceProgress(fullHistoryRequired);
 
         public string OptionsString =>
-            $"{nameof(CostOfAccident)} {CostOfAccident}  {nameof(UnitPrecautionCost)} {UnitPrecautionCost} {nameof(PrecautionPowerLevels)} {PrecautionPowerLevels} {nameof(RelativePrecautionLevels)} {RelativePrecautionLevels} {nameof(ProbabilityAccidentNoPrecaution)} {ProbabilityAccidentNoPrecaution} {nameof(ProbabilityAccidentMaxPrecaution_LowPower)} {ProbabilityAccidentMaxPrecaution_LowPower} {nameof(ProbabilityAccidentMaxPrecaution_HighPower)} {ProbabilityAccidentMaxPrecaution_HighPower} {nameof(AlphaLowPower)} {AlphaLowPower} {nameof(AlphaHighPower)} {AlphaHighPower} {nameof(CostMistestimationFactor)} {CostMistestimationFactor} {nameof(ProbabilityAccidentWrongfulAttribution)} {ProbabilityAccidentWrongfulAttribution}";
+            $"{nameof(CostOfAccident)} {CostOfAccident}  {nameof(UnitPrecautionCost)} {UnitPrecautionCost} {nameof(PrecautionPowerLevels)} {PrecautionPowerLevels} {nameof(RelativePrecautionLevels)} {RelativePrecautionLevels} {nameof(ProbabilityAccidentNoPrecaution)} {ProbabilityAccidentNoPrecaution} {nameof(ProbabilityAccidentMaxPrecaution_LowPower)} {ProbabilityAccidentMaxPrecaution_LowPower} {nameof(ProbabilityAccidentMaxPrecaution_HighPower)} {ProbabilityAccidentMaxPrecaution_HighPower} {nameof(AlphaLowPower)} {AlphaLowPower} {nameof(AlphaHighPower)} {AlphaHighPower} {nameof(CostMisestimationFactor)} {CostMisestimationFactor} {nameof(ProbabilityAccidentWrongfulAttribution)} {ProbabilityAccidentWrongfulAttribution}";
 
         public string GetGeneratorName() => "PrecautionNegligence";
         public bool SupportsSymmetry() => false;
