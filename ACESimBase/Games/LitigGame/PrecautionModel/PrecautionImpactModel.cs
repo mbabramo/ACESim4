@@ -45,8 +45,6 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
         readonly double[] accidentProbMarginal;
         readonly double[] trueLiabilityProb;
 
-        readonly Func<int, int, double> accidentFuncOverride;
-
         readonly MarginalBenefitRule _benefitRule;
         readonly double _epsilon;
 

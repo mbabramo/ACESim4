@@ -1176,11 +1176,6 @@ namespace ACESimBase.Games.LitigGame.ManualReports
                 double bargaining = double.Parse(fields[6], CultureInfo.InvariantCulture);
                 double trial      = double.Parse(fields[7], CultureInfo.InvariantCulture);
 
-                if (trial > 0)
-                {
-                    var DEBUG = 0;
-                }
-
                 slices.Add(new Slice(width, opportunity, trulyLiableHarm, trulyNotLiableHarm, filing, answer, bargaining, trial));
             }
 
