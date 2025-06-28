@@ -1269,7 +1269,7 @@ namespace ACESimBase.GameSolvingSupport.GameTree
         {
             var result = NodeInformation[averageStrategyProbabilityDimension, action - 1];
             if (double.IsNaN(result))
-                throw new Exception();
+                throw new Exception("Average strategy is set to infinite / NaN."); // Possible cause: Old or corrupt equilibrium file. Try recomputing it.
             return result;
         }
 

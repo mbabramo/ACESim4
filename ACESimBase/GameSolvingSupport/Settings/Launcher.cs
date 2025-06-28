@@ -34,7 +34,7 @@ namespace ACESimBase.GameSolvingSupport.Settings
         public GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.RegretMatching;
 
         public int? AlwaysDoTaskID = null;  // set this to a task to replay a particular task (either over and over again, using ACESimDistributed, or just once, using ACESimConsole).
-        public int[] LimitToTaskIDs = null; // new int[] { 385, 386, 387, 392 }; // set this to non-null to repeat specific IDs (e.g., from failures) from a distributed action set.
+        public int[] LimitToTaskIDs = null; // DEBUG new int[] { 421 }; // set this to non-null to repeat specific IDs (e.g., from failures) from a distributed action set.
 
         public const int VanillaIterations = 1000; // Note: Also used for GeneralizedVanilla, DeepCFR
         public const int VanillaReportEveryNIterations = VanillaIterations;  // EffectivelyNever

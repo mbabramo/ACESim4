@@ -124,11 +124,13 @@ namespace ACESim
             // enumerates every transformation defined in GetSetsOfGameOptions()
             AddToOptionsSets(optionSets);
 
+            optionSets = optionSets.OrderBy(o => o.Name).ToList();
+
             // optional post-processing already present in the original
             if (LimitToTaskIDs is { Length: > 0 })
                 optionSets = LimitToTaskIDs.Select(id => optionSets[id]).ToList();
 
-            return optionSets.OrderBy(o => o.Name).ToList();
+            return optionSets;
         }
 
         #region Custom transformations
