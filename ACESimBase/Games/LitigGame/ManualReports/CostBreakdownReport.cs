@@ -750,8 +750,8 @@ namespace ACESimBase.Games.LitigGame.ManualReports
                     double rounded = Math.Round(value, 2, MidpointRounding.AwayFromZero);
 
                     bool useScientific =
-                        (absVal > 0 && Math.Abs(rounded) < 0.005) ||   // would display as 0.00
-                        absVal >= 10.0;                                // too large for 2‑dp
+                        (absVal > 0 && Math.Abs(rounded) < 0.005) ||
+                        absVal >= 10.0;
 
                     if (!useScientific)
                         return rounded.ToString("0.00", CultureInfo.InvariantCulture);
@@ -759,15 +759,12 @@ namespace ACESimBase.Games.LitigGame.ManualReports
                     int exponent = (int)Math.Floor(Math.Log10(absVal));
                     double mantissa = value / Math.Pow(10, exponent);
 
-                    // two significant figures in the mantissa
-                    string mantissaStr = mantissa
-                        .ToString("0.##", CultureInfo.InvariantCulture)
-                        .TrimEnd('0')
-                        .TrimEnd('.');
+                    // mantissa always shows at least two decimal places
+                    string mantissaStr = mantissa.ToString("0.00##", CultureInfo.InvariantCulture);
 
-                    // typeset as “1.23×10^{4}” in LaTeX math mode
                     return $"${mantissaStr}\\times 10^{{{exponent}}}$";
                 }
+
 
                 double totalCost  = slices.Sum(s => s.Total * s.width);
                 string formatted  = FormatTotalCost(totalCost);   // helper added previously
