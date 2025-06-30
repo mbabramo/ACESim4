@@ -40,7 +40,7 @@ namespace ACESim
                     ("Proportion of Costs at Beginning", "0.5"),
                     ("Cost Misestimation", "1"),
                     ("Num Signals and Offers", "Baseline"),
-                    ("Wrongful Attribution Probability", "1E-05")
+                    ("Wrongful Attribution Probability", "Normal")
                 };
             }
         }
@@ -237,7 +237,7 @@ namespace ACESim
                 options.NumLiabilitySignals = maxSignalsAndOffersWhenMisestimatingCost;
                 reducedNumSignalsOrOffers = true;
             }
-            g.VariableSettings["Cost Misestimation"] = precautionCostPerceptionMultiplier;
+            g.VariableSettings["Cost Misestimation"] = precautionCostPerceptionMultiplier.ToString();
             g.VariableSettings["Num Signals and Offers"] = reducedNumSignalsOrOffers ? "Reduced": "Baseline";
         });
 
@@ -265,11 +265,13 @@ namespace ACESim
                     AdditionalRiskAversionTransformations(),
                     IsGlobal: true),
 
-                // critical with modifiers (critical are always permuted against one another)
                 new("CostsMultiplier",
                     CriticalCostsMultiplierTransformations(),
-                    AdditionalCostsMultiplierTransformations()
+                    AdditionalCostsMultiplierTransformations(),
+                    IsGlobal: true
                     ),
+
+                // critical with modifiers (critical are always permuted against one another)
 
                 new("FeeShiftingMultiplier",
                     CriticalFeeShiftingMultiplierTransformations(),
