@@ -84,7 +84,7 @@ namespace ACESimBase.Games.LitigGame.ManualReports
             // ── geometry parameters ────────────────────────────────────────────────
             double yAxisGapCm = Math.Max(1.0, 0.35 * (majorYValueNames.Count == 0
                                            ? 1
-                                           : majorYValueNames.Max(s => s.Length)));
+                                           : majorYValueNames.Max(s => StringLengthAccountForFractions(s))));
 
             double baseLeft       = yAxisGapCm + 0.9;                  // axis + tick labels
             double outerLeftBand  = Math.Max(OuterLeftBandCm, baseLeft);
@@ -192,6 +192,36 @@ namespace ACESimBase.Games.LitigGame.ManualReports
                 additionalTikzLibraries: new() { "patterns", "positioning" });
         }
 
+        
+        /// Example: "dog" -> 3
+        /// Example: "$\\frac{1}{4}$" --> 1
+        /// Example: "$\\frac{1}{25}$" --> 2
+        static int StringLengthAccountForFractions(string s)
+        {
+            if (string.IsNullOrEmpty(s))
+                return 0;
+
+            const string prefix = "$\\frac{";
+            int start = s.IndexOf(prefix);
+            if (start == -1)
+                return s.Length;
+
+            int numeratorStart = start + prefix.Length;
+            int numeratorEnd = s.IndexOf('}', numeratorStart);
+            int denominatorStart = numeratorEnd + 2; // skip '}{'
+            int denominatorEnd = s.IndexOf('}', denominatorStart);
+
+            int numeratorLength = numeratorEnd - numeratorStart;
+            int denominatorLength = denominatorEnd - denominatorStart;
+            int fractionLength = Math.Max(numeratorLength, denominatorLength);
+
+            int totalLength =
+                start + // everything before the fraction
+                fractionLength +
+                (s.Length - (denominatorEnd + 2)); // everything after the final '$'
+
+            return totalLength;
+        }
 
     }
 }
