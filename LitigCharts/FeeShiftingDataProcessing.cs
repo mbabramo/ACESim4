@@ -1031,6 +1031,8 @@ namespace LitigCharts
 
         private static void GenerateRepeatedReport(double? limitToCostsMultiplier, PlannedPath plannedPath, PermutationalLauncher.SimulationSetsIdentifier variation, List<List<List<Slice>>> matrix, List<string> majorXLabels, List<string> majorYLabels)
         {
+            majorXLabels = majorXLabels.Select(ConvertFraction).ToList();
+            majorYLabels = majorYLabels.Select(ConvertFraction).ToList();
             string tikzSource = RepeatedCostBreakdownReport.GenerateRepeatedReport(
                             matrix,
                             majorXLabels,
@@ -1045,6 +1047,28 @@ namespace LitigCharts
                           (limitToCostsMultiplier == 1.0 ? "(Single Row)" : "(All Rows)");
 
             GenerateLatex(plannedPath, $"{core}.tex", tikzSource);
+        }
+
+            // helper converts decimal strings to TeX fractions for axis labels
+        static string ConvertFraction(string s)
+        {
+            switch (s.Trim())
+            {
+                case "0.25":
+                case "0.250":
+                    return "$\\frac{1}{4}$";
+                case "0.5":
+                case "0.50":
+                case "0.500":
+                    return "$\\frac{1}{2}$";
+                case "0.75":
+                case "0.750":
+                    return "$\\frac{3}{4}$";
+                case "0.125":
+                    return "$\\frac{1}{8}$";
+                default:
+                    return s;
+            }
         }
 
         #endregion

@@ -30,7 +30,9 @@ namespace ACESimBase.Util.Combinatorics
             string Name,
             IReadOnlyList<Func<T, T>> CriticalTransforms,   // may be null/empty
             IReadOnlyList<Func<T, T>> ModifierTransforms,   // may be null/empty
-            bool IsGlobal = false) where T : class
+            bool IsGlobal = false,
+            bool IncludeBaselineValueForNoncritical = false // usually, we list the baseline value but do not then explicitly create a combination for it
+            ) where T : class
         {
             public bool HasCritical   => CriticalTransforms != null && CriticalTransforms.Count > 0;
             public bool HasModifier   => ModifierTransforms != null && ModifierTransforms.Count > 0;
@@ -92,7 +94,8 @@ namespace ACESimBase.Util.Combinatorics
             {
                 // start at 1 – index 0 is the baseline value already covered by the
                 // core-only grid, so including it would duplicate rows
-                for (int idx = 1; idx < mod.ModifierTransforms.Count; idx++)
+                int startIdx = mod.IncludeBaselineValueForNoncritical ? 0 : 1;
+                for (int idx = startIdx; idx < mod.ModifierTransforms.Count; idx++)
                 {
                     var modTfm = mod.ModifierTransforms[idx];
 

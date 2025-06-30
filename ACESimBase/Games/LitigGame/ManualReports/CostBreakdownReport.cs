@@ -1011,34 +1011,62 @@ namespace ACESimBase.Games.LitigGame.ManualReports
         }
 
         /// <summary>
-        /// Builds tick marks for a y-axis with:
-        /// - top value rounded down to one significant figure;
-        /// - number of ticks = first digit of top (or 10 if top == 10);
-        /// - labels printed with one significant figure;
-        /// - each tick label positioned by its proportion of axis height.
+        /// Builds tick marks for a y-axis.
         /// </summary>
-        private static List<(double proportion, string label)> BuildTicks(double yMax, double? hideTickLabelsLessThanProportion)
+        private static List<(double proportion, string label)> BuildTicks(
+            double yMax,
+            double? hideTickLabelsLessThanProportion)
         {
-            double top = RoundDown1SigFig(yMax);
-            if (top == 0) top = 1;
+            double roundedTop = RoundDown1SigFig(yMax);
+            if (roundedTop == 0)
+                roundedTop = 1;
 
-            int firstDigit = (int)(top / Math.Pow(10, Math.Floor(Math.Log10(top))));
-            int ticks = (top == 10) ? 10 : firstDigit;
+            int leadingDigit = (int)(roundedTop / Math.Pow(10, Math.Floor(Math.Log10(roundedTop))));
+            int tickCount    = roundedTop == 10 ? 10 : leadingDigit;
+            double step      = roundedTop / tickCount;
 
-            double step = top / ticks;
+            var ticks = new List<(double proportion, string label)>();
 
-            var list = new List<(double proportion, string label)>();
-            for (int i = 0; i <= ticks; i++)
+            for (int i = 0; i <= tickCount; i++)
             {
-                double val = i * step;
-                string lab = val.RoundToSignificantFigures(1)
-                                .ToString(CultureInfo.InvariantCulture);
-                double proportion = val / yMax;
-                if (hideTickLabelsLessThanProportion == null || proportion >= hideTickLabelsLessThanProportion.Value)
-                    list.Add((proportion: proportion, label: lab));
+                double value      = i * step;
+                double proportion = value / yMax;
+
+                if (hideTickLabelsLessThanProportion is not null &&
+                    proportion < hideTickLabelsLessThanProportion.Value)
+                {
+                    ticks.Add((proportion, ""));
+                    continue;
+                }
+
+                string label = value > 0 && value < 0.001
+                    ? FormatSmallValueAsFraction(value)
+                    : value
+                        .RoundToSignificantFigures(1)
+                        .ToString(System.Globalization.CultureInfo.InvariantCulture);
+
+                ticks.Add((proportion, label));
             }
 
-            return list;
+            return ticks;
+        }
+
+        /// <summary>
+        /// Converts very small positive values (e.g., 0.0007) into
+        /// a LaTeX fraction of the form “\frac{7}{10^{4}}”.
+        /// </summary>
+        private static string FormatSmallValueAsFraction(double value)
+        {
+            int exponent = (int)Math.Ceiling(-Math.Log10(value));
+            int numerator = (int)Math.Round(value * Math.Pow(10, exponent));
+
+            if (numerator == 10)
+            {
+                numerator = 1;
+                exponent += 1;
+            }
+
+            return $"$\\frac{{{numerator}}}{{10^{{{exponent}}}}}$";
         }
 
         /// <summary>

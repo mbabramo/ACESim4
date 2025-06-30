@@ -320,8 +320,9 @@ namespace ACESim
 
                 new("CostMisestimation",
                     null,
-                    CostMisestimationTransformations()
-                         ),
+                    CostMisestimationTransformations(),
+                    IncludeBaselineValueForNoncritical: true // we want 1.0 misestimation to run, because we're also adding additional settings change
+                    ),
             };
 
             // prune empty modifier-only dimensions ------------------------------
@@ -337,7 +338,7 @@ namespace ACESim
 
             var varyingNothing = new List<SimulationIdentifier>()
             {
-                new SimulationIdentifier("Baseline", DefaultVariableValues),
+                new SimulationIdentifier("Baseline Values", DefaultVariableValues),
             };
 
             
@@ -355,7 +356,7 @@ namespace ACESim
                 new SimulationIdentifier("0.5", DefaultVariableValues.WithReplacement("Damages Multiplier", "0.5")),
                 new SimulationIdentifier("1", DefaultVariableValues.WithReplacement("Damages Multiplier", "1")),
                 new SimulationIdentifier("2", DefaultVariableValues.WithReplacement("Damages Multiplier", "2")),
-                // omit additional (we could add this back in, but not in combination with other things): new SimulationIdentifier("4", DefaultVariableValues.WithReplacement("Damages Multiplier", "4")),
+                new SimulationIdentifier("4", DefaultVariableValues.WithReplacement("Damages Multiplier", "4")),
             };
 
             var varyingLiabilityThreshold = new List<SimulationIdentifier>()
@@ -373,7 +374,6 @@ namespace ACESim
                 new SimulationIdentifier("Low", DefaultVariableValues.WithReplacement("Unit Precaution Cost", "8E-06")),
                 new SimulationIdentifier("Normal", DefaultVariableValues.WithReplacement("Unit Precaution Cost", "1E-05")),
                 new SimulationIdentifier("High", DefaultVariableValues.WithReplacement("Unit Precaution Cost", "1.2E-05")),
-                // DEBUG -- add later or consider changing Low to 5E-06 and High to 1.5E-05 new SimulationIdentifier("Very High", DefaultVariableValues.WithReplacement("Unit Precaution Cost", "2E-05")),
             };
 
             //var varyingFeeShiftingRule_LiabilityUncertain = new List<ArticleVariationInfo>()
@@ -504,7 +504,7 @@ namespace ACESim
         {
             var extremes = new Dictionary<string, (string Low, string High)>
             {
-                { "Fee Shifting Multiplier", ( "1",       "2"       ) },
+                { "Fee Shifting Multiplier", ( "0",       "2"       ) },
                 { "Damages Multiplier",      ( "0.5",     "2"       ) },
                 { "Liability Threshold",     ( "0.8",     "1.2"     ) },
                 { "Unit Precaution Cost",    ( "8E-06",   "1.2E-05" ) },
@@ -549,19 +549,21 @@ namespace ACESim
             string a = VariableAbbreviations[variableAName];
             string b = VariableAbbreviations[variableBName];
 
+            Func<string, string> fixForNoFeeShifting = x => x.Replace("Low F", "No F");
+
             var ids = new List<SimulationIdentifier>
             {
                 new SimulationIdentifier("Baseline", DefaultVariableValues),
-                new SimulationIdentifier($"Low {a}, Low {b}",
+                new SimulationIdentifier(fixForNoFeeShifting($"Low {a}, Low {b}"),
                     DefaultVariableValues.WithReplacement(variableAName, variableAExtremes.Low)
                                          .WithReplacement(variableBName, variableBExtremes.Low)),
-                new SimulationIdentifier($"Low {a}, High {b}",
+                new SimulationIdentifier(fixForNoFeeShifting($"Low {a}, High {b}"),
                     DefaultVariableValues.WithReplacement(variableAName, variableAExtremes.Low)
                                          .WithReplacement(variableBName, variableBExtremes.High)),
-                new SimulationIdentifier($"High {a}, Low {b}",
+                new SimulationIdentifier(fixForNoFeeShifting($"High {a}, Low {b}"),
                     DefaultVariableValues.WithReplacement(variableAName, variableAExtremes.High)
                                          .WithReplacement(variableBName, variableBExtremes.Low)),
-                new SimulationIdentifier($"High {a}, High {b}",
+                new SimulationIdentifier(fixForNoFeeShifting($"High {a}, High {b}"),
                     DefaultVariableValues.WithReplacement(variableAName, variableAExtremes.High)
                                          .WithReplacement(variableBName, variableBExtremes.High)),
             };
