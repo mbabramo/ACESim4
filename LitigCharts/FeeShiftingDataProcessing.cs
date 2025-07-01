@@ -1026,9 +1026,6 @@ namespace LitigCharts
             }
         }
 
-
-
-
         private static void GenerateRepeatedReport(double? limitToCostsMultiplier, PlannedPath plannedPath, PermutationalLauncher.SimulationSetsIdentifier variation, List<List<List<Slice>>> matrix, List<string> majorXLabels, List<string> majorYLabels)
         {
             majorXLabels = majorXLabels.Select(ConvertFraction).ToList();
@@ -1054,18 +1051,46 @@ namespace LitigCharts
         {
             switch (s.Trim())
             {
+                case ".1":
+                case "0.1":
+                    return "$\\frac{1}{10}$";
+                case ".125":
+                case "0.125":
+                    return "$\\frac{1}{8}$";
+                case ".2":
+                case "0.2":
+                    return "$\\frac{1}{5}$";
+                case ".25":
                 case "0.25":
                 case "0.250":
                     return "$\\frac{1}{4}$";
+                case ".3":
+                case "0.3":
+                    return "$\\frac{3}{10}$";
+                case ".4":
+                case "0.4":
+                    return "$\\frac{2}{5}$";
+                case ".5":
                 case "0.5":
                 case "0.50":
                 case "0.500":
                     return "$\\frac{1}{2}$";
+                case ".6":
+                case "0.6":
+                    return "$\\frac{3}{5}$";
+                case ".7":
+                case "0.7":
+                    return "$\\frac{7}{10}$";
+                case ".75":
                 case "0.75":
                 case "0.750":
                     return "$\\frac{3}{4}$";
-                case "0.125":
-                    return "$\\frac{1}{8}$";
+                case ".8":
+                case "0.8":
+                    return "$\\frac{4}{5}$";
+                case ".9":
+                case "0.9":
+                    return "$\\frac{9}{10}$";
                 default:
                     return s;
             }

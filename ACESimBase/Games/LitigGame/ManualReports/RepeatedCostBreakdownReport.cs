@@ -128,7 +128,15 @@ namespace ACESimBase.Games.LitigGame.ManualReports
 
             // ── build TikZ body ──────────────────────────────────────────────────────
             var body = new StringBuilder();
-            body.AppendLine($@"\clip(0,-{LegendSpaceCm}) rectangle +{outerRect.topRight.WithYTranslation(LegendSpaceCm)};");
+            const double ExtraClipLeftCm   = 0.5;
+            const double ExtraClipRightCm  = 0.5;
+            const double ExtraClipTopCm    = 0.5;
+            const double ExtraClipBottomCm = 0.1;
+
+            body.AppendLine(
+                $@"\clip(-{ExtraClipLeftCm},-{LegendSpaceCm + ExtraClipBottomCm}) rectangle +{outerRect.topRight
+                    .WithXTranslation(ExtraClipRightCm)
+                    .WithYTranslation(LegendSpaceCm + ExtraClipTopCm)};");
             body.AppendLine(outerAxis.GetDrawCommands());
 
             const double MiniGraphBottomPadCm = 0.20;
