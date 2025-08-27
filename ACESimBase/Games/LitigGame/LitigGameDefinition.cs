@@ -529,7 +529,7 @@ namespace ACESim
                 decisions.Add(pAbandon);
 
                 var dDefault =
-                    new Decision($"D Defaults{bargainingRoundString}" + (b + 1), "DD" + (b + 1), false, (byte)LitigGamePlayers.Defendant, new byte[] { (byte)LitigGamePlayers.Defendant, (byte)LitigGamePlayers.BothGiveUpChance, (byte)LitigGamePlayers.Resolution },
+                    new Decision($"D Defaults{bargainingRoundString}", "DD" + (b + 1), false, (byte)LitigGamePlayers.Defendant, new byte[] { (byte)LitigGamePlayers.Defendant, (byte)LitigGamePlayers.BothGiveUpChance, (byte)LitigGamePlayers.Resolution },
                         2, (byte)LitigGameDecisions.DDefault)
                     {
                         CustomByte = (byte)(b + 1),
@@ -672,6 +672,15 @@ namespace ACESim
 
                 case LitigGameDecisions.MutualGiveUp:
                     return action == 1 ? "P Abandons" : "D Defaults";
+
+                case LitigGameDecisions.EngageInActivity:
+                    return action == 1 ? "Yes" : "No";
+
+                case LitigGameDecisions.Accident:
+                    return action == 1 ? "Yes" : "No";
+
+                case LitigGameDecisions.TakePrecaution:
+                    return $"Level {action}";
 
                 default:
                     return base.GetActionString(action, decisionByteCode);
@@ -1120,12 +1129,18 @@ namespace ACESim
         {
             FullDiagram,
             BeginningOfGame,
-            EndOfGame
+            MiddleOfGame,
+            EndOfGame,
         }
-        private TreeDiagramExclusions Exclusions = TreeDiagramExclusions.FullDiagram;
+
+        private TreeDiagramExclusions Exclusions = TreeDiagramExclusions.BeginningOfGame;
 
         public override (Func<ConstructGameTreeInformationSetInfo.GamePointNode, bool> excludeBelow, Func<ConstructGameTreeInformationSetInfo.GamePointNode, bool> includeBelow) GetTreeDiagramExclusions()
         {
+            bool isEndogenousGame = true;
+            string endOfBeginningPortion = isEndogenousGame ? "Accident" : "D Liability Signal";
+            string endOfMiddlePortion = "D Defaults";
+
             (Func<ConstructGameTreeInformationSetInfo.GamePointNode, bool> excludeBelow, Func<ConstructGameTreeInformationSetInfo.GamePointNode, bool> includeBelow)
                 = (null, null);
             switch (Exclusions)
@@ -1141,7 +1156,43 @@ namespace ACESim
                             return false;
                         string actionString = edge.parentNameWithActionString(this);
                         string nodePlayerString = gpn.NodePlayerString(this);
-                        if (actionString.Contains("D Liability Signal"))
+                        if (actionString.Contains(endOfBeginningPortion))
+                            return true;
+                        if (isEndogenousGame)
+                        { // cut off the tree earlier after we've done portions of it once
+                            if (actionString.Contains("Defendant Signal") || actionString.Contains("Plaintiff Signal") || actionString.Contains("Engage in Activity"))
+                            {
+                                var parentNode = edge.parentNode.EdgeFromParent;
+                                if (parentNode.action == 2)
+                                    return true;
+                            }
+                        }
+                        return false;
+                    };
+                    
+                    break;
+
+                case TreeDiagramExclusions.MiddleOfGame:
+                    includeBelow = gpn =>
+                    {
+                        var edge = gpn.EdgeFromParent;
+                        if (edge == null)
+                            return false;
+                        string actionString = edge.parentNameWithActionString(this);
+                        string nodePlayerString = gpn.NodePlayerString(this);
+                        if (actionString.Contains(endOfBeginningPortion))
+                            return true;
+                        return false;
+                    };
+
+                    excludeBelow = gpn =>
+                    {
+                        var edge = gpn.EdgeFromParent;
+                        if (edge == null)
+                            return false;
+                        string actionString = edge.parentNameWithActionString(this);
+                        string nodePlayerString = gpn.NodePlayerString(this);
+                        if (actionString.Contains(endOfMiddlePortion))
                             return true;
                         return false;
                     };
@@ -1155,7 +1206,7 @@ namespace ACESim
                             return false;
                         string actionString = edge.parentNameWithActionString(this);
                         string nodePlayerString = gpn.NodePlayerString(this);
-                        if (actionString.Contains("D Liability Signal"))
+                        if (actionString.Contains(endOfMiddlePortion))
                             return true;
                         return false;
                     };

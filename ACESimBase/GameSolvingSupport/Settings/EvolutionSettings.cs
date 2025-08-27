@@ -119,9 +119,9 @@ namespace ACESimBase.GameSolvingSupport.Settings
 
         public bool GenerateReportsByPlaying = true;
         public int NumRandomIterationsForSummaryTable = 1_000;
-        public bool PrintGameTree = false;
+        public bool PrintGameTree = true; // DEBUG
         public bool KeepPrintingGameTree = false; // after printing once, keep printing again
-        public bool PrintedGameTreeIncludesInformationSetData = false;
+        public bool PrintedGameTreeIncludesInformationSetData = true; // DEBUG
         public bool PrintInformationSets = false;
         public bool AnalyzeInformationSets = false;
         public List<int> RestrictToTheseInformationSets = null;

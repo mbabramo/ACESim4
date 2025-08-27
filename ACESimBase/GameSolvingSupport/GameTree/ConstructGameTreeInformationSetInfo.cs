@@ -78,12 +78,38 @@ namespace ACESimBase.GameSolvingSupport.GameTree
             public byte parentDecisionByteCode => parentNode.anyNode.Decision.DecisionByteCode;
             public string parentName => parentNode.anyNode.Decision.Name;
             public string parentNameWithActionString(GameDefinition gameDefinition) => parentName + ": " + gameDefinition.GetActionString(action, parentDecisionByteCode);
-            public string probabilityString => "Probability: " + parentNode.anyNode.GetNodeValues()[action - 1] switch
+
+            public string probabilityString => parentName == "Accident" ? probabilityStringScientificNotation : probabilityStringUsual; // This is a special hack for the precaution negligence game
+
+            public string probabilityStringUsual => "Probability: " + parentNode.anyNode.GetNodeValues()[action - 1] switch
             {
                 1.0 => "1",
                 0 => "0",
                 _ => parentNode.anyNode.GetNodeValues()[action - 1].ToDecimalPlaces(2)
             };
+
+            public string probabilityStringScientificNotation
+            {
+                get
+                {
+                    double value = parentNode.anyNode.GetNodeValues()[action - 1];
+                    if (0.999 < value && value < 1.0001) // number would round off to 1 but we need more precision
+                    {
+                        if (value < 1)
+                        {
+                            double amountBelowZero = 1.0 - value;
+                            return "Pr.: 1 -- " + amountBelowZero.ToSignificantFigures_WithSciNotationForVerySmall_LaTeX(3);
+                        }
+                        else if (value > 1)
+                        {
+                            double amountAboveZero = value - 1.0;
+                            return "Pr.: 1 + " + amountAboveZero.ToSignificantFigures_WithSciNotationForVerySmall_LaTeX(3);
+                        }
+                    }
+                    string s = value.ToSignificantFigures_WithSciNotationForVerySmall_LaTeX(3);
+                    return "Pr.: " + s;
+                }
+            }
         }
 
         public record ForwardInfo(MoveProbabilityTracker<(byte decisionByteCode, byte move)> moveProbabilities, double reachProbability)
@@ -164,7 +190,7 @@ namespace ACESimBase.GameSolvingSupport.GameTree
 
         public string GenerateTikzDiagram(Func<GamePointNode, bool> excludeBelowNode, Func<GamePointNode, bool> includeBelowNode)
         {
-            const double xSpaceForNode = 4.5, ySpaceForLeaf = 0.5, circleSize = 0.4, straightAdjacentArrow = 0.4, utilitiesShiftRight = -0.45;
+            const double xSpaceForNode = 6.0, ySpaceForLeaf = 0.5, circleSize = 0.4, straightAdjacentArrow = 0.4, utilitiesShiftRight = -0.45;
             StringBuilder b = new StringBuilder();
             bool onlyIncludableRegionFound = false;
             TreeRoot.ExecuteActionsOnTree(gamePointNode =>

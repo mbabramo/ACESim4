@@ -102,6 +102,49 @@ namespace ACESimBase.Util.Reporting
             return num.ToSignificantFigures(numSignificantFigures);
         }
 
+                // LaTeX variant: mirrors ToSignificantFigures_WithSciNotationForVerySmall but outputs "mantissa \\times 10^{exponent}"
+        public static string ToSignificantFigures_WithSciNotationForVerySmall_LaTeX(this double num, int numSignificantFigures = 4)
+            => ((double?)num).ToSignificantFigures_WithSciNotationForVerySmall_LaTeX(numSignificantFigures);
+
+        public static string ToSignificantFigures_WithSciNotationForVerySmall_LaTeX(this double? num, int numSignificantFigures = 4)
+        {
+            if (num == null || double.IsNaN(num.Value))
+                return "--";
+            if (num == 0)
+                return "0";
+            if (num < 0)
+                return "-" + ((-num).ToSignificantFigures_WithSciNotationForVerySmall_LaTeX(numSignificantFigures));
+
+            double value = num.Value;
+
+            // Use scientific form only if original logic would (|value| < 1 and < 1e-3)
+            if (value < 1 && value < 0.001)
+            {
+                double rounded = RoundToSignificantFigures(value, numSignificantFigures);
+                if (rounded == 0)
+                    return "0";
+
+                int exponent = (int)Math.Floor(Math.Log10(rounded));
+                double mantissa = rounded / Math.Pow(10, exponent);
+
+                // Handle case where rounding pushes mantissa to 10
+                if (mantissa >= 10)
+                {
+                    mantissa /= 10;
+                    exponent += 1;
+                }
+
+                int decimals = Math.Max(0, numSignificantFigures - 1);
+                string mantissaStr = mantissa.ToString("0." + new string('0', decimals), System.Globalization.CultureInfo.InvariantCulture);
+
+                return $"${mantissaStr} \\times 10^{{{exponent}}}$";
+            }
+
+            // Otherwise plain significant figures (no scientific notation)
+            return RoundToSignificantFigures(value, numSignificantFigures)
+                .ToString(System.Globalization.CultureInfo.InvariantCulture);
+        }
+
         public static string ToSignificantFigures_MaxLength(this double? num, int numSignificantFigures, int maxLength)
         {
             string result = num.ToSignificantFigures(numSignificantFigures);
