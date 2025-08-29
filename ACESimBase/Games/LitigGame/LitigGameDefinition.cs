@@ -1200,7 +1200,7 @@ namespace ACESim
                     };
                     break;
 
-                case TreeDiagramExclusions.EndOfGame_Adjudication:
+                case TreeDiagramExclusions.EndOfGame:
                     if (!isEndogenousGame)
                         throw new NotImplementedException();
                     includeBelow = gpn =>
@@ -1216,7 +1216,7 @@ namespace ACESim
                     };
                     break;
 
-                case TreeDiagramExclusions.EndOfGame:
+                case TreeDiagramExclusions.EndOfGame_Adjudication:
                     includeBelow = gpn =>
                     {
                         var edge = gpn.EdgeFromParent;

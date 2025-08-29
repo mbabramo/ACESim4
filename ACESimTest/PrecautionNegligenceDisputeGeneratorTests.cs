@@ -30,7 +30,7 @@ namespace ACESimTest
         [DataRow(true, true)]
         public async Task CollapsingDecisionsGivesEquivalentUtilities(bool randomInformationSets, bool largerTree)
         {
-            byte branching = largerTree ? (byte)3 : (byte)2; // signals, precaution powers, and precaution levels
+            byte branching = largerTree ? (byte)5 : (byte)2; // signals, precaution powers, and precaution levels
             var regular = LitigGameOptionsGenerator.PrecautionNegligenceGame(false, false, branching, 1, branching, branching);
             double[] regularUtilities = await GetUtilities(regular, "Regular", randomInformationSets);
 
