@@ -381,8 +381,17 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
                     }
                 case (byte)LitigGameDecisions.CourtDecisionLiability:
                     {
-                        double[] probabilities = BayesianCalculations_GetCLiabilitySignalProbabilities(precautionProgress);
-                        return probabilities;
+                        if (Options.CollapseChanceDecisions)
+                        {
+                            double[] probabilities = BayesianCalculations_GetCLiabilitySignalProbabilities(precautionProgress);
+                            return probabilities;
+                        }
+                        else
+                        {
+                            int hiddenState = precautionProgress.LiabilityStrengthDiscrete - 1;
+                            int k = precautionProgress.RelativePrecautionLevel;
+                            return court.GetLiabilityOutcomeProbabilities(hiddenState, k);
+                        }
                     }
 
                 case (byte)LitigGameDecisions.Accident:
@@ -434,15 +443,15 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
             PrecautionNegligenceProgress p)
         {
             int k = p.RelativePrecautionLevel;
-            if (p.AccidentOccurs)
-                return court.GetLiabilityOutcomeProbabilities(
-                    p.PLiabilitySignalDiscrete - 1, p.DLiabilitySignalDiscrete - 1, true, k);
             return court.GetLiabilityOutcomeProbabilities(
-                p.DLiabilitySignalDiscrete - 1, k);
+                p.PLiabilitySignalDiscrete - 1,
+                p.DLiabilitySignalDiscrete - 1,
+                p.AccidentOccurs,
+                k);
         }
 
         public double[] BayesianCalculations_GetCLiabilitySignalProbabilities(byte pSig, byte dSig)
-            => court.GetLiabilityOutcomeProbabilities(pSig - 1, dSig - 1, true, 0);
+            => throw new NotImplementedException();
 
         public double[] BayesianCalculations_GetPDamagesSignalProbabilities(byte? dDamages) => [1.0];
         public double[] BayesianCalculations_GetDDamagesSignalProbabilities(byte? pDamages) => [1.0];

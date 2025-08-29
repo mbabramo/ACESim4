@@ -806,6 +806,7 @@ namespace ACESim
                 {
                     var myGameProgress = ((LitigGameProgress)gameProgress);
                     double[] probabilities;
+                        throw new Exception("DEBUG -- shouldn't be called by precaution negligence game");
                     if (Options.CollapseChanceDecisions)
                         probabilities = Options.LitigGameDisputeGenerator.BayesianCalculations_GetCLiabilitySignalProbabilities(myGameProgress.PLiabilitySignalDiscrete, myGameProgress.DLiabilitySignalDiscrete);
                     else
@@ -1130,10 +1131,11 @@ namespace ACESim
             FullDiagram,
             BeginningOfGame,
             MiddleOfGame,
+            EndOfGame_Adjudication,
             EndOfGame,
         }
 
-        private TreeDiagramExclusions Exclusions = TreeDiagramExclusions.BeginningOfGame;
+        private TreeDiagramExclusions Exclusions = TreeDiagramExclusions.FullDiagram;
 
         public override (Func<ConstructGameTreeInformationSetInfo.GamePointNode, bool> excludeBelow, Func<ConstructGameTreeInformationSetInfo.GamePointNode, bool> includeBelow) GetTreeDiagramExclusions()
         {
@@ -1162,8 +1164,8 @@ namespace ACESim
                         { // cut off the tree earlier after we've done portions of it once
                             if (actionString.Contains("Defendant Signal") || actionString.Contains("Plaintiff Signal") || actionString.Contains("Engage in Activity"))
                             {
-                                var parentNode = edge.parentNode.EdgeFromParent;
-                                if (parentNode.action == 2)
+                                var grandparentNode = edge.parentNode.EdgeFromParent;
+                                if (grandparentNode.action == 2)
                                     return true;
                             }
                         }
@@ -1198,7 +1200,9 @@ namespace ACESim
                     };
                     break;
 
-                case TreeDiagramExclusions.EndOfGame:
+                case TreeDiagramExclusions.EndOfGame_Adjudication:
+                    if (!isEndogenousGame)
+                        throw new NotImplementedException();
                     includeBelow = gpn =>
                     {
                         var edge = gpn.EdgeFromParent;
@@ -1208,6 +1212,25 @@ namespace ACESim
                         string nodePlayerString = gpn.NodePlayerString(this);
                         if (actionString.Contains(endOfMiddlePortion))
                             return true;
+                        return false;
+                    };
+                    break;
+
+                case TreeDiagramExclusions.EndOfGame:
+                    includeBelow = gpn =>
+                    {
+                        var edge = gpn.EdgeFromParent;
+                        if (edge == null)
+                            return false;
+                        string actionString = edge.parentNameWithActionString(this);
+                        string nodePlayerString = gpn.NodePlayerString(this);
+                        if (actionString.Contains("D Defaults") && edge.action == 2)
+                        {
+                            var nextUpNode = edge.parentNode;
+                            var nextUpEdge = nextUpNode.EdgeFromParent;
+                            if (nextUpEdge.action == 2)
+                                return true;
+                        }
                         return false;
                     };
                     break;

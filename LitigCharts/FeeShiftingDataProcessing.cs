@@ -794,7 +794,7 @@ namespace LitigCharts
                 throw new FileNotFoundException("Combined cost-breakdown report not found", csvPath);
 
             using var reader = new StreamReader(csvPath);
-            string? headerLine = reader.ReadLine();
+            string headerLine = reader.ReadLine();
             if (string.IsNullOrWhiteSpace(headerLine))
                 throw new InvalidDataException("CSV header row missing");
 
@@ -822,7 +822,7 @@ namespace LitigCharts
 
             var rows = new List<CostRow>();
 
-            string? raw;
+            string raw;
             while ((raw = reader.ReadLine()) is not null)
             {
                 if (string.IsNullOrWhiteSpace(raw))

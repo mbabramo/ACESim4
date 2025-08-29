@@ -87,7 +87,8 @@ namespace ACESim
                     ConsoleKey.Enter => report ?? launchResult.standardReport, // copy standard report if no other report has been copied.
                     _ => report
                 };
-                TextCopy.ClipboardService.SetText(report);
+                if (report != null)
+                    TextCopy.ClipboardService.SetText(report);
             } while (key != ConsoleKey.Enter);
         }
     }
