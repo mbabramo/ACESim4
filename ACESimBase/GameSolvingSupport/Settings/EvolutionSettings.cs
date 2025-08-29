@@ -42,7 +42,7 @@ namespace ACESimBase.GameSolvingSupport.Settings
 
         public bool CreateEquilibriaFile = true;
         public bool UseExistingEquilibriaIfAvailable = true;
-        public bool SkipAltogetherIfEquilibriaFileAlreadyExists = true; // DEBUG // If true, and an equilibrium file exists, then we will skip processing AND reporting. This is useful as a way of just repeating failures.
+        public bool SkipAltogetherIfEquilibriaFileAlreadyExists = false; // If true, and an equilibrium file exists, then we will skip processing AND reporting. This is useful as a way of just repeating failures.
         public bool CreateEFGFile = true;
 
         public bool UseAcceleratedBestResponse = true;
@@ -119,9 +119,9 @@ namespace ACESimBase.GameSolvingSupport.Settings
 
         public bool GenerateReportsByPlaying = true;
         public int NumRandomIterationsForSummaryTable = 1_000;
-        public bool PrintGameTree = true; // DEBUG
+        public bool PrintGameTree = false;
         public bool KeepPrintingGameTree = false; // after printing once, keep printing again
-        public bool PrintedGameTreeIncludesInformationSetData = true; // DEBUG
+        public bool PrintedGameTreeIncludesInformationSetData = true;
         public bool PrintInformationSets = false;
         public bool AnalyzeInformationSets = false;
         public List<int> RestrictToTheseInformationSets = null;

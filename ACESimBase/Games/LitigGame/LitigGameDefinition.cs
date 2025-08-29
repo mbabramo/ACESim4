@@ -806,7 +806,7 @@ namespace ACESim
                 {
                     var myGameProgress = ((LitigGameProgress)gameProgress);
                     double[] probabilities;
-                        throw new Exception("DEBUG -- shouldn't be called by precaution negligence game");
+                    // Note: This won't be called by the precaution negligence game.
                     if (Options.CollapseChanceDecisions)
                         probabilities = Options.LitigGameDisputeGenerator.BayesianCalculations_GetCLiabilitySignalProbabilities(myGameProgress.PLiabilitySignalDiscrete, myGameProgress.DLiabilitySignalDiscrete);
                     else

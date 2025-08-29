@@ -182,8 +182,8 @@ namespace ACESim
             return options;
         }
 
-        static bool UseSimplifiedPrecautionNegligenceGame = true; // DEBUG
-        static bool CollapseDecisionsInSimplifiedPrecautionNegligenceGame = false; // DEBUG
-        public static LitigGameOptions PrecautionNegligenceGame() => UseSimplifiedPrecautionNegligenceGame ? PrecautionNegligenceGame(CollapseDecisionsInSimplifiedPrecautionNegligenceGame, allowQuitting: true, numSignalsAndOffers: 2, numPotentialBargainingRounds: 1, numPrecautionPowerLevels: 2, precautionLevels: 3) : PrecautionNegligenceGame(true, true, 8, 1, 8, 8); // DEBUG PrecautionNegligenceGame(true, true, 5, 1, 10, 5);
+        static bool UseSimplifiedPrecautionNegligenceGame = false; 
+        static bool CollapseDecisionsInSimplifiedPrecautionNegligenceGame = false; 
+        public static LitigGameOptions PrecautionNegligenceGame() => UseSimplifiedPrecautionNegligenceGame ? PrecautionNegligenceGame(CollapseDecisionsInSimplifiedPrecautionNegligenceGame, allowQuitting: true, numSignalsAndOffers: 2, numPotentialBargainingRounds: 1, numPrecautionPowerLevels: 2, precautionLevels: 3) : PrecautionNegligenceGame(true, true, 8, 1, 8, 8);
     } 
 }
