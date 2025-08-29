@@ -747,23 +747,24 @@ namespace ACESimBase.Games.LitigGame.ManualReports
                 static string FormatTotalCost(double value)
                 {
                     double absVal = Math.Abs(value);
-                    double rounded = Math.Round(value, 2, MidpointRounding.AwayFromZero);
 
+                    // Show plain decimal when it rounds to a non-tiny two-decimal number
+                    double rounded = Math.Round(value, 2, MidpointRounding.AwayFromZero);
                     bool useScientific =
-                        (absVal > 0 && Math.Abs(rounded) < 0.005) ||
-                        absVal >= 10.0;
+                        (absVal > 0 && Math.Abs(rounded) < 0.005) || // tiny values
+                        absVal >= 10.0;                               // large values
 
                     if (!useScientific)
                         return rounded.ToString("0.00", CultureInfo.InvariantCulture);
 
+                    // Scientific notation with exactly two decimals in the mantissa
                     int exponent = (int)Math.Floor(Math.Log10(absVal));
                     double mantissa = value / Math.Pow(10, exponent);
-
-                    // mantissa always shows at least two decimal places
-                    string mantissaStr = mantissa.ToString("0.00##", CultureInfo.InvariantCulture);
+                    string mantissaStr = mantissa.ToString("0.00", CultureInfo.InvariantCulture);
 
                     return $"${mantissaStr}\\times 10^{{{exponent}}}$";
                 }
+
 
 
                 double totalCost  = slices.Sum(s => s.Total * s.width);
