@@ -290,27 +290,60 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
             return table;
         }
 
-
-
-
         double[][][][] BuildHiddenPosteriorFromCourtDistTable(double[][][][] courtDistTable)
         {
             var table = new double[P][][][];
+            double uniformPrior = 1.0 / H;
+
             for (int p = 0; p < P; p++)
             {
                 table[p] = new double[D][][];
+
                 for (int d = 0; d < D; d++)
                 {
                     table[p][d] = new double[K][];
+
                     for (int k = 0; k < K; k++)
                     {
                         double[] courtDist = courtDistTable[p][d][k];
-                        table[p][d][k] = GetHiddenPosteriorFromSignalsAndCourtDistribution(p, d, courtDist);
+
+                        double[] posterior = new double[H];
+                        double total = 0.0;
+
+                        for (int h = 0; h < H; h++)
+                        {
+                            double baseWeight =
+                                uniformPrior *
+                                signal.GetPlaintiffSignalProbability(h, p) *
+                                signal.GetDefendantSignalProbability(h, d);
+
+                            double likelihood = 0.0;
+                            double[] courtGivenH = signal.GetCourtSignalDistributionGivenHidden(h);
+                            for (int c = 0; c < C; c++)
+                                likelihood += courtGivenH[c] * courtDist[c];
+
+                            double pAcc = impact.GetAccidentProbability(h, k);
+
+                            double w = baseWeight * likelihood * pAcc;
+
+                            posterior[h] = w;
+                            total += w;
+                        }
+
+                        if (total != 0.0)
+                        {
+                            for (int h = 0; h < H; h++)
+                                posterior[h] /= total;
+                        }
+
+                        table[p][d][k] = posterior;
                     }
                 }
             }
+
             return table;
         }
+
 
         public double[] GetHiddenPosteriorFromSignalsAndCourtDistribution(int pSig, int dSig, double[] courtDist)
         {

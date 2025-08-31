@@ -617,8 +617,11 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
             if (!pr.AccidentOccurs)
                 return [(pr, weight)];
 
-            double probWrong = risk.GetWrongfulAttributionProbabilityGivenSignals(
-                pr.DLiabilitySignalDiscrete - 1, pr.PLiabilitySignalDiscrete - 1, pr.RelativePrecautionLevel);
+            int hiddenLiabilityStrengthIndex = pr.LiabilityStrengthDiscrete - 1;
+            int precautionLevelIndex = pr.RelativePrecautionLevel;
+
+            double wrongfulAttributionRatioGivenHiddenState =
+                impact.GetWrongfulAttributionProbabilityGivenHiddenState(hiddenLiabilityStrengthIndex, precautionLevelIndex);
 
             var wrong = (PrecautionNegligenceProgress)pr.DeepCopy();
             wrong.AccidentWronglyCausallyAttributedToDefendant = true;
@@ -628,7 +631,12 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
             right.AccidentWronglyCausallyAttributedToDefendant = false;
             right.ResetPostGameInfo();
 
-            return [(wrong, weight * probWrong), (right, weight * (1.0 - probWrong))];
+            return
+            [
+                (wrong, weight * wrongfulAttributionRatioGivenHiddenState),
+                (right, weight * (1.0 - wrongfulAttributionRatioGivenHiddenState))
+            ];
         }
+
     }
 }

@@ -86,10 +86,34 @@ namespace ACESimTest
                 }
             }
 
+            // third, confirm equivalence by hidden state and the wrongful/true split when an accident occurs
+            var hiddenValues = GetDistinctValues(regularResults, x => x.LiabilityStrengthDiscrete).OrderBy(x => x).ToList();
+            foreach (var h in hiddenValues)
+            {
+                // Hidden-state marginal
+                ConfirmEquivalence(x => x.LiabilityStrengthDiscrete == h);
+
+                // Accident by hidden state
+                ConfirmEquivalence(x => x.LiabilityStrengthDiscrete == h && x.AccidentOccurs);
+
+                // Wrongful vs. true attribution by hidden state (only meaningful when an accident occurs)
+                ConfirmEquivalence(x => x.LiabilityStrengthDiscrete == h && x.AccidentOccurs && x.AccidentWronglyCausallyAttributedToDefendant);
+                ConfirmEquivalence(x => x.LiabilityStrengthDiscrete == h && x.AccidentOccurs && !x.AccidentWronglyCausallyAttributedToDefendant);
+            }
+
             // local helper functions
-            HashSet<T> GetDistinctValues<T>(List<(double probability, PrecautionNegligenceProgress progress)> results, Func<PrecautionNegligenceProgress, T> predicate) => new HashSet<T>(results.Select(x => predicate(x.progress)));
-            List<(double probability, PrecautionNegligenceProgress progress)> Filter(List<(double probability, PrecautionNegligenceProgress progress)> results, Func<PrecautionNegligenceProgress, bool> filterFunc) => results.Where(x => filterFunc(x.progress)).ToList();
-            (List<(double probability, PrecautionNegligenceProgress progress)> regular, List<(double probability, PrecautionNegligenceProgress progress)> collapsed) FilterBoth(Func<PrecautionNegligenceProgress, bool> filterFunc) => (Filter(regularResults, filterFunc), Filter(collapsedResults, filterFunc));
+            HashSet<T> GetDistinctValues<T>(List<(double probability, PrecautionNegligenceProgress progress)> results, Func<PrecautionNegligenceProgress, T> selector)
+                => new HashSet<T>(results.Select(x => selector(x.progress)));
+
+            List<(double probability, PrecautionNegligenceProgress progress)> Filter(
+                List<(double probability, PrecautionNegligenceProgress progress)> results,
+                Func<PrecautionNegligenceProgress, bool> filterFunc)
+                => results.Where(x => filterFunc(x.progress)).ToList();
+
+            (List<(double probability, PrecautionNegligenceProgress progress)> regular, List<(double probability, PrecautionNegligenceProgress progress)> collapsed)
+                FilterBoth(Func<PrecautionNegligenceProgress, bool> filterFunc)
+                => (Filter(regularResults, filterFunc), Filter(collapsedResults, filterFunc));
+
             void ConfirmEquivalence(Func<PrecautionNegligenceProgress, bool> filterFunc)
             {
                 ConfirmEquivalentProbabilities(filterFunc);
@@ -114,6 +138,7 @@ namespace ACESimTest
                     funcIndex++;
                 }
             }
+
             void ConfirmEquivalentProbabilities(Func<PrecautionNegligenceProgress, bool> filterFunc)
             {
                 var filtered = FilterBoth(filterFunc);
@@ -121,6 +146,7 @@ namespace ACESimTest
                 double collapsedSum = filtered.collapsed.Sum(x => x.probability);
                 regularSum.Should().BeApproximately(collapsedSum, tolerance);
             }
+
             void ConfirmEquivalentValues(Func<PrecautionNegligenceProgress, bool> filterFunc, Func<PrecautionNegligenceProgress, double?> valueFunc)
             {
                 var filtered = FilterBoth(filterFunc);
@@ -128,8 +154,8 @@ namespace ACESimTest
                 double? collapsedResult = filtered.collapsed.WeightedAverage(x => valueFunc(x.progress), x => x.probability);
                 regularResult.Should().BeApproximately(collapsedResult, tolerance);
             }
-
         }
+
 
         /// <summary>
         /// Enumerates every decision-/chance-path in the current game definition,
