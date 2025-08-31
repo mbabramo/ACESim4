@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -1130,12 +1130,13 @@ namespace ACESim
         {
             FullDiagram,
             BeginningOfGame,
+            BeginningOfGame_Collapsed,
             MiddleOfGame,
             EndOfGame_Adjudication,
             EndOfGame,
         }
 
-        private TreeDiagramExclusions Exclusions = TreeDiagramExclusions.FullDiagram;
+        private TreeDiagramExclusions Exclusions = TreeDiagramExclusions.BeginningOfGame_Collapsed;
 
         public override (Func<ConstructGameTreeInformationSetInfo.GamePointNode, bool> excludeBelow, Func<ConstructGameTreeInformationSetInfo.GamePointNode, bool> includeBelow) GetTreeDiagramExclusions()
         {
@@ -1165,7 +1166,7 @@ namespace ACESim
                             if (actionString.Contains("Defendant Signal") || actionString.Contains("Plaintiff Signal") || actionString.Contains("Engage in Activity"))
                             {
                                 var grandparentNode = edge.parentNode.EdgeFromParent;
-                                if (grandparentNode.action == 2)
+                                if (grandparentNode != null && grandparentNode.action == 2)
                                     return true;
                             }
                         }
@@ -1234,6 +1235,49 @@ namespace ACESim
                         return false;
                     };
                     break;
+
+                case TreeDiagramExclusions.BeginningOfGame_Collapsed:
+                    // Collapsed-form prefix: Defendant Signal → Engage in Activity → Precaution → Accident → Plaintiff Signal → …
+                    // Show only the path(s) needed to reach the highest (last) Plaintiff Signal nodes,
+                    // then terminate with ellipses. Moving backward, also cap earlier layers:
+                    // - Only expand Engage in Activity = Yes (action 1); elide No.
+                    // - Show Precaution through Level 2; after Level 2, elide remaining levels.
+                    // - Show Accident = Yes (action 1) as the "highest" accident node; elide No.
+                    // - Under Defendant Signal, elide after the second signal value (so show its node, then …).
+                    // - Always stop below Plaintiff Signal nodes (these are the furthest nodes we draw here).
+                    includeBelow = null;
+                    excludeBelow = gpn =>
+                    {
+                        var edge = gpn.EdgeFromParent;
+                        if (edge == null)
+                            return false;
+
+                        string actionString = edge.parentNameWithActionString(this);
+
+                        // Stop once we have displayed Plaintiff Signal nodes (show node, then …)
+                        if (actionString.Contains("Plaintiff Signal"))
+                            return true;
+
+                        // Accident: keep only the "highest" accident node (assumed Yes = action 1); elide No (=2)
+                        if (actionString.Contains("Accident") && edge.action == 2)
+                            return true;
+
+                        // Precaution: show through Level 2; after Level 2, elide
+                        if (actionString.Contains("Precaution") && edge.action >= 2)
+                            return true;
+
+                        // Engage in Activity: keep Yes only; elide No
+                        if (actionString.Contains("Engage in Activity") && edge.action == 2)
+                            return true;
+
+                        // Defendant Signal: after the second value, elide (show node for the second value, then …)
+                        if (actionString.Contains("Defendant Signal") && edge.action >= 2)
+                            return true;
+
+                        return false;
+                    };
+                    break;
+
 
                 default:
                     break;
