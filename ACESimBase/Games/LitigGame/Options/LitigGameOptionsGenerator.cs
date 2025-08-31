@@ -182,8 +182,8 @@ namespace ACESim
             return options;
         }
 
-        static bool UseSimplifiedPrecautionNegligenceGame = true;  // DEBUG
-        static bool CollapseDecisionsInSimplifiedPrecautionNegligenceGame = true; // DEBUG
+        static bool UseSimplifiedPrecautionNegligenceGame = false;
+        static bool CollapseDecisionsInSimplifiedPrecautionNegligenceGame = true;
 
         static byte ParameterForMultipleOptions = 8;
         public static LitigGameOptions PrecautionNegligenceGame() => UseSimplifiedPrecautionNegligenceGame ? PrecautionNegligenceGame(CollapseDecisionsInSimplifiedPrecautionNegligenceGame, allowQuitting: true, numSignalsAndOffers: 2, numPotentialBargainingRounds: 1, numPrecautionPowerLevels: 2, precautionLevels: 2) : PrecautionNegligenceGame(true, true, ParameterForMultipleOptions, 1, ParameterForMultipleOptions, ParameterForMultipleOptions);
