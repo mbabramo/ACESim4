@@ -732,10 +732,7 @@ namespace ACESim
                 {
                     var myGameProgress = ((LitigGameProgress)gameProgress);
                     double[] probabilities;
-                    if (Options.CollapseChanceDecisions)
-                        throw new Exception("Should not be called");
-                    else
-                        probabilities = Options.LitigGameDisputeGenerator.GetLiabilityStrengthProbabilities(this, myGameProgress.DisputeGeneratorActions);
+                    probabilities = Options.LitigGameDisputeGenerator.GetLiabilityStrengthProbabilities(this, myGameProgress.DisputeGeneratorActions);
                     if (Math.Abs(probabilities.Sum() - 1) > 1E-8)
                         throw new Exception();
                     return probabilities;

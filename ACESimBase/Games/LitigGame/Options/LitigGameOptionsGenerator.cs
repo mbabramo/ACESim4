@@ -23,7 +23,7 @@ namespace ACESim
         }
 
         // This choice has an effect only when in ACESimConsole mode (playing a single game). 
-        static LitigGameOptionSetChoices LitigGameChoice => LitigGameOptionSetChoices.PrecautionNegligenceGame;
+        static LitigGameOptionSetChoices LitigGameChoice => LitigGameOptionSetChoices.SmallGame; // DEBUG
 
         public static LitigGameOptions GetLitigGameOptions()
         {
@@ -132,9 +132,9 @@ namespace ACESim
         public static LitigGameOptions SmallGame()
         {
             var options = BaseBeforeApplyingEndogenousGenerator();
-            options.CollapseAlternativeEndings = true; 
+            options.CollapseAlternativeEndings = false; 
             options.CollapseChanceDecisions = true;
-            options.AllowAbandonAndDefaults = false;
+            options.AllowAbandonAndDefaults = true;
             options.NumLiabilitySignals = options.NumLiabilityStrengthPoints = options.NumOffers = 2;
             return options;
         }
@@ -184,7 +184,7 @@ namespace ACESim
 
         static bool UseSimplifiedPrecautionNegligenceGame = false;
         static bool CollapseDecisionsInSimplifiedPrecautionNegligenceGame = true;
-        static bool PerfectAdjudication = true; // DEBUG
+        static bool PerfectAdjudication = false;
 
         static byte ParameterForMultipleOptions = 8;
         public static LitigGameOptions PrecautionNegligenceGame()
