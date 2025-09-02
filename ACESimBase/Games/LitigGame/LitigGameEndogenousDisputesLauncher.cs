@@ -1,4 +1,4 @@
-using ACESim.Util;
+﻿using ACESim.Util;
 using ACESimBase;
 using ACESimBase.Games.LitigGame;
 using ACESimBase.Games.LitigGame.PrecautionModel;
@@ -19,7 +19,6 @@ namespace ACESim
 {
     public class LitigGameEndogenousDisputesLauncher : LitigGameLauncherBase
     {
-
         public override List<(string, string)> DefaultVariableValues
         {
             get
@@ -40,10 +39,12 @@ namespace ACESim
                     ("Proportion of Costs at Beginning", "0.5"),
                     ("Cost Misestimation", "1"),
                     ("Num Signals and Offers", "Baseline"),
-                    ("Wrongful Attribution Probability", "Normal")
+                    ("Wrongful Attribution Probability", "Normal"),
+                    ("Adjudication Mode", "Baseline")
                 };
             }
         }
+
 
         public override List<(string criticalValueName, string[] criticalValueValues)> CriticalVariableValues
         {
@@ -241,6 +242,32 @@ namespace ACESim
             g.VariableSettings["Num Signals and Offers"] = reducedNumSignalsOrOffers ? "Reduced": "Baseline";
         });
 
+        // Perfect adjudication
+
+        public List<Func<LitigGameOptions, LitigGameOptions>> PerfectAdjudicationTransformations()
+            => Transform(GetAndTransform_PerfectAdjudication, new[] { true });
+
+        public LitigGameOptions GetAndTransform_PerfectAdjudication(LitigGameOptions options, bool enabled) =>
+            GetAndTransform(options, " PA", g =>
+            {
+                if (!enabled)
+                    return;
+
+                // “Perfect” adjudication + zero litigation/bargaining costs
+                g.CourtDamagesNoiseStdev = 0.0;
+                g.CourtLiabilityNoiseStdev = 0.0;
+                g.DTrialCosts = 0.0;
+                g.PTrialCosts = 0.0;
+                g.PerPartyCostsLeadingUpToBargainingRound = 0.0;
+                g.PFilingCost = 0.0;
+                g.DAnswerCost = 0.0;
+
+                // keep reporting columns consistent with existing sets
+                g.VariableSettings["Adjudication Mode"] = "Perfect";
+                g.VariableSettings["Court Noise"] = 0.0; // aligns with “Court Quality” identifiers
+            });
+
+
         #endregion
 
 
@@ -322,6 +349,12 @@ namespace ACESim
                     null,
                     CostMisestimationTransformations(),
                     IncludeBaselineValueForNoncritical: true // we want 1.0 misestimation to run, because we're also adding additional settings change
+                    ),
+
+                // one extra modifier value → exactly one additional option set
+                new("PerfectAdjudication",
+                    null,
+                    PerfectAdjudicationTransformations()
                     ),
             };
 
