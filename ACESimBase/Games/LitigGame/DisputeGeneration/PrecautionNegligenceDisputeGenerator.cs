@@ -156,12 +156,27 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
             var r = new List<Decision>();
             bool collapse = g.Options.CollapseChanceDecisions;
 
-            // liability-strength (hidden) only in full-tree mode
+            var chanceRecipients = new HashSet<byte>
+            {
+                (byte)LitigGamePlayers.LiabilityStrengthChance,
+                (byte)LitigGamePlayers.DLiabilitySignalChance,
+                (byte)LitigGamePlayers.PLiabilitySignalChance,
+                (byte)LitigGamePlayers.AccidentChance,
+                (byte)LitigGamePlayers.CourtLiabilityChance,
+                (byte)LitigGamePlayers.PreBargainingRoundChance,
+                (byte)LitigGamePlayers.PostBargainingRoundChance,
+                (byte)LitigGamePlayers.BothGiveUpChance,
+                (byte)LitigGamePlayers.Resolution
+            };
+            if (ChanceAffectsDPerceptionofPrecautionCost)
+                chanceRecipients.Add((byte)LitigGamePlayers.DPrecautionCostPerceptionChance);
+            var ALL_CHANCE = chanceRecipients.ToArray();
+
             if (!collapse)
                 r.Add(new(
                     "Precaution Power", "PPow", true,
                     (byte)LitigGamePlayers.LiabilityStrengthChance,
-                    new byte[] { (byte)LitigGamePlayers.DLiabilitySignalChance, (byte)LitigGamePlayers.PLiabilitySignalChance, (byte)LitigGamePlayers.AccidentChance, (byte)LitigGamePlayers.CourtLiabilityChance, (byte)LitigGamePlayers.Resolution },
+                    ALL_CHANCE,
                     PrecautionPowerLevels,
                     (byte)LitigGameDecisions.LiabilityStrength,
                     unevenChanceActions: false)
@@ -174,10 +189,9 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
 
             if (ChanceAffectsDPerceptionofPrecautionCost)
             {
-                // defendant perception of precaution cost (relative to everything else)
                 r.Add(new("Defendant Cost Perception", "DCP", true,
                     (byte)LitigGamePlayers.DPrecautionCostPerceptionChance,
-                    new byte[] { (byte)LitigGamePlayers.Defendant, (byte)LitigGamePlayers.Resolution },
+                    ALL_CHANCE,
                     (byte) PossiblePerceivedPrecautionCostMultipliers.Length,
                     (byte)LitigGameDecisions.DPrecautionCostPerceptionChance,
                     unevenChanceActions: false)
@@ -188,11 +202,9 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
                 });
             }
 
-            // defendant signal
             r.Add(new("Defendant Signal", "DLS", true,
                 (byte)LitigGamePlayers.DLiabilitySignalChance,
-                new byte[] { (byte)LitigGamePlayers.Defendant, (byte)LitigGamePlayers.PLiabilitySignalChance, (byte)LitigGamePlayers.AccidentChance,
-                             (byte)LitigGamePlayers.CourtLiabilityChance, (byte)LitigGamePlayers.Resolution },
+                ALL_CHANCE,
                 g.Options.NumLiabilitySignals,
                 (byte)LitigGameDecisions.DLiabilitySignal,
                 unevenChanceActions: true)
@@ -202,11 +214,9 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
                 Unroll_Parallelize = true
             });
 
-            // plaintiff signal (position depends on collapse mode)
             var plsDecision = new Decision("Plaintiff Signal", "PLS", true,
                 (byte)LitigGamePlayers.PLiabilitySignalChance,
-                new byte[] { (byte)LitigGamePlayers.Plaintiff, (byte)LitigGamePlayers.AccidentChance,
-                             (byte)LitigGamePlayers.CourtLiabilityChance, (byte)LitigGamePlayers.Resolution },
+                ALL_CHANCE,
                 g.Options.NumLiabilitySignals,
                 (byte)LitigGameDecisions.PLiabilitySignal,
                 unevenChanceActions: true)
@@ -217,13 +227,11 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
             };
             if (!collapse) r.Add(plsDecision);
 
-            // engage in activity
             r.Add(new("Engage in Activity", "ENG", false,
                 (byte)LitigGamePlayers.Defendant,
-                new byte[] { (byte)LitigGamePlayers.Plaintiff, (byte)LitigGamePlayers.Defendant, 
-                             (byte)LitigGamePlayers.PLiabilitySignalChance,
-                             (byte)LitigGamePlayers.AccidentChance, (byte)LitigGamePlayers.CourtLiabilityChance,
-                             (byte)LitigGamePlayers.Resolution },
+                new byte[] {
+                    (byte)LitigGamePlayers.Plaintiff, (byte)LitigGamePlayers.Defendant
+                }.Concat(ALL_CHANCE).ToArray(),
                 2,
                 (byte)LitigGameDecisions.EngageInActivity)
             {
@@ -232,13 +240,11 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
                 CanTerminateGame = true
             });
 
-            // precaution level
             r.Add(new("Precaution", "PREC", false,
                 (byte)LitigGamePlayers.Defendant,
-                new byte[] { (byte)LitigGamePlayers.Plaintiff, (byte)LitigGamePlayers.Defendant, 
-                             (byte)LitigGamePlayers.PLiabilitySignalChance,
-                             (byte)LitigGamePlayers.AccidentChance, (byte)LitigGamePlayers.CourtLiabilityChance,
-                             (byte)LitigGamePlayers.Resolution },
+                new byte[] {
+                    (byte)LitigGamePlayers.Plaintiff, (byte)LitigGamePlayers.Defendant
+                }.Concat(ALL_CHANCE).ToArray(),
                 RelativePrecautionLevels,
                 (byte)LitigGameDecisions.TakePrecaution)
             {
@@ -246,11 +252,9 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
                 IsReversible = true
             });
 
-            // accident
             r.Add(new("Accident", "ACC", true,
                 (byte)LitigGamePlayers.AccidentChance,
-                new byte[] { (byte)LitigGamePlayers.Plaintiff, (byte)LitigGamePlayers.Defendant,
-                             (byte)LitigGamePlayers.CourtLiabilityChance, (byte)LitigGamePlayers.Resolution },
+                ALL_CHANCE,
                 2,
                 (byte)LitigGameDecisions.Accident,
                 unevenChanceActions: true)
@@ -260,11 +264,12 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
                 CanTerminateGame = true
             });
 
-            if (collapse) r.Add(plsDecision);      // plaintiff signal only after accident/no-accident
+            if (collapse) r.Add(plsDecision);
 
             g.CreateLiabilitySignalsTables();
             return r;
         }
+
 
         // ----------------------------------------------------------------  BASIC ACCESSORS
         public bool PotentialDisputeArises(LitigGameDefinition g, LitigGameStandardDisputeGeneratorActions acts,

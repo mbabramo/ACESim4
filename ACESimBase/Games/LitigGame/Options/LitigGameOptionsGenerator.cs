@@ -23,7 +23,7 @@ namespace ACESim
         }
 
         // This choice has an effect only when in ACESimConsole mode (playing a single game). 
-        static LitigGameOptionSetChoices LitigGameChoice => LitigGameOptionSetChoices.SmallGame; // DEBUG
+        static LitigGameOptionSetChoices LitigGameChoice => LitigGameOptionSetChoices.PrecautionNegligenceGame;
 
         public static LitigGameOptions GetLitigGameOptions()
         {
