@@ -106,7 +106,7 @@ namespace ACESim
             _ => throw new NotImplementedException("Unknown game to play: " + GameToPlay.ToString()),
         };
 
-        public override string MasterReportNameForDistributedProcessing => MasterReportNamePrefix + "003";
+        public override string MasterReportNameForDistributedProcessing => MasterReportNamePrefix + "004";
 
         // We can use this to allow for multiple options sets. These can then run in parallel. But note that we can also have multiple runs with a single option set using different settings by using GameDefinition scenarios; this is useful when there is a long initialization and it makes sense to complete one set before starting the next set.
 
@@ -506,6 +506,14 @@ namespace ACESim
                 new SimulationIdentifier("High", DefaultVariableValues.WithReplacement("Wrongful Attribution Probability", "High")),
             };
 
+            // Adjudication mode
+            var varyingAdjudicationMode = new List<SimulationIdentifier>()
+            {
+                new SimulationIdentifier("Baseline", DefaultVariableValues.WithReplacement("Adjudication Mode", "Baseline")),
+                // Our “Perfect” transform also sets Court Noise = 0.0; include that so identifiers match those runs.
+                new SimulationIdentifier("Perfect", DefaultVariableValues.WithReplacement("Adjudication Mode", "Perfect").WithReplacement("Court Noise", "0")),
+            };
+
             var simulationSetsIdentifiers = new List<SimulationSetsIdentifier>()
             {
                 new SimulationSetsIdentifier("Baseline", varyingNothing),
@@ -525,6 +533,7 @@ namespace ACESim
                 new SimulationSetsIdentifier("Fee Shifting Multiplier (High Misestimation)", varyingFeeShiftingWithHighMisestimation),
                 new SimulationSetsIdentifier("Damages Multiplier (High Misestimation)", varyingDamagesWithHighMisestimation),
                 new SimulationSetsIdentifier("Wrongful Attribution Probability", varyingWrongfulAttribution),
+                new SimulationSetsIdentifier("Adjudication Mode", varyingAdjudicationMode),
             };
             
             simulationSetsIdentifiers = PerformArticleVariationInfoSetsTransformation(transformer, simulationSetsIdentifiers);
