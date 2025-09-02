@@ -253,5 +253,212 @@ namespace ACESimTest
 
             oddsLiab.Should().BeGreaterThan(oddsNoLi);
         }
+
+        [TestMethod]
+        public void DiscreteRule_TopLevelIsSafeHarbor_ForCourtAndImpact()
+        {
+            // Uses the class fixtures (impact, courtDeterministic, courtNoisy) built in Init()
+            // Top level is index 1 because PrecautionLevels == 2 in this file.
+            int maxK = 1;
+
+            // Impact layer: ΔP at top must be exactly 0 for all hidden states.
+            for (int h = 0; h < HiddenStates; h++)
+                impact.GetRiskReduction(h, maxK).Should().Be(0.0);
+
+            // Court layer (deterministic model here): benefit-cost ratio and liability must be 0/false at top.
+            for (int c = 0; c < 2; c++)
+            {
+                courtDeterministic.GetBenefitCostRatio(c, maxK).Should().Be(0.0);
+                courtDeterministic.IsLiable(c, maxK).Should().BeFalse();
+            }
+
+            // Court layer (noisy model too): never liable at top.
+            for (int c = 0; c < NumCourtSignalsNoisy; c++)
+                courtNoisy.IsLiable(c, maxK).Should().BeFalse();
+
+            // Integrated liable probability at top must be zero for each hidden state.
+            for (int h = 0; h < HiddenStates; h++)
+                courtNoisy.GetLiabilityOutcomeProbabilities(h, maxK)[1].Should().Be(0.0);
+        }
+                [TestMethod]
+        public void DiscreteRule_ConditioningOnImpossibleLiabilityYieldsUniformCourtSignal()
+        {
+            // At the top level, liability is impossible under the discrete next-level rule.
+            int maxK = 1;
+
+            // Marginal check: liable probability is zero at top (pick any p,d).
+            courtNoisy.GetLiabilityOutcomeProbabilities(0, maxK)[1].Should().Be(0.0);
+
+            // Conditional distribution on an impossible (liable) verdict must fall back to uniform.
+            // Use the deterministic model to keep the court-signal count small (2).
+            double[] cond = courtDeterministic.GetCourtSignalDistributionGivenSignalsAndLiability(1, 1, maxK);
+
+            cond.Length.Should().Be(2);
+            cond.Sum().Should().BeApproximately(1.0, 1e-12);
+            double expected = 1.0 / cond.Length;
+            foreach (double v in cond)
+                v.Should().BeApproximately(expected, 1e-12);
+        }
+
+        [TestMethod]
+        public void DiscreteRule_ThresholdStrictInequality_HitsExactlyAtThresholdIsNotLiable()
+        {
+            // Build a deterministic court model (tiny sigmas; include extremes for identical bin edges)
+            PrecautionCourtDecisionModel BuildWithThreshold(double threshold)
+            {
+                var localImpact = new PrecautionImpactModel(
+                    precautionPowerLevels: HiddenStates,
+                    precautionLevels: PrecautionLevels,
+                    pAccidentNoPrecaution: PAccidentNoPrecaution,
+                    pMinLow: PMinLow,
+                    pMinHigh: PMinHigh,
+                    alphaLow: AlphaLow,
+                    alphaHigh: AlphaHigh,
+                    marginalPrecautionCost: UnitPrecautionCost,
+                    harmCost: HarmCost,
+                    liabilityThreshold: threshold,
+                    benefitRule: MarginalBenefitRule.RelativeToNextDiscreteLevel);
+
+                var detSignals = new PrecautionSignalModel(
+                    numPrecautionPowerLevels: HiddenStates,
+                    numPlaintiffSignals: 2,
+                    numDefendantSignals: 2,
+                    numCourtSignals: 2,
+                    sigmaPlaintiff: 1e-4,
+                    sigmaDefendant: 1e-4,
+                    sigmaCourt: 1e-4,
+                    includeExtremes: true);
+
+                return new PrecautionCourtDecisionModel(localImpact, detSignals);
+            }
+
+            // Scan ratios once on a fixed grid (threshold irrelevant for ratio values themselves)
+            var scan = BuildWithThreshold(0.0);
+            int maxK = PrecautionLevels - 1;
+
+            double minPositive = double.PositiveInfinity;
+            double maxPositive = 0.0;
+            (int cStar, int kStar) = (-1, -1);
+
+            for (int c = 0; c < 2; c++)
+                for (int k = 0; k < maxK; k++)
+                {
+                    double r = scan.GetBenefitCostRatio(c, k);
+                    if (r > 0.0)
+                    {
+                        if (r < minPositive)
+                        {
+                            minPositive = r;
+                            (cStar, kStar) = (c, k);
+                        }
+                        if (r > maxPositive)
+                            maxPositive = r;
+                    }
+                }
+
+            minPositive.Should().NotBe(double.PositiveInfinity, "there must be at least one positive ratio below the top level");
+            maxPositive.Should().BeGreaterThan(minPositive);
+
+            // Below threshold: at least one (c,k) is liable; top never is.
+            var below = BuildWithThreshold(minPositive - 1e-12);
+            bool anyLiableBelow = false;
+            for (int c = 0; c < 2; c++)
+            {
+                for (int k = 0; k < maxK; k++)
+                    anyLiableBelow |= below.IsLiable(c, k);
+                below.IsLiable(c, maxK).Should().BeFalse();
+            }
+            anyLiableBelow.Should().BeTrue();
+
+            // Exactly at the smallest positive ratio: strict ">" means (c*,k*) is NOT liable; top never is.
+            var at = BuildWithThreshold(minPositive);
+            at.IsLiable(cStar, kStar).Should().BeFalse("strict inequality should not treat equality as liable");
+            for (int c = 0; c < 2; c++)
+                at.IsLiable(c, maxK).Should().BeFalse();
+
+            // Above the largest positive ratio: nothing is liable anywhere (including top).
+            var above = BuildWithThreshold(maxPositive + 1e-12);
+            for (int c = 0; c < 2; c++)
+            {
+                for (int k = 0; k < maxK; k++)
+                    above.IsLiable(c, k).Should().BeFalse();
+                above.IsLiable(c, maxK).Should().BeFalse();
+            }
+        }
+
+
+        [TestMethod]
+        public void DiscreteRule_WithWrongfulAttribution_SafeHarborStillHoldsAndInteriorHasPositiveRatios()
+        {
+            // Build local models with nonzero wrongful attribution to ensure discrete rule ignores epsilon paths.
+            var localImpact = new PrecautionImpactModel(
+                precautionPowerLevels: HiddenStates,
+                precautionLevels: PrecautionLevels,
+                pAccidentNoPrecaution: PAccidentNoPrecaution,
+                pMinLow: PMinLow,
+                pMinHigh: PMinHigh,
+                alphaLow: AlphaLow,
+                alphaHigh: AlphaHigh,
+                marginalPrecautionCost: UnitPrecautionCost,
+                harmCost: HarmCost,
+                liabilityThreshold: LiabilityThreshold,
+                pAccidentWrongfulAttribution: 0.20,
+                benefitRule: MarginalBenefitRule.RelativeToNextDiscreteLevel);
+
+            var localSignals = new PrecautionSignalModel(HiddenStates, 2, 2, 2, 0.20, 0.20, 0.20);
+            var localCourt = new PrecautionCourtDecisionModel(localImpact, localSignals);
+
+            int maxK = PrecautionLevels - 1;
+
+            // Safe harbor at top is preserved
+            for (int h = 0; h < HiddenStates; h++)
+                localImpact.GetRiskReduction(h, maxK).Should().Be(0.0);
+            for (int c = 0; c < 2; c++)
+                localCourt.IsLiable(c, maxK).Should().BeFalse();
+
+            // At least one interior ratio is positive (so the rule is actually meaningful below top)
+            bool anyPositiveInterior = false;
+            for (int c = 0; c < 2; c++)
+                anyPositiveInterior |= localCourt.GetBenefitCostRatio(c, 0) > 0.0;
+
+            anyPositiveInterior.Should().BeTrue();
+        }
+        [TestMethod]
+        public void DiscreteRule_EdgeCase_PrecautionLevelsEqualsOne_AllZeroAndNeverLiable()
+        {
+            // Single available level ⇒ it is the top; ensure ΔP = 0 and liability is impossible.
+            var oneLevelImpact = new PrecautionImpactModel(
+                precautionPowerLevels: HiddenStates,
+                precautionLevels: 1,
+                pAccidentNoPrecaution: PAccidentNoPrecaution,
+                pMinLow: PMinLow,
+                pMinHigh: PMinHigh,
+                alphaLow: AlphaLow,
+                alphaHigh: AlphaHigh,
+                marginalPrecautionCost: UnitPrecautionCost,
+                harmCost: HarmCost,
+                liabilityThreshold: LiabilityThreshold,
+                benefitRule: MarginalBenefitRule.RelativeToNextDiscreteLevel);
+
+            var sig = new PrecautionSignalModel(HiddenStates, 2, 2, 3, 0.2, 0.2, 0.2);
+            var court = new PrecautionCourtDecisionModel(oneLevelImpact, sig);
+
+            // Only level index is 0.
+            for (int h = 0; h < HiddenStates; h++)
+                oneLevelImpact.GetRiskReduction(h, 0).Should().Be(0.0);
+
+            for (int c = 0; c < 3; c++)
+                court.IsLiable(c, 0).Should().BeFalse();
+
+            // Conditional-on-liable (impossible) court distribution falls back to uniform.
+            double[] cond = court.GetCourtSignalDistributionGivenSignalsAndLiability(0, 0, 0);
+            cond.Length.Should().Be(3);
+            cond.Sum().Should().BeApproximately(1.0, 1e-12);
+            double expected = 1.0 / 3.0;
+            foreach (double v in cond)
+                v.Should().BeApproximately(expected, 1e-12);
+        }
+
+
     }
 }

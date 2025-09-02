@@ -10,8 +10,8 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
     /// </summary>
     public enum MarginalBenefitRule
     {
-        AtChosenPrecautionLevel,        // default: P(h,k) – P(h,k+ε)
-        RelativeToNextDiscreteLevel     //        P(h,k) – P(h,k+1)
+        AtChosenPrecautionLevel,        // P(h,k) – P(h,k+ε)
+        RelativeToNextDiscreteLevel     // P(h,k) – P(h,k+1). Top level ⇒ 0.
     }
 
     /// <summary>
@@ -63,7 +63,7 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
             double harmCost,
             double liabilityThreshold = 1.0,
             double pAccidentWrongfulAttribution = 0.0,
-            MarginalBenefitRule benefitRule = MarginalBenefitRule.AtChosenPrecautionLevel,
+            MarginalBenefitRule benefitRule = MarginalBenefitRule.RelativeToNextDiscreteLevel,
             double epsilonForBenefit = 1e-6)
         {
             if (precautionPowerLevels <= 0) throw new ArgumentException(nameof(precautionPowerLevels));
