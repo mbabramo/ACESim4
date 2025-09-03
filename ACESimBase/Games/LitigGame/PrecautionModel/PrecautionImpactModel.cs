@@ -63,7 +63,7 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
             double harmCost,
             double liabilityThreshold = 1.0,
             double pAccidentWrongfulAttribution = 0.0,
-            MarginalBenefitRule benefitRule = MarginalBenefitRule.RelativeToNextDiscreteLevel,
+            MarginalBenefitRule benefitRule = MarginalBenefitRule.AtChosenPrecautionLevel,
             double epsilonForBenefit = 1e-6)
         {
             if (precautionPowerLevels <= 0) throw new ArgumentException(nameof(precautionPowerLevels));
