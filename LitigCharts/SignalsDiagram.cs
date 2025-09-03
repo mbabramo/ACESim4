@@ -18,8 +18,8 @@ namespace LitigCharts
         // Existing flags/modes
         bool ChartIsForDamagesSignals = false;
 
-        // New mode: show uncollapsed signals from Hidden State -> Signal
-        public bool ChartIsForHiddenState = true; // DEBUG
+        // show uncollapsed signals from Hidden State -> Signal
+        public bool ChartIsForHiddenState = true; 
 
         // Liability mode is now the fallback when neither damages nor hidden is selected
         bool ChartIsForLiabilitySignals => !ChartIsForDamagesSignals && !ChartIsForHiddenState;
@@ -115,15 +115,6 @@ namespace LitigCharts
 
         public string CreateDiagram()
         {
-            // Local helpers for reduced-fraction labels
-            static int Gcd(int a, int b)
-            {
-                a = Math.Abs(a); b = Math.Abs(b);
-                if (a == 0) return b;
-                if (b == 0) return a;
-                while (b != 0) { int t = a % b; a = b; b = t; }
-                return a;
-            }
             // Returns a LaTeX math-mode string for the fraction (reduced)
             static string FractionLabel(int numerator, int denominator)
             {

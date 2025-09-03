@@ -522,7 +522,7 @@ namespace ACESim
                         .WithReplacement("Noise Multiplier D", "0")
                         .WithReplacement("Costs Multiplier", "0")),
 
-            };,
+            };
 
             var simulationSetsIdentifiers = new List<SimulationSetsIdentifier>()
             {
