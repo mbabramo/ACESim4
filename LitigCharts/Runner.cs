@@ -67,7 +67,7 @@ namespace LitigCharts
         private static bool OneTimeDiagrams()
         {
             bool doCoefficientOfVariationCalculations = false; // if so, only this will be run. Note that this will generally be useful when there are many equilibria for a single set of parameters, not when there are many different sets of parameters.
-            bool doSignalsDiagram = true; // DEBUG false; // if so, only this will be run. This is the figure that shows how truly liable or not truly liable cases convert to litigation quality levels and how litigation quality levels convert to signals for the players.
+            bool doSignalsDiagram = false; // if so, only this will be run. This is the figure that shows how truly liable or not truly liable cases convert to litigation quality levels and how litigation quality levels convert to signals for the players.
 
             if (doCoefficientOfVariationCalculations)
             {

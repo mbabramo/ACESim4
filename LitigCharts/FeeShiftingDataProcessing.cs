@@ -40,7 +40,7 @@ namespace LitigCharts
             {
                 columnsToGet.AddRange(["Activity", "Accident", "WrongAttrib", "PrecPower", "PrecLevel", "BCRatio"]);
                 replacementColumnNames.AddRange(["Engages in Activity", "Accident Occurs", "Wrongful Attribution", "Precaution Power", "Precaution Level", "Benefit-Cost Ratio"]);
-                for (int i = 1; i <= 5; i++)
+                for (int i = 1; i <= 8; i++)
                 {
                     columnsToGet.Add($"PrecPower{i}");
                     replacementColumnNames.Add($"Precaution Power {i}");
@@ -785,9 +785,8 @@ namespace LitigCharts
         }
 
         /// <summary>One CSV line parsed into variable settings → <see cref="Slice"/>.</summary>
-        private sealed record CostRow(IDictionary<string, string> Vars, Slice Slice);
+        private sealed record CostRow(string OptionSetName, IDictionary<string, string> Vars, Slice Slice);
 
-        /// <summary>Parses the combined cost-breakdown CSV once and caches the rows.</summary>
         private static IReadOnlyList<CostRow> LoadCombinedCostRows(string csvPath)
         {
             if (!File.Exists(csvPath))
@@ -800,15 +799,15 @@ namespace LitigCharts
 
             string[] head = headerLine.Split(',');
 
-            // locate fixed columns -- must correspond to OutputHeaders in CostBreakdownReport
-            int widthIdx      = Array.IndexOf(head, "Width");
-            int precautionIdx= Array.IndexOf(head, "Precaution");
-            int trulyLiableHarmIdx          = Array.IndexOf(head, "TLHarm");
-            int trulyNotLiableHarmIdx       = Array.IndexOf(head, "TNLHarm");
-            int filingIdx     = Array.IndexOf(head, "File");
-            int answerIdx     = Array.IndexOf(head, "Answer");
-            int bargainIdx    = Array.IndexOf(head, "Bargain");
-            int trialIdx      = Array.IndexOf(head, "Trial");
+            int widthIdx            = Array.IndexOf(head, "Width");
+            int precautionIdx       = Array.IndexOf(head, "Precaution");
+            int trulyLiableHarmIdx  = Array.IndexOf(head, "TLHarm");
+            int trulyNotLiableHarmIdx = Array.IndexOf(head, "TNLHarm");
+            int filingIdx           = Array.IndexOf(head, "File");
+            int answerIdx           = Array.IndexOf(head, "Answer");
+            int bargainIdx          = Array.IndexOf(head, "Bargain");
+            int trialIdx            = Array.IndexOf(head, "Trial");
+
             if (widthIdx == -1 || precautionIdx == -1 ||
                 trulyLiableHarmIdx == -1 || trulyNotLiableHarmIdx == -1 ||
                 filingIdx == -1 || answerIdx == -1 || bargainIdx == -1 || trialIdx == -1)
@@ -816,8 +815,12 @@ namespace LitigCharts
                 throw new InvalidDataException("CSV header row missing required columns");
             }
 
-            // variable columns come before “GroupName”
             int groupNameIdx = Array.IndexOf(head, "GroupName");
+            int optionSetNameIdx = Array.IndexOf(head, "OptionSetName");
+            if (groupNameIdx == -1 || optionSetNameIdx == -1)
+                throw new InvalidDataException("CSV header row missing GroupName or OptionSetName");
+
+            // Variable columns come before GroupName
             var variableCols = head.Take(groupNameIdx).ToArray();
 
             var rows = new List<CostRow>();
@@ -834,23 +837,25 @@ namespace LitigCharts
                 for (int i = 0; i < variableCols.Length; i++)
                     vars[variableCols[i]] = f[i];
 
+                string optionSetName = f[optionSetNameIdx];
+
                 rows.Add(new CostRow(
+                    optionSetName,
                     vars,
                     new Slice(
-                        double.Parse(f[widthIdx], CultureInfo.InvariantCulture),
-                        double.Parse(f[precautionIdx], CultureInfo.InvariantCulture),
-                        double.Parse(f[trulyLiableHarmIdx],        CultureInfo.InvariantCulture),
-                        double.Parse(f[trulyNotLiableHarmIdx],        CultureInfo.InvariantCulture),
-                        double.Parse(f[filingIdx],      CultureInfo.InvariantCulture),
-                        double.Parse(f[answerIdx],      CultureInfo.InvariantCulture),
-                        double.Parse(f[bargainIdx],     CultureInfo.InvariantCulture),
-                        double.Parse(f[trialIdx],       CultureInfo.InvariantCulture))));
+                        double.Parse(f[widthIdx], System.Globalization.CultureInfo.InvariantCulture),
+                        double.Parse(f[precautionIdx], System.Globalization.CultureInfo.InvariantCulture),
+                        double.Parse(f[trulyLiableHarmIdx], System.Globalization.CultureInfo.InvariantCulture),
+                        double.Parse(f[trulyNotLiableHarmIdx], System.Globalization.CultureInfo.InvariantCulture),
+                        double.Parse(f[filingIdx], System.Globalization.CultureInfo.InvariantCulture),
+                        double.Parse(f[answerIdx], System.Globalization.CultureInfo.InvariantCulture),
+                        double.Parse(f[bargainIdx], System.Globalization.CultureInfo.InvariantCulture),
+                        double.Parse(f[trialIdx], System.Globalization.CultureInfo.InvariantCulture))));
             }
 
             return rows;
         }
 
-        /// <summary>Returns the merged <see cref="Slice"/> list for a given simulation.</summary>
         private static List<Slice> GetSlices(
             PermutationalLauncher.SimulationIdentifier sim,
             IEnumerable<CostRow> rows)
@@ -861,13 +866,13 @@ namespace LitigCharts
                 foreach (var s in src)
                 {
                     var hit = acc.FirstOrDefault(a =>
-                        Math.Abs(a.opportunity - s.opportunity) < 1e-12 &&
-                        Math.Abs(a.trulyLiableHarm - s.trulyLiableHarm) < 1e-12 &&
+                        Math.Abs(a.opportunity        - s.opportunity       ) < 1e-12 &&
+                        Math.Abs(a.trulyLiableHarm    - s.trulyLiableHarm   ) < 1e-12 &&
                         Math.Abs(a.trulyNotLiableHarm - s.trulyNotLiableHarm) < 1e-12 &&
-                        Math.Abs(a.filing      - s.filing     ) < 1e-12 &&
-                        Math.Abs(a.answer      - s.answer     ) < 1e-12 &&
-                        Math.Abs(a.bargaining  - s.bargaining ) < 1e-12 &&
-                        Math.Abs(a.trial       - s.trial      ) < 1e-12);
+                        Math.Abs(a.filing             - s.filing            ) < 1e-12 &&
+                        Math.Abs(a.answer             - s.answer            ) < 1e-12 &&
+                        Math.Abs(a.bargaining         - s.bargaining        ) < 1e-12 &&
+                        Math.Abs(a.trial              - s.trial             ) < 1e-12);
 
                     if (hit is null)
                         acc.Add(s);
@@ -880,8 +885,19 @@ namespace LitigCharts
             bool Match(CostRow r) => sim.columnMatches.All(cm =>
                 r.Vars.TryGetValue(cm.columnName, out var val) && val == cm.expectedValue);
 
-            return Merge(rows.Where(Match).Select(r => r.Slice));
+            var matched = rows.Where(Match).ToList();
+            if (matched.Count == 0)
+                throw new InvalidDataException($"No rows found for simulation identifier: {sim}");
+
+            var optionSets = matched.Select(r => r.OptionSetName).Distinct().ToList();
+            if (optionSets.Count != 1)
+                throw new InvalidDataException(
+                    $"Filter did not isolate a single simulation for '{sim}'. " +
+                    $"Matched {optionSets.Count} option sets: {string.Join(", ", optionSets)}");
+
+            return Merge(matched.Select(r => r.Slice));
         }
+
 
         public static void ProduceRepeatedCostBreakdownReports(LitigGameLauncherBase launcher, DataBeingAnalyzed article)
         {

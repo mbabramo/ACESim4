@@ -263,8 +263,11 @@ namespace ACESim
                 g.DAnswerCost = 0.0;
 
                 // keep reporting columns consistent with existing sets
+                g.VariableSettings["Court Noise"] = "0";
+                g.VariableSettings["Noise Multiplier P"] = "0";
+                g.VariableSettings["Noise Multiplier D"] = "0";
+                g.VariableSettings["Costs Multiplier"] = "0";
                 g.VariableSettings["Adjudication Mode"] = "Perfect";
-                g.VariableSettings["Court Noise"] = 0.0; // aligns with “Court Quality” identifiers
             });
 
 
@@ -511,8 +514,15 @@ namespace ACESim
             {
                 new SimulationIdentifier("Baseline", DefaultVariableValues.WithReplacement("Adjudication Mode", "Baseline")),
                 // Our “Perfect” transform also sets Court Noise = 0.0; include that so identifiers match those runs.
-                new SimulationIdentifier("Perfect", DefaultVariableValues.WithReplacement("Adjudication Mode", "Perfect").WithReplacement("Court Noise", "0")),
-            };
+                new SimulationIdentifier("Perfect",
+                    DefaultVariableValues
+                        .WithReplacement("Adjudication Mode", "Perfect")
+                        .WithReplacement("Court Noise", "0")
+                        .WithReplacement("Noise Multiplier P", "0")
+                        .WithReplacement("Noise Multiplier D", "0")
+                        .WithReplacement("Costs Multiplier", "0")),
+
+            };,
 
             var simulationSetsIdentifiers = new List<SimulationSetsIdentifier>()
             {
