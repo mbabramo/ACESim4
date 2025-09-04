@@ -255,7 +255,7 @@ namespace ACESimTest
         }
 
         [TestMethod]
-        public void DiscreteRule_TopLevelIsSafeHarbor_ForCourtAndImpact()
+        public void DiscreteRule_TopLevelIsSafeHarbor_ForCourtAndImpact_RelativeToNextDiscreteLevel()
         {
             // Uses the class fixtures (impact, courtDeterministic, courtNoisy) built in Init()
             // Top level is index 1 because PrecautionLevels == 2 in this file.
@@ -280,8 +280,55 @@ namespace ACESimTest
             for (int h = 0; h < HiddenStates; h++)
                 courtNoisy.GetLiabilityOutcomeProbabilities(h, maxK)[1].Should().Be(0.0);
         }
-                [TestMethod]
-        public void DiscreteRule_ConditioningOnImpossibleLiabilityYieldsUniformCourtSignal()
+
+        [TestMethod]
+        public void HypotheticalRule_TopLevelNotSafeHarbor_ForCourtAndImpact()
+        {
+            const int HiddenStates = 2;
+            const int PrecautionLevels = 2;
+
+            var impactHypo = new PrecautionImpactModel(
+                precautionPowerLevels: HiddenStates,
+                precautionLevels: PrecautionLevels,
+                pAccidentNoPrecaution: 0.25,
+                pMinLow: 0.18,
+                pMinHigh: 0.08,
+                alphaLow: 1.0,
+                alphaHigh: 1.0,
+                marginalPrecautionCost: 0.01,   // ↓ lower cost so BCR(top) > 1.0
+                harmCost: 1.0,
+                liabilityThreshold: 1.0,
+                benefitRule: MarginalBenefitRule.RelativeToNextDiscreteHypotheticalLevel);
+
+            // Deterministic-ish signals, 3 court buckets to avoid symmetry ties
+            var detSignals = new PrecautionSignalModel(
+                HiddenStates, 2, 2, 3,
+                1e-4, 1e-4, 1e-4, includeExtremes: true);
+
+            var courtHypo = new PrecautionCourtDecisionModel(impactHypo, detSignals);
+
+            int topK = PrecautionLevels - 1;
+
+            // Impact layer: ΔP at top > 0 for both hidden states
+            for (int h = 0; h < HiddenStates; h++)
+            {
+                double delta = impactHypo.GetRiskReduction(h, topK);
+                delta.Should().BeGreaterThan(0.0);
+
+                double ratio = impactHypo.GetBenefitCostRatio(h, topK);
+                ratio.Should().BeGreaterThan(1.0);
+            }
+
+            // Court layer: at least one court signal should be liable at the top level
+            bool anyLiable = false;
+            for (int c = 0; c < 3; c++)
+                anyLiable |= courtHypo.IsLiable(c, topK);
+
+            anyLiable.Should().BeTrue("with ΔP>0 and BCR(top)>threshold, some court bins should imply liability at the top level");
+        }
+
+        [TestMethod]
+        public void DiscreteRule_ConditioningOnImpossibleLiabilityYieldsUniformCourtSignal_RelativeToNextDiscreteLevel()
         {
             // At the top level, liability is impossible under the discrete next-level rule.
             int maxK = 1;
@@ -298,6 +345,45 @@ namespace ACESimTest
             double expected = 1.0 / cond.Length;
             foreach (double v in cond)
                 v.Should().BeApproximately(expected, 1e-12);
+        }
+
+        [TestMethod]
+        public void HypotheticalRule_ConditioningOnLiabilityAtTopIsNotUniform()
+        {
+            const int HiddenStates = 2;
+            const int PrecautionLevels = 2;
+
+            var impactHypo = new PrecautionImpactModel(
+                precautionPowerLevels: HiddenStates,
+                precautionLevels: PrecautionLevels,
+                pAccidentNoPrecaution: 0.25,
+                pMinLow: 0.18,
+                pMinHigh: 0.08,
+                alphaLow: 1.0,
+                alphaHigh: 1.0,
+                marginalPrecautionCost: 0.01,   // ensure top-level BCR is strong enough
+                harmCost: 1.0,
+                liabilityThreshold: 1.0,
+                benefitRule: MarginalBenefitRule.RelativeToNextDiscreteHypotheticalLevel);
+
+            var detSignals = new PrecautionSignalModel(
+                HiddenStates, 2, 2, 3,
+                1e-4, 1e-4, 1e-4, includeExtremes: true);
+
+            var courtHypo = new PrecautionCourtDecisionModel(impactHypo, detSignals);
+
+            int topK = PrecautionLevels - 1;
+
+            // Pick a concrete (p,d) slice; with near-deterministic signals this selects a
+            // specific hidden state and induces a non-uniform court distribution before filtering.
+            var dist = courtHypo.GetCourtSignalDistributionGivenSignalsAndLiability(1, 1, topK);
+
+            dist.Sum().Should().BeApproximately(1.0, 1e-12);
+
+            double uniform = 1.0 / dist.Length;
+            // Non-uniformity: at least one bin differs from exact 1/C by more than rounding noise.
+            dist.Should().Contain(v => Math.Abs(v - uniform) > 1e-9,
+                "with real mass on liable court bins, the filtered-and-renormalized distribution should not be perfectly uniform");
         }
 
         [TestMethod]

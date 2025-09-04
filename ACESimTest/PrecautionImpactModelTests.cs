@@ -96,6 +96,44 @@ namespace ACESimTest
             }
         }
 
+        // ---------------------------------------------------------------------
+        // Top level not safe harbor under next discrete hypothetical rule
+        // ---------------------------------------------------------------------
+
+        [TestMethod]
+        public void HypotheticalRule_TopLevelNotSafeHarbor()
+        {
+            // Same calibration as Init(), but swap in the new rule.
+            var model = new PrecautionImpactModel(
+                precautionPowerLevels: 2,
+                precautionLevels: 2,
+                pAccidentNoPrecaution: 0.25,   // pMax
+                pMinLow: 0.20,
+                pMinHigh: 0.10,
+                alphaLow: 1.0,
+                alphaHigh: 1.0,
+                marginalPrecautionCost: 0.04,
+                harmCost: 1.0,
+                liabilityThreshold: 1.0,
+                pAccidentWrongfulAttribution: 0.0,
+                benefitRule: MarginalBenefitRule.RelativeToNextDiscreteHypotheticalLevel);
+
+            int topK = 1;
+
+            // Under the hypothetical rule, ΔP at the top is computed vs. the phantom k+1.
+            // With these parameters it should be positive for both hidden states,
+            // and the benefit-cost ratio should exceed the threshold (liable).
+            for (int h = 0; h < 2; h++)
+            {
+                double delta = model.GetRiskReduction(h, topK);
+                delta.Should().BeGreaterThan(0.0);
+
+                double ratio = model.GetBenefitCostRatio(h, topK);
+                ratio.Should().BeGreaterThanOrEqualTo(1.0);
+                model.IsTrulyLiable(h, topK).Should().BeTrue();
+            }
+        }
+
 
         // ---------------------------------------------------------------------
         // True-liability accessor

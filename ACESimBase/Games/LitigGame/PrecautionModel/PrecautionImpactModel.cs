@@ -10,8 +10,9 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
     /// </summary>
     public enum MarginalBenefitRule
     {
-        AtChosenPrecautionLevel,        // P(h,k) – P(h,k+ε)
-        RelativeToNextDiscreteLevel     // P(h,k) – P(h,k+1). Top level ⇒ 0.
+        AtChosenPrecautionLevel,                 // P(h,k) – P(h,k+ε)
+        RelativeToNextDiscreteLevel,             // P(h,k) – P(h,k+1). Top level ⇒ 0.
+        RelativeToNextDiscreteHypotheticalLevel  // P(h,k) – P(h,k+1) for all k, using phantom k+1 at the top.
     }
 
     /// <summary>
@@ -63,7 +64,7 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
             double harmCost,
             double liabilityThreshold = 1.0,
             double pAccidentWrongfulAttribution = 0.0,
-            MarginalBenefitRule benefitRule = MarginalBenefitRule.AtChosenPrecautionLevel,
+            MarginalBenefitRule benefitRule = MarginalBenefitRule.RelativeToNextDiscreteHypotheticalLevel,
             double epsilonForBenefit = 1e-6)
         {
             if (precautionPowerLevels <= 0) throw new ArgumentException(nameof(precautionPowerLevels));
@@ -218,23 +219,40 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
                     double pCurrent = accidentProb[h][k];
                     double delta;
 
-                    if (_benefitRule == MarginalBenefitRule.AtChosenPrecautionLevel)
+                    switch (_benefitRule)
                     {
-                        // forward ε step on the same continuous curve
-                        double pPlusE = CausedAccidentProbability(h, k + _epsilon);
-                        double pWrongful = (1.0 - pPlusE) * PAccidentWrongfulAttribution;
-                        double pNext = Math.Clamp(pPlusE + pWrongful, 0.0, 1.0);
+                        case MarginalBenefitRule.AtChosenPrecautionLevel:
+                        {
+                            // forward ε step on the same continuous curve
+                            double pPlusE = CausedAccidentProbability(h, k + _epsilon);
+                            double pWrongful = (1.0 - pPlusE) * PAccidentWrongfulAttribution;
+                            double pNext = Math.Clamp(pPlusE + pWrongful, 0.0, 1.0);
 
-                        // scale by 1/ε ⇒ benefit of a *unit* of precaution, not an ε-sliver
-                        delta = (pCurrent - pNext) / _epsilon;
-                    }
-                    else
-                    {
-                        // discrete forward one-level; top level ⇒ ΔP = 0
-                        if (k == PrecautionLevels - 1)
-                            delta = 0.0;
-                        else
+                            // scale by 1/ε ⇒ benefit of a *unit* of precaution, not an ε-sliver
+                            delta = (pCurrent - pNext) / _epsilon;
+                            break;
+                        }
+
+                        case MarginalBenefitRule.RelativeToNextDiscreteLevel:
+                        {
+                            // discrete forward one-level; top level ⇒ ΔP = 0
+                            if (k == PrecautionLevels - 1)
+                                delta = 0.0;
+                            else
+                                delta = pCurrent - accidentProb[h][k + 1];
+                            break;
+                        }
+
+                        case MarginalBenefitRule.RelativeToNextDiscreteHypotheticalLevel:
+                        {
+                            // always compare to the next index, even at the top;
+                            // k+1 exists because TotalLevelsForRisk == PrecautionLevels + 1
                             delta = pCurrent - accidentProb[h][k + 1];
+                            break;
+                        }
+
+                        default:
+                            throw new InvalidOperationException("Unknown marginal benefit rule.");
                     }
 
                     arr[h][k] = delta < 0.0 ? 0.0 : delta;
@@ -243,6 +261,7 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
 
             return arr;
         }
+
 
 
         double[][] BuildBenefitCostRatioTable()
