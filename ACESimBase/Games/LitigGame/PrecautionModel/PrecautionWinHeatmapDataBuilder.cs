@@ -211,21 +211,16 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
                 cGivenH[h] = signal.GetCourtSignalDistributionGivenHidden(h);
             }
 
-            // ------------------------------ Liability probability per (h,k):
-            // L(h,k) = sum_c 1{liable(c,k)} * Pr(c | h)
+            // ------------------------------ Liability probability per (h,k), integrated over court evidence:
+            // Works for both rules:
+            //  • Deterministic: reduces to sum_c 1{liable(c,k)} * Pr(c | h)
+            //  • Probit:        sum_c Φ((BCR-τ)/scale) * Pr(c | h)
             var liableGivenHAndK = new double[H][];
             for (int h = 0; h < H; h++)
             {
                 var arr = new double[K];
-                var courtDist = cGivenH[h];
                 for (int k = 0; k < K; k++)
-                {
-                    double sum = 0.0;
-                    for (int cSig = 0; cSig < C; cSig++)
-                        if (court.IsLiable(cSig, k))
-                            sum += courtDist[cSig];
-                    arr[k] = sum;
-                }
+                    arr[k] = court.GetLiabilityOutcomeProbabilities(h, k)[1]; // P(liable | h,k)
                 liableGivenHAndK[h] = arr;
             }
 
@@ -445,8 +440,8 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
         public double[][] ProbabilityOfLiabilityGivenSignals_Accident_CellValue { get; }
 
         public double[] ColumnAccidentMass { get; }
-        public double[] ColumnWinProbabilityGivenAccident { get; }
-        public double   OverallWinProbabilityGivenAccident { get; }
+        public double[] ColumnPWinProbabilityGivenAccident { get; }
+        public double   OverallPWinProbabilityGivenAccident { get; }
 
         // Defendant-signal probabilities
         public double[] DefendantSignalProbabilityGivenAccident { get; }
@@ -477,8 +472,8 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
             ProbabilityOfLiabilityGivenSignals_Accident_CellValue = winProbGivenSignals_Accident;
 
             ColumnAccidentMass = columnAccidentMass;
-            ColumnWinProbabilityGivenAccident = columnWinProbabilityGivenAccident;
-            OverallWinProbabilityGivenAccident = overallWinProbabilityGivenAccident;
+            ColumnPWinProbabilityGivenAccident = columnWinProbabilityGivenAccident;
+            OverallPWinProbabilityGivenAccident = overallWinProbabilityGivenAccident;
 
             RawJointAccidentMass_D = rawJointAccidentMass_D;
             RawJointLiableAccidentMass_N = rawJointLiableAccidentMass_N;

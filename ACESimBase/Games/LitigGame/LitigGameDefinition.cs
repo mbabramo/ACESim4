@@ -1111,7 +1111,7 @@ namespace ACESim
                 if (DEBUG_BuildDataForEachUniformStrategy)
                 {
                     Func<int, double[]> GetUniformStrategy(int relativePrecautionLevel) => x => Enumerable.Range(0, 8).Select(z => z == relativePrecautionLevel ? 1.0 : 0.0).ToArray();
-                    var dataForUniformStrategies = Enumerable.Range(0, 8).Select(x => PrecautionWinHeatmapDataBuilder.BuildFromStrategy(pndg.impact, pndg.signal, pndg.court, GetUniformStrategy(x))).Select(y => y.ColumnWinProbabilityGivenAccident).ToArray();
+                    var dataForUniformStrategies = Enumerable.Range(0, 8).Select(x => PrecautionWinHeatmapDataBuilder.BuildFromStrategy(pndg.impact, pndg.signal, pndg.court, GetUniformStrategy(x))).Select(y => y.ColumnPWinProbabilityGivenAccident).ToArray();
                     foreach (var uniformStrategyResult in dataForUniformStrategies)
                         Console.WriteLine(String.Join(", ", uniformStrategyResult));
                 }
