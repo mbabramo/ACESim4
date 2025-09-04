@@ -30,7 +30,8 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
         public double ProbabilityAccidentWrongfulAttribution = 0.00001; 
         public double LiabilityThreshold = 1.0;
         int numSamplesToMakeForCourtLiablityDetermination = 1000;
-
+        public CourtDecisionRule CourtDecisionRule = CourtDecisionRule.ProbitThreshold;
+        public double CourtProbitScale = 0.1;
         public double CostMisestimationFactor = 1.0;
         private bool ChanceAffectsDPerceptionofPrecautionCost => CostMisestimationFactor != 1.0; // if true, then a chance decision will cause the marginal precaution cost to be multiplied by some number in determining the defendant's utility. But this won't affect the actual amount spent. This is a way of modeling a defendant who incorrectly perceives that the precaution cost is changing. 
         private double[] _PossiblePerceivedPrecautionCostMultipliers = null;
@@ -112,7 +113,7 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
                 includeExtremes: false);
 
             risk = new PrecautionRiskModel(impact, signal);
-            court = new PrecautionCourtDecisionModel(impact, signal);
+            court = new PrecautionCourtDecisionModel(impact, signal, CourtDecisionRule, CourtProbitScale);
 
             // ----------------- Cached light tables -----------------
             dSignalProb = signal.GetUnconditionalSignalDistribution(PrecautionSignalModel.DefendantIndex);

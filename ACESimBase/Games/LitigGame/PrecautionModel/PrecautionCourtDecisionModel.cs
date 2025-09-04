@@ -6,8 +6,8 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
 {
     public enum CourtDecisionRule
     {
-        CourtEstimatesPrecautionPower,
-        CourtEstimatesBenefitCostRatio
+        DeterministicThreshold,
+        ProbitThreshold
     }
 
     /// <summary>
@@ -58,7 +58,7 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
         public PrecautionCourtDecisionModel(
             PrecautionImpactModel impactModel,
             PrecautionSignalModel signalModel,
-            CourtDecisionRule decisionRule = CourtDecisionRule.CourtEstimatesPrecautionPower,
+            CourtDecisionRule decisionRule = CourtDecisionRule.DeterministicThreshold,
             double probitScale = 0.1)
         {
             impact = impactModel ?? throw new ArgumentNullException(nameof(impactModel));
@@ -67,7 +67,7 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
             courtRule = decisionRule;
             this.probitScale = probitScale;
 
-            if (courtRule == CourtDecisionRule.CourtEstimatesBenefitCostRatio &&
+            if (courtRule == CourtDecisionRule.ProbitThreshold &&
                 impact.BenefitRule == MarginalBenefitRule.RelativeToNextDiscreteLevel)
                 throw new InvalidOperationException(
                     "CourtEstimatesBenefitCostRatio requires a hypothetical next-level marginal-benefit rule.");
@@ -260,7 +260,7 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
                 w[c] = new double[K];
                 for (int k = 0; k < K; k++)
                 {
-                    if (courtRule == CourtDecisionRule.CourtEstimatesPrecautionPower)
+                    if (courtRule == CourtDecisionRule.DeterministicThreshold)
                     {
                         w[c][k] = liable[c][k] ? 1.0 : 0.0;
                     }

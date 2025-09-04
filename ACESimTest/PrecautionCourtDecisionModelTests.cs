@@ -567,7 +567,7 @@ namespace ACESimTest
             Action ctor = () => new PrecautionCourtDecisionModel(
                 impactNonHypo,
                 sig,
-                decisionRule: CourtDecisionRule.CourtEstimatesBenefitCostRatio,
+                decisionRule: CourtDecisionRule.ProbitThreshold,
                 probitScale: 0.1);
 
             ctor.Should().Throw<InvalidOperationException>();
@@ -606,8 +606,8 @@ namespace ACESimTest
             // Mild noise + 3 court signals to avoid symmetry.
             var sig = new PrecautionSignalModel(2, 2, 2, 3, 0.20, 0.20, 0.20);
 
-            var courtLow  = new PrecautionCourtDecisionModel(impactLowBCR,  sig, CourtDecisionRule.CourtEstimatesBenefitCostRatio, probitScale: 0.15);
-            var courtHigh = new PrecautionCourtDecisionModel(impactHighBCR, sig, CourtDecisionRule.CourtEstimatesBenefitCostRatio, probitScale: 0.15);
+            var courtLow  = new PrecautionCourtDecisionModel(impactLowBCR,  sig, CourtDecisionRule.ProbitThreshold, probitScale: 0.15);
+            var courtHigh = new PrecautionCourtDecisionModel(impactHighBCR, sig, CourtDecisionRule.ProbitThreshold, probitScale: 0.15);
 
             int topK = 1; // with 2 levels, the top index is 1
 
@@ -647,7 +647,7 @@ namespace ACESimTest
             var court = new PrecautionCourtDecisionModel(
                 impact,
                 sig,
-                CourtDecisionRule.CourtEstimatesBenefitCostRatio,
+                CourtDecisionRule.ProbitThreshold,
                 probitScale: 0.10);
 
             // Choose a specific (p,d,k) slice and compare conditional dists.
