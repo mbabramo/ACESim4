@@ -950,27 +950,73 @@ namespace LitigCharts
             plannedPath = plannedPath.DeepClone();
             plannedPath.AddSubpath(variation.nameOfSet, 5);
 
-            var costMultipliersForLabels = limitToCostsMultiplier.HasValue
-                ? new List<double> { limitToCostsMultiplier.Value }
-                : launcher.CriticalCostsMultipliers.OrderBy(x => x).ToList();
-
-            // 3-D matrix: [row → costs-multiplier] × [col → simulation] × Slice list
-            var matrix = costMultipliersForLabels
-                .Select(cm => variation.simulationIdentifiers
-                                       .Select(sim => sim.With("Costs Multiplier", cm.ToString()))
-                                       .Select(sim => GetSlices(sim, allRows))
-                                       .ToList())
+            // What does the variation itself say about Costs Multiplier?
+            string defaultCMText = launcher.DefaultVariableValues
+                .First(kv => kv.Item1 == "Costs Multiplier").Item2; // e.g., "1" for endog launcher
+            var pinnedCMTexts = variation.simulationIdentifiers
+                .Select(sim => sim.columnMatches.FirstOrDefault(cm => cm.columnName == "Costs Multiplier").expectedValue)
+                .Where(v => v is not null)
                 .ToList();
 
-            var majorXLabels = variation.simulationIdentifiers
-                                         .Select(s => s.nameForSimulation)
+            bool noPins = pinnedCMTexts.Count == 0;
+            bool allPinsAreDefault = pinnedCMTexts.Count > 0 && pinnedCMTexts.All(v => v == defaultCMText);
+            var distinctPinned = pinnedCMTexts.Distinct().ToList();
+            bool homogeneousNonDefaultPin = distinctPinned.Count == 1 && distinctPinned[0] != defaultCMText;
+            bool heterogeneousPins = distinctPinned.Count > 1;
+
+            List<string> majorXLabels = variation.simulationIdentifiers
+                                                 .Select(s => s.nameForSimulation)
+                                                 .ToList();
+
+            List<string> majorYLabels;
+            List<List<List<Slice>>> matrix;
+
+            if (heterogeneousPins)
+            {
+                // Example: “Adjudication Mode” set where Baseline pins CM=1 and Perfect pins CM=0.
+                // Don’t sweep. Build one “Own” row and respect each column’s identifier as-is.
+                majorYLabels = new List<string> { "Own" };
+
+                var singleRow = variation.simulationIdentifiers
+                                         .Select(sim => GetSlices(sim, allRows))
                                          .ToList();
 
-            var majorYLabels = costMultipliersForLabels
-                .Select(x => x.ToString(CultureInfo.InvariantCulture))
-                .ToList();
+                matrix = new List<List<List<Slice>>> { singleRow };
+            }
+            else if (homogeneousNonDefaultPin)
+            {
+                // Every identifier pins the same non-default CM (e.g., CM=0 throughout this set).
+                // Represent it as a single labeled row, without overwriting identifiers.
+                string pinned = distinctPinned[0];
+                majorYLabels = new List<string> { double.Parse(pinned, System.Globalization.CultureInfo.InvariantCulture)
+                                                      .ToString(System.Globalization.CultureInfo.InvariantCulture) };
 
-            // ── combined light-mode grid ────────────────────────────────────────────
+                var singleRow = variation.simulationIdentifiers
+                                         .Select(sim => GetSlices(sim, allRows))
+                                         .ToList();
+
+                matrix = new List<List<List<Slice>>> { singleRow };
+            }
+            else
+            {
+                // No pins (or pins all equal to default) ⇒ do the normal sweep.
+                var costMultipliersForLabels = limitToCostsMultiplier.HasValue
+                    ? new List<double> { limitToCostsMultiplier.Value }
+                    : launcher.CriticalCostsMultipliers.OrderBy(x => x).ToList();
+
+                matrix = costMultipliersForLabels
+                    .Select(cm => variation.simulationIdentifiers
+                        .Select(sim => sim.With("Costs Multiplier", cm.ToString(System.Globalization.CultureInfo.InvariantCulture)))
+                        .Select(sim => GetSlices(sim, allRows))
+                        .ToList())
+                    .ToList();
+
+                majorYLabels = costMultipliersForLabels
+                    .Select(x => x.ToString(System.Globalization.CultureInfo.InvariantCulture))
+                    .ToList();
+            }
+
+            // Combined light-mode grid
             GenerateRepeatedReport(limitToCostsMultiplier,
                                    plannedPath,
                                    variation,
@@ -978,10 +1024,10 @@ namespace LitigCharts
                                    majorXLabels,
                                    majorYLabels);
 
-            // ── individual dark-mode panels ─────────────────────────────────────────
+            // Individual dark-mode panels
             var sliceGrid = matrix.SelectMany(r => r).ToList();
             var axisScalingInfos = CostBreakdownReport
-                .ComputeScaling(sliceGrid, peakProportion: 0.8);   // :contentReference[oaicite:0]{index=0}
+                .ComputeScaling(sliceGrid, peakProportion: 0.8);
 
             BuildIndividualCostBreakdownPanelsForVariation(
                 plannedPath,
@@ -991,6 +1037,7 @@ namespace LitigCharts
                 majorXLabels,
                 majorYLabels);
         }
+
 
         private static void BuildIndividualCostBreakdownPanelsForVariation(
             PlannedPath                                             plannedPath,

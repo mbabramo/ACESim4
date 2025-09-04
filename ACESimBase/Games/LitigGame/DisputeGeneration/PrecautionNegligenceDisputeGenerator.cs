@@ -47,10 +47,10 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
         }
 
         // ----------------------------------------------------------------  linked models
-        PrecautionImpactModel impact;
-        PrecautionSignalModel signal;
-        PrecautionRiskModel risk;
-        PrecautionCourtDecisionModel court;
+        public PrecautionImpactModel impact;
+        public PrecautionSignalModel signal;
+        public PrecautionRiskModel risk;
+        public PrecautionCourtDecisionModel court;
 
         // ----------------------------------------------------------------  cached light vectors/tables
         double[] dSignalProb;            // P(D-signal)

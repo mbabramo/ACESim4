@@ -1103,6 +1103,20 @@ namespace ACESim
         public override IEnumerable<(string suffix, string reportcontent)> ProduceManualReports(List<(GameProgress theProgress, double weight)> gameProgresses, string supplementalString)
         {
             bool isPrecautionNegligenceGame = Options.LitigGameDisputeGenerator is PrecautionNegligenceDisputeGenerator;
+            if (isPrecautionNegligenceGame)
+            {
+                PrecautionNegligenceDisputeGenerator pndg = (PrecautionNegligenceDisputeGenerator)Options.LitigGameDisputeGenerator;
+                PrecautionWinHeatmapData data = PrecautionWinHeatmapDataBuilder.BuildFromProgresses(pndg.impact, pndg.signal, pndg.court, gameProgresses);
+                bool DEBUG_BuildDataForEachUniformStrategy = true; // DEBUG
+                if (DEBUG_BuildDataForEachUniformStrategy)
+                {
+                    Func<int, double[]> GetUniformStrategy(int relativePrecautionLevel) => x => Enumerable.Range(0, 8).Select(z => z == relativePrecautionLevel ? 1.0 : 0.0).ToArray();
+                    var dataForUniformStrategies = Enumerable.Range(0, 8).Select(x => PrecautionWinHeatmapDataBuilder.BuildFromStrategy(pndg.impact, pndg.signal, pndg.court, GetUniformStrategy(x))).Select(y => y.ColumnWinProbabilityGivenAccident).ToArray();
+                    foreach (var uniformStrategyResult in dataForUniformStrategies)
+                        Console.WriteLine(String.Join(", ", uniformStrategyResult));
+                }
+            }
+
             const double yAxisTop = 4.0;
             var contents = CostBreakdownReport.GenerateReports(gameProgresses.Select(x => ((LitigGameProgress) x.theProgress, x.weight)), yAxisTop);
             yield return ($"-costbreakdowndata.csv", contents[0]);
