@@ -545,6 +545,129 @@ namespace ACESimTest
                 v.Should().BeApproximately(expected, 1e-12);
         }
 
+        [TestMethod]
+        public void ProbitRule_Throws_When_Using_NonHypotheticalDiscreteRule()
+        {
+            // Impact uses the non-hypothetical discrete forward step.
+            var impactNonHypo = new PrecautionImpactModel(
+                precautionPowerLevels: 2,
+                precautionLevels: 2,
+                pAccidentNoPrecaution: 0.25,
+                pMinLow: 0.18,
+                pMinHigh: 0.08,
+                alphaLow: 1.0,
+                alphaHigh: 1.0,
+                marginalPrecautionCost: 0.05,
+                harmCost: 1.0,
+                liabilityThreshold: 1.0,
+                benefitRule: MarginalBenefitRule.RelativeToNextDiscreteLevel);
+
+            var sig = new PrecautionSignalModel(2, 2, 2, 3, 0.20, 0.20, 0.20);
+
+            Action ctor = () => new PrecautionCourtDecisionModel(
+                impactNonHypo,
+                sig,
+                decisionRule: CourtDecisionRule.CourtEstimatesBenefitCostRatio,
+                probitScale: 0.1);
+
+            ctor.Should().Throw<InvalidOperationException>();
+        }
+
+        [TestMethod]
+        public void ProbitRule_TopLevelLiabilityProb_BetweenZeroAndOne_And_IncreasingWithBCR()
+        {
+            // Same everything except UnitPrecautionCost (to shift BCR up).
+            var impactLowBCR = new PrecautionImpactModel(
+                precautionPowerLevels: 2,
+                precautionLevels: 2,
+                pAccidentNoPrecaution: 0.25,
+                pMinLow: 0.18,
+                pMinHigh: 0.08,
+                alphaLow: 1.0,
+                alphaHigh: 1.0,
+                marginalPrecautionCost: 0.06,   // higher cost → lower BCR
+                harmCost: 1.0,
+                liabilityThreshold: 1.0,
+                benefitRule: MarginalBenefitRule.RelativeToNextDiscreteHypotheticalLevel);
+
+            var impactHighBCR = new PrecautionImpactModel(
+                precautionPowerLevels: 2,
+                precautionLevels: 2,
+                pAccidentNoPrecaution: 0.25,
+                pMinLow: 0.18,
+                pMinHigh: 0.08,
+                alphaLow: 1.0,
+                alphaHigh: 1.0,
+                marginalPrecautionCost: 0.02,   // lower cost → higher BCR
+                harmCost: 1.0,
+                liabilityThreshold: 1.0,
+                benefitRule: MarginalBenefitRule.RelativeToNextDiscreteHypotheticalLevel);
+
+            // Mild noise + 3 court signals to avoid symmetry.
+            var sig = new PrecautionSignalModel(2, 2, 2, 3, 0.20, 0.20, 0.20);
+
+            var courtLow  = new PrecautionCourtDecisionModel(impactLowBCR,  sig, CourtDecisionRule.CourtEstimatesBenefitCostRatio, probitScale: 0.15);
+            var courtHigh = new PrecautionCourtDecisionModel(impactHighBCR, sig, CourtDecisionRule.CourtEstimatesBenefitCostRatio, probitScale: 0.15);
+
+            int topK = 1; // with 2 levels, the top index is 1
+
+            for (int h = 0; h < 2; h++)
+            {
+                double pLiabLow  = courtLow .GetLiabilityOutcomeProbabilities(h, topK)[1];
+                double pLiabHigh = courtHigh.GetLiabilityOutcomeProbabilities(h, topK)[1];
+
+                // Proper probabilities
+                pLiabLow .Should().BeGreaterThanOrEqualTo(0.0).And.BeLessThanOrEqualTo(1.0);
+                pLiabHigh.Should().BeGreaterThanOrEqualTo(0.0).And.BeLessThanOrEqualTo(1.0);
+
+                // Higher BCR ⇒ higher liability probability under probit.
+                pLiabHigh.Should().BeGreaterThan(pLiabLow - 1e-12);
+            }
+        }
+
+        [TestMethod]
+        public void ProbitRule_CourtConditionalSlices_Normalize_And_Differ_Between_Liable_And_NoLiable()
+        {
+            var impact = new PrecautionImpactModel(
+                precautionPowerLevels: 2,
+                precautionLevels: 2,
+                pAccidentNoPrecaution: 0.25,
+                pMinLow: 0.18,
+                pMinHigh: 0.08,
+                alphaLow: 1.0,
+                alphaHigh: 1.0,
+                marginalPrecautionCost: 0.03,
+                harmCost: 1.0,
+                liabilityThreshold: 1.0,
+                benefitRule: MarginalBenefitRule.RelativeToNextDiscreteHypotheticalLevel);
+
+            // Deterministic-ish parties + 3 court buckets to reduce exact ties
+            var sig = new PrecautionSignalModel(2, 2, 2, 3, 1e-4, 1e-4, 1e-4, includeExtremes: true);
+
+            var court = new PrecautionCourtDecisionModel(
+                impact,
+                sig,
+                CourtDecisionRule.CourtEstimatesBenefitCostRatio,
+                probitScale: 0.10);
+
+            // Choose a specific (p,d,k) slice and compare conditional dists.
+            int pSig = 1, dSig = 1, k = 1;
+
+            var liableSlice   = court.GetCourtSignalDistributionGivenSignalsAndLiability(pSig, dSig, k);
+            var noLiableSlice = court.GetCourtSignalDistributionGivenSignalsAndNoLiability(pSig, dSig, k);
+
+            // Normalization
+            liableSlice.Sum().Should().BeApproximately(1.0, 1e-12);
+            noLiableSlice.Sum().Should().BeApproximately(1.0, 1e-12);
+
+            // The two conditional slices should not be identical under non-degenerate probit weighting.
+            bool allEqual = true;
+            for (int i = 0; i < liableSlice.Length; i++)
+                allEqual &= Math.Abs(liableSlice[i] - noLiableSlice[i]) < 1e-12;
+
+            allEqual.Should().BeFalse("liable vs no-liable renormalizations should weight court bins differently under probit");
+        }
+
 
     }
 }

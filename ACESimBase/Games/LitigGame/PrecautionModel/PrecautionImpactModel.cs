@@ -33,6 +33,8 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
         public double HarmCost { get; }
         public double LiabilityThreshold { get; }
 
+        public MarginalBenefitRule BenefitRule => _benefitRule;
+
         // -------------------- Internal data ---------------------------
         readonly double _pMinLow;
         readonly double _pMinHigh;
