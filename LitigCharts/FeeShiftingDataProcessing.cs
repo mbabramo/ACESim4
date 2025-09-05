@@ -183,6 +183,10 @@ namespace LitigCharts
                 ("Offer Heatmaps", expandToIncludeAdditionalEquilibria( new[] { "-offers.pdf" })),
                 ("Cost Breakdown Diagrams (Normal)", expandToIncludeAdditionalEquilibria( new[] { "-costbreakdownlight.pdf" })),
                 ("Cost Breakdown Diagrams (Dark Mode)", expandToIncludeAdditionalEquilibria( new[] { "-costbreakdowndark.pdf" })),
+                ("Win Rate by Signal Diagrams (D Horizontal) (Normal)", expandToIncludeAdditionalEquilibria( new[] { "-winratebydpsignallight.pdf" })),
+                ("Win Rate by Signal Diagrams (D Horizontal) (Dark Mode)", expandToIncludeAdditionalEquilibria( new[] { "-winratebydpsignaldark.pdf" })),
+                ("Win Rate by Signal Diagrams (P Horizontal) (Normal)", expandToIncludeAdditionalEquilibria( new[] { "-winratebypdsignallight.pdf" })),
+                ("Win Rate by Signal Diagrams (P Horizontal) (Dark Mode)", expandToIncludeAdditionalEquilibria( new[] { "-winratebypdsignaldark.pdf" })),
                 ("Cross Tabs", expandToIncludeAdditionalEquilibria(new[] { ".csv" })),
             };
 

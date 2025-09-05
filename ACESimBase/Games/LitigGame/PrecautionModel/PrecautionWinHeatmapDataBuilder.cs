@@ -211,10 +211,7 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
                 cGivenH[h] = signal.GetCourtSignalDistributionGivenHidden(h);
             }
 
-            // ------------------------------ Liability probability per (h,k), integrated over court evidence:
-            // Works for both rules:
-            //  • Deterministic: reduces to sum_c 1{liable(c,k)} * Pr(c | h)
-            //  • Probit:        sum_c Φ((BCR-τ)/scale) * Pr(c | h)
+            // ------------------------------ Liability probability per (h,k), integrated over court evidence
             var liableGivenHAndK = new double[H][];
             for (int h = 0; h < H; h++)
             {
@@ -224,19 +221,15 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
                 liableGivenHAndK[h] = arr;
             }
 
-            // ------------------------------ Strategy-weighted accident and liable masses per hidden:
-            // α_h = Σ_k S(h)[k] * Pr(Accident | h,k)
-            // β_h = Σ_k S(h)[k] * Pr(Accident | h,k) * L(h,k)
+            // ------------------------------ Strategy-weighted accident and liable masses per hidden
             var accidentMassGivenHidden = new double[H];
             var liableAccidentMassGivenHidden = new double[H];
-
-            // Also collect a normalized snapshot of S(k | h) to include in the output.
             var strategyOverPrecautionGivenHidden = new double[H][];
 
             for (int h = 0; h < H; h++)
             {
-                double[] s = strategy(h);
-                if (s == null || s.Length != K)
+                double[] s = strategy(h) ?? throw new InvalidOperationException("Strategy must return a length-K array.");
+                if (s.Length != K)
                     throw new InvalidOperationException("Strategy must return a length-K array.");
 
                 double sum = 0.0;
@@ -249,20 +242,19 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
                 if (sum <= 0.0)
                     throw new InvalidOperationException("Strategy must allocate positive total probability mass.");
 
-                // normalise and store
                 var S = new double[K];
                 for (int k = 0; k < K; k++) S[k] = s[k] / sum;
                 strategyOverPrecautionGivenHidden[h] = S;
 
                 double alphaH = 0.0;
-                double betaH  = 0.0;
+                double betaH = 0.0;
 
                 for (int k = 0; k < K; k++)
                 {
                     double pAcc = impact.GetAccidentProbability(h, k);
-                    double Lhk  = liableGivenHAndK[h][k];
+                    double Lhk = liableGivenHAndK[h][k];
                     alphaH += S[k] * pAcc;
-                    betaH  += S[k] * pAcc * Lhk;
+                    betaH += S[k] * pAcc * Lhk;
                 }
 
                 accidentMassGivenHidden[h] = alphaH;
@@ -270,8 +262,6 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
             }
 
             // ------------------------------ Build D[p][d] and N[p][d]
-            // D[p,d] = Σ_h prior * Pr(p|h) * Pr(d|h) * α_h
-            // N[p,d] = Σ_h prior * Pr(p|h) * Pr(d|h) * β_h
             double priorHidden = 1.0 / H;
 
             var Dtable = new double[P][];
@@ -285,7 +275,7 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
             for (int h = 0; h < H; h++)
             {
                 double alphaH = accidentMassGivenHidden[h];
-                double betaH  = liableAccidentMassGivenHidden[h];
+                double betaH = liableAccidentMassGivenHidden[h];
                 if (alphaH == 0.0 && betaH == 0.0)
                     continue;
 
@@ -313,17 +303,17 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
                 }
             }
 
-            // ------------------------------ Convert to row heights and win probabilities
+            // ------------------------------ Convert to row heights and per-cell win probabilities
             var rowHeight = new double[P][];
-            var winProb   = new double[P][];
+            var winProb = new double[P][];
             for (int p = 0; p < P; p++)
             {
                 rowHeight[p] = new double[D];
-                winProb[p]   = new double[D];
+                winProb[p] = new double[D];
             }
 
             var columnAccidentMass = new double[D];
-            var columnWinProb      = new double[D];
+            var dColumnWinProb = new double[D];
 
             for (int dSig = 0; dSig < D; dSig++)
             {
@@ -334,13 +324,13 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
                     colN += Ntable[pSig][dSig];
                 }
                 columnAccidentMass[dSig] = colD;
-                columnWinProb[dSig] = colD > 0.0 ? colN / colD : 0.0;
+                dColumnWinProb[dSig] = colD > 0.0 ? colN / colD : 0.0;
 
                 for (int pSig = 0; pSig < P; pSig++)
                 {
                     double Dpd = Dtable[pSig][dSig];
-                    rowHeight[pSig][dSig] = colD > 0.0 ? Dpd / colD : 0.0;
-                    winProb[pSig][dSig]   = Dpd > 0.0 ? (Ntable[pSig][dSig] / Dpd) : 0.0;
+                    rowHeight[pSig][dSig] = colD > 0.0 ? Dpd / colD : 0.0;             // Pr(p | d, Accident, S)
+                    winProb[pSig][dSig] = Dpd > 0.0 ? (Ntable[pSig][dSig] / Dpd) : 0.0; // Pr(liable | p,d,Accident,S)
                 }
             }
 
@@ -358,8 +348,6 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
                 : 0.0;
 
             // ------------------------------ Defendant-signal probabilities
-
-            // Accident-conditioned: Pr(d | Accident, Strategy) = ColumnAccidentMass[d] / Sum_d ColumnAccidentMass[d]
             var defendantSignalProbabilityGivenAccident = new double[D];
             if (totalAccidentMassAcrossAllDefendantSignals > 0.0)
             {
@@ -372,7 +360,6 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
                     defendantSignalProbabilityGivenAccident[dSig] = 0.0;
             }
 
-            // Unconditional (strategy-independent): Pr(d) = Σ_h (1/H) * Pr(d | h)
             var defendantSignalUnconditionalProbability = new double[D];
             for (int dSig = 0; dSig < D; dSig++)
             {
@@ -383,7 +370,6 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
             }
 
             // ------------------------------ Accident-conditioned precaution mix per defendant signal
-            // Pr(k | d, Accident, S) ∝ Σ_h (1/H) * Pr(d | h) * S(k | h) * Pr(Accident | h,k)
             var precautionLevelProbabilityGivenDefSignal_Accident = new double[D][];
             for (int dSig = 0; dSig < D; dSig++)
             {
@@ -402,29 +388,78 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
                     numer[k] = sum;
                 }
                 double denom = numer.Sum();
-                if (denom > 0.0)
+                precautionLevelProbabilityGivenDefSignal_Accident[dSig] =
+                    denom > 0.0 ? numer.Select(x => x / denom).ToArray() : new double[K];
+            }
+
+            // ------------------------------ Accident-conditioned precaution mix per plaintiff signal (NEW)
+            // Pr(k | p, Accident, S) ∝ Σ_h (1/H) * Pr(p | h) * S(k | h) * Pr(Accident | h,k)
+            var precautionLevelProbabilityGivenPltfSignal_Accident = new double[P][];
+            for (int pSig = 0; pSig < P; pSig++)
+            {
+                var numer = new double[K];
+                for (int k = 0; k < K; k++)
                 {
-                    precautionLevelProbabilityGivenDefSignal_Accident[dSig] = numer.Select(x => x / denom).ToArray();
+                    double sum = 0.0;
+                    for (int h = 0; h < H; h++)
+                    {
+                        double priorH = 1.0 / H;
+                        double pLike = pGivenH[h][pSig];
+                        double Skh = strategyOverPrecautionGivenHidden[h][k];
+                        double pAcc = impact.GetAccidentProbability(h, k);
+                        sum += priorH * pLike * Skh * pAcc;
+                    }
+                    numer[k] = sum;
                 }
-                else
+                double denom = numer.Sum();
+                precautionLevelProbabilityGivenPltfSignal_Accident[pSig] =
+                    denom > 0.0 ? numer.Select(x => x / denom).ToArray() : new double[K];
+            }
+
+            // ------------------------------ Plaintiff-perspective aggregates
+            var pColumnWinProb = new double[P];
+            var plaintiffSignalProbabilityGivenAccident = new double[P];
+            for (int pSig = 0; pSig < P; pSig++)
+            {
+                double rowD = 0.0, rowN = 0.0;
+                for (int dSig = 0; dSig < D; dSig++)
                 {
-                    precautionLevelProbabilityGivenDefSignal_Accident[dSig] = new double[K];
+                    rowD += Dtable[pSig][dSig];
+                    rowN += Ntable[pSig][dSig];
                 }
+                pColumnWinProb[pSig] = rowD > 0.0 ? rowN / rowD : 0.0;
+                plaintiffSignalProbabilityGivenAccident[pSig] =
+                    totalAccidentMassAcrossAllDefendantSignals > 0.0 ? rowD / totalAccidentMassAcrossAllDefendantSignals : 0.0;
+            }
+
+            var plaintiffSignalUnconditionalProbability = new double[P];
+            for (int pSig = 0; pSig < P; pSig++)
+            {
+                double sum = 0.0;
+                for (int h = 0; h < H; h++)
+                    sum += (1.0 / H) * pGivenH[h][pSig];
+                plaintiffSignalUnconditionalProbability[pSig] = sum;
             }
 
             return new PrecautionWinHeatmapData(
                 rowHeight,
                 winProb,
                 columnAccidentMass,
-                columnWinProb,
+                dColumnWinProb,
                 overallWinGivenAccident,
                 Dtable,
                 Ntable,
                 defendantSignalProbabilityGivenAccident,
                 defendantSignalUnconditionalProbability,
                 strategyOverPrecautionGivenHidden,
-                precautionLevelProbabilityGivenDefSignal_Accident);
+                precautionLevelProbabilityGivenDefSignal_Accident,
+                // P-perspective additions
+                pColumnWinProb,
+                plaintiffSignalProbabilityGivenAccident,
+                plaintiffSignalUnconditionalProbability,
+                precautionLevelProbabilityGivenPltfSignal_Accident);
         }
+
     }
 
     /// <summary>
@@ -439,41 +474,53 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
         public double[][] ProbabilityPlaintiffSignalGivenDefendantSignal_Accident_RowHeight { get; }
         public double[][] ProbabilityOfLiabilityGivenSignals_Accident_CellValue { get; }
 
+        // Per-defendant-signal aggregates (D-perspective)
         public double[] ColumnAccidentMass { get; }
-        public double[] ColumnPWinProbabilityGivenAccident { get; }
-        public double   OverallPWinProbabilityGivenAccident { get; }
+        public double[] DColumnPWinProbabilityGivenAccident { get; }
+        public double   DOverallPWinProbabilityGivenAccident { get; }
 
-        // Defendant-signal probabilities
+        // Per-plaintiff-signal aggregates (P-perspective)
+        public double[] PColumnPWinProbabilityGivenAccident { get; }
+        public double   POverallPWinProbabilityGivenAccident { get; }
+
+        // Signal probabilities
         public double[] DefendantSignalProbabilityGivenAccident { get; }
         public double[] DefendantSignalUnconditionalProbability { get; }
+        public double[] PlaintiffSignalProbabilityGivenAccident { get; }
+        public double[] PlaintiffSignalUnconditionalProbability { get; }
 
         // Strategy snapshots
-        public double[][] StrategyOverPrecautionGivenHidden { get; }                 // [H][K] = S(k | h)
+        public double[][] StrategyOverPrecautionGivenHidden { get; }                       // [H][K] = S(k | h)
         public double[][] PrecautionLevelProbabilityGivenDefendantSignal_Accident { get; } // [D][K] = Pr(k | d, Accident, S)
+        public double[][] PrecautionLevelProbabilityGivenPlaintiffSignal_Accident { get; } // [P][K] = Pr(k | p, Accident, S)  (NEW)
 
         // Raw joint masses (useful for tooltips or alternative normalisations)
-        public double[][] RawJointAccidentMass_D { get; }
-        public double[][] RawJointLiableAccidentMass_N { get; }
+        public double[][] RawJointAccidentMass_D { get; }             // D[p][d]
+        public double[][] RawJointLiableAccidentMass_N { get; }       // N[p][d]
 
         public PrecautionWinHeatmapData(
             double[][] rowHeightPGivenD_Accident,
             double[][] winProbGivenSignals_Accident,
             double[]   columnAccidentMass,
-            double[]   columnWinProbabilityGivenAccident,
+            double[]   dColumnWinProbabilityGivenAccident,
             double     overallWinProbabilityGivenAccident,
             double[][] rawJointAccidentMass_D,
             double[][] rawJointLiableAccidentMass_N,
             double[]   defendantSignalProbabilityGivenAccident,
             double[]   defendantSignalUnconditionalProbability,
             double[][] strategyOverPrecautionGivenHidden,
-            double[][] precautionLevelProbabilityGivenDefendantSignal_Accident)
+            double[][] precautionLevelProbabilityGivenDefendantSignal_Accident,
+            double[]   pColumnWinProbabilityGivenAccident = null,
+            double[]   plaintiffSignalProbabilityGivenAccident = null,
+            double[]   plaintiffSignalUnconditionalProbability = null,
+            double[][] precautionLevelProbabilityGivenPlaintiffSignal_Accident = null)
         {
             ProbabilityPlaintiffSignalGivenDefendantSignal_Accident_RowHeight = rowHeightPGivenD_Accident;
             ProbabilityOfLiabilityGivenSignals_Accident_CellValue = winProbGivenSignals_Accident;
 
             ColumnAccidentMass = columnAccidentMass;
-            ColumnPWinProbabilityGivenAccident = columnWinProbabilityGivenAccident;
-            OverallPWinProbabilityGivenAccident = overallWinProbabilityGivenAccident;
+            DColumnPWinProbabilityGivenAccident = dColumnWinProbabilityGivenAccident;
+            DOverallPWinProbabilityGivenAccident = overallWinProbabilityGivenAccident;
 
             RawJointAccidentMass_D = rawJointAccidentMass_D;
             RawJointLiableAccidentMass_N = rawJointLiableAccidentMass_N;
@@ -483,6 +530,54 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
 
             StrategyOverPrecautionGivenHidden = strategyOverPrecautionGivenHidden;
             PrecautionLevelProbabilityGivenDefendantSignal_Accident = precautionLevelProbabilityGivenDefendantSignal_Accident;
+
+            // Plaintiff-perspective fields (compute fallbacks if not supplied)
+            if (pColumnWinProbabilityGivenAccident != null &&
+                plaintiffSignalProbabilityGivenAccident != null)
+            {
+                PColumnPWinProbabilityGivenAccident = pColumnWinProbabilityGivenAccident;
+                PlaintiffSignalProbabilityGivenAccident = plaintiffSignalProbabilityGivenAccident;
+            }
+            else
+            {
+                int pCount = RawJointAccidentMass_D?.Length ?? 0;
+                PColumnPWinProbabilityGivenAccident = new double[pCount];
+                PlaintiffSignalProbabilityGivenAccident = new double[pCount];
+
+                if (RawJointAccidentMass_D != null && RawJointLiableAccidentMass_N != null && ColumnAccidentMass != null)
+                {
+                    double totalAccidentMass = 0.0;
+                    for (int d = 0; d < ColumnAccidentMass.Length; d++)
+                        totalAccidentMass += ColumnAccidentMass[d];
+
+                    for (int p = 0; p < pCount; p++)
+                    {
+                        double rowD = 0.0, rowN = 0.0;
+                        int dCount = RawJointAccidentMass_D[p]?.Length ?? 0;
+                        for (int d = 0; d < dCount; d++)
+                        {
+                            rowD += RawJointAccidentMass_D[p][d];
+                            rowN += RawJointLiableAccidentMass_N[p][d];
+                        }
+                        PColumnPWinProbabilityGivenAccident[p] = rowD > 0.0 ? rowN / rowD : 0.0;
+                        PlaintiffSignalProbabilityGivenAccident[p] = totalAccidentMass > 0.0 ? rowD / totalAccidentMass : 0.0;
+                    }
+                }
+            }
+
+            // Unconditional plaintiff-signal probabilities: if not supplied, default to zeros.
+            PlaintiffSignalUnconditionalProbability =
+                plaintiffSignalUnconditionalProbability ??
+                new double[ProbabilityPlaintiffSignalGivenDefendantSignal_Accident_RowHeight?.Length ?? 0];
+
+            // Plaintiff-conditioned precaution mix
+            PrecautionLevelProbabilityGivenPlaintiffSignal_Accident =
+                precautionLevelProbabilityGivenPlaintiffSignal_Accident ??
+                new double[ProbabilityPlaintiffSignalGivenDefendantSignal_Accident_RowHeight?.Length ?? 0][];
+
+            // Overall from P-perspective equals D-perspective overall by construction.
+            POverallPWinProbabilityGivenAccident = DOverallPWinProbabilityGivenAccident;
         }
     }
+
 }

@@ -1105,17 +1105,30 @@ namespace ACESim
             bool isPrecautionNegligenceGame = Options.LitigGameDisputeGenerator is PrecautionNegligenceDisputeGenerator;
             if (isPrecautionNegligenceGame)
             {
-                PrecautionNegligenceDisputeGenerator pndg = (PrecautionNegligenceDisputeGenerator)Options.LitigGameDisputeGenerator;
-                PrecautionWinHeatmapData data = PrecautionWinHeatmapDataBuilder.BuildFromProgresses(pndg.impact, pndg.signal, pndg.court, gameProgresses);
-                bool DEBUG_BuildDataForEachUniformStrategy = true; // DEBUG
-                if (DEBUG_BuildDataForEachUniformStrategy)
-                {
-                    Func<int, double[]> GetUniformStrategy(int relativePrecautionLevel) => x => Enumerable.Range(0, 8).Select(z => z == relativePrecautionLevel ? 1.0 : 0.0).ToArray();
-                    var dataForUniformStrategies = Enumerable.Range(0, 8).Select(x => PrecautionWinHeatmapDataBuilder.BuildFromStrategy(pndg.impact, pndg.signal, pndg.court, GetUniformStrategy(x))).Select(y => y.ColumnPWinProbabilityGivenAccident).ToArray();
-                    foreach (var uniformStrategyResult in dataForUniformStrategies)
-                        Console.WriteLine(String.Join(", ", uniformStrategyResult));
-                }
+                var pndg = (PrecautionNegligenceDisputeGenerator)Options.LitigGameDisputeGenerator;
+
+                var heatmapData = PrecautionWinHeatmapDataBuilder.BuildFromProgresses(
+                    pndg.impact,
+                    pndg.signal,
+                    pndg.court,
+                    gameProgresses);
+
+                var winratereports_dp = ACESimBase.Games.LitigGame.ManualReports.WinRateBySignalReport.GenerateReport(
+                    heatmapData,
+                    pndg.signal,
+                    false);
+                yield return ($"-winratebydpsignal{supplementalString}light.tex", winratereports_dp[0]);
+                yield return ($"-winratebydpsignal{supplementalString}dark.tex", winratereports_dp[1]);
+
+                var winratereports_pd = ACESimBase.Games.LitigGame.ManualReports.WinRateBySignalReport.GenerateReport(
+                    heatmapData,
+                    pndg.signal,
+                    true);
+                yield return ($"-winratebypdsignal{supplementalString}light.tex", winratereports_pd[0]);
+                yield return ($"-winratebypdsignal{supplementalString}dark.tex", winratereports_pd[1]);
+
             }
+
 
             const double yAxisTop = 4.0;
             var contents = CostBreakdownReport.GenerateReports(gameProgresses.Select(x => ((LitigGameProgress) x.theProgress, x.weight)), yAxisTop);
