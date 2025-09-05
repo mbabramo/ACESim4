@@ -186,8 +186,8 @@ namespace ACESim
 
         static bool UseSimplifiedPrecautionNegligenceGame = false;
         static bool CollapseDecisionsInSimplifiedPrecautionNegligenceGame = false;
-        static bool PerfectAdjudication = false; // DEBUG
-        static bool PerfectInformationToo = false; // DEBUG -- you should integrate this into standard perfect adjudication script that we run, as it is necessary to get the optimal result.
+        static bool PerfectAdjudication = false;
+        static bool PerfectInformationToo = false;
 
         static byte ParameterForMultipleOptions_Simplified = 2;
         static byte ParameterForMultipleOptions = 8;

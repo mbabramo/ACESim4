@@ -34,7 +34,7 @@ namespace ACESim
                     ("Relative Costs", "1"),
                     ("Noise Multiplier P", "1"),
                     ("Noise Multiplier D", "1"),
-                    ("Court Noise", "0.2"),
+                    ("Court Noise", "Baseline"),
                     ("Issue", "Liability"),
                     ("Proportion of Costs at Beginning", "0.5"),
                     ("Cost Misestimation", "1"),
@@ -80,7 +80,9 @@ namespace ACESim
         public double[] CriticalDamagesMultipliers => new double[] { 1.0, 0.5, 2.0 };
         public double[] AdditionalDamagesMultipliers => new double[] { 1.0, 4.0 };
 
-        public double[] CourtNoiseValues = new double[] { 0.2, 0, 0.4 };
+        public record class CourtNoiseInfo(double noiseStdev, bool doProbit, double? probitScale, string name);
+
+        public CourtNoiseInfo[] CourtNoiseValues = new CourtNoiseInfo[] { new CourtNoiseInfo(0.2, true, 0.25, "Baseline"), new CourtNoiseInfo(0, false, null, "Perfect"), new CourtNoiseInfo(0.1, true, 0.25, "Low Noise"), new CourtNoiseInfo(0.2, true, 0.1, "Low Indet"),  new CourtNoiseInfo(0.4, true, 0.25, "High Noise"), new CourtNoiseInfo(0.2, true, 0.5, "High Indet"), new CourtNoiseInfo(0.2, true, 0.5, "High Noise and Indet") };
 
         public double[] CostMisestimations => new double[] { 1.0, 2.0, 5.0, 10.0 };
 
@@ -185,10 +187,13 @@ namespace ACESim
         public List<Func<LitigGameOptions, LitigGameOptions>> CourtNoiseTransformations()
             => Transform(GetAndTransform_CourtNoise, CourtNoiseValues);
 
-        public LitigGameOptions GetAndTransform_CourtNoise(LitigGameOptions options, double courtNoise) => GetAndTransform(options, " CN " + courtNoise, g =>
+        public LitigGameOptions GetAndTransform_CourtNoise(LitigGameOptions options, CourtNoiseInfo courtNoiseInfo) => GetAndTransform(options, " CN " + courtNoiseInfo.name, g =>
         {
-            options.CourtLiabilityNoiseStdev = courtNoise;
-            g.VariableSettings["Court Noise"] = courtNoise;
+            options.CourtLiabilityNoiseStdev = courtNoiseInfo.noiseStdev;
+            PrecautionNegligenceDisputeGenerator disputeGenerator = (PrecautionNegligenceDisputeGenerator)options.LitigGameDisputeGenerator;
+            disputeGenerator.CourtDecisionRule = courtNoiseInfo.doProbit ? CourtDecisionRule.ProbitThreshold : CourtDecisionRule.DeterministicThreshold;
+            disputeGenerator.CourtProbitScale = courtNoiseInfo.probitScale ?? 0;
+            g.VariableSettings["Court Noise"] = courtNoiseInfo.name;
         });
 
         // Wrongful attribution probability
@@ -259,9 +264,11 @@ namespace ACESim
                 g.PerPartyCostsLeadingUpToBargainingRound = 0.0;
                 g.PFilingCost = 0.0;
                 g.DAnswerCost = 0.0;
+                PrecautionNegligenceDisputeGenerator pndg = g.LitigGameDisputeGenerator as PrecautionNegligenceDisputeGenerator;
+                pndg.CourtDecisionRule = CourtDecisionRule.DeterministicThreshold;
 
                 // keep reporting columns consistent with existing sets
-                g.VariableSettings["Court Noise"] = "0";
+                g.VariableSettings["Court Noise"] = "Perfect";
                 g.VariableSettings["Noise Multiplier P"] = "0";
                 g.VariableSettings["Noise Multiplier D"] = "0";
                 g.VariableSettings["Costs Multiplier"] = "0";
@@ -511,12 +518,16 @@ namespace ACESim
                     new SimulationIdentifier("Equal Information",DefaultVariableValues.WithReplacement("Noise Multiplier P", "1").  WithReplacement("Noise Multiplier D", "1")),
                     new SimulationIdentifier("D Better",         DefaultVariableValues.WithReplacement("Noise Multiplier P", "2").  WithReplacement("Noise Multiplier D", "0.5")),
                 };
-
+                
                 var varyingCourtNoise = new List<SimulationIdentifier>()
                 {
-                    new SimulationIdentifier("Perfect", DefaultVariableValues.WithReplacement("Court Noise", "0")),
-                    new SimulationIdentifier("Normal",  DefaultVariableValues.WithReplacement("Court Noise", "0.2")),
-                    new SimulationIdentifier("Noisy",   DefaultVariableValues.WithReplacement("Court Noise", "0.4")),
+                    new SimulationIdentifier("Perfect", DefaultVariableValues.WithReplacement("Court Noise", "Perfect")),
+                    new SimulationIdentifier("Baseline",  DefaultVariableValues.WithReplacement("Court Noise", "Baseline")),
+                    new SimulationIdentifier("Low Noise", DefaultVariableValues.WithReplacement("Court Noise", "Low Noise")),
+                    new SimulationIdentifier("Low Indet",  DefaultVariableValues.WithReplacement("Court Noise", "Low Indet.")),
+                    new SimulationIdentifier("High Noise", DefaultVariableValues.WithReplacement("Court Noise", "High Noise")),
+                    new SimulationIdentifier("High Indet",  DefaultVariableValues.WithReplacement("Court Noise", "High Indet.")),
+                    new SimulationIdentifier("High Noise and Indet",  DefaultVariableValues.WithReplacement("Court Noise", "High Noise, Indet.")),
                 };
 
                 var varyingRelativeCosts = new List<SimulationIdentifier>()
@@ -595,7 +606,7 @@ namespace ACESim
                     new SimulationIdentifier("Perfect",
                         DefaultVariableValues
                             .WithReplacement("Adjudication Mode", "Perfect")
-                            .WithReplacement("Court Noise",       "0")
+                            .WithReplacement("Court Noise",       "Perfect")
                             .WithReplacement("Noise Multiplier P","0")
                             .WithReplacement("Noise Multiplier D","0")
                             .WithReplacement("Costs Multiplier",  "0")),
