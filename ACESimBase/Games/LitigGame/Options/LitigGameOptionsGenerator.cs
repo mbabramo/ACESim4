@@ -174,7 +174,7 @@ namespace ACESim
             disputeGenerator.ProbabilityAccidentMaxPrecaution_LowPower = 0.00008;
             disputeGenerator.ProbabilityAccidentMaxPrecaution_HighPower = 0.00002;
             disputeGenerator.ProbabilityAccidentWrongfulAttribution = 0.00001;
-            disputeGenerator.CourtDecisionRule = CourtDecisionRule.ProbitThreshold;
+            disputeGenerator.CourtDecisionRule = CourtDecisionRule.DeterministicThreshold;
             disputeGenerator.CourtProbitScale = 0.5;
 
             options.NumLiabilityStrengthPoints = disputeGenerator.PrecautionPowerLevels;
