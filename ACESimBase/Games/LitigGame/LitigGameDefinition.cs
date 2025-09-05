@@ -1160,7 +1160,7 @@ namespace ACESim
             EndOfGame,
         }
 
-        private TreeDiagramExclusions Exclusions = TreeDiagramExclusions.BeginningOfGame_Collapsed;
+        private TreeDiagramExclusions Exclusions = TreeDiagramExclusions.FullDiagram;
 
         public override (Func<ConstructGameTreeInformationSetInfo.GamePointNode, bool> excludeBelow, Func<ConstructGameTreeInformationSetInfo.GamePointNode, bool> includeBelow) GetTreeDiagramExclusions()
         {

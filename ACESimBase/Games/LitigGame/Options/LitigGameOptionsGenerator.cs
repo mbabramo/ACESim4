@@ -175,7 +175,7 @@ namespace ACESim
             disputeGenerator.ProbabilityAccidentMaxPrecaution_HighPower = 0.00002;
             disputeGenerator.ProbabilityAccidentWrongfulAttribution = 0.00001;
             disputeGenerator.CourtDecisionRule = CourtDecisionRule.ProbitThreshold;
-            disputeGenerator.CourtProbitScale = 0.625; // DEBUG
+            disputeGenerator.CourtProbitScale = 0.5;
 
             options.NumLiabilityStrengthPoints = disputeGenerator.PrecautionPowerLevels;
 
@@ -185,14 +185,15 @@ namespace ACESim
         }
 
         static bool UseSimplifiedPrecautionNegligenceGame = false;
-        static bool CollapseDecisionsInSimplifiedPrecautionNegligenceGame = true;
+        static bool CollapseDecisionsInSimplifiedPrecautionNegligenceGame = false;
         static bool PerfectAdjudication = false;
 
+        static byte ParameterForMultipleOptions_Simplified = 2;
         static byte ParameterForMultipleOptions = 8;
         public static LitigGameOptions PrecautionNegligenceGame()
         {
             var game = UseSimplifiedPrecautionNegligenceGame ?
-                PrecautionNegligenceGame(CollapseDecisionsInSimplifiedPrecautionNegligenceGame, allowQuitting: true, numSignalsAndOffers: 2, numPotentialBargainingRounds: 1, numPrecautionPowerLevels: 2, precautionLevels: 2)
+                PrecautionNegligenceGame(CollapseDecisionsInSimplifiedPrecautionNegligenceGame, allowQuitting: true, numSignalsAndOffers: ParameterForMultipleOptions_Simplified, numPotentialBargainingRounds: 1, numPrecautionPowerLevels: ParameterForMultipleOptions_Simplified, precautionLevels: ParameterForMultipleOptions_Simplified)
                 :
                 PrecautionNegligenceGame(true, true, ParameterForMultipleOptions, 1, ParameterForMultipleOptions, ParameterForMultipleOptions);
             if (PerfectAdjudication)
