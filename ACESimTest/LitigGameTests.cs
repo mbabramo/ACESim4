@@ -104,7 +104,7 @@ namespace ACESimTest
             resolutionSet.Should().Be(resolutionSet2);
         }
 
-        private LitigGameOptions GetGameOptions(bool allowDamagesVariation, bool allowAbandonAndDefaults, byte numBargainingRounds, bool roundSpecificBargainingCosts, bool simultaneousBargainingRounds, bool simultaneousOffersUltimatelyRevealed, LoserPaysPolicy loserPaysPolicy, bool rule68, HowToSimulateBargainingFailure simulatingBargainingFailure, SideBetChallenges sideBetChallenges, RunningSideBetChallenges runningSideBetChallenges, ShootoutSettings shootout, bool applyDamagesMultiplierToSettlements)
+        private LitigGameOptions GetGameOptions(bool allowDamagesVariation, bool allowAbandonAndDefaults, byte numBargainingRounds, bool roundSpecificBargainingCosts, bool simultaneousBargainingRounds, bool simultaneousOffersUltimatelyRevealed, LoserPaysPolicy loserPaysPolicy, bool rule68, HowToSimulateBargainingFailure simulatingBargainingFailure, SideBetChallenges sideBetChallenges, RunningSideBetChallenges runningSideBetChallenges, ShootoutSettings shootout)
         {
             var options = new LitigGameOptions
             {
@@ -113,7 +113,6 @@ namespace ACESimTest
                 DamagesMin = allowDamagesVariation ? DamagesAlleged * DamagesMinMaxRatio : DamagesAlleged,
                 DamagesMax = DamagesAlleged,
                 DamagesMultiplier = DamagesMultiplier,
-                ApplyDamagesMultiplierToSettlements = applyDamagesMultiplierToSettlements,
                 NumLiabilityStrengthPoints = NumLiabilityStrengthPoints,
                 NumLiabilitySignals = NumLiabilitySignals,
                 NumDamagesStrengthPoints = allowDamagesVariation ? NumDamagesStrengthPoints : (byte)0,
@@ -826,12 +825,12 @@ namespace ACESimTest
             }
         }
 
-        public void SettlingCase_Helper(byte numPotentialBargainingRounds, byte? settlementInRound, bool simultaneousBargainingRounds, bool simultaneousOffersUltimatelyRevealed, bool allowAbandonAndDefault, LoserPaysPolicy loserPaysPolicy, bool allowDamagesVariation, HowToSimulateBargainingFailure simulatingBargainingFailure, RunningSideBetChallenges runningSideBetChallenges, bool applyDamagesMultiplierToSettlements)
+        public void SettlingCase_Helper(byte numPotentialBargainingRounds, byte? settlementInRound, bool simultaneousBargainingRounds, bool simultaneousOffersUltimatelyRevealed, bool allowAbandonAndDefault, LoserPaysPolicy loserPaysPolicy, bool allowDamagesVariation, HowToSimulateBargainingFailure simulatingBargainingFailure, RunningSideBetChallenges runningSideBetChallenges)
         {
             var bargainingRoundMoves = GetBargainingRoundMoves(simultaneousBargainingRounds,
                 settlementInRound ?? numPotentialBargainingRounds, settlementInRound != null, simulatingBargainingFailure, out var offers);
             var numActualRounds = (byte) bargainingRoundMoves.Count();
-            var options = GetGameOptions(allowDamagesVariation, allowAbandonAndDefault, numPotentialBargainingRounds, numPotentialBargainingRounds == 2, simultaneousBargainingRounds, simultaneousOffersUltimatelyRevealed, loserPaysPolicy, false, simulatingBargainingFailure, SideBetChallenges.NoChallengesAllowed, runningSideBetChallenges, ShootoutSettings.None, applyDamagesMultiplierToSettlements);
+            var options = GetGameOptions(allowDamagesVariation, allowAbandonAndDefault, numPotentialBargainingRounds, numPotentialBargainingRounds == 2, simultaneousBargainingRounds, simultaneousOffersUltimatelyRevealed, loserPaysPolicy, false, simulatingBargainingFailure, SideBetChallenges.NoChallengesAllowed, runningSideBetChallenges, ShootoutSettings.None);
             var bestOffers = GetBestOffers(offers, options);
             var actionsToPlay = GetPlayerActions(true, true, LiabilityStrength, PLiabilitySignal,
                 DLiabilitySignal, DamagesStrength, PDamagesSignal, DDamagesSignal, simulatingBargainingFailure, bargainingRoundMoves: bargainingRoundMoves, simultaneousBargainingRounds: simultaneousBargainingRounds, simultaneousOffersUltimatelyRevealed: simultaneousOffersUltimatelyRevealed, sideBetChallenges: SideBetChallenges.NoChallengesAllowed, runningSideBetChallenges: runningSideBetChallenges);
@@ -843,7 +842,6 @@ namespace ACESimTest
             myGameProgress.GameComplete.Should().BeTrue();
             myGameProgress.CaseSettles.Should().BeTrue();
             CalculateBargainingRoundExpenses(numActualRounds, options, out double pBargainingRoundExpenses, out double dBargainingRoundExpenses);
-            Debug;
             double pFinalWealthExpected = options.PInitialWealth - options.PFilingCost * options.CostsMultiplier + settlementProportion * options.DamagesMax * options.DamagesMultiplier - pBargainingRoundExpenses * options.CostsMultiplier;
             double dFinalWealthExpected = options.DInitialWealth - options.DAnswerCost * options.CostsMultiplier - settlementProportion * options.DamagesMax * options.DamagesMultiplier - dBargainingRoundExpenses * options.CostsMultiplier;
             CheckFinalWelfare(myGameProgress, pFinalWealthExpected, dFinalWealthExpected, bestOffers);

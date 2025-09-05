@@ -310,11 +310,8 @@ namespace ACESim
             }
             else if (settlementValue != null)
             {
-                double settlementTransfer = (double)settlementValue;
-                if (gameDefinition.Options.ApplyDamagesMultiplierToSettlements)
-                    settlementTransfer *= gameDefinition.Options.DamagesMultiplier;
-                outcome.PChangeWealth = (double)settlementTransfer;
-                outcome.DChangeWealth = 0 - (double)settlementTransfer;
+                outcome.PChangeWealth = (double)settlementValue;
+                outcome.DChangeWealth = 0 - (double)settlementValue;
                 outcome.TrialOccurs = false;
             }
             else

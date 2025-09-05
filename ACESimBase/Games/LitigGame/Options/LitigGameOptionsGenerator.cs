@@ -56,7 +56,6 @@ namespace ACESim
             options.DamagesMin = 0.0;
             options.DamagesMax = 1.0;
             options.DamagesMultiplier = 1.0;
-            options.ApplyDamagesMultiplierToSettlements = true;
 
             options.PTrialCosts = options.DTrialCosts = 0.10;
             options.PFilingCost = options.DAnswerCost = 0.10;
