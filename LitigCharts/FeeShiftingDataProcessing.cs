@@ -978,8 +978,8 @@ namespace LitigCharts
             if (heterogeneousPins)
             {
                 // Example: “Adjudication Mode” set where Baseline pins CM=1 and Perfect pins CM=0.
-                // Don’t sweep. Build one “Own” row and respect each column’s identifier as-is.
-                majorYLabels = new List<string> { "Own" };
+                // Don’t sweep. Build one row with a blank name and respect each column’s identifier as-is.
+                majorYLabels = new List<string> { " " };
 
                 var singleRow = variation.simulationIdentifiers
                                          .Select(sim => GetSlices(sim, allRows))
