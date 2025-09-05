@@ -186,7 +186,8 @@ namespace ACESim
 
         static bool UseSimplifiedPrecautionNegligenceGame = false;
         static bool CollapseDecisionsInSimplifiedPrecautionNegligenceGame = false;
-        static bool PerfectAdjudication = false;
+        static bool PerfectAdjudication = false; // DEBUG
+        static bool PerfectInformationToo = false; // DEBUG -- you should integrate this into standard perfect adjudication script that we run, as it is necessary to get the optimal result.
 
         static byte ParameterForMultipleOptions_Simplified = 2;
         static byte ParameterForMultipleOptions = 8;
@@ -201,6 +202,13 @@ namespace ACESim
                 game.CourtDamagesNoiseStdev = 0;
                 game.CourtLiabilityNoiseStdev = 0;
                 game.DTrialCosts = game.PTrialCosts = game.PerPartyCostsLeadingUpToBargainingRound = game.PFilingCost = game.DAnswerCost = 0;
+                if (PerfectInformationToo)
+                {
+                    game.PLiabilityNoiseStdev = 0;
+                    game.DLiabilityNoiseStdev = 0;
+                    game.PDamagesNoiseStdev = 0;
+                    game.DDamagesNoiseStdev = 0;
+                }
             }
             return game;
         }
