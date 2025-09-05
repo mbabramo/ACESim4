@@ -31,8 +31,8 @@ namespace ACESimBase.GameSolvingSupport.Settings
 
         #region Settings
 
-        public GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.RegretMatching;
-        public bool OnlyRunCoreSimulations = true; // DEBUG
+        public GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.GeneralizedVanilla;
+        public bool OnlyRunCoreSimulations = false;
 
         public int? AlwaysDoTaskID = null;  // set this to a task to replay a particular task (either over and over again, using ACESimDistributed, or just once, using ACESimConsole).
         public int[] LimitToTaskIDs = null; // new int[] { 421 }; // set this to non-null to repeat specific IDs (e.g., from failures) from a distributed action set.
@@ -220,7 +220,7 @@ namespace ACESimBase.GameSolvingSupport.Settings
                     return new ModifiedGibsonProbing(existingStrategyState, evolutionSettings, gameDefinition);
                 case GameApproximationAlgorithm.MultiplicativeWeights:
                     return new GeneralizedVanilla(existingStrategyState, evolutionSettings, gameDefinition, new PostIterationUpdater_MultiplicativeWeights());
-                case GameApproximationAlgorithm.RegretMatching:
+                case GameApproximationAlgorithm.GeneralizedVanilla:
                     return new GeneralizedVanilla(existingStrategyState, evolutionSettings, gameDefinition, new PostIterationUpdater_RegretMatching());
                 case GameApproximationAlgorithm.AverageStrategySampling:
                     return new AverageStrategiesSampling(existingStrategyState, evolutionSettings, gameDefinition);

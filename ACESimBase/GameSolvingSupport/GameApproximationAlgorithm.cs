@@ -2,7 +2,7 @@ namespace ACESim
 {
     public enum GameApproximationAlgorithm
     {
-        RegretMatching, // primary for GeneralizeVanilla
+        GeneralizedVanilla, // primary for GeneralizeVanilla
         DeepCFR,
         SequenceForm,
         MultiplicativeWeights,

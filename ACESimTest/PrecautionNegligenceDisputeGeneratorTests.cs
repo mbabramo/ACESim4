@@ -258,7 +258,7 @@ namespace ACESimTest
         {
             var launcher = new LitigGameEndogenousDisputesLauncher();
             var evolutionSettings = launcher.GetEvolutionSettings();
-            evolutionSettings.Algorithm = GameApproximationAlgorithm.RegretMatching;
+            evolutionSettings.Algorithm = GameApproximationAlgorithm.GeneralizedVanilla;
             var developer = (GeneralizedVanilla)await launcher.GetInitializedDevelper(gameOptions, optionsName, evolutionSettings);
             return developer;
         }
