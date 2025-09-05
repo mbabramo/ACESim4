@@ -244,7 +244,12 @@ namespace ACESim
         public double DamagesMax { get; set; }
         /// <summary>
         /// A multiplier to be applied to damages awarded to the plaintiff. This can be used to model punitive damages or other multipliers. This does not count as the "correct" value in calculating false positive or false negative inaccuracy. 
-        public double DamagesMultiplier = 1.0; 
+        /// </summary>
+        public double DamagesMultiplier = 1.0;
+        /// <summary>
+        /// Gets or sets a value indicating whether the damage multiplier should be applied to settlements (that is, settlements are against the normal baseline but then multiplied by the damages multiplier). If false, settlements are capped at DamagesMax.
+        /// </summary>
+        public bool ApplyDamagesMultiplierToSettlements { get; set; }
 
         /// <summary>
         /// The degree of regret aversion. If a party finishes with wealth w0 but could have finished with wealth w1, where w1 > w0, then the party experiences effective wealth of w0 - RegretAversion*(w1 - w0)
@@ -302,7 +307,7 @@ CostsMultiplier {CostsMultiplier} PTrialCosts {PTrialCosts} DTrialCosts {DTrialC
 LoserPays {LoserPays} Multiple {LoserPaysMultiple} AfterAbandonment {LoserPaysAfterAbandonment} Rule68 {Rule68} Margin {LoserPaysOnlyLargeMarginOfVictory} ({LoserPaysMarginOfVictoryThreshold})
 {(ShootoutSettlements ? $@"ShootoutSettlements ShootoutStrength {ShootoutStrength} ShootoutOfferValueIsAveraged {ShootoutOfferValueIsAveraged} ShootoutsApplyAfterAbandonment {ShootoutsApplyAfterAbandonment}
 " : "")}PInitialWealth {PInitialWealth} DInitialWealth {DInitialWealth} 
-DamagesMin {DamagesMin} DamagesMax {DamagesMax} DamagesMultiplier {DamagesMultiplier}
+DamagesMin {DamagesMin} DamagesMax {DamagesMax} DamagesMultiplier {DamagesMultiplier} ApplyDamagesMultiplierToSettlements {ApplyDamagesMultiplierToSettlements}
 RegretAversion {RegretAversion} 
 PUtilityCalculator {PUtilityCalculator} DUtilityCalculator {DUtilityCalculator} 
 LitigGameDisputeGenerator {LitigGameDisputeGenerator?.GetType().Name} {LitigGameDisputeGenerator.OptionsString}
