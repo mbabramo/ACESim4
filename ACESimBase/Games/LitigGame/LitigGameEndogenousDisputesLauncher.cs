@@ -89,8 +89,6 @@ namespace ACESim
         public (double precautionCostPerception, double feeShiftingMultiplier)[] HighMisestimationFeeShiftingMultipliers => [(5.0, 0.0), (5.0, 1.0), (5.0, 2.0)];
         public (double precautionCostPerception, double damagesMultipliers)[] HighMisestimationDamagesMultipliers => [(5.0, 1.0), (5.0, 0.5), (5.0, 2.0)];
 
-        
-
         public enum UnderlyingGame
         {
             AppropriationGame,
@@ -286,10 +284,38 @@ namespace ACESim
 
         public override List<VariableCombinationGenerator.Dimension<LitigGameOptions>> GetVariationSetsInfo()
         {
-            // critical + extras (paired) ----------------------------------------
+            // If the global-core flag is on, limit to some specific permutations.
+            if (OnlyRunCoreSimulations)
+            {
+                return new List<VariableCombinationGenerator.Dimension<LitigGameOptions>>
+                {
+                    new("RiskAversion",
+                        CriticalRiskAversionTransformations(),
+                        null,
+                        IsGlobal: true),
+
+                    new("CostsMultiplier",
+                        CriticalCostsMultiplierTransformations(),
+                        null,
+                        IsGlobal: true),
+                    new("FeeShiftingMultiplier",
+                        CriticalFeeShiftingMultiplierTransformations(),
+                        AdditionalFeeShiftingMultiplierTransformations()
+                        ),
+
+                    new("DamagesMultiplier",
+                        CriticalDamagesMultiplierTransformations(),
+                        AdditionalDamagesMultiplierTransformations()),
+
+                    new("LiabilityThreshold",
+                        CriticalLiabilityThresholdTransformations(),
+                        AdditionalLiabilityThresholdTransformations()
+                        ),
+                };
+            }
+
             var dims = new List<VariableCombinationGenerator.Dimension<LitigGameOptions>>
             {
-                // super-critical (everything is always run against both of these)
                 new("RiskAversion",
                     CriticalRiskAversionTransformations(),
                     AdditionalRiskAversionTransformations(),
@@ -300,8 +326,6 @@ namespace ACESim
                     AdditionalCostsMultiplierTransformations(),
                     IsGlobal: true
                     ),
-
-                // critical with modifiers (critical are always permuted against one another)
 
                 new("FeeShiftingMultiplier",
                     CriticalFeeShiftingMultiplierTransformations(),
@@ -322,7 +346,6 @@ namespace ACESim
                     AdditionalPrecautionCostTransformations()
                     ),
 
-                // modifier-only variables
                 new("Noise",
                     null,
                     NoiseTransformations()
@@ -351,18 +374,16 @@ namespace ACESim
                 new("CostMisestimation",
                     null,
                     CostMisestimationTransformations(),
-                    IncludeBaselineValueForNoncritical: true // we want 1.0 misestimation to run, because we're also adding additional settings change
+                    IncludeBaselineValueForNoncritical: true
                     ),
 
-                // one extra modifier value → exactly one additional option set
                 new("PerfectAdjudication",
                     null,
                     PerfectAdjudicationTransformations(),
-                    IncludeBaselineValueForNoncritical: true // we want 1.0 misestimation to run, because we're also adding additional settings change
+                    IncludeBaselineValueForNoncritical: true
                     ),
             };
 
-            // prune empty modifier-only dimensions ------------------------------
             dims = dims.Where(d => d.CriticalTransforms != null ||
                                    d.ModifierTransforms?.Count > 0).ToList();
 
@@ -371,213 +392,287 @@ namespace ACESim
 
         public override List<SimulationSetsIdentifier> GetSimulationSetsIdentifiers(SimulationSetsTransformer transformer = null)
         {
-            // We’ll use the fully materialized option sets to bind identifiers precisely.
-            var variationSets = GetVariationSets();
-
-            var varyingNothing = new List<SimulationIdentifier>()
+            if (OnlyRunCoreSimulations)
             {
-                new SimulationIdentifier("Baseline Values", DefaultVariableValues),
-            };
+                var variationSets = GetVariationSets();
 
-            var varyingFeeShiftingMultiplier = new List<SimulationIdentifier>()
-            {
-                new SimulationIdentifier("American", DefaultVariableValues.WithReplacement("Fee Shifting Multiplier", "0")),
-                new SimulationIdentifier("Half",     DefaultVariableValues.WithReplacement("Fee Shifting Multiplier", "0.5")),
-                new SimulationIdentifier("English",  DefaultVariableValues.WithReplacement("Fee Shifting Multiplier", "1")),
-                new SimulationIdentifier("Double",   DefaultVariableValues.WithReplacement("Fee Shifting Multiplier", "2")),
-                new SimulationIdentifier("X Five",   DefaultVariableValues.WithReplacement("Fee Shifting Multiplier", "5")),
-            };
-
-            var varyingDamagesMultiplier = new List<SimulationIdentifier>()
-            {
-                new SimulationIdentifier("0.5", DefaultVariableValues.WithReplacement("Damages Multiplier", "0.5")),
-                new SimulationIdentifier("1",   DefaultVariableValues.WithReplacement("Damages Multiplier", "1")),
-                new SimulationIdentifier("2",   DefaultVariableValues.WithReplacement("Damages Multiplier", "2")),
-                new SimulationIdentifier("4",   DefaultVariableValues.WithReplacement("Damages Multiplier", "4")),
-            };
-
-            var varyingLiabilityThreshold = new List<SimulationIdentifier>()
-            {
-                new SimulationIdentifier("Strict Liability", DefaultVariableValues.WithReplacement("Liability Threshold", "0")),
-                new SimulationIdentifier("Low",              DefaultVariableValues.WithReplacement("Liability Threshold", "0.8")),
-                new SimulationIdentifier("Normal",           DefaultVariableValues.WithReplacement("Liability Threshold", "1")),
-                new SimulationIdentifier("High",             DefaultVariableValues.WithReplacement("Liability Threshold", "1.2")),
-                new SimulationIdentifier("Very High",        DefaultVariableValues.WithReplacement("Liability Threshold", "2")),
-            };
-
-            var varyingUnitPrecautionCost = new List<SimulationIdentifier>()
-            {
-                new SimulationIdentifier("Very Low", DefaultVariableValues.WithReplacement("Unit Precaution Cost", "1E-06")),
-                new SimulationIdentifier("Low",      DefaultVariableValues.WithReplacement("Unit Precaution Cost", "8E-06")),
-                new SimulationIdentifier("Normal",   DefaultVariableValues.WithReplacement("Unit Precaution Cost", "1E-05")),
-                new SimulationIdentifier("High",     DefaultVariableValues.WithReplacement("Unit Precaution Cost", "1.2E-05")),
-            };
-
-            var varyingNoiseMultipliersBoth = new List<SimulationIdentifier>()
-            {
-                new SimulationIdentifier(".25", DefaultVariableValues.WithReplacement("Noise Multiplier P", "0.25").WithReplacement("Noise Multiplier D", "0.25")),
-                new SimulationIdentifier(".5",  DefaultVariableValues.WithReplacement("Noise Multiplier P", "0.5"). WithReplacement("Noise Multiplier D", "0.5")),
-                new SimulationIdentifier("1",   DefaultVariableValues.WithReplacement("Noise Multiplier P", "1").   WithReplacement("Noise Multiplier D", "1")),
-                new SimulationIdentifier("2",   DefaultVariableValues.WithReplacement("Noise Multiplier P", "2").   WithReplacement("Noise Multiplier D", "2")),
-                new SimulationIdentifier("4",   DefaultVariableValues.WithReplacement("Noise Multiplier P", "4").   WithReplacement("Noise Multiplier D", "4")),
-            };
-
-            var varyingNoiseMultipliersAsymmetric = new List<SimulationIdentifier>()
-            {
-                new SimulationIdentifier("P Better",         DefaultVariableValues.WithReplacement("Noise Multiplier P", "0.5").WithReplacement("Noise Multiplier D", "2")),
-                new SimulationIdentifier("Equal Information",DefaultVariableValues.WithReplacement("Noise Multiplier P", "1").  WithReplacement("Noise Multiplier D", "1")),
-                new SimulationIdentifier("D Better",         DefaultVariableValues.WithReplacement("Noise Multiplier P", "2").  WithReplacement("Noise Multiplier D", "0.5")),
-            };
-
-            var varyingCourtNoise = new List<SimulationIdentifier>()
-            {
-                new SimulationIdentifier("Perfect", DefaultVariableValues.WithReplacement("Court Noise", "0")),
-                new SimulationIdentifier("Normal",  DefaultVariableValues.WithReplacement("Court Noise", "0.2")),
-                new SimulationIdentifier("Noisy",   DefaultVariableValues.WithReplacement("Court Noise", "0.4")),
-            };
-
-            var varyingRelativeCosts = new List<SimulationIdentifier>()
-            {
-                new SimulationIdentifier("P Lower Costs", DefaultVariableValues.WithReplacement("Relative Costs", "0.5")),
-                new SimulationIdentifier("Equal",         DefaultVariableValues.WithReplacement("Relative Costs", "1")),
-                new SimulationIdentifier("P Higher Costs",DefaultVariableValues.WithReplacement("Relative Costs", "2")),
-            };
-
-            var varyingRiskAversion = new List<SimulationIdentifier>()
-            {
-                new SimulationIdentifier("Risk Neutral",     DefaultVariableValues.WithReplacement("Risk Aversion", "Risk Neutral")),
-                new SimulationIdentifier("Mildly Averse",    DefaultVariableValues.WithReplacement("Risk Aversion", "Mildly Risk Averse")),
-                new SimulationIdentifier("Moderately Averse",DefaultVariableValues.WithReplacement("Risk Aversion", "Moderately Risk Averse")),
-                new SimulationIdentifier("Highly Averse",    DefaultVariableValues.WithReplacement("Risk Aversion", "Highly Risk Averse")),
-            };
-
-            var varyingRiskAversionAsymmetry = new List<SimulationIdentifier>()
-            {
-                new SimulationIdentifier("P Risk Averse",     DefaultVariableValues.WithReplacement("Risk Aversion", "P Risk Averse")),
-                new SimulationIdentifier("D Risk Averse",     DefaultVariableValues.WithReplacement("Risk Aversion", "D Risk Averse")),
-                new SimulationIdentifier("P More Risk Averse",DefaultVariableValues.WithReplacement("Risk Aversion", "P More Risk Averse")),
-                new SimulationIdentifier("D More Risk Averse",DefaultVariableValues.WithReplacement("Risk Aversion", "D More Risk Averse")),
-            };
-
-            var varyingTimingOfCosts = new List<SimulationIdentifier>()
-            {
-                new SimulationIdentifier("0",    DefaultVariableValues.WithReplacement("Proportion of Costs at Beginning", "0")),
-                new SimulationIdentifier("0.25", DefaultVariableValues.WithReplacement("Proportion of Costs at Beginning", "0.25")),
-                new SimulationIdentifier("0.5",  DefaultVariableValues.WithReplacement("Proportion of Costs at Beginning", "0.5")),
-                new SimulationIdentifier("0.75", DefaultVariableValues.WithReplacement("Proportion of Costs at Beginning", "0.75")),
-                new SimulationIdentifier("1",    DefaultVariableValues.WithReplacement("Proportion of Costs at Beginning", "1")),
-            };
-
-            // Determine whether misestimation reduces signals/offers in THIS branch, then stamp it into identifiers.
-            var disputeGeneratorSettings = variationSets
-                .Select(x => (((LitigGameOptions)x), ((LitigGameOptions)x).LitigGameDisputeGenerator as PrecautionNegligenceDisputeGenerator))
-                .ToList();
-            var exampleWithoutCostMisestimation = disputeGeneratorSettings.First(x => x.Item2.CostMisestimationFactor == 1);
-            var exampleWithCostMisestimation    = disputeGeneratorSettings.First(x => x.Item2.CostMisestimationFactor != 1);
-            bool reducedSignalsOrOffers = exampleWithCostMisestimation.Item1.NumLiabilitySignals + exampleWithCostMisestimation.Item1.NumOffers
-                                        < exampleWithoutCostMisestimation.Item1.NumLiabilitySignals + exampleWithoutCostMisestimation.Item1.NumOffers;
-            string numSignalsAndOffersString = reducedSignalsOrOffers ? "Reduced" : "Baseline";
-
-            var varyingCostMisestimations = new List<SimulationIdentifier>()
-            {
-                // Include Num Signals/Offers so ident uniquely matches the “misestimation=1” run we created in this branch.
-                new SimulationIdentifier("1",  DefaultVariableValues.WithReplacement("Cost Misestimation", "1"). WithReplacement("Num Signals and Offers", numSignalsAndOffersString)),
-                new SimulationIdentifier("2",  DefaultVariableValues.WithReplacement("Cost Misestimation", "2"). WithReplacement("Num Signals and Offers", numSignalsAndOffersString)),
-                new SimulationIdentifier("5",  DefaultVariableValues.WithReplacement("Cost Misestimation", "5"). WithReplacement("Num Signals and Offers", numSignalsAndOffersString)),
-                new SimulationIdentifier("10", DefaultVariableValues.WithReplacement("Cost Misestimation", "10").WithReplacement("Num Signals and Offers", numSignalsAndOffersString)),
-            };
-
-            var varyingFeeShiftingWithHighMisestimation = new List<SimulationIdentifier>()
-            {
-                new SimulationIdentifier("American", DefaultVariableValues.WithReplacement("Cost Misestimation", "5").WithReplacement("Fee Shifting Multiplier", "0").WithReplacement("Num Signals and Offers", numSignalsAndOffersString)),
-                new SimulationIdentifier("English",  DefaultVariableValues.WithReplacement("Cost Misestimation", "5").WithReplacement("Fee Shifting Multiplier", "1").WithReplacement("Num Signals and Offers", numSignalsAndOffersString)),
-                new SimulationIdentifier("Double",   DefaultVariableValues.WithReplacement("Cost Misestimation", "5").WithReplacement("Fee Shifting Multiplier", "2").WithReplacement("Num Signals and Offers", numSignalsAndOffersString)),
-            };
-
-            var varyingDamagesWithHighMisestimation = new List<SimulationIdentifier>()
-            {
-                new SimulationIdentifier("0.5", DefaultVariableValues.WithReplacement("Cost Misestimation", "5").WithReplacement("Damages Multiplier", "0.5").WithReplacement("Num Signals and Offers", numSignalsAndOffersString)),
-                new SimulationIdentifier("1",   DefaultVariableValues.WithReplacement("Cost Misestimation", "5").WithReplacement("Damages Multiplier", "1").  WithReplacement("Num Signals and Offers", numSignalsAndOffersString)),
-                new SimulationIdentifier("2",   DefaultVariableValues.WithReplacement("Cost Misestimation", "5").WithReplacement("Damages Multiplier", "2").  WithReplacement("Num Signals and Offers", numSignalsAndOffersString)),
-            };
-
-            var varyingWrongfulAttribution = new List<SimulationIdentifier>()
-            {
-                new SimulationIdentifier("None",   DefaultVariableValues.WithReplacement("Wrongful Attribution Probability", "None")),
-                new SimulationIdentifier("Normal", DefaultVariableValues.WithReplacement("Wrongful Attribution Probability", "Normal")),
-                new SimulationIdentifier("High",   DefaultVariableValues.WithReplacement("Wrongful Attribution Probability", "High")),
-            };
-
-            var varyingAdjudicationMode = new List<SimulationIdentifier>()
-            {
-                new SimulationIdentifier("Baseline", DefaultVariableValues.WithReplacement("Adjudication Mode", "Baseline")),
-                // For "Perfect", we also flip the three knobs this branch flips in the transform so identifiers match those runs.
-                new SimulationIdentifier("Perfect",
-                    DefaultVariableValues
-                        .WithReplacement("Adjudication Mode", "Perfect")
-                        .WithReplacement("Court Noise",       "0")
-                        .WithReplacement("Noise Multiplier P","0")
-                        .WithReplacement("Noise Multiplier D","0")
-                        .WithReplacement("Costs Multiplier",  "0")),
-            };
-
-            var simulationSetsIdentifiers = new List<SimulationSetsIdentifier>()
-            {
-                new SimulationSetsIdentifier("Baseline", varyingNothing),
-                new SimulationSetsIdentifier("Fee Shifting Multiplier", varyingFeeShiftingMultiplier),
-                new SimulationSetsIdentifier("Liability Threshold", varyingLiabilityThreshold),
-                new SimulationSetsIdentifier("Unit Precaution Cost", varyingUnitPrecautionCost),
-                new SimulationSetsIdentifier("Damages Multiplier", varyingDamagesMultiplier),
-                new SimulationSetsIdentifier("Noise Multiplier", varyingNoiseMultipliersBoth),
-                new SimulationSetsIdentifier("Information Asymmetry", varyingNoiseMultipliersAsymmetric),
-                new SimulationSetsIdentifier("Court Quality", varyingCourtNoise),
-                new SimulationSetsIdentifier("Relative Costs", varyingRelativeCosts),
-                new SimulationSetsIdentifier("Risk Aversion", varyingRiskAversion),
-                new SimulationSetsIdentifier("Risk Aversion Asymmetry", varyingRiskAversionAsymmetry),
-                new SimulationSetsIdentifier("Proportion of Costs at Beginning", varyingTimingOfCosts),
-                new SimulationSetsIdentifier("Misestimation Level", varyingCostMisestimations),
-                new SimulationSetsIdentifier("Fee Shifting Multiplier (High Misestimation)", varyingFeeShiftingWithHighMisestimation),
-                new SimulationSetsIdentifier("Damages Multiplier (High Misestimation)", varyingDamagesWithHighMisestimation),
-                new SimulationSetsIdentifier("Wrongful Attribution Probability", varyingWrongfulAttribution),
-                new SimulationSetsIdentifier("Adjudication Mode", varyingAdjudicationMode),
-            };
-
-            // Keep your existing transformer behavior (e.g., RequireModerateRiskAversion).
-            simulationSetsIdentifiers = PerformArticleVariationInfoSetsTransformation(transformer, simulationSetsIdentifiers);
-
-            // Also keep your pairwise sets.
-            AddPairwiseSimulationSets(simulationSetsIdentifiers);
-
-            // bind every identifier to exactly one concrete option set and expand it with the full VariableSettings ——
-            SimulationIdentifier BindToUniqueOptionSet(SimulationIdentifier sim)
-            {
-                static string S(object v) => v?.ToString();
-
-                bool Matches(GameOptions opt) =>
-                    sim.columnMatches.All(cm =>
-                        opt.VariableSettings.TryGetValue(cm.columnName, out var v) && S(v) == cm.expectedValue);
-
-                var candidates = variationSets.Where(Matches).ToList();
-                if (candidates.Count != 1)
-                    throw new InvalidOperationException(
-                        $"Simulation identifier '{sim.nameForSimulation}' resolves to {candidates.Count} option sets; expected exactly one.");
-
-                var bound = sim;
-                foreach (var kv in candidates[0].VariableSettings.OrderBy(k => k.Key))
-                    bound = bound.With(kv.Key, S(kv.Value));
-
-                return bound;
-            }
-
-            simulationSetsIdentifiers = simulationSetsIdentifiers
-                .Select(set => set with
+                var varyingNothing = new List<SimulationIdentifier>
                 {
-                    simulationIdentifiers = set.simulationIdentifiers.Select(BindToUniqueOptionSet).ToList()
-                })
-                .ToList();
+                    new SimulationIdentifier("Baseline Values", DefaultVariableValues),
+                };
 
-            return simulationSetsIdentifiers;
+                // Critical values only for Costs Multiplier: 1.0, 0.25, 0.5, 2.0, 4.0
+                var varyingCostsMultiplier = new List<SimulationIdentifier>
+                {
+                    new SimulationIdentifier("0.25", DefaultVariableValues.WithReplacement("Costs Multiplier", "0.25")),
+                    new SimulationIdentifier("1",    DefaultVariableValues.WithReplacement("Costs Multiplier", "1")),
+                    new SimulationIdentifier("4",    DefaultVariableValues.WithReplacement("Costs Multiplier", "4")),
+                };
+
+                // Critical values only for Risk Aversion: Risk Neutral, Moderately Risk Averse
+                var varyingRiskAversion = new List<SimulationIdentifier>
+                {
+                    new SimulationIdentifier("Risk Neutral",           DefaultVariableValues.WithReplacement("Risk Aversion", "Risk Neutral")),
+                    new SimulationIdentifier("Moderately Risk Averse", DefaultVariableValues.WithReplacement("Risk Aversion", "Moderately Risk Averse")),
+                };
+
+                var simulationSetsIdentifiers = new List<SimulationSetsIdentifier>
+                {
+                    new SimulationSetsIdentifier("Baseline",         varyingNothing),
+                    new SimulationSetsIdentifier("Costs Multiplier", varyingCostsMultiplier),
+                    new SimulationSetsIdentifier("Risk Aversion",    varyingRiskAversion),
+                };
+
+                simulationSetsIdentifiers = PerformArticleVariationInfoSetsTransformation(transformer, simulationSetsIdentifiers);
+
+                SimulationIdentifier BindToUniqueOptionSet(SimulationIdentifier sim)
+                {
+                    static string S(object v) => v?.ToString();
+
+                    bool Matches(GameOptions opt) =>
+                        sim.columnMatches.All(cm =>
+                            opt.VariableSettings.TryGetValue(cm.columnName, out var v) && S(v) == cm.expectedValue);
+
+                    var candidates = variationSets.Where(Matches).ToList();
+                    if (candidates.Count != 1)
+                        throw new InvalidOperationException(
+                            $"Simulation identifier '{sim.nameForSimulation}' resolves to {candidates.Count} option sets; expected exactly one.");
+
+                    var bound = sim;
+                    foreach (var kv in candidates[0].VariableSettings.OrderBy(k => k.Key))
+                        bound = bound.With(kv.Key, S(kv.Value));
+
+                    return bound;
+                }
+
+                simulationSetsIdentifiers = simulationSetsIdentifiers
+                    .Select(set => set with
+                    {
+                        simulationIdentifiers = set.simulationIdentifiers.Select(BindToUniqueOptionSet).ToList()
+                    })
+                    .ToList();
+
+                return simulationSetsIdentifiers;
+            }
+            else
+            {
+                var variationSets = GetVariationSets();
+
+                var varyingNothing = new List<SimulationIdentifier>()
+                {
+                    new SimulationIdentifier("Baseline Values", DefaultVariableValues),
+                };
+
+                var varyingFeeShiftingMultiplier = new List<SimulationIdentifier>()
+                {
+                    new SimulationIdentifier("American", DefaultVariableValues.WithReplacement("Fee Shifting Multiplier", "0")),
+                    new SimulationIdentifier("Half",     DefaultVariableValues.WithReplacement("Fee Shifting Multiplier", "0.5")),
+                    new SimulationIdentifier("English",  DefaultVariableValues.WithReplacement("Fee Shifting Multiplier", "1")),
+                    new SimulationIdentifier("Double",   DefaultVariableValues.WithReplacement("Fee Shifting Multiplier", "2")),
+                    new SimulationIdentifier("X Five",   DefaultVariableValues.WithReplacement("Fee Shifting Multiplier", "5")),
+                };
+
+                var varyingDamagesMultiplier = new List<SimulationIdentifier>()
+                {
+                    new SimulationIdentifier("0.5", DefaultVariableValues.WithReplacement("Damages Multiplier", "0.5")),
+                    new SimulationIdentifier("1",   DefaultVariableValues.WithReplacement("Damages Multiplier", "1")),
+                    new SimulationIdentifier("2",   DefaultVariableValues.WithReplacement("Damages Multiplier", "2")),
+                    new SimulationIdentifier("4",   DefaultVariableValues.WithReplacement("Damages Multiplier", "4")),
+                };
+
+                var varyingLiabilityThreshold = new List<SimulationIdentifier>()
+                {
+                    new SimulationIdentifier("Strict Liability", DefaultVariableValues.WithReplacement("Liability Threshold", "0")),
+                    new SimulationIdentifier("Low",              DefaultVariableValues.WithReplacement("Liability Threshold", "0.8")),
+                    new SimulationIdentifier("Normal",           DefaultVariableValues.WithReplacement("Liability Threshold", "1")),
+                    new SimulationIdentifier("High",             DefaultVariableValues.WithReplacement("Liability Threshold", "1.2")),
+                    new SimulationIdentifier("Very High",        DefaultVariableValues.WithReplacement("Liability Threshold", "2")),
+                };
+
+                var varyingUnitPrecautionCost = new List<SimulationIdentifier>()
+                {
+                    new SimulationIdentifier("Very Low", DefaultVariableValues.WithReplacement("Unit Precaution Cost", "1E-06")),
+                    new SimulationIdentifier("Low",      DefaultVariableValues.WithReplacement("Unit Precaution Cost", "8E-06")),
+                    new SimulationIdentifier("Normal",   DefaultVariableValues.WithReplacement("Unit Precaution Cost", "1E-05")),
+                    new SimulationIdentifier("High",     DefaultVariableValues.WithReplacement("Unit Precaution Cost", "1.2E-05")),
+                };
+
+                var varyingNoiseMultipliersBoth = new List<SimulationIdentifier>()
+                {
+                    new SimulationIdentifier(".25", DefaultVariableValues.WithReplacement("Noise Multiplier P", "0.25").WithReplacement("Noise Multiplier D", "0.25")),
+                    new SimulationIdentifier(".5",  DefaultVariableValues.WithReplacement("Noise Multiplier P", "0.5"). WithReplacement("Noise Multiplier D", "0.5")),
+                    new SimulationIdentifier("1",   DefaultVariableValues.WithReplacement("Noise Multiplier P", "1").   WithReplacement("Noise Multiplier D", "1")),
+                    new SimulationIdentifier("2",   DefaultVariableValues.WithReplacement("Noise Multiplier P", "2").   WithReplacement("Noise Multiplier D", "2")),
+                    new SimulationIdentifier("4",   DefaultVariableValues.WithReplacement("Noise Multiplier P", "4").   WithReplacement("Noise Multiplier D", "4")),
+                };
+
+                var varyingNoiseMultipliersAsymmetric = new List<SimulationIdentifier>()
+                {
+                    new SimulationIdentifier("P Better",         DefaultVariableValues.WithReplacement("Noise Multiplier P", "0.5").WithReplacement("Noise Multiplier D", "2")),
+                    new SimulationIdentifier("Equal Information",DefaultVariableValues.WithReplacement("Noise Multiplier P", "1").  WithReplacement("Noise Multiplier D", "1")),
+                    new SimulationIdentifier("D Better",         DefaultVariableValues.WithReplacement("Noise Multiplier P", "2").  WithReplacement("Noise Multiplier D", "0.5")),
+                };
+
+                var varyingCourtNoise = new List<SimulationIdentifier>()
+                {
+                    new SimulationIdentifier("Perfect", DefaultVariableValues.WithReplacement("Court Noise", "0")),
+                    new SimulationIdentifier("Normal",  DefaultVariableValues.WithReplacement("Court Noise", "0.2")),
+                    new SimulationIdentifier("Noisy",   DefaultVariableValues.WithReplacement("Court Noise", "0.4")),
+                };
+
+                var varyingRelativeCosts = new List<SimulationIdentifier>()
+                {
+                    new SimulationIdentifier("P Lower Costs", DefaultVariableValues.WithReplacement("Relative Costs", "0.5")),
+                    new SimulationIdentifier("Equal",         DefaultVariableValues.WithReplacement("Relative Costs", "1")),
+                    new SimulationIdentifier("P Higher Costs",DefaultVariableValues.WithReplacement("Relative Costs", "2")),
+                };
+
+                var varyingRiskAversion = new List<SimulationIdentifier>()
+                {
+                    new SimulationIdentifier("Risk Neutral",     DefaultVariableValues.WithReplacement("Risk Aversion", "Risk Neutral")),
+                    new SimulationIdentifier("Mildly Averse",    DefaultVariableValues.WithReplacement("Risk Aversion", "Mildly Risk Averse")),
+                    new SimulationIdentifier("Moderately Averse",DefaultVariableValues.WithReplacement("Risk Aversion", "Moderately Risk Averse")),
+                    new SimulationIdentifier("Highly Averse",    DefaultVariableValues.WithReplacement("Risk Aversion", "Highly Risk Averse")),
+                };
+
+                var varyingRiskAversionAsymmetry = new List<SimulationIdentifier>()
+                {
+                    new SimulationIdentifier("P Risk Averse",     DefaultVariableValues.WithReplacement("Risk Aversion", "P Risk Averse")),
+                    new SimulationIdentifier("D Risk Averse",     DefaultVariableValues.WithReplacement("Risk Aversion", "D Risk Averse")),
+                    new SimulationIdentifier("P More Risk Averse",DefaultVariableValues.WithReplacement("Risk Aversion", "P More Risk Averse")),
+                    new SimulationIdentifier("D More Risk Averse",DefaultVariableValues.WithReplacement("Risk Aversion", "D More Risk Averse")),
+                };
+
+                var varyingTimingOfCosts = new List<SimulationIdentifier>()
+                {
+                    new SimulationIdentifier("0",    DefaultVariableValues.WithReplacement("Proportion of Costs at Beginning", "0")),
+                    new SimulationIdentifier("0.25", DefaultVariableValues.WithReplacement("Proportion of Costs at Beginning", "0.25")),
+                    new SimulationIdentifier("0.5",  DefaultVariableValues.WithReplacement("Proportion of Costs at Beginning", "0.5")),
+                    new SimulationIdentifier("0.75", DefaultVariableValues.WithReplacement("Proportion of Costs at Beginning", "0.75")),
+                    new SimulationIdentifier("1",    DefaultVariableValues.WithReplacement("Proportion of Costs at Beginning", "1")),
+                };
+
+                var disputeGeneratorSettings = variationSets
+                    .Select(x => (((LitigGameOptions)x), ((LitigGameOptions)x).LitigGameDisputeGenerator as PrecautionNegligenceDisputeGenerator))
+                    .ToList();
+                var exampleWithoutCostMisestimation = disputeGeneratorSettings.First(x => x.Item2.CostMisestimationFactor == 1);
+                var exampleWithCostMisestimation    = disputeGeneratorSettings.First(x => x.Item2.CostMisestimationFactor != 1);
+                bool reducedSignalsOrOffers = exampleWithCostMisestimation.Item1.NumLiabilitySignals + exampleWithCostMisestimation.Item1.NumOffers
+                                            < exampleWithoutCostMisestimation.Item1.NumLiabilitySignals + exampleWithoutCostMisestimation.Item1.NumOffers;
+                string numSignalsAndOffersString = reducedSignalsOrOffers ? "Reduced" : "Baseline";
+
+                var varyingCostMisestimations = new List<SimulationIdentifier>()
+                {
+                    new SimulationIdentifier("1",  DefaultVariableValues.WithReplacement("Cost Misestimation", "1"). WithReplacement("Num Signals and Offers", numSignalsAndOffersString)),
+                    new SimulationIdentifier("2",  DefaultVariableValues.WithReplacement("Cost Misestimation", "2"). WithReplacement("Num Signals and Offers", numSignalsAndOffersString)),
+                    new SimulationIdentifier("5",  DefaultVariableValues.WithReplacement("Cost Misestimation", "5"). WithReplacement("Num Signals and Offers", numSignalsAndOffersString)),
+                    new SimulationIdentifier("10", DefaultVariableValues.WithReplacement("Cost Misestimation", "10").WithReplacement("Num Signals and Offers", numSignalsAndOffersString)),
+                };
+
+                var varyingFeeShiftingWithHighMisestimation = new List<SimulationIdentifier>()
+                {
+                    new SimulationIdentifier("American", DefaultVariableValues.WithReplacement("Cost Misestimation", "5").WithReplacement("Fee Shifting Multiplier", "0").WithReplacement("Num Signals and Offers", numSignalsAndOffersString)),
+                    new SimulationIdentifier("English",  DefaultVariableValues.WithReplacement("Cost Misestimation", "5").WithReplacement("Fee Shifting Multiplier", "1").WithReplacement("Num Signals and Offers", numSignalsAndOffersString)),
+                    new SimulationIdentifier("Double",   DefaultVariableValues.WithReplacement("Cost Misestimation", "5").WithReplacement("Fee Shifting Multiplier", "2").WithReplacement("Num Signals and Offers", numSignalsAndOffersString)),
+                };
+
+                var varyingDamagesWithHighMisestimation = new List<SimulationIdentifier>()
+                {
+                    new SimulationIdentifier("0.5", DefaultVariableValues.WithReplacement("Cost Misestimation", "5").WithReplacement("Damages Multiplier", "0.5").WithReplacement("Num Signals and Offers", numSignalsAndOffersString)),
+                    new SimulationIdentifier("1",   DefaultVariableValues.WithReplacement("Cost Misestimation", "5").WithReplacement("Damages Multiplier", "1").  WithReplacement("Num Signals and Offers", numSignalsAndOffersString)),
+                    new SimulationIdentifier("2",   DefaultVariableValues.WithReplacement("Cost Misestimation", "5").WithReplacement("Damages Multiplier", "2").  WithReplacement("Num Signals and Offers", numSignalsAndOffersString)),
+                };
+
+                var varyingWrongfulAttribution = new List<SimulationIdentifier>()
+                {
+                    new SimulationIdentifier("None",   DefaultVariableValues.WithReplacement("Wrongful Attribution Probability", "None")),
+                    new SimulationIdentifier("Normal", DefaultVariableValues.WithReplacement("Wrongful Attribution Probability", "Normal")),
+                    new SimulationIdentifier("High",   DefaultVariableValues.WithReplacement("Wrongful Attribution Probability", "High")),
+                };
+
+                var varyingAdjudicationMode = new List<SimulationIdentifier>()
+                {
+                    new SimulationIdentifier("Baseline", DefaultVariableValues.WithReplacement("Adjudication Mode", "Baseline")),
+                    new SimulationIdentifier("Perfect",
+                        DefaultVariableValues
+                            .WithReplacement("Adjudication Mode", "Perfect")
+                            .WithReplacement("Court Noise",       "0")
+                            .WithReplacement("Noise Multiplier P","0")
+                            .WithReplacement("Noise Multiplier D","0")
+                            .WithReplacement("Costs Multiplier",  "0")),
+                };
+
+                var simulationSetsIdentifiers = new List<SimulationSetsIdentifier>()
+                {
+                    new SimulationSetsIdentifier("Baseline", varyingNothing),
+                    new SimulationSetsIdentifier("Fee Shifting Multiplier", varyingFeeShiftingMultiplier),
+                    new SimulationSetsIdentifier("Liability Threshold", varyingLiabilityThreshold),
+                    new SimulationSetsIdentifier("Unit Precaution Cost", varyingUnitPrecautionCost),
+                    new SimulationSetsIdentifier("Damages Multiplier", varyingDamagesMultiplier),
+                    new SimulationSetsIdentifier("Noise Multiplier", varyingNoiseMultipliersBoth),
+                    new SimulationSetsIdentifier("Information Asymmetry", varyingNoiseMultipliersAsymmetric),
+                    new SimulationSetsIdentifier("Court Quality", varyingCourtNoise),
+                    new SimulationSetsIdentifier("Relative Costs", varyingRelativeCosts),
+                    new SimulationSetsIdentifier("Risk Aversion", varyingRiskAversion),
+                    new SimulationSetsIdentifier("Risk Aversion Asymmetry", varyingRiskAversionAsymmetry),
+                    new SimulationSetsIdentifier("Proportion of Costs at Beginning", varyingTimingOfCosts),
+                    new SimulationSetsIdentifier("Misestimation Level", varyingCostMisestimations),
+                    new SimulationSetsIdentifier("Fee Shifting Multiplier (High Misestimation)", varyingFeeShiftingWithHighMisestimation),
+                    new SimulationSetsIdentifier("Damages Multiplier (High Misestimation)", varyingDamagesWithHighMisestimation),
+                    new SimulationSetsIdentifier("Wrongful Attribution Probability", varyingWrongfulAttribution),
+                    new SimulationSetsIdentifier("Adjudication Mode", varyingAdjudicationMode),
+                };
+
+                simulationSetsIdentifiers = PerformArticleVariationInfoSetsTransformation(transformer, simulationSetsIdentifiers);
+                AddPairwiseSimulationSets(simulationSetsIdentifiers);
+
+                // --- NEW: subset-safe filter for non-core runs too, just in case transforms removed some columns
+                var activeColumns = new HashSet<string>(variationSets.SelectMany(vs => vs.VariableSettings.Keys));
+                bool RefersOnlyToActive(SimulationIdentifier sim) =>
+                    sim.columnMatches.All(cm => activeColumns.Contains(cm.columnName));
+
+                simulationSetsIdentifiers = simulationSetsIdentifiers
+                    .Select(set => set with
+                    {
+                        simulationIdentifiers = set.simulationIdentifiers.Where(RefersOnlyToActive).ToList()
+                    })
+                    .Where(set => set.simulationIdentifiers.Count > 0)
+                    .ToList();
+                // --- END NEW
+
+                SimulationIdentifier BindToUniqueOptionSet(SimulationIdentifier sim)
+                {
+                    static string S(object v) => v?.ToString();
+
+                    bool Matches(GameOptions opt) =>
+                        sim.columnMatches.All(cm =>
+                            opt.VariableSettings.TryGetValue(cm.columnName, out var v) && S(v) == cm.expectedValue);
+
+                    var candidates = variationSets.Where(Matches).ToList();
+                    if (candidates.Count != 1)
+                        throw new InvalidOperationException(
+                            $"Simulation identifier '{sim.nameForSimulation}' resolves to {candidates.Count} option sets; expected exactly one.");
+
+                    var bound = sim;
+                    foreach (var kv in candidates[0].VariableSettings.OrderBy(k => k.Key))
+                        bound = bound.With(kv.Key, S(kv.Value));
+
+                    return bound;
+                }
+
+                simulationSetsIdentifiers = simulationSetsIdentifiers
+                    .Select(set => set with
+                    {
+                        simulationIdentifiers = set.simulationIdentifiers.Select(BindToUniqueOptionSet).ToList()
+                    })
+                    .ToList();
+
+                return simulationSetsIdentifiers;
+            }
         }
+
+
+
 
 
         private void AddPairwiseSimulationSets(List<SimulationSetsIdentifier> simulationSetsIdentifiers)

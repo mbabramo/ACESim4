@@ -32,6 +32,7 @@ namespace ACESimBase.GameSolvingSupport.Settings
         #region Settings
 
         public GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.RegretMatching;
+        public bool OnlyRunCoreSimulations = true; // DEBUG
 
         public int? AlwaysDoTaskID = null;  // set this to a task to replay a particular task (either over and over again, using ACESimDistributed, or just once, using ACESimConsole).
         public int[] LimitToTaskIDs = null; // new int[] { 421 }; // set this to non-null to repeat specific IDs (e.g., from failures) from a distributed action set.
