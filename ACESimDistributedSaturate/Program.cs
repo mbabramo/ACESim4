@@ -20,7 +20,7 @@ namespace ACESimDistributedSaturate
                 throw new Exception("Set to release mode before saturating.");
             string targetPath = currentPath.Replace("ACESimDistributedSaturate", "ACESimDistributed");
             Console.WriteLine(targetPath);
-            const int maxNumProcessors = 28;
+            const int maxNumProcessors = 20;
             int numProcessors = Environment.ProcessorCount;
             if (numProcessors > maxNumProcessors)
                 numProcessors = maxNumProcessors;

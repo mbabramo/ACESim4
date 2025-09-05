@@ -298,18 +298,17 @@ namespace ACESim
                         CriticalCostsMultiplierTransformations(),
                         null,
                         IsGlobal: true),
+
                     new("FeeShiftingMultiplier",
-                        CriticalFeeShiftingMultiplierTransformations(),
-                        AdditionalFeeShiftingMultiplierTransformations()
+                        null, CriticalFeeShiftingMultiplierTransformations()
                         ),
 
                     new("DamagesMultiplier",
-                        CriticalDamagesMultiplierTransformations(),
-                        AdditionalDamagesMultiplierTransformations()),
+                        null, CriticalDamagesMultiplierTransformations()
+                        ),
 
                     new("LiabilityThreshold",
-                        CriticalLiabilityThresholdTransformations(),
-                        AdditionalLiabilityThresholdTransformations()
+                        null, CriticalLiabilityThresholdTransformations()
                         ),
                 };
             }

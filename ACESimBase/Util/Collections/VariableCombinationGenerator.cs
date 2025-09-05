@@ -9,7 +9,7 @@ namespace ACESimBase.Util.Combinatorics
     /// according to three roles a dimension can play:
     ///
     /// • <b>Global</b> – values are crossed with <em>everything</em> (full Cartesian product).
-    /// • <b>Core</b>  – their <paramref name="CriticalTransforms"/> form a Cartesian grid when all
+    /// • <b>Core</b>  – they <paramref name="CriticalTransforms"/> form a Cartesian grid when all
     ///   modifiers are default; when any modifier is active the generator varies <strong>one core
     ///   dimension at a time</strong>.
     /// • <b>Modifier</b> – at most one modifier may be non-default in any option set; each of its
