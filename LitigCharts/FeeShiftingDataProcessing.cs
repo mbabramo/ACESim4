@@ -179,7 +179,7 @@ namespace LitigCharts
                 ("Equilibria Files", new[] { "-equ.csv" }),
                 ("Logs", new[] { "-log.txt" }),
                 ("Latex underlying data", expandToIncludeAdditionalEquilibria(new[] { "-offers.csv", "-fileans.csv", "-stagecostlight.csv", "-stagecostdark.csv", "-costbreakdowndata.csv" })),
-                ("Latex files", expandToIncludeAdditionalEquilibria(new[] { "-offers.tex", "-fileans.tex", "-stagecostlight.tex", "-stagecostdark.tex", "-costbreakdownlight.tex", "-costbreakdowndark.tex" })),
+                ("Latex files", expandToIncludeAdditionalEquilibria(new[] { "-offers.tex", "-fileans.tex", "-stagecostlight.tex", "-stagecostdark.tex", "-costbreakdownlight.tex", "-costbreakdowndark.tex", "-winratebydpsignallight.tex", "-winratebydpsignaldark.tex", "-winratebypdsignallight.tex", "-winratebypdsignaldark.tex"  })),
                 ("File-Answer Diagrams", expandToIncludeAdditionalEquilibria( new[] { "-fileans.pdf" })),
                 ("Offer Heatmaps", expandToIncludeAdditionalEquilibria( new[] { "-offers.pdf" })),
                 ("Cost Breakdown Diagrams (Normal)", expandToIncludeAdditionalEquilibria( new[] { "-costbreakdownlight.pdf" })),
@@ -268,7 +268,7 @@ namespace LitigCharts
                 workExists = processesToLaunch.Any();
                 foreach (string fileSuffix in equilibriumTypeSuffixes)
                 {
-                    List<string> extensions = ["-costbreakdownlight" + fileSuffix, "-costbreakdowndark" + fileSuffix, "-offers" + fileSuffix, "-fileans" + fileSuffix];
+                    List<string> extensions = ["-costbreakdownlight" + fileSuffix, "-costbreakdowndark" + fileSuffix, "-offers" + fileSuffix, "-fileans" + fileSuffix, "-winratebydpsignallight" + fileSuffix, "-winratebydpsignaldark" + fileSuffix, "-winratebypdsignallight" + fileSuffix, "-winratebypdsignaldark" + fileSuffix];
                     if (article != DataBeingAnalyzed.EndogenousDisputesArticle)
                         extensions.AddRange(["-stagecostlight" + fileSuffix, "-stagecostdark" + fileSuffix]);
                     List<(string path, string combinedPath, string optionSetName, string fileSuffix)> someToDo = FeeShiftingDataProcessing.GetLatexProcessPlans(launcher, extensions.ToArray(), avoidProcessingIfPDFExists || numAttempts > 1);
