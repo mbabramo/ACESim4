@@ -1,6 +1,7 @@
 ﻿using ACESim;
 using ACESimBase;
 using ACESimBase.Games.LitigGame;
+using ACESimBase.Games.LitigGame.PrecautionModel;
 using ACESimBase.GameSolvingSupport.Settings;
 using ACESimBase.Util.Serialization;
 using System;
@@ -68,6 +69,7 @@ namespace LitigCharts
         {
             bool doCoefficientOfVariationCalculations = false; // if so, only this will be run. Note that this will generally be useful when there are many equilibria for a single set of parameters, not when there are many different sets of parameters.
             bool doSignalsDiagram = false; // if so, only this will be run. This is the figure that shows how truly liable or not truly liable cases convert to litigation quality levels and how litigation quality levels convert to signals for the players.
+            bool doProbitLiabilityDiagram = true; // DEBUG // same. This is the figure for endogenous disputes that shows for each signal (different curves), and each relative precaution level (x axis), what the probability of liability is (integrating over all hidden states).
 
             if (doCoefficientOfVariationCalculations)
             {
@@ -79,6 +81,13 @@ namespace LitigCharts
             {
                 SignalsDiagram diagram = new SignalsDiagram();
                 string texCode = diagram.CreateDiagram();
+                return true;
+            }
+
+            if (doProbitLiabilityDiagram)
+            {
+                string texCode = ProbitLiabilityTikzGenerator.BuildStandaloneBaseline();
+                string texCodeDeterministic = ProbitLiabilityTikzGenerator.BuildStandaloneBaseline(decisionRule: CourtDecisionRule.DeterministicThreshold);
                 return true;
             }
 
