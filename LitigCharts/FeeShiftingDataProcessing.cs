@@ -18,6 +18,7 @@ using System.Linq;
 using System.Reflection.Emit;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading;
 using System.Threading.Tasks;
 using Tensorflow;
 using static ACESimBase.Games.LitigGame.ManualReports.CostBreakdownReport;
@@ -1270,18 +1271,62 @@ namespace LitigCharts
             public PlannedPath DeepClone() => new PlannedPath(originalPath, prioritizedSubpaths.ToList());
         }
 
+        private static int shortJobCounter = 0;
+
         private static void GenerateLatex(PlannedPath plannedPath, string outputFilename, string standaloneDocument)
         {
             string outputPath = plannedPath.GetPlannedPathString();
             string outputCombinedPath = plannedPath.GetCombinedPlannedPathString(outputFilename);
+
+            // Always write the .tex in the planned folder (transparency).
             TextFileManage.CreateTextFile(outputCombinedPath, standaloneDocument);
-            string expectedOutput = outputCombinedPath.Replace(".tex", ".pdf");
-            if (!avoidProcessingIfPDFExists || !DataProcessingBase.VirtualizableFileSystem.File.Exists(expectedOutput))
+
+            string expectedOutputPdf = outputCombinedPath.Replace(".tex", ".pdf");
+            if (!avoidProcessingIfPDFExists || !DataProcessingBase.VirtualizableFileSystem.File.Exists(expectedOutputPdf))
             {
-                TabbedText.WriteLine($"Generating {outputFilename} in {outputPath}");
-                ExecuteLatexProcess(outputPath, outputCombinedPath);
+                string tempRoot = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "LitigCharts");
+                DataProcessingBase.VirtualizableFileSystem.Directory.CreateDirectory(tempRoot);
+
+                // Unique short id per run to avoid collisions with stale files.
+                int counter = Interlocked.Increment(ref shortJobCounter);
+                string uniqueId = $"{GetStableNumericId(outputCombinedPath)}_{Process.GetCurrentProcess().Id}_{counter}";
+
+                string tempTexPath = System.IO.Path.Combine(tempRoot, uniqueId + ".tex");
+                TextFileManage.CreateTextFile(tempTexPath, standaloneDocument);
+
+                string tempPdfPath = System.IO.Path.ChangeExtension(tempTexPath, ".pdf");
+                string tempLogPath = System.IO.Path.ChangeExtension(tempTexPath, ".log");
+                string expectedOutputLog = System.IO.Path.ChangeExtension(expectedOutputPdf, ".log");
+
+                // Queue the exact file we expect to move.
+                DataProcessingBase.QueuePostCompileMove(tempPdfPath, expectedOutputPdf, tempLogPath, expectedOutputLog);
+
+                TabbedText.WriteLine($"Generating {outputFilename} in {outputPath} (compiling via short temporary jobname).");
+
+                ExecuteLatexProcess(tempRoot, tempTexPath);
+            }
+
+            static string GetStableNumericId(string input)
+            {
+                using (var sha1 = System.Security.Cryptography.SHA1.Create())
+                {
+                    byte[] bytes = System.Text.Encoding.UTF8.GetBytes(input);
+                    byte[] hash = sha1.ComputeHash(bytes);
+                    ulong value =
+                        ((ulong)hash[0] << 56) |
+                        ((ulong)hash[1] << 48) |
+                        ((ulong)hash[2] << 40) |
+                        ((ulong)hash[3] << 32) |
+                        ((ulong)hash[4] << 24) |
+                        ((ulong)hash[5] << 16) |
+                        ((ulong)hash[6] << 8)  |
+                         (ulong)hash[7];
+                    return value.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                }
             }
         }
+
+
 
         #endregion
     }

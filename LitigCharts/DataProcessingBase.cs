@@ -43,26 +43,110 @@ namespace LitigCharts
         public static int maxProcesses = UseParallel ? Environment.ProcessorCount : 1;
         public static bool avoidProcessingIfPDFExists = true; // should usually be true because when it's false, we only have one shot at getting everything launched properly
 
-        #region Process Management
+        static readonly List<(string sourcePdf, string destPdf, string sourceLog, string destLog)> PendingPostCompileMoves
+            = new List<(string sourcePdf, string destPdf, string sourceLog, string destLog)>();
 
+        public static void QueuePostCompileMove(string sourcePdf, string destPdf, string sourceLog, string destLog)
+        {
+            lock (PendingPostCompileMoves)
+                PendingPostCompileMoves.Add((sourcePdf, destPdf, sourceLog, destLog));
+        }
+
+        #region Process Management
         static void CleanupCompletedProcesses(bool killStaleProcesses)
         {
+            // Prune completed processes and enforce the existing watchdog window.
             ProcessesList = ProcessesList.Where(x => !x.HasExited).ToList();
 
             TimeSpan maxTimeAllowed = TimeSpan.FromMinutes(3);
             var expiredList = ProcessesList.Where(x => x.StartTime + maxTimeAllowed < DateTime.Now).ToList();
             foreach (var expired in expiredList)
             {
-                // terminate the process
-                expired.Kill();
-                ProcessesList.Remove(expired);
-                TabbedText.WriteLine($"Terminated process {expired.StartInfo.Arguments}");
+                try { expired.Kill(); } catch { }
+                finally
+                {
+                    ProcessesList.Remove(expired);
+                    TabbedText.WriteLine($"Terminated process {expired.StartInfo.Arguments}");
+                }
             }
 
-            var remaining = ProcessesList.Select(x => x.StartInfo.Arguments.ToString()).ToList();
-            string remainingList = String.Join("\n", remaining);
-            Task.Delay(1000);
+            // Move short-name outputs into place when they are definitely unlocked.
+            if (PendingPostCompileMoves.Count > 0)
+            {
+                (string sourcePdf, string destPdf, string sourceLog, string destLog)[] movesSnapshot;
+                lock (PendingPostCompileMoves)
+                    movesSnapshot = PendingPostCompileMoves.ToArray();
+
+                foreach (var move in movesSnapshot)
+                {
+                    try
+                    {
+                        // Skip until the source PDF actually exists and is not locked.
+                        if (!VirtualizableFileSystem.File.Exists(move.sourcePdf) || !IsFileUnlocked(move.sourcePdf))
+                            continue;
+
+                        // Ensure destination directory exists.
+                        string destDir = Path.GetDirectoryName(move.destPdf);
+                        if (!string.IsNullOrEmpty(destDir))
+                            VirtualizableFileSystem.Directory.CreateDirectory(destDir);
+
+                        // Copy into place (overwrite to keep idempotency).
+                        VirtualizableFileSystem.File.Copy(move.sourcePdf, move.destPdf, true);
+
+                        // Try to clean up the temp PDF; if it’s still locked, we’ll retry next tick.
+                        if (IsFileUnlocked(move.sourcePdf))
+                        {
+                            try { VirtualizableFileSystem.File.Delete(move.sourcePdf); } catch { /* retry later */ }
+                        }
+
+                        // Handle log similarly, but it’s optional.
+                        if (!string.IsNullOrEmpty(move.sourceLog) &&
+                            VirtualizableFileSystem.File.Exists(move.sourceLog) &&
+                            IsFileUnlocked(move.sourceLog))
+                        {
+                            string destLogDir = Path.GetDirectoryName(move.destLog);
+                            if (!string.IsNullOrEmpty(destLogDir))
+                                VirtualizableFileSystem.Directory.CreateDirectory(destLogDir);
+
+                            VirtualizableFileSystem.File.Copy(move.sourceLog, move.destLog, true);
+
+                            try { VirtualizableFileSystem.File.Delete(move.sourceLog); } catch { /* retry later */ }
+                        }
+
+                        // Removal from the queue only after we have successfully copied the PDF into place.
+                        lock (PendingPostCompileMoves)
+                            PendingPostCompileMoves.Remove(move);
+
+                        TabbedText.WriteLine($"Moved {Path.GetFileName(move.destPdf)} into place.");
+                    }
+                    catch
+                    {
+                        // Swallow and retry on a future cleanup tick.
+                        // We intentionally never throw from cleanup.
+                    }
+                }
+            }
+
+            System.Threading.Thread.Sleep(100);
+
+            // Local helper: true only if we can get an exclusive read handle (i.e., not in use).
+            static bool IsFileUnlocked(string path)
+            {
+                try
+                {
+                    using (var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.None))
+                    {
+                        // If we got here, nobody else holds the file open.
+                        return true;
+                    }
+                }
+                catch
+                {
+                    return false;
+                }
+            }
         }
+
 
         public static void WaitForProcessesToFinish()
         {
