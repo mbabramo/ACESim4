@@ -119,7 +119,7 @@ namespace ACESimBase.GameSolvingSupport.Settings
 
         public bool GenerateReportsByPlaying = true;
         public int NumRandomIterationsForSummaryTable = 1_000;
-        public bool PrintGameTree = true; // DEBUG
+        public bool PrintGameTree = false;
         public bool KeepPrintingGameTree = false; // after printing once, keep printing again
         public bool PrintedGameTreeIncludesInformationSetData = true; // set to true to print Tikz diagrams
         public bool PrintInformationSets = false;
