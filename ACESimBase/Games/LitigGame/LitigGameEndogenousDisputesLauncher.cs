@@ -636,7 +636,7 @@ namespace ACESim
                 simulationSetsIdentifiers = PerformArticleVariationInfoSetsTransformation(transformer, simulationSetsIdentifiers);
                 AddPairwiseSimulationSets(simulationSetsIdentifiers);
 
-                // --- NEW: subset-safe filter for non-core runs too, just in case transforms removed some columns
+                // subset-safe filter for non-core runs too, just in case transforms removed some columns
                 var activeColumns = new HashSet<string>(variationSets.SelectMany(vs => vs.VariableSettings.Keys));
                 bool RefersOnlyToActive(SimulationIdentifier sim) =>
                     sim.columnMatches.All(cm => activeColumns.Contains(cm.columnName));
@@ -648,7 +648,6 @@ namespace ACESim
                     })
                     .Where(set => set.simulationIdentifiers.Count > 0)
                     .ToList();
-                // --- END NEW
 
                 SimulationIdentifier BindToUniqueOptionSet(SimulationIdentifier sim)
                 {
