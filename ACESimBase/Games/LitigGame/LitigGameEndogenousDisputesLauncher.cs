@@ -82,7 +82,7 @@ namespace ACESim
 
         public record class CourtNoiseInfo(double noiseStdev, bool doProbit, double? probitScale, string name);
 
-        public CourtNoiseInfo[] CourtNoiseValues = new CourtNoiseInfo[] { new CourtNoiseInfo(0.2, true, 0.25, "Baseline"), new CourtNoiseInfo(0, false, null, "Perfect"), new CourtNoiseInfo(0.1, true, 0.25, "Low Noise"), new CourtNoiseInfo(0.2, true, 0.1, "Low Indet"),  new CourtNoiseInfo(0.4, true, 0.25, "High Noise"), new CourtNoiseInfo(0.2, true, 0.5, "High Indet"), new CourtNoiseInfo(0.2, true, 0.5, "High Noise and Indet") };
+        public CourtNoiseInfo[] CourtNoiseValues = new CourtNoiseInfo[] { new CourtNoiseInfo(0.2, true, 0.25, "Baseline"), new CourtNoiseInfo(0, false, null, "Perfect"), new CourtNoiseInfo(0.1, true, 0.25, "Low Noise"), new CourtNoiseInfo(0.2, true, 0.1, "Low Indet"),  new CourtNoiseInfo(0.4, true, 0.25, "High Noise"), new CourtNoiseInfo(0.2, true, 0.5, "High Indet"), new CourtNoiseInfo(0.4, true, 0.5, "High Both") };
 
         public double[] CostMisestimations => new double[] { 1.0, 2.0, 5.0, 10.0 };
 
