@@ -28,7 +28,6 @@ namespace ACESimBase.Games.DMSReplicationGame
             PlayerNames = Players.Select(x => x.PlayerName).ToArray();
             NumPlayers = (byte)Players.Count();
             DecisionsExecutionOrder = GetDecisionsList();
-            CalculateDistributorChanceInputDecisionMultipliers();
 
             IGameFactory gameFactory = new DMSReplicationGameFactory();
             Initialize(gameFactory);

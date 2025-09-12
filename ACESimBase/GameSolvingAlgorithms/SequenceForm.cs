@@ -713,12 +713,7 @@ namespace ACESimBase.GameSolvingAlgorithms
                         var rational = InformationSetInfos[infoSetIndex].ChanceNode.GetProbabilitiesAsRationals(!EvolutionSettings.SequenceFormCutOffProbabilityZeroNodes, EvolutionSettings.MaxIntegralUtility)[moveNumber - 1];
                         if (rational.IsZero && !EvolutionSettings.SequenceFormCutOffProbabilityZeroNodes)
                             throw new Exception("Zero chance probabilities not allowed");
-                        if (chance.Decision.DistributedChanceDecision && EvolutionSettings.DistributeChanceDecisions)
-                        {
-                            t.moves[moveIndex].behavioralProbability = moveNumber == 1 ? IMaybeExact<T>.One() : IMaybeExact<T>.Zero();
-                        }
-                        else
-                            t.moves[moveIndex].behavioralProbability = IMaybeExact<T>.FromRational(rational);
+                        t.moves[moveIndex].behavioralProbability = IMaybeExact<T>.FromRational(rational);
                     }
                 }
             }

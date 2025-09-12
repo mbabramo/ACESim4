@@ -10,46 +10,44 @@ namespace ACESimBase.GameSolvingSupport.GameTree
 {
     public class AcceleratedBestResponsePrep : ITreeNodeProcessor<NodeActionsHistory, List<NodeActionsMultipleHistories>>
     {
-        bool DistributingChanceActions;
         byte NumNonChancePlayers;
         public bool TraceAcceleratedBestResponsePrep;
 
-        public AcceleratedBestResponsePrep(bool distributingChanceActions, byte numNonChancePlayers, bool trace)
+        public AcceleratedBestResponsePrep(byte numNonChancePlayers, bool trace)
         {
-            DistributingChanceActions = distributingChanceActions;
             NumNonChancePlayers = numNonChancePlayers;
             TraceAcceleratedBestResponsePrep = trace;
         }
 
-        public NodeActionsHistory InformationSet_Forward(InformationSetNode informationSet, IGameState predecessor, byte predecessorAction, int predecessorDistributorChanceInputs, NodeActionsHistory fromPredecessor)
+        public NodeActionsHistory InformationSet_Forward(InformationSetNode informationSet, IGameState predecessor, byte predecessorAction, NodeActionsHistory fromPredecessor)
         {
             // Get a history from the same information set by the same player to here.
-            NodeActionsHistory historyToHere = predecessor == null ? fromPredecessor : fromPredecessor.WithAppended(predecessor, predecessorAction, predecessorDistributorChanceInputs); // The information from the predecessor does not include the predecessor itself and the action taken there, so we add it. 
+            NodeActionsHistory historyToHere = predecessor == null ? fromPredecessor : fromPredecessor.WithAppended(predecessor, predecessorAction); // The information from the predecessor does not include the predecessor itself and the action taken there, so we add it. 
             (InformationSetNode predecessorInformationSetForPlayer, byte actionTakenThere) = historyToHere.GetLastInformationSetByPlayer(informationSet.PlayerIndex); // The predecessor may not be an information set from the same player, so we need to identify the predecessor for the same player as well as the action taken there. 
             informationSet.PredecessorInformationSetForPlayer = predecessorInformationSetForPlayer;
             informationSet.ActionTakenAtPredecessorSet = actionTakenThere;
-            NodeActionsHistory fromLastInformationSet = historyToHere.GetIncrementalHistory(informationSet.PlayerIndex, DistributingChanceActions);
+            NodeActionsHistory fromLastInformationSet = historyToHere.GetIncrementalHistory(informationSet.PlayerIndex);
             if (TraceAcceleratedBestResponsePrep)
                 TabbedText.WriteLine($"From predecessor information set {predecessorInformationSetForPlayer?.InformationSetNodeNumber} to {informationSet.InformationSetNodeNumber}: {fromLastInformationSet}");
             // Now, add this history to a list of paths from the predecessor information set.
-            ByteList actionsListExcludingPlayerAndDistributedChance = historyToHere.GetActionsListExcludingPlayerAndDistributedChance(informationSet.PlayerIndex, DistributingChanceActions);
+            ByteList actionsListExcludingPlayer = historyToHere.GetActionsListExcludingPlayer(informationSet.PlayerIndex);
             if (informationSet.PathsFromPredecessor == null)
                 informationSet.PathsFromPredecessor = new List<PathFromPredecessorInfo>();
-            informationSet.PathsFromPredecessor.Add(new PathFromPredecessorInfo() { ActionsListExcludingPlayerAndDistributedChance = actionsListExcludingPlayerAndDistributedChance, IndexInPredecessorsPathsFromPredecessor = (predecessorInformationSetForPlayer?.PathsFromPredecessor.Count() ?? 0) - 1, Path = fromLastInformationSet });
+            informationSet.PathsFromPredecessor.Add(new PathFromPredecessorInfo() { ActionsListExcludingPlayer = actionsListExcludingPlayer, IndexInPredecessorsPathsFromPredecessor = (predecessorInformationSetForPlayer?.PathsFromPredecessor.Count() ?? 0) - 1, Path = fromLastInformationSet });
             return historyToHere;
         }
 
-        public NodeActionsHistory ChanceNode_Forward(ChanceNode chanceNode, IGameState predecessor, byte predecessorAction, int predecessorDistributorChanceInputs, NodeActionsHistory fromPredecessor, int distributorChanceInputs)
+        public NodeActionsHistory ChanceNode_Forward(ChanceNode chanceNode, IGameState predecessor, byte predecessorAction, NodeActionsHistory fromPredecessor)
         {
             if (predecessor == null)
                 return fromPredecessor;
-            NodeActionsHistory historyToHere = fromPredecessor.WithAppended(predecessor, predecessorAction, predecessorDistributorChanceInputs);
+            NodeActionsHistory historyToHere = fromPredecessor.WithAppended(predecessor, predecessorAction);
             return historyToHere;
         }
 
-        public List<NodeActionsMultipleHistories> FinalUtilities_TurnAround(FinalUtilitiesNode finalUtilities, IGameState predecessor, byte predecessorAction, int predecessorDistributorChanceInputs, NodeActionsHistory fromPredecessor)
+        public List<NodeActionsMultipleHistories> FinalUtilities_TurnAround(FinalUtilitiesNode finalUtilities, IGameState predecessor, byte predecessorAction, NodeActionsHistory fromPredecessor)
         {
-            NodeActionsHistory historyToHere = predecessor == null ? fromPredecessor : fromPredecessor.WithAppended(predecessor, predecessorAction, predecessorDistributorChanceInputs);
+            NodeActionsHistory historyToHere = predecessor == null ? fromPredecessor : fromPredecessor.WithAppended(predecessor, predecessorAction);
             return Enumerable.Range(0, NumNonChancePlayers).Select(x => new NodeActionsMultipleHistories(finalUtilities)).ToList();
         }
 
@@ -103,14 +101,14 @@ namespace ACESimBase.GameSolvingSupport.GameTree
             return returnList;
         }
 
-        public List<NodeActionsMultipleHistories> ChanceNode_Backward(ChanceNode chanceNode, IEnumerable<List<NodeActionsMultipleHistories>> fromSuccessors, int distributorChanceInputs)
+        public List<NodeActionsMultipleHistories> ChanceNode_Backward(ChanceNode chanceNode, IEnumerable<List<NodeActionsMultipleHistories>> fromSuccessors)
         {
             List<NodeActionsMultipleHistories> returnList = new List<NodeActionsMultipleHistories>();
             var multipleHistoriesByPlayer = GetMultipleHistoriesByPlayer(fromSuccessors);
             for (byte playerIndex = 0; playerIndex < NumNonChancePlayers; playerIndex++)
             {
                 List<NodeActionsMultipleHistories> successorsForPlayer = multipleHistoriesByPlayer[playerIndex];
-                NodeActionsMultipleHistories result = NodeActionsMultipleHistories.FlattenedWithPrepend(successorsForPlayer, chanceNode, distributorChanceInputs, DistributingChanceActions);
+                NodeActionsMultipleHistories result = NodeActionsMultipleHistories.FlattenedWithPrepend(successorsForPlayer, chanceNode);
                 returnList.Add(result);
                 if (TraceAcceleratedBestResponsePrep)
                     TabbedText.WriteLine($"From successor (player {playerIndex}): {returnList.Last()}");

@@ -9,13 +9,11 @@ namespace ACESimBase.GameSolvingSupport.GameTree
     {
         public IGameState Node;
         public byte ActionAtNode;
-        public int DistributorChanceInputs;
 
-        public NodeAction(IGameState node, byte actionAtNode, int distributorChanceInputs = -1)
+        public NodeAction(IGameState node, byte actionAtNode)
         {
             Node = node;
             ActionAtNode = actionAtNode;
-            DistributorChanceInputs = distributorChanceInputs;
         }
 
         public override string ToString()
@@ -23,24 +21,24 @@ namespace ACESimBase.GameSolvingSupport.GameTree
             return Node switch
             {
                 null => "null",
-                _ => $"{Node.GetGameStateType()} {Node.GetInformationSetNodeNumber()}: {ActionAtNode}{(DistributorChanceInputs != -1 && DistributorChanceInputs != 0 && Node is ChanceNodeUnequalProbabilities u && u.Decision.DistributorChanceDecision ? $"({DistributorChanceInputs})" : "")}"
+                _ => $"{Node.GetGameStateType()} {Node.GetInformationSetNodeNumber()}: {ActionAtNode}"
             };
         }
 
         public NodeAction Clone()
         {
-            return new NodeAction(Node, ActionAtNode, DistributorChanceInputs);
+            return new NodeAction(Node, ActionAtNode);
         }
 
         public override bool Equals(object obj)
         {
             NodeAction other = (NodeAction)obj;
-            return Node == other.Node && ActionAtNode == other.ActionAtNode && DistributorChanceInputs == other.DistributorChanceInputs;
+            return Node == other.Node && ActionAtNode == other.ActionAtNode;
         }
 
         public override int GetHashCode()
         {
-            return (Node, ActionAtNode, DistributorChanceInputs).GetHashCode();
+            return (Node, ActionAtNode).GetHashCode();
         }
     }
 }

@@ -34,7 +34,6 @@ namespace ACESimBase.GameSolvingSupport.GameTree
             FinalUtilitiesNode finalUtilities,
             IGameState predecessor,
             byte predecessorAction,
-            int predecessorDistributorChanceInputs,
             object fromPredecessor)
         {
             // Leaf node => return (0, 0, 1)
@@ -50,9 +49,7 @@ namespace ACESimBase.GameSolvingSupport.GameTree
             ChanceNode chanceNode,
             IGameState predecessor,
             byte predecessorAction,
-            int predecessorDistributorChanceInputs,
-            object fromPredecessor,
-            int distributorChanceInputs)
+            object fromPredecessor)
         {
             // We don’t accumulate anything going forward
             return null;
@@ -60,8 +57,7 @@ namespace ACESimBase.GameSolvingSupport.GameTree
 
         public NodeCounts ChanceNode_Backward(
             ChanceNode chanceNode,
-            IEnumerable<NodeCounts> fromSuccessors,
-            int distributorChanceInputs)
+            IEnumerable<NodeCounts> fromSuccessors)
         {
             // Sum all children’s NodeCounts
             NodeCounts aggregated = default;
@@ -82,7 +78,6 @@ namespace ACESimBase.GameSolvingSupport.GameTree
             InformationSetNode informationSet,
             IGameState predecessor,
             byte predecessorAction,
-            int predecessorDistributorChanceInputs,
             object fromPredecessor)
         {
             // Nothing to do on the way down

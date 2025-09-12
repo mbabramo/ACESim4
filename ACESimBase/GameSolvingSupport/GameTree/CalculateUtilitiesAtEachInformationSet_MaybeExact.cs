@@ -76,7 +76,7 @@ namespace ACESimBase.GameSolvingSupport.GameTree
             return (normalizedUtilities, normalizedUtilitiesAtSuccessors, reachProbability);
         }
 
-        public IMaybeExact<T> ChanceNode_Forward(ChanceNode chanceNode, IGameState predecessor, byte predecessorAction, int predecessorDistributorChanceInputs, IMaybeExact<T> fromPredecessor, int distributorChanceInputs)
+        public IMaybeExact<T> ChanceNode_Forward(ChanceNode chanceNode, IGameState predecessor, byte predecessorAction, IMaybeExact<T> fromPredecessor)
         {
             return GetCumulativeReachProbability(fromPredecessor, predecessor, predecessorAction);
         }
@@ -98,7 +98,7 @@ namespace ACESimBase.GameSolvingSupport.GameTree
             return cumulativeProbability;
         }
 
-        public IMaybeExact<T> InformationSet_Forward(InformationSetNode informationSet, IGameState predecessor, byte predecessorAction, int predecessorDistributorChanceInputs, IMaybeExact<T> fromPredecessor)
+        public IMaybeExact<T> InformationSet_Forward(InformationSetNode informationSet, IGameState predecessor, byte predecessorAction, IMaybeExact<T> fromPredecessor)
         {
             InformationSetNodeNumbers.Add(informationSet.GetInformationSetNodeNumber());
             IMaybeExact<T> cumulativeProbability = GetCumulativeReachProbability(fromPredecessor, predecessor, predecessorAction);
@@ -132,7 +132,7 @@ namespace ACESimBase.GameSolvingSupport.GameTree
             return utilities;
         }
 
-        public IMaybeExact<T>[] ChanceNode_Backward(ChanceNode chanceNode, IEnumerable<IMaybeExact<T>[]> fromSuccessors, int distributorChanceInputs)
+        public IMaybeExact<T>[] ChanceNode_Backward(ChanceNode chanceNode, IEnumerable<IMaybeExact<T>[]> fromSuccessors)
         {
             if (!ChanceProbabilities.ContainsKey(chanceNode.ChanceNodeNumber))
             {
@@ -164,7 +164,7 @@ namespace ACESimBase.GameSolvingSupport.GameTree
             return utilities;
         }
 
-        public IMaybeExact<T>[] FinalUtilities_TurnAround(FinalUtilitiesNode finalUtilities, IGameState predecessor, byte predecessorAction, int predecessorDistributorChanceInputs, IMaybeExact<T> fromPredecessor)
+        public IMaybeExact<T>[] FinalUtilities_TurnAround(FinalUtilitiesNode finalUtilities, IGameState predecessor, byte predecessorAction, IMaybeExact<T> fromPredecessor)
         {
             var rational = Utilities[finalUtilities.GetInformationSetNodeNumber()].ToArray();
             return rational;

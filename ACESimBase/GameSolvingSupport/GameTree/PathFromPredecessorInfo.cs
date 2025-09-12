@@ -6,7 +6,7 @@ namespace ACESimBase.GameSolvingSupport.GameTree
     [Serializable]
     public class PathFromPredecessorInfo
     {
-        public ByteList ActionsListExcludingPlayerAndDistributedChance;
+        public ByteList ActionsListExcludingPlayer;
         public int IndexInPredecessorsPathsFromPredecessor;
         public NodeActionsHistory Path;
         public double Probability;
@@ -16,7 +16,7 @@ namespace ACESimBase.GameSolvingSupport.GameTree
 
         public override string ToString()
         {
-            return $"Path {IndexInPredecessorsPathsFromPredecessor} {Path} probability {Probability} actions excluding player {string.Join(",", ActionsListExcludingPlayerAndDistributedChance)} (most recent opponent info set {MostRecentOpponentInformationSet?.InformationSetNodeNumber} => action {ActionAtOpponentInformationSet} probability {ProbabilityFromMostRecentOpponent})";
+            return $"Path {IndexInPredecessorsPathsFromPredecessor} {Path} probability {Probability} actions excluding player {string.Join(",", ActionsListExcludingPlayer)} (most recent opponent info set {MostRecentOpponentInformationSet?.InformationSetNodeNumber} => action {ActionAtOpponentInformationSet} probability {ProbabilityFromMostRecentOpponent})";
         }
     }
 }

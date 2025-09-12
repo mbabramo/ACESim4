@@ -50,7 +50,7 @@ namespace ACESimBase.GameSolvingSupport.GameTree
             return (normalizedUtilities, normalizedUtilitiesAtSuccessors, reachProbability);
         }
 
-        public double ChanceNode_Forward(ChanceNode chanceNode, IGameState predecessor, byte predecessorAction, int predecessorDistributorChanceInputs, double fromPredecessor, int distributorChanceInputs)
+        public double ChanceNode_Forward(ChanceNode chanceNode, IGameState predecessor, byte predecessorAction, double fromPredecessor)
         {
             return GetCumulativeReachProbability(fromPredecessor, predecessor, predecessorAction);
         }
@@ -67,7 +67,7 @@ namespace ACESimBase.GameSolvingSupport.GameTree
             return cumulativeProbability;
         }
 
-        public double InformationSet_Forward(InformationSetNode informationSet, IGameState predecessor, byte predecessorAction, int predecessorDistributorChanceInputs, double fromPredecessor)
+        public double InformationSet_Forward(InformationSetNode informationSet, IGameState predecessor, byte predecessorAction, double fromPredecessor)
         {
             double cumulativeProbability = GetCumulativeReachProbability(fromPredecessor, predecessor, predecessorAction);
             probabilitiesToNode.Push(cumulativeProbability);
@@ -100,7 +100,7 @@ namespace ACESimBase.GameSolvingSupport.GameTree
             return utilities;
         }
 
-        public double[] ChanceNode_Backward(ChanceNode chanceNode, IEnumerable<double[]> fromSuccessors, int distributorChanceInputs)
+        public double[] ChanceNode_Backward(ChanceNode chanceNode, IEnumerable<double[]> fromSuccessors)
         {
             var probabilities = chanceNode.GetActionProbabilities().ToList();
             double[] utilities = AggregateUtilitiesFromSuccessors(fromSuccessors, probabilities);
@@ -121,7 +121,7 @@ namespace ACESimBase.GameSolvingSupport.GameTree
             return utilities;
         }
 
-        public double[] FinalUtilities_TurnAround(FinalUtilitiesNode finalUtilities, IGameState predecessor, byte predecessorAction, int predecessorDistributorChanceInputs, double fromPredecessor)
+        public double[] FinalUtilities_TurnAround(FinalUtilitiesNode finalUtilities, IGameState predecessor, byte predecessorAction, double fromPredecessor)
         {
             var utilities = finalUtilities.Utilities;
             return utilities;

@@ -14,7 +14,7 @@ namespace ACESimBase.GameSolvingSupport.GameTree
             UseCurrentStrategy = useCurrentStrategy;
         }
 
-        public double[] ChanceNode_Backward(ChanceNode chanceNode, IEnumerable<double[]> fromSuccessors, int distributorChanceInputs)
+        public double[] ChanceNode_Backward(ChanceNode chanceNode, IEnumerable<double[]> fromSuccessors)
         {
             int numPlayers = fromSuccessors.First().Length;
             double[] utilitiesToPassBack = new double[numPlayers];
@@ -23,19 +23,19 @@ namespace ACESimBase.GameSolvingSupport.GameTree
                 throw new Exception();
             for (byte a = 1; a <= chanceNode.Decision.NumPossibleActions; a++)
             {
-                double probability = chanceNode.GetActionProbability(a, distributorChanceInputs);
+                double probability = chanceNode.GetActionProbability(a);
                 for (int playerIndex = 0; playerIndex < numPlayers; playerIndex++)
                     utilitiesToPassBack[playerIndex] += probability * fromSuccessorsList[a - 1][playerIndex];
             }
             return utilitiesToPassBack;
         }
 
-        public bool ChanceNode_Forward(ChanceNode chanceNode, IGameState predecessor, byte predecessorAction, int predecessorDistributorChanceInputs, bool fromPredecessor, int distributorChanceInputs)
+        public bool ChanceNode_Forward(ChanceNode chanceNode, IGameState predecessor, byte predecessorAction, bool fromPredecessor)
         {
             return true; // ignored
         }
 
-        public double[] FinalUtilities_TurnAround(FinalUtilitiesNode finalUtilities, IGameState predecessor, byte predecessorAction, int predecessorDistributorChanceInputs, bool fromPredecessor)
+        public double[] FinalUtilities_TurnAround(FinalUtilitiesNode finalUtilities, IGameState predecessor, byte predecessorAction, bool fromPredecessor)
         {
             return finalUtilities.Utilities;
         }
@@ -56,7 +56,7 @@ namespace ACESimBase.GameSolvingSupport.GameTree
             return utilitiesToPassBack;
         }
 
-        public bool InformationSet_Forward(InformationSetNode informationSet, IGameState predecessor, byte predecessorAction, int predecessorDistributorChanceInputs, bool fromPredecessor)
+        public bool InformationSet_Forward(InformationSetNode informationSet, IGameState predecessor, byte predecessorAction, bool fromPredecessor)
         {
             return true;
         }

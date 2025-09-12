@@ -28,12 +28,12 @@ namespace ACESimBase.GameSolvingSupport.GameTree
             BlockedPlayerActions = blockedPlayerActions;
         }
 
-        public bool ChanceNode_Backward(ChanceNode chanceNode, IEnumerable<bool> fromSuccessors, int distributorChanceInputs)
+        public bool ChanceNode_Backward(ChanceNode chanceNode, IEnumerable<bool> fromSuccessors)
         {
             return true;
         }
 
-        public ForwardInfo ChanceNode_Forward(ChanceNode chanceNode, IGameState predecessor, byte predecessorAction, int predecessorDistributorChanceInputs, ForwardInfo fromPredecessor, int distributorChanceInputs)
+        public ForwardInfo ChanceNode_Forward(ChanceNode chanceNode, IGameState predecessor, byte predecessorAction, ForwardInfo fromPredecessor)
         {
             int id = 0;
             bool isZero = false;
@@ -52,7 +52,7 @@ namespace ACESimBase.GameSolvingSupport.GameTree
             return new ForwardInfo(id, nextIsZero);
         }
 
-        public bool FinalUtilities_TurnAround(FinalUtilitiesNode finalUtilities, IGameState predecessor, byte predecessorAction, int predecessorDistributorChanceInputs, ForwardInfo fromPredecessor)
+        public bool FinalUtilities_TurnAround(FinalUtilitiesNode finalUtilities, IGameState predecessor, byte predecessorAction, ForwardInfo fromPredecessor)
         {
             bool isZero = fromPredecessor.nextIsZero[predecessorAction - 1];
             if (!isZero || !SequenceFormCutOffProbabilityZeroNodes)
@@ -79,7 +79,7 @@ namespace ACESimBase.GameSolvingSupport.GameTree
             return true;
         }
 
-        public ForwardInfo InformationSet_Forward(InformationSetNode informationSet, IGameState predecessor, byte predecessorAction, int predecessorDistributorChanceInputs, ForwardInfo fromPredecessor)
+        public ForwardInfo InformationSet_Forward(InformationSetNode informationSet, IGameState predecessor, byte predecessorAction, ForwardInfo fromPredecessor)
         {
             int id = 0;
             bool isZero = false;

@@ -39,7 +39,6 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             PlayerNames = Players.Select(x => x.PlayerName).ToArray();
             NumPlayers = (byte)Players.Count();
             DecisionsExecutionOrder = GetDecisionsList();
-            CalculateDistributorChanceInputDecisionMultipliers();
 
             IGameFactory gameFactory = new AdditiveEvidenceGameFactory();
             Initialize(gameFactory);
@@ -109,8 +108,6 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                 IsReversible = true,
                 Unroll_Parallelize = true,
                 Unroll_Parallelize_Identical = true,
-                //DistributorChanceInputDecision = true,
-                //DistributableDistributorChanceInput = true,
             });
             if (Options.Alpha_Quality > 0 && Options.Alpha_Defendant_Quality > 0)
                 decisions.Add(new Decision("Chance_Defendant_Quality", useAbbreviationsForSimplifiedGame ? "DInfo" : "DQ", true, (byte)AdditiveEvidenceGamePlayers.Chance_Defendant_Quality, new byte[] { (byte)AdditiveEvidenceGamePlayers.Defendant, (byte)AdditiveEvidenceGamePlayers.Resolution }, Options.NumQualityAndBiasLevels_PrivateInfo, (byte)AdditiveEvidenceGameDecisions.Chance_Defendant_Quality)
@@ -118,8 +115,6 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                 IsReversible = true,
                 Unroll_Parallelize = true,
                 Unroll_Parallelize_Identical = true,
-                //DistributorChanceInputDecision = true,
-                //DistributableDistributorChanceInput = true,
                 CanTerminateGame = false
             });
             if (Options.IncludeChanceDecisionsEvenForPartyWithNoInfluence || (Options.Alpha_Bias > 0 && Options.Alpha_Plaintiff_Bias > 0)) 
@@ -129,8 +124,6 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                     IsReversible = true,
                     Unroll_Parallelize = true,
                     Unroll_Parallelize_Identical = true,
-                    //DistributorChanceInputDecision = true,
-                    //DistributableDistributorChanceInput = true,
                 });
             }
             if (Options.IncludeChanceDecisionsEvenForPartyWithNoInfluence || (Options.Alpha_Bias > 0 && Options.Alpha_Defendant_Bias > 0))
@@ -140,8 +133,6 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                     IsReversible = true,
                     Unroll_Parallelize = true,
                     Unroll_Parallelize_Identical = true,
-                    //DistributorChanceInputDecision = true,
-                    //DistributableDistributorChanceInput = true,
                     CanTerminateGame = false
                 });
             }

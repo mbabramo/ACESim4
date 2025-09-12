@@ -190,7 +190,6 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
                 {
                     StoreActionInGameCacheItem = g.GameHistoryCacheIndex_LiabilityStrength,
                     IsReversible = true,
-                    DistributedChanceDecision = false,
                     Unroll_Parallelize = true
                 });
 
@@ -204,7 +203,6 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
                     unevenChanceActions: false)
                 {
                     IsReversible = true,
-                    DistributedChanceDecision = false,
                     Unroll_Parallelize = true
                 });
             }
@@ -217,7 +215,6 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
                 unevenChanceActions: true)
             {
                 IsReversible = true,
-                DistributedChanceDecision = false,
                 Unroll_Parallelize = true
             });
 
@@ -229,7 +226,6 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
                 unevenChanceActions: true)
             {
                 IsReversible = true,
-                DistributedChanceDecision = false,
                 Unroll_Parallelize = true
             };
             if (!collapse) r.Add(plsDecision);

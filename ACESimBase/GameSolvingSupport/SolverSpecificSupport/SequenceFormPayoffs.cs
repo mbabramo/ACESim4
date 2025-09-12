@@ -39,13 +39,11 @@ namespace ACESimBase.GameSolvingSupport.SolverSpecificSupport
             B.MakeNegative(true);
         }
 
-        public SequenceFormPayoffsTreeInfo ProcessPredecessor(IGameState predecessor, byte predecessorAction, SequenceFormPayoffsTreeInfo fromPredecessor, int distributorChanceInputs = -1)
+        public SequenceFormPayoffsTreeInfo ProcessPredecessor(IGameState predecessor, byte predecessorAction, SequenceFormPayoffsTreeInfo fromPredecessor)
         {
             if (predecessor is ChanceNode chanceNode)
             {
-                if (chanceNode.Decision.DistributedChanceDecision)
-                    return fromPredecessor;
-                double probability = chanceNode.GetActionProbability(predecessorAction, distributorChanceInputs);
+                double probability = chanceNode.GetActionProbability(predecessorAction);
                 var returnVal = fromPredecessor?.WithChanceProbabilityMultiplied(probability) ?? new SequenceFormPayoffsTreeInfo(probability, 0, 0);
                 return returnVal;
             }
@@ -57,17 +55,17 @@ namespace ACESimBase.GameSolvingSupport.SolverSpecificSupport
             return fromPredecessor;
         }
 
-        public bool ChanceNode_Backward(ChanceNode chanceNode, IEnumerable<bool> fromSuccessors, int distributorChanceInputs)
+        public bool ChanceNode_Backward(ChanceNode chanceNode, IEnumerable<bool> fromSuccessors)
         {
             return true; // ignored
         }
 
-        public SequenceFormPayoffsTreeInfo ChanceNode_Forward(ChanceNode chanceNode, IGameState predecessor, byte predecessorAction, int predecessorDistributorChanceInputs, SequenceFormPayoffsTreeInfo fromPredecessor, int distributorChanceInputs)
+        public SequenceFormPayoffsTreeInfo ChanceNode_Forward(ChanceNode chanceNode, IGameState predecessor, byte predecessorAction, SequenceFormPayoffsTreeInfo fromPredecessor)
         {
-            return ProcessPredecessor(predecessor, predecessorAction, fromPredecessor, predecessorDistributorChanceInputs);
+            return ProcessPredecessor(predecessor, predecessorAction, fromPredecessor);
         }
 
-        public bool FinalUtilities_TurnAround(FinalUtilitiesNode finalUtilities, IGameState predecessor, byte predecessorAction, int predecessorDistributorChanceInputs, SequenceFormPayoffsTreeInfo fromPredecessor)
+        public bool FinalUtilities_TurnAround(FinalUtilitiesNode finalUtilities, IGameState predecessor, byte predecessorAction, SequenceFormPayoffsTreeInfo fromPredecessor)
         {
             var finalSequenceInfo = ProcessPredecessor(predecessor, predecessorAction, fromPredecessor);
             double incrementA = finalUtilities.Utilities[0] * finalSequenceInfo.ChanceProbability;
@@ -83,7 +81,7 @@ namespace ACESimBase.GameSolvingSupport.SolverSpecificSupport
             return true; // ignored
         }
 
-        public SequenceFormPayoffsTreeInfo InformationSet_Forward(InformationSetNode informationSet, IGameState predecessor, byte predecessorAction, int predecessorDistributorChanceInputs, SequenceFormPayoffsTreeInfo fromPredecessor)
+        public SequenceFormPayoffsTreeInfo InformationSet_Forward(InformationSetNode informationSet, IGameState predecessor, byte predecessorAction, SequenceFormPayoffsTreeInfo fromPredecessor)
         {
             return ProcessPredecessor(predecessor, predecessorAction, fromPredecessor);
         }

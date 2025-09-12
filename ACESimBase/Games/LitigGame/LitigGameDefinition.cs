@@ -47,7 +47,6 @@ namespace ACESim
             PlayerNames = Players.Select(x => x.PlayerName).ToArray();
             NumPlayers = (byte) Players.Count();
             DecisionsExecutionOrder = GetDecisionsList();
-            CalculateDistributorChanceInputDecisionMultipliers();
 
             IGameFactory gameFactory = CreateLitigGameFactory();
             Initialize(gameFactory);
@@ -615,14 +614,14 @@ namespace ACESim
             decisions.Add(new Decision(courtDecidesDamages ? "Court Liability Decision" : "Court Decision", "CL", true, (byte)LitigGamePlayers.CourtLiabilityChance,
                     new byte[] { (byte)LitigGamePlayers.Resolution }, (byte) Options.NumCourtLiabilitySignals, (byte)LitigGameDecisions.CourtDecisionLiability,
                     unevenChanceActions: true, criticalNode: true)
-                { CanTerminateGame = true, AlwaysTerminatesGame = !courtDecidesDamages, IsReversible = true, DistributorChanceDecision = true, CanCalculateDistributorChanceDecisionProbabilitiesFromInformationSet = true, StoreActionInGameCacheItem = GameHistoryCacheIndex_PWins,
+                { CanTerminateGame = true, AlwaysTerminatesGame = !courtDecidesDamages, IsReversible = true, StoreActionInGameCacheItem = GameHistoryCacheIndex_PWins,
                 SymmetryMap = (SymmetryMapInput.ReverseInfo, SymmetryMapOutput.ChanceDecision)
             }); // even chance options
             if (courtDecidesDamages)
                 decisions.Add(new Decision(courtDecidesLiability ? "Court Damages Decision" : "Court Decision", "CD", true, (byte)LitigGamePlayers.CourtDamagesChance,
                     new byte[] { (byte)LitigGamePlayers.Resolution }, Options.NumDamagesSignals, (byte)LitigGameDecisions.CourtDecisionDamages,
                     unevenChanceActions: true, criticalNode: true)
-                { CanTerminateGame = true, AlwaysTerminatesGame = true, IsReversible = true, DistributorChanceDecision = true, CanCalculateDistributorChanceDecisionProbabilitiesFromInformationSet = true,
+                { CanTerminateGame = true, AlwaysTerminatesGame = true, IsReversible = true,
                     SymmetryMap = (SymmetryMapInput.ReverseInfo, SymmetryMapOutput.ChanceDecision)
                 }); // even chance options
         }

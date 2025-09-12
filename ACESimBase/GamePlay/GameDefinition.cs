@@ -373,16 +373,6 @@ namespace ACESim
             TabbedText.TabUnindent();
         }
 
-        public virtual void CalculateDistributorChanceInputDecisionMultipliers()
-        {
-            int multiplier = 1;
-            foreach (var decision in DecisionsExecutionOrder.Where(x => x.DistributorChanceInputDecision))
-            {
-                decision.DistributorChanceInputDecisionMultiplier = multiplier;
-                multiplier *= (decision.NumPossibleActions + 1); // plus one since the actions are one-based (a zero would indicate a skipped decision).
-            }
-        }
-
         public virtual double[] GetUnevenChanceActionProbabilities(byte decisionByteCode, GameProgress gameProgress)
         {
             return null; // subclass should define if needed

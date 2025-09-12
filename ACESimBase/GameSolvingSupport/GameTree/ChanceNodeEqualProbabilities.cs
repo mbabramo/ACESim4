@@ -27,7 +27,7 @@ namespace ACESimBase.GameSolvingSupport.GameTree
             };
         }
 
-        public override double GetActionProbability(int action, int distributorChanceInputs = -1) => EachProbability;
+        public override double GetActionProbability(int action) => EachProbability;
 
         public override bool AllProbabilitiesEqual()
         {

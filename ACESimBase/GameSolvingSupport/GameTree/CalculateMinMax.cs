@@ -29,7 +29,7 @@ namespace ACESimBase.GameSolvingSupport.GameTree
             CalculatingForPlayer = calculatingForPlayer;
         }
 
-        public double[] FinalUtilities_TurnAround(FinalUtilitiesNode finalUtilities, IGameState predecessor, byte predecessorAction, int predecessorDistributorChanceInputs, bool fromPredecessor)
+        public double[] FinalUtilities_TurnAround(FinalUtilitiesNode finalUtilities, IGameState predecessor, byte predecessorAction, bool fromPredecessor)
         {
             return finalUtilities.Utilities;
         }
@@ -42,7 +42,7 @@ namespace ACESimBase.GameSolvingSupport.GameTree
                         valuesToUpdate[i] = fromSuccessor[i];
         }
 
-        public bool ChanceNode_Forward(ChanceNode chanceNode, IGameState predecessor, byte predecessorAction, int predecessorDistributorChanceInputs, bool fromPredecessor, int distributorChanceInputs)
+        public bool ChanceNode_Forward(ChanceNode chanceNode, IGameState predecessor, byte predecessorAction, bool fromPredecessor)
         {
             double[] d = new double[NumNonChancePlayers];
             foreach (int i in CalculatingForPlayers)
@@ -51,14 +51,14 @@ namespace ACESimBase.GameSolvingSupport.GameTree
             return true; // ignored
         }
 
-        public double[] ChanceNode_Backward(ChanceNode chanceNode, IEnumerable<double[]> fromSuccessors, int distributorChanceInputs)
+        public double[] ChanceNode_Backward(ChanceNode chanceNode, IEnumerable<double[]> fromSuccessors)
         {
             var d = ChanceNodePassback[chanceNode.ChanceNodeNumber];
             ProcessSuccessors(d, fromSuccessors);
             return d;
         }
 
-        public bool InformationSet_Forward(InformationSetNode informationSet, IGameState predecessor, byte predecessorAction, int predecessorDistributorChanceInputs, bool fromPredecessor)
+        public bool InformationSet_Forward(InformationSetNode informationSet, IGameState predecessor, byte predecessorAction, bool fromPredecessor)
         {
             if (InitializedInformationSets.Contains(informationSet.InformationSetNodeNumber))
                 return true;

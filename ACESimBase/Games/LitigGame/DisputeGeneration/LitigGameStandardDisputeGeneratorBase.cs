@@ -49,7 +49,6 @@ namespace ACESim
                     IsReversible = true,
                     Unroll_Parallelize = GetPrePrimaryUnrollSettings().unrollParallelize,
                     Unroll_Parallelize_Identical = GetPrePrimaryUnrollSettings().unrollIdentical,
-                    DistributedChanceDecision = true,
                     SymmetryMap = (GetPrePrimaryUnrollSettings().symmetryMapInput, SymmetryMapOutput.ChanceDecision)
                 });
 
@@ -63,7 +62,6 @@ namespace ACESim
                     CanTerminateGame = primaryTerminates,
                     Unroll_Parallelize = GetPrimaryUnrollSettings().unrollParallelize,
                     Unroll_Parallelize_Identical = GetPrimaryUnrollSettings().unrollIdentical,
-                    DistributedChanceDecision = true,
                     SymmetryMap = (GetPrimaryUnrollSettings().symmetryMapInput, SymmetryMapOutput.CantBeSymmetric)
                 });
 
@@ -77,7 +75,6 @@ namespace ACESim
                     CanTerminateGame = postTerminates,
                     Unroll_Parallelize = GetPostPrimaryUnrollSettings().unrollParallelize,
                     Unroll_Parallelize_Identical = GetPostPrimaryUnrollSettings().unrollIdentical,
-                    DistributedChanceDecision = true,
                     SymmetryMap = (GetPostPrimaryUnrollSettings().symmetryMapInput, SymmetryMapOutput.ChanceDecision)
                 });
 
@@ -99,7 +96,6 @@ namespace ACESim
                 IsReversible = true,
                 Unroll_Parallelize = GetLiabilityStrengthUnrollSettings().unrollParallelize,
                 Unroll_Parallelize_Identical = GetLiabilityStrengthUnrollSettings().unrollIdentical,
-                DistributedChanceDecision = true,
                 SymmetryMap = (GetLiabilityStrengthUnrollSettings().symmetryMapInput, SymmetryMapOutput.ChanceDecision)
             });
 
@@ -123,7 +119,6 @@ namespace ACESim
                     IsReversible = true,
                     Unroll_Parallelize = GetDamagesStrengthUnrollSettings().unrollParallelize,
                     Unroll_Parallelize_Identical = GetDamagesStrengthUnrollSettings().unrollIdentical,
-                    DistributedChanceDecision = true,
                     SymmetryMap = (GetDamagesStrengthUnrollSettings().symmetryMapInput, SymmetryMapOutput.ChanceDecision)
                 });
             }
@@ -162,8 +157,6 @@ namespace ACESim
                     IsReversible = true,
                     Unroll_Parallelize = true,
                     Unroll_Parallelize_Identical = true,
-                    DistributorChanceInputDecision = true,
-                    DistributableDistributorChanceInput = true,
                     SymmetryMap = (SymmetryMapInput.ReverseInfo, SymmetryMapOutput.ChanceDecision)
                 });
             }
@@ -187,8 +180,6 @@ namespace ACESim
                     IsReversible = true,
                     Unroll_Parallelize = true,
                     Unroll_Parallelize_Identical = true,
-                    DistributorChanceInputDecision = true,
-                    DistributableDistributorChanceInput = true,
                     SymmetryMap = (SymmetryMapInput.ReverseInfo, SymmetryMapOutput.ChanceDecision)
                 });
             }
@@ -215,8 +206,6 @@ namespace ACESim
                         IsReversible = true,
                         Unroll_Parallelize = true,
                         Unroll_Parallelize_Identical = true,
-                        DistributorChanceInputDecision = true,
-                        DistributableDistributorChanceInput = true,
                         SymmetryMap = (SymmetryMapInput.ReverseInfo, SymmetryMapOutput.ChanceDecision)
                     });
                 }
@@ -239,8 +228,6 @@ namespace ACESim
                         IsReversible = true,
                         Unroll_Parallelize = true,
                         Unroll_Parallelize_Identical = true,
-                        DistributorChanceInputDecision = true,
-                        DistributableDistributorChanceInput = true,
                         SymmetryMap = (SymmetryMapInput.ReverseInfo, SymmetryMapOutput.ChanceDecision)
                     });
                 }

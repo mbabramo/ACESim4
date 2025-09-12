@@ -10,13 +10,11 @@ namespace ACESimBase.GameSolvingSupport.GameTree
     {
         public StringBuilder FileText = new StringBuilder();
         int Level = 0;
-        bool DistributeChanceDecisions;
 
 
-        public EFGFileWriter(string gameName, IEnumerable<string> playerNames, bool distributeChanceDecisions)
+        public EFGFileWriter(string gameName, IEnumerable<string> playerNames)
         {
             FileText.AppendLine($"EFG 2 R \"{gameName}\" {{ {string.Join(" ", playerNames.Select(x => $"\"{x}\""))} }} ");
-            DistributeChanceDecisions = distributeChanceDecisions;
         }
 
         int numDecimalPlaces = 4;
@@ -34,28 +32,22 @@ namespace ACESimBase.GameSolvingSupport.GameTree
 
         private string Quotes(string s) => $"\"{s}\"";
 
-        public bool ChanceNode_Backward(ChanceNode chanceNode, IEnumerable<bool> fromSuccessors, int distributorChanceInputs)
+        public bool ChanceNode_Backward(ChanceNode chanceNode, IEnumerable<bool> fromSuccessors)
         {
             if (chanceNode.Decision.NumPossibleActions > 1)
                 Level--;
             return true;
         }
 
-        public bool ChanceNode_Forward(ChanceNode chanceNode, IGameState predecessor, byte predecessorAction, int predecessorDistributorChanceInputs, bool fromPredecessor, int distributorChanceInputs)
+        public bool ChanceNode_Forward(ChanceNode chanceNode, IGameState predecessor, byte predecessorAction, bool fromPredecessor)
         {
             if (chanceNode.Decision.NumPossibleActions > 1)
             {
                 Level++;
                 AppendTabs();
                 string chanceActionsList;
-                if (DistributeChanceDecisions && chanceNode.Decision.DistributedChanceDecision)
-                {
-                    chanceActionsList = "{ \"1\" 1.000 }";
-                }
-                else
-                    chanceActionsList = GetChanceActionsList(chanceNode.GetActionProbabilitiesDecimal(distributorChanceInputs));
+                chanceActionsList = GetChanceActionsList(chanceNode.GetActionProbabilitiesDecimal());
                 FileText.AppendLine($"c \"C:{chanceNode.Decision.Abbreviation};Node{chanceNode.ChanceNodeNumber + 1}\" {chanceNode.ChanceNodeNumber + 1} \"\" {chanceActionsList} 0");
-                // TabbedText.WriteLine($"{chanceNode.Decision} {chanceNode.ChanceNodeNumber} distributor chance inputs {distributorChanceInputs} probabilities {String.Join(",", chanceNode.GetActionProbabilitiesDecimal(distributorChanceInputs))}");
             }
             return true; // ignored
         }
@@ -65,7 +57,7 @@ namespace ACESimBase.GameSolvingSupport.GameTree
             return $"{{ {string.Join(" ", values.Select((item, index) => $"{Quotes((index + 1).ToString())} {FormattedDecimal(item)}"))} }}";
         }
 
-        public bool FinalUtilities_TurnAround(FinalUtilitiesNode finalUtilities, IGameState predecessor, byte predecessorAction, int predecessorDistributorChanceInputs, bool fromPredecessor)
+        public bool FinalUtilities_TurnAround(FinalUtilitiesNode finalUtilities, IGameState predecessor, byte predecessorAction, bool fromPredecessor)
         {
             Level++;
             AppendTabs();
@@ -85,7 +77,7 @@ namespace ACESimBase.GameSolvingSupport.GameTree
             return true;
         }
 
-        public bool InformationSet_Forward(InformationSetNode informationSet, IGameState predecessor, byte predecessorAction, int predecessorDistributorChanceInputs, bool fromPredecessor)
+        public bool InformationSet_Forward(InformationSetNode informationSet, IGameState predecessor, byte predecessorAction, bool fromPredecessor)
         {
             Level++;
             AppendTabs();

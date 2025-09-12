@@ -17,7 +17,6 @@ namespace ACESimBase.GameSolvingSupport.Settings
     [Serializable]
     public class EvolutionSettings
     {
-        public bool DistributeChanceDecisions = false; // NOTE: Use CollapseChanceDecisions instead; it's much simpler and seems to produce slightly better performance.
         public bool UnrollAlgorithm = true;
         public bool IncludeCommentsWhenUnrolling = false;
         public bool UseCheckpointsWhenNotUnrolling = false; // for when unrolling, look at ArrayCommandList.UseCheckpoints

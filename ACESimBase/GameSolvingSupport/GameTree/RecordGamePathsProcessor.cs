@@ -23,9 +23,7 @@ namespace ACESimBase.GameSolvingSupport.GameTree
             ChanceNode chanceNode,
             IGameState predecessor,
             byte predecessorAction,
-            int predecessorDistributorChanceInputs,
-            double fromPredecessor,
-            int distributorChanceInputs)
+            double fromPredecessor)
         {
             double cumulative = GetCumulativeReachProbability(fromPredecessor, predecessor, predecessorAction);
 
@@ -39,7 +37,6 @@ namespace ACESimBase.GameSolvingSupport.GameTree
             InformationSetNode informationSet,
             IGameState predecessor,
             byte predecessorAction,
-            int predecessorDistributorChanceInputs,
             double fromPredecessor)
         {
             double cumulative = GetCumulativeReachProbability(fromPredecessor, predecessor, predecessorAction);
@@ -54,8 +51,7 @@ namespace ACESimBase.GameSolvingSupport.GameTree
 
         public List<GamePath> ChanceNode_Backward(
             ChanceNode chanceNode,
-            IEnumerable<List<GamePath>> fromSuccessors,
-            int distributorChanceInputs)
+            IEnumerable<List<GamePath>> fromSuccessors)
         {
             var merged = fromSuccessors.SelectMany(x => x).ToList();
 
@@ -83,7 +79,6 @@ namespace ACESimBase.GameSolvingSupport.GameTree
             FinalUtilitiesNode finalUtilities,
             IGameState predecessor,
             byte predecessorAction,
-            int predecessorDistributorChanceInputs,
             double fromPredecessor)
         {
             if (predecessor != null)

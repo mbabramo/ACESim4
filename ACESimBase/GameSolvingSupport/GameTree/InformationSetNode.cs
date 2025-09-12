@@ -401,7 +401,7 @@ namespace ACESimBase.GameSolvingSupport.GameTree
         public byte ActionTakenAtPredecessorSet;
         public bool BestResponseMayReachHere;
         public bool LastBestResponseMayReachHere;
-        public ByteList LastActionsList => PathsFromPredecessor.Last().ActionsListExcludingPlayerAndDistributedChance;
+        public ByteList LastActionsList => PathsFromPredecessor.Last().ActionsListExcludingPlayer;
 
         public List<PathFromPredecessorInfo> PathsFromPredecessor;
         /// <summary>

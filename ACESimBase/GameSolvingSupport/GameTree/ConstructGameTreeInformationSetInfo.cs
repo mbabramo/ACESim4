@@ -455,11 +455,11 @@ namespace ACESimBase.GameSolvingSupport.GameTree
                 ParentNodes.Push(treeNode);
         }
 
-        public ForwardInfo ChanceNode_Forward(ChanceNode chanceNode, IGameState predecessor, byte predecessorAction, int predecessorDistributorChanceInputs, ForwardInfo fromPredecessor, int distributorChanceInputs) => AnyNode_Forward(chanceNode, predecessor, predecessorAction, fromPredecessor);
+        public ForwardInfo ChanceNode_Forward(ChanceNode chanceNode, IGameState predecessor, byte predecessorAction, ForwardInfo fromPredecessor) => AnyNode_Forward(chanceNode, predecessor, predecessorAction, fromPredecessor);
 
-        public ForwardInfo InformationSet_Forward(InformationSetNode informationSet, IGameState predecessor, byte predecessorAction, int predecessorDistributorChanceInputs, ForwardInfo fromPredecessor) => AnyNode_Forward(informationSet, predecessor, predecessorAction, fromPredecessor);
+        public ForwardInfo InformationSet_Forward(InformationSetNode informationSet, IGameState predecessor, byte predecessorAction, ForwardInfo fromPredecessor) => AnyNode_Forward(informationSet, predecessor, predecessorAction, fromPredecessor);
 
-        public MoveProbabilityTracker<(byte decisionByteCode, byte move)> FinalUtilities_TurnAround(FinalUtilitiesNode finalUtilities, IGameState predecessor, byte predecessorAction, int predecessorDistributorChanceInputs, ForwardInfo fromPredecessor)
+        public MoveProbabilityTracker<(byte decisionByteCode, byte move)> FinalUtilities_TurnAround(FinalUtilitiesNode finalUtilities, IGameState predecessor, byte predecessorAction, ForwardInfo fromPredecessor)
         {
             double reachProbability = GetCumulativeReachProbability(fromPredecessor.reachProbability, predecessor, predecessorAction);
             AddNodeToTree(finalUtilities, predecessorAction, reachProbability);
@@ -484,7 +484,7 @@ namespace ACESimBase.GameSolvingSupport.GameTree
             return AddToTracker(!node.IsChanceNode, nodeNumber, reachProbability, toAddToTracker);
         }
 
-        public MoveProbabilityTracker<(byte decisionByteCode, byte move)> ChanceNode_Backward(ChanceNode chanceNode, IEnumerable<MoveProbabilityTracker<(byte decisionByteCode, byte move)>> fromSuccessors, int distributorChanceInputs) => AnyNode_Backward(chanceNode, fromSuccessors);
+        public MoveProbabilityTracker<(byte decisionByteCode, byte move)> ChanceNode_Backward(ChanceNode chanceNode, IEnumerable<MoveProbabilityTracker<(byte decisionByteCode, byte move)>> fromSuccessors) => AnyNode_Backward(chanceNode, fromSuccessors);
 
         public MoveProbabilityTracker<(byte decisionByteCode, byte move)> InformationSet_Backward(InformationSetNode informationSet, IEnumerable<MoveProbabilityTracker<(byte decisionByteCode, byte move)>> fromSuccessors) => AnyNode_Backward(informationSet, fromSuccessors);
     }

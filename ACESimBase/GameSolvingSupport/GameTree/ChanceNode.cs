@@ -31,15 +31,15 @@ namespace ACESimBase.GameSolvingSupport.GameTree
 
         public string ShortString() => $"Chance {ChanceNodeNumber} Alt {AltNodeNumber} {Decision.Name} ({Decision.Abbreviation})";
 
-        public abstract double GetActionProbability(int action, int distributorChanceInputs = -1);
+        public abstract double GetActionProbability(int action);
 
-        public string GetActionProbabilityString(int distributorChanceInputs) => string.Join(",", GetActionProbabilityStrings(distributorChanceInputs));
+        public string GetActionProbabilityString() => string.Join(",", GetActionProbabilityStrings());
 
-        public IEnumerable<string> GetActionProbabilityStrings(int distributorChanceInputs = -1) => GetActionProbabilities(distributorChanceInputs).Select(x => x.ToSignificantFigures(6));
+        public IEnumerable<string> GetActionProbabilityStrings() => GetActionProbabilities().Select(x => x.ToSignificantFigures(6));
 
-        public IEnumerable<double> GetActionProbabilities(int distributorChanceInputs = -1) => Enumerable.Range(1, Decision.NumPossibleActions).Select(action => GetActionProbability(action, distributorChanceInputs));
+        public IEnumerable<double> GetActionProbabilities() => Enumerable.Range(1, Decision.NumPossibleActions).Select(action => GetActionProbability(action));
 
-        public IEnumerable<decimal> GetActionProbabilitiesDecimal(int distributorChanceInputs = -1) => Enumerable.Range(1, Decision.NumPossibleActions).Select(action => (decimal)GetActionProbability(action, distributorChanceInputs));
+        public IEnumerable<decimal> GetActionProbabilitiesDecimal() => Enumerable.Range(1, Decision.NumPossibleActions).Select(action => (decimal)GetActionProbability(action));
 
         public ChanceNode(int chanceNodeNumber)
         {
