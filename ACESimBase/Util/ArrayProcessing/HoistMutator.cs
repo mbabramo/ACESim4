@@ -147,6 +147,8 @@ namespace ACESimBase.Util.ArrayProcessing
                 EndCommandRangeExclusive = endEx,
                 StartSourceIndices = src.StartSourceIndices,
                 EndSourceIndicesExclusive = src.EndSourceIndicesExclusive,
+                StartDestinationIndices = src.StartDestinationIndices,
+                EndDestinationIndicesExclusive = src.EndDestinationIndicesExclusive,
                 IsConditional = isConditional,
             };
         }

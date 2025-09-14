@@ -38,7 +38,8 @@ namespace ACESimBase.Util.ArrayProcessing
         // ──────────────────────────────────────────────────────────────────────
         //  Ordered‑buffer index lists (filled at author‑time only)
         // ──────────────────────────────────────────────────────────────────────
-        public List<int> OrderedSourceIndices = new();
+        public List<int> OrderedSourceIndices = new();        
+        public List<int> OrderedDestinationIndices = new();
 
         // ──────────────────────────────────────────────────────────────────────
         //  Settings and feature flags
@@ -96,6 +97,7 @@ namespace ACESimBase.Util.ArrayProcessing
             {
                 StartCommandRange = 0,
                 StartSourceIndices = 0,
+                StartDestinationIndices = 0,
             };
         }
 
@@ -161,6 +163,7 @@ namespace ACESimBase.Util.ArrayProcessing
                 Name = name,
                 StartCommandRange = NextCommandIndex,
                 StartSourceIndices = OrderedSourceIndices.Count(),
+                StartDestinationIndices = OrderedDestinationIndices.Count(),
             };
 
             parent.SetBranch(branch, child);
@@ -177,6 +180,8 @@ namespace ACESimBase.Util.ArrayProcessing
                 root.EndCommandRangeExclusive = NextCommandIndex;
                 root.StartSourceIndices = 0;
                 root.EndSourceIndicesExclusive = OrderedSourceIndices.Count();
+                root.StartDestinationIndices = 0;
+                root.EndDestinationIndicesExclusive = OrderedDestinationIndices.Count();
                 return;            // nothing else to pop
             }
             if (_keepTogetherLevel > 0)
@@ -329,14 +334,15 @@ namespace ACESimBase.Util.ArrayProcessing
             byte lastChild = node.StoredValue.LastChild;
             if (lastChild == 0) return;
 
-#if OUTPUT_HOISTING_INFO
+        #if OUTPUT_HOISTING_INFO
             TabbedText.WriteLine(
                 $"[BRANCHES] parent ID{node.StoredValue.ID}  lastChild={lastChild}");
-#endif
+        #endif
 
             var children = new List<NWayTreeStorageInternal<ArrayCommandChunk>>();
             int curCmd = node.StoredValue.StartCommandRange;
             int curSrc = node.StoredValue.StartSourceIndices;
+            int curDst = node.StoredValue.StartDestinationIndices;
 
             for (byte c = 1; c <= lastChild; c++)
             {
@@ -352,22 +358,26 @@ namespace ACESimBase.Util.ArrayProcessing
                         EndCommandRangeExclusive = bVal.StartCommandRange,
                         StartSourceIndices = curSrc,
                         EndSourceIndicesExclusive = bVal.StartSourceIndices,
+                        StartDestinationIndices = curDst,
+                        EndDestinationIndicesExclusive = bVal.StartDestinationIndices,
                     };
                     children.Add(gap);
 
-#if OUTPUT_HOISTING_INFO
+        #if OUTPUT_HOISTING_INFO
                     TabbedText.WriteLine(
                         $"    ↳ [GAP] ID{gap.StoredValue.ID} cmds=[{curCmd},{bVal.StartCommandRange})");
-#endif
+        #endif
                 }
 
                 children.Add(branch);
                 curCmd = bVal.EndCommandRangeExclusive;
                 curSrc = bVal.EndSourceIndicesExclusive;
+                curDst = bVal.EndDestinationIndicesExclusive;
 
                 if (c == lastChild &&
                     (curCmd < node.StoredValue.EndCommandRangeExclusive ||
-                     curSrc < node.StoredValue.EndSourceIndicesExclusive))
+                     curSrc < node.StoredValue.EndSourceIndicesExclusive ||
+                     curDst < node.StoredValue.EndDestinationIndicesExclusive))
                 {
                     var tail = new NWayTreeStorageInternal<ArrayCommandChunk>(node);
                     tail.StoredValue = new ArrayCommandChunk
@@ -376,23 +386,26 @@ namespace ACESimBase.Util.ArrayProcessing
                         EndCommandRangeExclusive = node.StoredValue.EndCommandRangeExclusive,
                         StartSourceIndices = curSrc,
                         EndSourceIndicesExclusive = node.StoredValue.EndSourceIndicesExclusive,
+                        StartDestinationIndices = curDst,
+                        EndDestinationIndicesExclusive = node.StoredValue.EndDestinationIndicesExclusive,
                     };
                     children.Add(tail);
 
-#if OUTPUT_HOISTING_INFO
+        #if OUTPUT_HOISTING_INFO
                     TabbedText.WriteLine(
                         $"    ↳ [TAIL] ID{tail.StoredValue.ID} cmds=[{curCmd},{tail.StoredValue.EndCommandRangeExclusive})");
-#endif
+        #endif
                 }
             }
 
             node.Branches = children.ToArray();
 
-#if OUTPUT_HOISTING_INFO
+        #if OUTPUT_HOISTING_INFO
             TabbedText.WriteLine(
                 $"[BRANCHES-END] parent ID{node.StoredValue.ID}  branches={node.Branches.Length}");
-#endif
+        #endif
         }
+
 
 
         /// <summary>

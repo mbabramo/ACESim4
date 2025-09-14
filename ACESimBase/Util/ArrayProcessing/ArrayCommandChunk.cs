@@ -26,10 +26,11 @@ public class ArrayCommandChunk
     public byte LastChild;
     public int StartCommandRange, EndCommandRangeExclusive;
     public int StartSourceIndices, EndSourceIndicesExclusive;
+    public int StartDestinationIndices, EndDestinationIndicesExclusive;
     public string CompiledCode;
     public string Name;
     public int SourcesInBody => EndSourceIndicesExclusive - StartSourceIndices;
-    public int DestinationsInBody;
+    public int DestinationsInBody => EndDestinationIndicesExclusive - StartDestinationIndices;
     public int ExecId = int.MinValue;   // unassigned == int.MinValue 
     public bool IsConditional;
     public double[] VirtualStack;
