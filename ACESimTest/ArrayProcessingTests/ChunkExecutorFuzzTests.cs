@@ -61,30 +61,35 @@ namespace ACESimTest.ArrayProcessingTests
             }
         }
 
-        private sealed record ExecResult(int Cosi, bool Cond, double[] Vs, string Code);
+        private sealed record ExecResult(int Cosi, int Codi, bool Cond, double[] Vs, double[] Od, string Code);
+
 
         private static ExecResult Run(IChunkExecutor exec,
                                       ArrayCommandChunk chunk,
                                       double[] originalData,
-                                      double[] orderedSources,
-                                      double[] orderedDestinations)
+                                      double[] orderedSourcesSeed,
+                                      double[] orderedDestinationsSeed)
         {
             exec.AddToGeneration(chunk);
             exec.PreserveGeneratedCode = true;
             exec.PerformGeneration();
 
             var vs = new double[chunk.VirtualStack.Length];
-            for (int i = 0; i < originalData.Length; i++)
-                vs[i] = originalData[i]; // Initialize virtual stack
+            for (int i = 0; i < originalData.Length && i < vs.Length; i++)
+                vs[i] = originalData[i];
+
+            var os = (double[])orderedSourcesSeed.Clone();
+            var od = (double[])orderedDestinationsSeed.Clone();
+
             int cosi = 0;
             int codi = 0;
             bool cond = true;
 
-            exec.Execute(chunk, vs, orderedSources, orderedDestinations,
-                ref cosi, ref codi, ref cond);
+            exec.Execute(chunk, vs, os, od, ref cosi, ref codi, ref cond);
 
-            return new ExecResult(cosi, cond, vs, exec.GeneratedCode);
+            return new ExecResult(cosi, codi, cond, vs, od, exec.GeneratedCode);
         }
+
 
         private void CompareExecutors(ArrayCommandList aclOriginal,
                               int seed,
@@ -136,6 +141,11 @@ namespace ACESimTest.ArrayProcessingTests
                     $"Seed {seed} {info}: cond mismatch [{tag}]{res.Code}");
                 CollectionAssert.AreEqual(baselineNonScratchOutputs, resNonScratchOutputs,
                     $"Seed {seed} {info}: vs mismatch [{tag}]{res.Code}");
+                Assert.AreEqual(baseline.Codi, res.Codi,
+                    $"Seed {seed} {info}: codi mismatch [{tag}]{res.Code}");
+                CollectionAssert.AreEqual(baseline.Od, res.Od,
+                    $"Seed {seed} {info}: od mismatch [{tag}]{res.Code}");
+
             }
 
             bool alsoTestArrayCommandList = true;
