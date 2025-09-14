@@ -26,20 +26,20 @@ namespace ACESimTest.ArrayProcessingTests
         public void RepeatIdenticalRange(bool parallel)
         {
             var acl = NewAcl();
-            acl.MaxCommandsPerSplittableChunk = int.MaxValue; // enables RepeatIdenticalRanges
+            acl.MaxCommandsPerSplittableChunk = int.MaxValue;
 
             acl.StartCommandChunk(false, null, "root");
             int idx = acl.NewZero();
 
+            int body1Start = acl.NextCommandIndex;   // <-- start of the range we intend to repeat
             acl.StartCommandChunk(false, null, "body1");
             acl.Increment(idx, false, idx);
             acl.EndCommandChunk();
 
-            int repeatStart = acl.NextCommandIndex;
-            acl.StartCommandChunk(false, repeatStart, "body2");
+            acl.StartCommandChunk(false, body1Start, "body2");   // <-- repeat body1
             acl.EndCommandChunk(endingRepeatedChunk: true);
 
-            acl.EndCommandChunk();
+            acl.EndCommandChunk(); // root
             acl.CompleteCommandList();
 
             var d = new double[3];

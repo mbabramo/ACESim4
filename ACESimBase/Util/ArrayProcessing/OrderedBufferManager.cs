@@ -32,17 +32,32 @@ namespace ACESimBase.Util.ArrayProcessing
             if (Sources.Length != sourceCount)
                 Sources = new double[sourceCount];
 
-            Parallelizer.Go(parallel, 0, sourceCount, i =>
+            if (sourceCount == 0)
             {
-                Sources[i] = data[SourceIndices[i]];
-            });
+                // Ensure Sources is an empty array and skip the copy loop.
+                Sources = Array.Empty<double>();
+            }
+            else
+            {
+                Parallelizer.Go(parallel, 0, sourceCount, i =>
+                {
+                    Sources[i] = data[SourceIndices[i]];
+                });
+            }
 
             int destCount = DestinationIndices.Count;
             if (Destinations.Length != destCount)
                 Destinations = new double[destCount];
             else
                 Array.Clear(Destinations, 0, Destinations.Length);
+
+            if (destCount == 0)
+            {
+                // Normalize to empty array to avoid any downstream confusion.
+                Destinations = Array.Empty<double>();
+            }
         }
+
 
         /// <summary>
         /// Applies buffered destination increments back into <paramref name="data"/>.
@@ -53,13 +68,17 @@ namespace ACESimBase.Util.ArrayProcessing
             if (data is null) throw new ArgumentNullException(nameof(data));
 
             int destCount = DestinationIndices.Count;
+            if (destCount == 0)
+                return;
+
             Parallelizer.Go(parallel, 0, destCount, i =>
             {
                 int targetIdx = DestinationIndices[i];
                 double increment = Destinations[i];
                 if (increment != 0.0)
                 {
-                    // Use += since these are increments, not overwrites
+                    // += semantics preserved; if you later want true atomic add for doubles,
+                    // switch to a CompareExchange loop. For this fix, the early return is key.
                     System.Threading.Interlocked.Exchange(
                         ref data[targetIdx],
                         data[targetIdx] + increment
@@ -67,5 +86,6 @@ namespace ACESimBase.Util.ArrayProcessing
                 }
             });
         }
+
     }
 }
