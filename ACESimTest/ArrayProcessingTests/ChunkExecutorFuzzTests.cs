@@ -66,7 +66,8 @@ namespace ACESimTest.ArrayProcessingTests
         private static ExecResult Run(IChunkExecutor exec,
                                       ArrayCommandChunk chunk,
                                       double[] originalData,
-                                      double[] orderedSources)
+                                      double[] orderedSources,
+                                      double[] orderedDestinations)
         {
             exec.AddToGeneration(chunk);
             exec.PreserveGeneratedCode = true;
@@ -76,9 +77,11 @@ namespace ACESimTest.ArrayProcessingTests
             for (int i = 0; i < originalData.Length; i++)
                 vs[i] = originalData[i]; // Initialize virtual stack
             int cosi = 0;
+            int codi = 0;
             bool cond = true;
 
-            exec.Execute(chunk, vs, orderedSources, ref cosi, ref cond);
+            exec.Execute(chunk, vs, orderedSources, orderedDestinations,
+                ref cosi, ref codi, ref cond);
 
             return new ExecResult(cosi, cond, vs, exec.GeneratedCode);
         }
@@ -103,12 +106,15 @@ namespace ACESimTest.ArrayProcessingTests
                                .ToArray();
             var orderedSourceIndices = aclOriginal.OrderedSourceIndices;
             var orderedSources = orderedSourceIndices.Select(i => originalData[i]).ToArray();
+            var orderedDestinationIndices = aclOriginal.OrderedDestinationIndices;
+            var orderedDestinations = orderedDestinationIndices.Select(i => originalData[i]).ToArray();
 
             var baseline = Run(
                 new InterpreterChunkExecutor(cmds, 0, cmds.Length, false, null),
                 chunk,
                 originalData,
-                orderedSources);
+                orderedSources,
+                orderedDestinations);
             var baselineNonScratchOutputs = baseline.Vs.Take(originalData.Length).ToArray();
 
             var variants = new (Func<IChunkExecutor> Make, string Tag)[]
@@ -121,7 +127,7 @@ namespace ACESimTest.ArrayProcessingTests
 
             foreach (var (make, tag) in variants)
             {
-                var res = Run(make(), chunk, originalData, orderedSources);
+                var res = Run(make(), chunk, originalData, orderedSources, orderedDestinations);
                 var resNonScratchOutputs = res.Vs.Take(originalData.Length).ToArray();
 
                 Assert.AreEqual(baseline.Cosi, res.Cosi,

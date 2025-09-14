@@ -33,7 +33,7 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
         }
 
         public abstract void AddToGeneration(ArrayCommandChunk chunk);
-        public abstract void Execute(ArrayCommandChunk chunk, double[] virtualStack, double[] orderedSources, ref int cosi, ref bool condition);
+        public abstract void Execute(ArrayCommandChunk chunk, double[] virtualStack, double[] orderedSources, double[] orderedDestinations, ref int cosi, ref int codi, ref bool condition);
         public abstract void PerformGeneration();
 
         protected Dictionary<int, (int src, int dst)> PrecomputePointerSkips(ArrayCommandChunk chunk)
@@ -66,6 +66,11 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
                     case ArrayCommandType.NextSource:
                         foreach (int idx in stack)
                             map[idx] = (map[idx].srcSkip + 1, map[idx].dstSkip);
+                        break;
+
+                    case ArrayCommandType.NextDestination:
+                        foreach (int idx in stack)
+                            map[idx] = (map[idx].srcSkip, map[idx].dstSkip + 1);
                         break;
                 }
             }

@@ -85,24 +85,30 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
             }
         }
 
-        public override void Execute(ArrayCommandChunk chunk,
-                                     double[] vs, double[] os,
-                                     ref int cosi,
-                                     ref bool cond)
+       public override void Execute(
+            ArrayCommandChunk chunk,
+            double[] virtualStack,
+            double[] orderedSources,
+            double[] orderedDestinations,
+            ref int cosi,
+            ref int codi,
+            ref bool condition)
         {
             try
             {
                 if (chunk.EndCommandRangeExclusive <= chunk.StartCommandRange)
                     return;
-                _compiled[chunk](vs, os, ref cosi, ref cond);
+                _compiled[chunk](virtualStack, orderedSources, orderedDestinations, ref cosi, ref codi, ref condition);
                 chunk.StartSourceIndices = cosi;
             }
             catch (Exception ex)
             {
+                var ilDump = GeneratedCode ?? "<no IL trace available>";
                 throw new InvalidOperationException(
-                    $"Error executing chunk {chunk.StartCommandRange}-" +
-                    $"{chunk.EndCommandRangeExclusive - 1}.", ex);
+                    $"Error executing chunk {chunk.StartCommandRange}-{chunk.EndCommandRangeExclusive - 1}.\nIL:\n{ilDump}",
+                    ex);
             }
+
         }
 
         // ──────────────────────────────────────────────────────────────
@@ -118,8 +124,10 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
                 {
                     typeof(double[]),              // 0 vs
                     typeof(double[]),              // 1 os
-                    typeof(int).MakeByRefType(),   // 2 cosi
-                    typeof(bool).MakeByRefType()   // 3 cond
+                    typeof(double[]),              // 2 od
+                    typeof(int).MakeByRefType(),   // 3 cosi
+                    typeof(int).MakeByRefType(),  // 4 codi
+                    typeof(bool).MakeByRefType(),  // 3 cond
                 },
                 typeof(ILChunkExecutor).Module,
                 skipVisibility: true);
@@ -300,13 +308,38 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
                         break;
 
                     case ArrayCommandType.NextSource:
-                        E0(OpCodes.Ldarg_1);
-                        EI(OpCodes.Ldarg, 2);
-                        E0(OpCodes.Ldind_I4);
-                        E0(OpCodes.Ldelem_R8);
+                        // vs[cmd.Index] = os[cosi++]
+                        E0(OpCodes.Ldarg_1);        // os[]
+                        EI(OpCodes.Ldarg, 3);       // ref cosi
+                        E0(OpCodes.Ldind_I4);       // load cosi
+                        E0(OpCodes.Ldelem_R8);      // os[cosi]
                         Store(cmd.Index);
-                        IncrementRefInt(2);
+                        IncrementRefInt(3);         // cosi++
                         break;
+
+                    case ArrayCommandType.NextDestination:
+                    {
+                        EI(OpCodes.Ldarg, 4);
+                        E0(OpCodes.Ldind_I4);
+                        ELb(OpCodes.Stloc, tmpI);
+
+                        E0(OpCodes.Ldarg_2);
+                        ELb(OpCodes.Ldloc, tmpI);
+                        E0(OpCodes.Ldelem_R8);
+
+                        Load(cmd.Index);
+                        E0(OpCodes.Add);
+
+                        ELb(OpCodes.Stloc, tmp);
+
+                        E0(OpCodes.Ldarg_2);
+                        ELb(OpCodes.Ldloc, tmpI);
+                        ELb(OpCodes.Ldloc, tmp);
+                        E0(OpCodes.Stelem_R8);
+
+                        IncrementRefInt(4);
+                        break;
+                    }
 
                     case ArrayCommandType.MultiplyBy:
                         Load(cmd.Index);
@@ -378,7 +411,7 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
                             var elseLbl = il.DefineLabel();
                             var endLbl = il.DefineLabel();
 
-                            EI(OpCodes.Ldarg, 3);
+                            EI(OpCodes.Ldarg, 5);
                             E0(OpCodes.Ldind_I1);
                             EL(OpCodes.Brfalse, elseLbl);
 
@@ -419,7 +452,8 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
                                     E0(OpCodes.Stelem_R8);
                                 }
 
-                            if (ctx.SrcSkip > 0) AdvanceRefInt(2, ctx.SrcSkip);
+                            if (ctx.SrcSkip > 0) AdvanceRefInt(3, ctx.SrcSkip);
+                            if (ctx.DstSkip > 0) AdvanceRefInt(4, ctx.DstSkip);
 
                             il.MarkLabel(ctx.EndLabel);
                             break;
@@ -455,15 +489,22 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
             {
                 var ctx = ifStack.Pop();
 
-                // jump from THEN to END
                 EL(OpCodes.Br, ctx.EndLabel);
 
-                // ELSE label – reached when cond == false
                 il.MarkLabel(ctx.ElseLabel);
-                if (ctx.SrcSkip > 0)
-                    AdvanceRefInt(2, ctx.SrcSkip);
 
-                // END label – common join point
+                if (ctx.Flushes != null)
+                    foreach (var fl in ctx.Flushes)
+                    {
+                        E0(OpCodes.Ldarg_0);
+                        LdcI4(fl.slot);
+                        ELb(OpCodes.Ldloc, locals[fl.local]);
+                        E0(OpCodes.Stelem_R8);
+                    }
+
+                if (ctx.SrcSkip > 0) AdvanceRefInt(3, ctx.SrcSkip);
+                if (ctx.DstSkip > 0) AdvanceRefInt(4, ctx.DstSkip);
+
                 il.MarkLabel(ctx.EndLabel);
             }
 
@@ -481,7 +522,7 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
                 }
 
                 ELb(OpCodes.Stloc, tmpI);
-                EI(OpCodes.Ldarg, 3);
+                EI(OpCodes.Ldarg, 5);
                 ELb(OpCodes.Ldloc, tmpI);
                 E0(OpCodes.Stind_I1);
             }

@@ -102,12 +102,12 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
             _scheduled.Clear();
         }
 
-        public override void Execute(ArrayCommandChunk chunk, double[] vs, double[] os, ref int cosi,
+        public override void Execute(ArrayCommandChunk chunk, double[] vs, double[] os, double[] od, ref int cosi, ref int codi,
                                       ref bool cond)
         {
             if (chunk.EndCommandRangeExclusive <= chunk.StartCommandRange)
                 return;
-            _compiled[chunk](vs, os, ref cosi, ref cond);
+            _compiled[chunk](vs, os, od, ref cosi, ref codi, ref cond);
             chunk.StartSourceIndices = cosi;
         }
 
@@ -142,7 +142,8 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
 
             string fn = FnName(c);
             _src.AppendLine(
-                $"public static void {fn}(double[]vs,double[]os,ref int i,ref bool cond){{");
+                $"public static void {fn}(double[]vs,double[]os,double[]od,ref int i,ref int codi,ref bool cond){{");
+
             cb.Indent();
 
             for (int l = 0; l < _plan.LocalCount; l++)
@@ -168,6 +169,7 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
                     cb.AppendLine($"l{local} = vs[{slot}];");
 
                 cb.AppendLine($"i += {ctx.SrcSkip};");
+                cb.AppendLine($"codi += {ctx.DstSkip};");
                 cb.AppendLine("}");
 
                 foreach (var (slot, local) in ctx.Initialises)
@@ -343,6 +345,10 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
                     MarkWritten(cmd.Index);
                     break;
 
+                case ArrayCommandType.NextDestination:
+                    cb.AppendLine($"od[codi++] += {R(cmd.Index)};");
+                    break;
+
                 case ArrayCommandType.MultiplyBy:
                     cb.AppendLine($"{W(cmd.Index)} *= {R(cmd.SourceIndex)};");
                     MarkWritten(cmd.Index);
@@ -442,7 +448,7 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
                         elseBuilder.EmitElseBlock(cb);
 
                         // Advance source pointer past the THEN-branch commands, then close the ELSE block
-                        cb.AppendLine($"i += {ctx.SrcSkip}; }}");
+                        cb.AppendLine($"i += {ctx.SrcSkip}; codi += {ctx.DstSkip}; }}");
 
                         // (Post-branch cleanup) Ensure any local first initialized in THEN is flushed if it became dirty.
                         // This prevents a dirty value from escaping when a nested branch is skipped.

@@ -119,6 +119,7 @@ namespace ACESimBase.Util.ArrayProcessing
         private ArrayCommandList _acl;
         private double[] _data;
         private int _cosi = 0;
+        private int _codi = 0;
         private bool _condition = true;
 
         public ArrayCommandListRunner(IEnumerable<ArrayCommandChunk> leafChunks,
@@ -203,7 +204,9 @@ namespace ACESimBase.Util.ArrayProcessing
                 _executor.Execute(node.StoredValue,
                                   _acl.VirtualStack,
                                   _buffers.Sources,
+                                  _buffers.Destinations,
                                   ref _cosi,
+                                  ref _codi,
                                   ref _condition);
             }
         }

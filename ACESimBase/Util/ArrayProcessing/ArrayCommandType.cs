@@ -26,5 +26,6 @@ namespace ACESimBase.Util.ArrayProcessing
         Comment,
         Blank,
         Checkpoint,
+        NextDestination,
     }
 }
