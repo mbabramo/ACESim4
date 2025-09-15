@@ -75,7 +75,10 @@ namespace ACESimBase.Util.ArrayProcessing
         //  Author‑time helpers
         // ──────────────────────────────────────────────────────────────────────
         private Stack<int> _depthStartSlots = new();
-        private Stack<int?> _repeatRangeStack = new();
+        private Stack<int> _repeatRangeStack = new();
+        private Stack<int> _repeatRangeEndStack = new();
+
+
         public bool RepeatingExistingCommandRange = false;
         private int _keepTogetherLevel = 0;
         private bool _rootChunkInitialised = false;
@@ -118,7 +121,8 @@ namespace ACESimBase.Util.ArrayProcessing
                 UseCheckpoints = UseCheckpoints,
                 Checkpoints = new List<(int, double)>(Checkpoints),
                 _depthStartSlots = new Stack<int>(_depthStartSlots.Reverse()),
-                _repeatRangeStack = new Stack<int?>(_repeatRangeStack.Reverse()),
+                _repeatRangeStack = new Stack<int>(_repeatRangeStack.Reverse()),
+                _repeatRangeEndStack = new Stack<int>(_repeatRangeEndStack.Reverse()),
                 RepeatingExistingCommandRange = RepeatingExistingCommandRange,
                 _keepTogetherLevel = _keepTogetherLevel,
                 _rootChunkInitialised = _rootChunkInitialised,
@@ -128,6 +132,7 @@ namespace ACESimBase.Util.ArrayProcessing
         }
 
 
+
         // ──────────────────────────────────────────────────────────────────────
         //  Chunk helpers
         // ──────────────────────────────────────────────────────────────────────
@@ -135,7 +140,7 @@ namespace ACESimBase.Util.ArrayProcessing
         {
             if (_currentPath.Count == 0
                 && !_rootChunkInitialised
-                && string.Equals(name, "root", StringComparison.OrdinalIgnoreCase))  // ← tighten guard
+                && string.Equals(name, "root", StringComparison.OrdinalIgnoreCase))
             {
                 var root = CurrentChunk;
                 if (!string.IsNullOrEmpty(name))
@@ -149,7 +154,16 @@ namespace ACESimBase.Util.ArrayProcessing
 
             if (RepeatIdenticalRanges && identicalStartCommandRange is int identical)
             {
+                // Record the original range we intend to repeat: [identical, repeatEnd)
+                int repeatEnd = Recorder.NextCommandIndex;
                 _repeatRangeStack.Push(identical);
+                _repeatRangeEndStack.Push(repeatEnd);
+
+                // Snapshot current scratch index so repeats can rewind it later
+                _depthStartSlots.Push(Recorder.NextArrayIndex);
+
+                // Rewind command pointer so any emissions inside the repeated
+                // block must match the original
                 Recorder.NextCommandIndex = identical;
                 RepeatingExistingCommandRange = true;
             }
@@ -182,32 +196,74 @@ namespace ACESimBase.Util.ArrayProcessing
                 root.EndSourceIndicesExclusive = OrderedSourceIndices.Count();
                 root.StartDestinationIndices = 0;
                 root.EndDestinationIndicesExclusive = OrderedDestinationIndices.Count();
-                return;            // nothing else to pop
+                return;
             }
             if (_keepTogetherLevel > 0)
                 return;
 
-            if (_currentPath.Count == 0)
+            var finished = CurrentChunk;
+
+            static int CountOps(ArrayCommand[] cmds, int start, int end, ArrayCommandType t)
             {
-                // We’re already at the root; nothing to pop or update.
-                return;
+                int c = 0;
+                for (int i = start; i < end; i++)
+                    if (cmds[i].CommandType == t) c++;
+                return c;
             }
 
-            var finished = CurrentChunk;
-            finished.EndCommandRangeExclusive = NextCommandIndex;
-            finished.EndSourceIndicesExclusive = OrderedSourceIndices.Count;
+            if (endingRepeatedChunk && RepeatIdenticalRanges && _repeatRangeStack.Count > 0)
+            {
+                int repeatStart = _repeatRangeStack.Pop();
+                _repeatRangeEndStack.Pop(); // discard stale end
+
+                // Restore scratch index to match the original body
+                int rewind = _depthStartSlots.Pop();
+                Recorder.NextArrayIndex = rewind;
+
+                // Find the original child node whose StartCommandRange matches repeatStart
+                var parentNode = CurrentNode.Parent as NWayTreeStorageInternal<ArrayCommandChunk>;
+                var originalChild = parentNode?.Branches?
+                    .Select(b => (NWayTreeStorageInternal<ArrayCommandChunk>)b)
+                    .FirstOrDefault(n => n.StoredValue.StartCommandRange == repeatStart);
+
+                if (originalChild == null)
+                    throw new InvalidOperationException("Could not locate original chunk for repeated range.");
+
+                int repeatEnd = originalChild.StoredValue.EndCommandRangeExclusive;
+
+                finished.StartCommandRange = repeatStart;
+                finished.EndCommandRangeExclusive = repeatEnd;
+
+                int srcBefore = CountOps(UnderlyingCommands, 0, repeatStart, ArrayCommandType.NextSource);
+                int srcInRange = CountOps(UnderlyingCommands, repeatStart, repeatEnd, ArrayCommandType.NextSource);
+                finished.StartSourceIndices = srcBefore;
+                finished.EndSourceIndicesExclusive = srcBefore + srcInRange;
+
+                int dstBefore = CountOps(UnderlyingCommands, 0, repeatStart, ArrayCommandType.NextDestination);
+                int dstInRange = CountOps(UnderlyingCommands, repeatStart, repeatEnd, ArrayCommandType.NextDestination);
+                finished.StartDestinationIndices = dstBefore;
+                finished.EndDestinationIndicesExclusive = dstBefore + dstInRange;
+
+                if (_repeatRangeStack.Count == 0)
+                    RepeatingExistingCommandRange = false;
+            }
+            else
+            {
+                finished.EndCommandRangeExclusive = NextCommandIndex;
+                finished.EndSourceIndicesExclusive = OrderedSourceIndices.Count;
+                finished.EndDestinationIndicesExclusive = OrderedDestinationIndices.Count;
+            }
 
             _currentPath.RemoveAt(_currentPath.Count - 1);
             var parent = CurrentChunk;
-            parent.EndCommandRangeExclusive = NextCommandIndex;
-            parent.EndSourceIndicesExclusive = OrderedSourceIndices.Count;
 
-            if (endingRepeatedChunk && RepeatIdenticalRanges && _repeatRangeStack.Any())
-            {
-                _repeatRangeStack.Pop();
-                if (_repeatRangeStack.Count == 0) RepeatingExistingCommandRange = false;
-            }
+            parent.EndCommandRangeExclusive = Math.Max(parent.EndCommandRangeExclusive, finished.EndCommandRangeExclusive);
+            parent.EndSourceIndicesExclusive = Math.Max(parent.EndSourceIndicesExclusive, finished.EndSourceIndicesExclusive);
+            parent.EndDestinationIndicesExclusive = Math.Max(parent.EndDestinationIndicesExclusive, finished.EndDestinationIndicesExclusive);
         }
+
+
+
 
         public void KeepCommandsTogether() => _keepTogetherLevel++;
         public void EndKeepCommandsTogether() => _keepTogetherLevel--;
