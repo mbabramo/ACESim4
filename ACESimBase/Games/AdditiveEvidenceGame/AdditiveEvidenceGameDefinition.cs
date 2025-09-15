@@ -106,15 +106,13 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                 decisions.Add(new Decision("Chance_Plaintiff_Quality", useAbbreviationsForSimplifiedGame ? "PInfo" : "PQ", true, (byte)AdditiveEvidenceGamePlayers.Chance_Plaintiff_Quality, new byte[] { (byte)AdditiveEvidenceGamePlayers.Plaintiff, (byte) AdditiveEvidenceGamePlayers.Resolution }, Options.NumQualityAndBiasLevels_PrivateInfo, (byte)AdditiveEvidenceGameDecisions.Chance_Plaintiff_Quality)
             {
                 IsReversible = true,
-                Unroll_Parallelize = true,
-                Unroll_Parallelize_Identical = true,
+                GameStructureSameForEachAction = true,
             });
             if (Options.Alpha_Quality > 0 && Options.Alpha_Defendant_Quality > 0)
                 decisions.Add(new Decision("Chance_Defendant_Quality", useAbbreviationsForSimplifiedGame ? "DInfo" : "DQ", true, (byte)AdditiveEvidenceGamePlayers.Chance_Defendant_Quality, new byte[] { (byte)AdditiveEvidenceGamePlayers.Defendant, (byte)AdditiveEvidenceGamePlayers.Resolution }, Options.NumQualityAndBiasLevels_PrivateInfo, (byte)AdditiveEvidenceGameDecisions.Chance_Defendant_Quality)
             {
                 IsReversible = true,
-                Unroll_Parallelize = true,
-                Unroll_Parallelize_Identical = true,
+                GameStructureSameForEachAction = true,
                 CanTerminateGame = false
             });
             if (Options.IncludeChanceDecisionsEvenForPartyWithNoInfluence || (Options.Alpha_Bias > 0 && Options.Alpha_Plaintiff_Bias > 0)) 
@@ -122,8 +120,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                 decisions.Add(new Decision("P Signal" /* "Chance_Plaintiff_Bias" */, "PS", true, (byte)AdditiveEvidenceGamePlayers.Chance_Plaintiff_Bias, new byte[] { (byte)AdditiveEvidenceGamePlayers.Plaintiff, (byte)AdditiveEvidenceGamePlayers.Resolution }, Options.NumQualityAndBiasLevels_PrivateInfo, (byte)AdditiveEvidenceGameDecisions.Chance_Plaintiff_Bias)
                 {
                     IsReversible = true,
-                    Unroll_Parallelize = true,
-                    Unroll_Parallelize_Identical = true,
+                    GameStructureSameForEachAction = true,
                 });
             }
             if (Options.IncludeChanceDecisionsEvenForPartyWithNoInfluence || (Options.Alpha_Bias > 0 && Options.Alpha_Defendant_Bias > 0))
@@ -131,8 +128,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                 decisions.Add(new Decision("D Signal" /* "Chance_Defendant_Bias" */, "DS", true, (byte)AdditiveEvidenceGamePlayers.Chance_Defendant_Bias, new byte[] { (byte)AdditiveEvidenceGamePlayers.Defendant, (byte)AdditiveEvidenceGamePlayers.Resolution }, Options.NumQualityAndBiasLevels_PrivateInfo, (byte)AdditiveEvidenceGameDecisions.Chance_Defendant_Bias)
                 {
                     IsReversible = true,
-                    Unroll_Parallelize = true,
-                    Unroll_Parallelize_Identical = true,
+                    GameStructureSameForEachAction = true,
                     CanTerminateGame = false
                 });
             }
@@ -190,16 +186,14 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                 decisions.Add(new Decision("Chance_Neither_Quality", "NQ", true, (byte)AdditiveEvidenceGamePlayers.Chance_Neither_Quality, new byte[] { (byte)AdditiveEvidenceGamePlayers.Resolution }, Options.NumQualityAndBiasLevels_NeitherInfo, (byte)AdditiveEvidenceGameDecisions.Chance_Neither_Quality)
             {
                 IsReversible = true,
-                Unroll_Parallelize = true,
-                Unroll_Parallelize_Identical = true,
+                GameStructureSameForEachAction = true,
                 CanTerminateGame = true, // if next decision is skipped
             });
             if (Options.Alpha_Bias > 0 && Options.Alpha_Neither_Bias > 0)
                 decisions.Add(new Decision("Chance_Neither_Bias", useAbbreviationsForSimplifiedGame ? "Noise" : "NB", true, (byte)AdditiveEvidenceGamePlayers.Chance_Neither_Bias, new byte[] { (byte)AdditiveEvidenceGamePlayers.Resolution }, Options.NumQualityAndBiasLevels_NeitherInfo, (byte)AdditiveEvidenceGameDecisions.Chance_Neither_Bias)
             {
                 IsReversible = true,
-                Unroll_Parallelize = true,
-                Unroll_Parallelize_Identical = true,
+                GameStructureSameForEachAction = true,
                 CanTerminateGame = true, // must note even though it's the last decision
             });
         }

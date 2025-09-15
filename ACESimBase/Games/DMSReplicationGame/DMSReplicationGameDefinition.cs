@@ -57,7 +57,7 @@ namespace ACESimBase.Games.DMSReplicationGame
             {
                 IsReversible = true,
                 Unroll_Parallelize = true,
-                Unroll_Parallelize_Identical = true,
+                GameStructureSameForEachAction = true,
                 CanTerminateGame = false
             });
             AddLinearBidDecisions(decisions);

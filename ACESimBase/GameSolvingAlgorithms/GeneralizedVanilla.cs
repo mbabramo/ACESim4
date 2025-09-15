@@ -843,36 +843,17 @@ namespace ACESim
             byte numPossibleActionsToExplore = numPossibleActions;
             var historyPointCopy = historyPoint; // can't use historyPoint in anonymous method below. This is costly, so it might be worth optimizing if we use GeneralizedVanillaCFR much.
             int[] probabilityAdjustedInnerResult = Unroll_Commands.NewZeroArray(3); // must allocate this outside the parallel loop, because if we have commands writing to an array created in the parallel loop, the array indices will change
-            if (chanceNode.Decision.Unroll_Parallelize && EvolutionSettings.UnrollAllowParallelize)
-            {
-                //TabbedText.WriteLine($"Starting command chunk parallel {Unroll_Commands.NextCommandIndex}");
-                Unroll_Commands.StartCommandChunk(true, null, chanceNode.Decision.Name);
-                Unroll_Commands.InsertBlankCommand(); // to separate from next one
-            }
-            int? firstCommandToRepeat = null;
             for (byte action = 1; action <= numPossibleActionsToExplore; action++)
             {
                 if (EvolutionSettings.IncludeCommentsWhenUnrolling)
                     Unroll_Commands.InsertComment($"Chance node {chanceNode.Decision.Name} (node {chanceNode.ChanceNodeNumber}) action {action}");
-                if (chanceNode.Decision.Unroll_Parallelize && EvolutionSettings.UnrollAllowParallelize)
-                {
-                    //TabbedText.WriteLine($"Starting command chunk serial {Unroll_Commands.NextCommandIndex}");
-                    Unroll_Commands.StartCommandChunk(false /* inner commands are run sequentially */, firstCommandToRepeat, chanceNode.Decision.Name + "=" + action.ToString());
-                    if (action == 1 && chanceNode.Decision.Unroll_Parallelize_Identical)
-                        firstCommandToRepeat = Unroll_Commands.NextCommandIndex;
-                }
                 var historyPointCopy2 = historyPointCopy; // Need to do this because we need a separate copy for each thread
                 Unroll_Commands.ZeroExisting(probabilityAdjustedInnerResult);
                 Unroll_GeneralizedVanillaCFR_ChanceNode_NextAction(in historyPointCopy2,
                     playerBeingOptimized, piValues, avgStratPiValues,
                         chanceNode, action, probabilityAdjustedInnerResult, false);
                 Unroll_Commands.IncrementArrayBy(resultArray, algorithmIsLowestDepth, probabilityAdjustedInnerResult);
-
-                if (chanceNode.Decision.Unroll_Parallelize && EvolutionSettings.UnrollAllowParallelize)
-                    Unroll_Commands.EndCommandChunk(action != 1);
             }
-            if (chanceNode.Decision.Unroll_Parallelize && EvolutionSettings.UnrollAllowParallelize)
-                Unroll_Commands.EndCommandChunk();
 
             Unroll_Commands.DecrementDepth();
         }

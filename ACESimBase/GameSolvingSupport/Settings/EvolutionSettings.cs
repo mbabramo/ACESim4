@@ -20,7 +20,7 @@ namespace ACESimBase.GameSolvingSupport.Settings
         public bool UnrollAlgorithm = true;
         public bool IncludeCommentsWhenUnrolling = false;
         public bool UseCheckpointsWhenNotUnrolling = false; // for when unrolling, look at ArrayCommandList.UseCheckpoints
-        public bool UnrollAllowParallelize = false;
+        public bool UnrollRepeatIdenticalRanges = false;
         public ChunkExecutorKind Unroll_ChunkExecutorKind = ChunkExecutorKind.ILWithLocalVariableRecycling; // Note: RoslynWithLocalVariableRecycling seems to be repeating the same iteration over and over again. 
         public bool ReuseUnrolledAlgorithm = true; // if the tree structure is the same, then it will be reused (but final utilities etc. will be updated)
         public bool SaveToAzureBlob = false;

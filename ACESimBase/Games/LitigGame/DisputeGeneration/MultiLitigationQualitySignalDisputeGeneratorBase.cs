@@ -90,7 +90,7 @@ namespace ACESim
             {
                 IsReversible = true,
                 Unroll_Parallelize = true,
-                Unroll_Parallelize_Identical = !s.HiddenLiabilityUneven,
+                GameStructureSameForEachAction = !s.HiddenLiabilityUneven,
                 SymmetryMap = (SymmetryMapInput.ReverseInfo, SymmetryMapOutput.ChanceDecision)
             };
 
@@ -109,7 +109,7 @@ namespace ACESim
             {
                 IsReversible = true,
                 Unroll_Parallelize = true,
-                Unroll_Parallelize_Identical = !s.PlaintiffSignalUneven,
+                GameStructureSameForEachAction = !s.PlaintiffSignalUneven,
                 SymmetryMap = (SymmetryMapInput.ReverseInfo, SymmetryMapOutput.ChanceDecision)
             };
         }
@@ -129,7 +129,7 @@ namespace ACESim
             {
                 IsReversible = true,
                 Unroll_Parallelize = true,
-                Unroll_Parallelize_Identical = !s.DefendantSignalUneven,
+                GameStructureSameForEachAction = !s.DefendantSignalUneven,
                 SymmetryMap = (SymmetryMapInput.ReverseInfo, SymmetryMapOutput.ChanceDecision)
             };
         }

@@ -48,7 +48,7 @@ namespace ACESim
                     StoreActionInGameCacheItem = gameDefinition.GameHistoryCacheIndex_PrePrimaryChance,
                     IsReversible = true,
                     Unroll_Parallelize = GetPrePrimaryUnrollSettings().unrollParallelize,
-                    Unroll_Parallelize_Identical = GetPrePrimaryUnrollSettings().unrollIdentical,
+                    GameStructureSameForEachAction = GetPrePrimaryUnrollSettings().unrollIdentical,
                     SymmetryMap = (GetPrePrimaryUnrollSettings().symmetryMapInput, SymmetryMapOutput.ChanceDecision)
                 });
 
@@ -61,7 +61,7 @@ namespace ACESim
                     IsReversible = true,
                     CanTerminateGame = primaryTerminates,
                     Unroll_Parallelize = GetPrimaryUnrollSettings().unrollParallelize,
-                    Unroll_Parallelize_Identical = GetPrimaryUnrollSettings().unrollIdentical,
+                    GameStructureSameForEachAction = GetPrimaryUnrollSettings().unrollIdentical,
                     SymmetryMap = (GetPrimaryUnrollSettings().symmetryMapInput, SymmetryMapOutput.CantBeSymmetric)
                 });
 
@@ -74,7 +74,7 @@ namespace ACESim
                     IsReversible = true,
                     CanTerminateGame = postTerminates,
                     Unroll_Parallelize = GetPostPrimaryUnrollSettings().unrollParallelize,
-                    Unroll_Parallelize_Identical = GetPostPrimaryUnrollSettings().unrollIdentical,
+                    GameStructureSameForEachAction = GetPostPrimaryUnrollSettings().unrollIdentical,
                     SymmetryMap = (GetPostPrimaryUnrollSettings().symmetryMapInput, SymmetryMapOutput.ChanceDecision)
                 });
 
@@ -95,7 +95,7 @@ namespace ACESim
                 StoreActionInGameCacheItem = gameDefinition.GameHistoryCacheIndex_LiabilityStrength,
                 IsReversible = true,
                 Unroll_Parallelize = GetLiabilityStrengthUnrollSettings().unrollParallelize,
-                Unroll_Parallelize_Identical = GetLiabilityStrengthUnrollSettings().unrollIdentical,
+                GameStructureSameForEachAction = GetLiabilityStrengthUnrollSettings().unrollIdentical,
                 SymmetryMap = (GetLiabilityStrengthUnrollSettings().symmetryMapInput, SymmetryMapOutput.ChanceDecision)
             });
 
@@ -118,7 +118,7 @@ namespace ACESim
                     StoreActionInGameCacheItem = gameDefinition.GameHistoryCacheIndex_DamagesStrength,
                     IsReversible = true,
                     Unroll_Parallelize = GetDamagesStrengthUnrollSettings().unrollParallelize,
-                    Unroll_Parallelize_Identical = GetDamagesStrengthUnrollSettings().unrollIdentical,
+                    GameStructureSameForEachAction = GetDamagesStrengthUnrollSettings().unrollIdentical,
                     SymmetryMap = (GetDamagesStrengthUnrollSettings().symmetryMapInput, SymmetryMapOutput.ChanceDecision)
                 });
             }
@@ -156,7 +156,7 @@ namespace ACESim
                 {
                     IsReversible = true,
                     Unroll_Parallelize = true,
-                    Unroll_Parallelize_Identical = true,
+                    GameStructureSameForEachAction = true,
                     SymmetryMap = (SymmetryMapInput.ReverseInfo, SymmetryMapOutput.ChanceDecision)
                 });
             }
@@ -179,7 +179,7 @@ namespace ACESim
                 {
                     IsReversible = true,
                     Unroll_Parallelize = true,
-                    Unroll_Parallelize_Identical = true,
+                    GameStructureSameForEachAction = true,
                     SymmetryMap = (SymmetryMapInput.ReverseInfo, SymmetryMapOutput.ChanceDecision)
                 });
             }
@@ -205,7 +205,7 @@ namespace ACESim
                     {
                         IsReversible = true,
                         Unroll_Parallelize = true,
-                        Unroll_Parallelize_Identical = true,
+                        GameStructureSameForEachAction = true,
                         SymmetryMap = (SymmetryMapInput.ReverseInfo, SymmetryMapOutput.ChanceDecision)
                     });
                 }
@@ -227,7 +227,7 @@ namespace ACESim
                     {
                         IsReversible = true,
                         Unroll_Parallelize = true,
-                        Unroll_Parallelize_Identical = true,
+                        GameStructureSameForEachAction = true,
                         SymmetryMap = (SymmetryMapInput.ReverseInfo, SymmetryMapOutput.ChanceDecision)
                     });
                 }
