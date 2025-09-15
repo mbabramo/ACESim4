@@ -47,7 +47,6 @@ namespace ACESim
                 {
                     StoreActionInGameCacheItem = gameDefinition.GameHistoryCacheIndex_PrePrimaryChance,
                     IsReversible = true,
-                    Unroll_Parallelize = GetPrePrimaryUnrollSettings().unrollParallelize,
                     GameStructureSameForEachAction = GetPrePrimaryUnrollSettings().unrollIdentical,
                     SymmetryMap = (GetPrePrimaryUnrollSettings().symmetryMapInput, SymmetryMapOutput.ChanceDecision)
                 });
@@ -60,7 +59,6 @@ namespace ACESim
                     StoreActionInGameCacheItem = gameDefinition.GameHistoryCacheIndex_PrimaryAction,
                     IsReversible = true,
                     CanTerminateGame = primaryTerminates,
-                    Unroll_Parallelize = GetPrimaryUnrollSettings().unrollParallelize,
                     GameStructureSameForEachAction = GetPrimaryUnrollSettings().unrollIdentical,
                     SymmetryMap = (GetPrimaryUnrollSettings().symmetryMapInput, SymmetryMapOutput.CantBeSymmetric)
                 });
@@ -73,7 +71,6 @@ namespace ACESim
                     StoreActionInGameCacheItem = gameDefinition.GameHistoryCacheIndex_PostPrimaryChance,
                     IsReversible = true,
                     CanTerminateGame = postTerminates,
-                    Unroll_Parallelize = GetPostPrimaryUnrollSettings().unrollParallelize,
                     GameStructureSameForEachAction = GetPostPrimaryUnrollSettings().unrollIdentical,
                     SymmetryMap = (GetPostPrimaryUnrollSettings().symmetryMapInput, SymmetryMapOutput.ChanceDecision)
                 });
@@ -94,7 +91,6 @@ namespace ACESim
             {
                 StoreActionInGameCacheItem = gameDefinition.GameHistoryCacheIndex_LiabilityStrength,
                 IsReversible = true,
-                Unroll_Parallelize = GetLiabilityStrengthUnrollSettings().unrollParallelize,
                 GameStructureSameForEachAction = GetLiabilityStrengthUnrollSettings().unrollIdentical,
                 SymmetryMap = (GetLiabilityStrengthUnrollSettings().symmetryMapInput, SymmetryMapOutput.ChanceDecision)
             });
@@ -117,7 +113,6 @@ namespace ACESim
                 {
                     StoreActionInGameCacheItem = gameDefinition.GameHistoryCacheIndex_DamagesStrength,
                     IsReversible = true,
-                    Unroll_Parallelize = GetDamagesStrengthUnrollSettings().unrollParallelize,
                     GameStructureSameForEachAction = GetDamagesStrengthUnrollSettings().unrollIdentical,
                     SymmetryMap = (GetDamagesStrengthUnrollSettings().symmetryMapInput, SymmetryMapOutput.ChanceDecision)
                 });
@@ -155,7 +150,6 @@ namespace ACESim
                         (byte)LitigGameDecisions.PLiabilitySignal, unevenChanceActions: true)
                 {
                     IsReversible = true,
-                    Unroll_Parallelize = true,
                     GameStructureSameForEachAction = true,
                     SymmetryMap = (SymmetryMapInput.ReverseInfo, SymmetryMapOutput.ChanceDecision)
                 });
@@ -178,7 +172,6 @@ namespace ACESim
                         (byte)LitigGameDecisions.DLiabilitySignal, unevenChanceActions: true)
                 {
                     IsReversible = true,
-                    Unroll_Parallelize = true,
                     GameStructureSameForEachAction = true,
                     SymmetryMap = (SymmetryMapInput.ReverseInfo, SymmetryMapOutput.ChanceDecision)
                 });
@@ -204,7 +197,6 @@ namespace ACESim
                             (byte)LitigGameDecisions.PDamagesSignal, unevenChanceActions: true)
                     {
                         IsReversible = true,
-                        Unroll_Parallelize = true,
                         GameStructureSameForEachAction = true,
                         SymmetryMap = (SymmetryMapInput.ReverseInfo, SymmetryMapOutput.ChanceDecision)
                     });
@@ -226,7 +218,6 @@ namespace ACESim
                             (byte)LitigGameDecisions.DDamagesSignal, unevenChanceActions: true)
                     {
                         IsReversible = true,
-                        Unroll_Parallelize = true,
                         GameStructureSameForEachAction = true,
                         SymmetryMap = (SymmetryMapInput.ReverseInfo, SymmetryMapOutput.ChanceDecision)
                     });
@@ -318,25 +309,25 @@ namespace ACESim
             BayesianCalculations_GenerateAllConsistentGameProgresses(byte pL, byte dL, byte? cL, byte pD, byte dD, byte? cD, LitigGameProgress baseProgress) => throw new NotSupportedException();
 
         // Chance-ordering helper defaults
-        public virtual (bool unrollParallelize, bool unrollIdentical, SymmetryMapInput symmetryMapInput)
+        public virtual (bool unrollIdentical, SymmetryMapInput symmetryMapInput)
             GetPrePrimaryUnrollSettings()
-                => (false, false, SymmetryMapInput.SameInfo);
+                => (false, SymmetryMapInput.SameInfo);
 
-        public virtual (bool unrollParallelize, bool unrollIdentical, SymmetryMapInput symmetryMapInput)
+        public virtual (bool unrollIdentical, SymmetryMapInput symmetryMapInput)
             GetPrimaryUnrollSettings()
-                => (false, false, SymmetryMapInput.SameInfo);
+                => (false, SymmetryMapInput.SameInfo);
 
-        public virtual (bool unrollParallelize, bool unrollIdentical, SymmetryMapInput symmetryMapInput)
+        public virtual (bool unrollIdentical, SymmetryMapInput symmetryMapInput)
             GetPostPrimaryUnrollSettings()
-                => (false, false, SymmetryMapInput.SameInfo);
+                => (false, SymmetryMapInput.SameInfo);
 
-        public virtual (bool unrollParallelize, bool unrollIdentical, SymmetryMapInput symmetryMapInput)
+        public virtual (bool unrollIdentical, SymmetryMapInput symmetryMapInput)
             GetLiabilityStrengthUnrollSettings()
-                => (false, false, SymmetryMapInput.SameInfo);
+                => (false, SymmetryMapInput.SameInfo);
 
-        public virtual (bool unrollParallelize, bool unrollIdentical, SymmetryMapInput symmetryMapInput)
+        public virtual (bool unrollIdentical, SymmetryMapInput symmetryMapInput)
             GetDamagesStrengthUnrollSettings()
-                => (false, false, SymmetryMapInput.SameInfo);
+                => (false, SymmetryMapInput.SameInfo);
 
 
         public abstract double[] GetPrePrimaryChanceProbabilities(LitigGameDefinition g);

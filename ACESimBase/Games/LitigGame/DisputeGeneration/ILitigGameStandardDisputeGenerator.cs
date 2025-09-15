@@ -41,19 +41,19 @@ namespace ACESim
 
         bool PostPrimaryDoesNotAffectStrategy();
 
-        (bool unrollParallelize, bool unrollIdentical, SymmetryMapInput symmetryMapInput)
+        (bool unrollIdentical, SymmetryMapInput symmetryMapInput)
             GetPrePrimaryUnrollSettings();
 
-        (bool unrollParallelize, bool unrollIdentical, SymmetryMapInput symmetryMapInput)
+        (bool unrollIdentical, SymmetryMapInput symmetryMapInput)
             GetPrimaryUnrollSettings();
 
-        (bool unrollParallelize, bool unrollIdentical, SymmetryMapInput symmetryMapInput)
+        (bool unrollIdentical, SymmetryMapInput symmetryMapInput)
             GetPostPrimaryUnrollSettings();
 
-        (bool unrollParallelize, bool unrollIdentical, SymmetryMapInput symmetryMapInput)
+        (bool unrollIdentical, SymmetryMapInput symmetryMapInput)
             GetLiabilityStrengthUnrollSettings();
 
-        (bool unrollParallelize, bool unrollIdentical, SymmetryMapInput symmetryMapInput)
+        (bool unrollIdentical, SymmetryMapInput symmetryMapInput)
             GetDamagesStrengthUnrollSettings();
     }
 }

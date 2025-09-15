@@ -56,7 +56,6 @@ namespace ACESimBase.Games.DMSReplicationGame
             decisions.Add(new Decision("Chance", "C", true, (byte)DMSReplicationGamePlayers.Chance, new byte[] { (byte)DMSReplicationGamePlayers.Resolution }, 1 /* dummy decision -- only one possibility */, (byte)DMSReplicationGameDecisions.C_Dummy)
             {
                 IsReversible = true,
-                Unroll_Parallelize = true,
                 GameStructureSameForEachAction = true,
                 CanTerminateGame = false
             });

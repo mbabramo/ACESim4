@@ -142,16 +142,16 @@ namespace ACESim
 
         public override bool SupportsSymmetry() => true;
 
-        public override (bool unrollParallelize, bool unrollIdentical, SymmetryMapInput symmetryMapInput) GetPrePrimaryUnrollSettings() =>
-            (true, true, SymmetryMapInput.SameInfo);
-        public override (bool unrollParallelize, bool unrollIdentical, SymmetryMapInput symmetryMapInput) GetPrimaryUnrollSettings() =>
-            (true, true, SymmetryMapInput.SameInfo);
-        public override (bool unrollParallelize, bool unrollIdentical, SymmetryMapInput symmetryMapInput) GetPostPrimaryUnrollSettings() =>
-            (true, true, SymmetryMapInput.ReverseInfo);
-        public override (bool unrollParallelize, bool unrollIdentical, SymmetryMapInput symmetryMapInput) GetLiabilityStrengthUnrollSettings() =>
-            (true, true, SymmetryMapInput.ReverseInfo);
-        public override (bool unrollParallelize, bool unrollIdentical, SymmetryMapInput symmetryMapInput) GetDamagesStrengthUnrollSettings() =>
-            (true, true, SymmetryMapInput.ReverseInfo);
+        public override (bool unrollIdentical, SymmetryMapInput symmetryMapInput) GetPrePrimaryUnrollSettings() =>
+            (true, SymmetryMapInput.SameInfo);
+        public override (bool unrollIdentical, SymmetryMapInput symmetryMapInput) GetPrimaryUnrollSettings() =>
+            (true, SymmetryMapInput.SameInfo);
+        public override (bool unrollIdentical, SymmetryMapInput symmetryMapInput) GetPostPrimaryUnrollSettings() =>
+            (true, SymmetryMapInput.ReverseInfo);
+        public override (bool unrollIdentical, SymmetryMapInput symmetryMapInput) GetLiabilityStrengthUnrollSettings() =>
+            (true, SymmetryMapInput.ReverseInfo);
+        public override (bool unrollIdentical, SymmetryMapInput symmetryMapInput) GetDamagesStrengthUnrollSettings() =>
+            (true, SymmetryMapInput.ReverseInfo);
 
         // INVERTED CALCULATIONS
         // See ILitigGameDisputeGenerator for full explanation

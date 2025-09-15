@@ -190,7 +190,6 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
                 {
                     StoreActionInGameCacheItem = g.GameHistoryCacheIndex_LiabilityStrength,
                     IsReversible = true,
-                    Unroll_Parallelize = true
                 });
 
             if (ChanceAffectsDPerceptionofPrecautionCost)
@@ -203,7 +202,6 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
                     unevenChanceActions: false)
                 {
                     IsReversible = true,
-                    Unroll_Parallelize = true
                 });
             }
 
@@ -215,7 +213,6 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
                 unevenChanceActions: true)
             {
                 IsReversible = true,
-                Unroll_Parallelize = true
             });
 
             var plsDecision = new Decision("Plaintiff Signal", "PLS", true,
@@ -226,7 +223,6 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
                 unevenChanceActions: true)
             {
                 IsReversible = true,
-                Unroll_Parallelize = true
             };
             if (!collapse) r.Add(plsDecision);
 

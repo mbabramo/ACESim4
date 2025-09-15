@@ -89,7 +89,6 @@ namespace ACESim
                 unevenChanceActions: s.HiddenLiabilityUneven)
             {
                 IsReversible = true,
-                Unroll_Parallelize = true,
                 GameStructureSameForEachAction = !s.HiddenLiabilityUneven,
                 SymmetryMap = (SymmetryMapInput.ReverseInfo, SymmetryMapOutput.ChanceDecision)
             };
@@ -108,7 +107,6 @@ namespace ACESim
                 unevenChanceActions: s.PlaintiffSignalUneven)
             {
                 IsReversible = true,
-                Unroll_Parallelize = true,
                 GameStructureSameForEachAction = !s.PlaintiffSignalUneven,
                 SymmetryMap = (SymmetryMapInput.ReverseInfo, SymmetryMapOutput.ChanceDecision)
             };
@@ -128,7 +126,6 @@ namespace ACESim
                 unevenChanceActions: s.DefendantSignalUneven)
             {
                 IsReversible = true,
-                Unroll_Parallelize = true,
                 GameStructureSameForEachAction = !s.DefendantSignalUneven,
                 SymmetryMap = (SymmetryMapInput.ReverseInfo, SymmetryMapOutput.ChanceDecision)
             };
