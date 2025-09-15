@@ -33,7 +33,24 @@ namespace ACESimBase.Util.ArrayProcessing
         public Span<double> NonScratchData => VirtualStack.AsSpan(0, SizeOfMainData);
         public int NextArrayIndex => Recorder.NextArrayIndex;
         public int MaxArrayIndex => Recorder.MaxArrayIndex;
-        public int VirtualStackSize => MaxArrayIndex + 1;
+        public int VirtualStackSize
+        {
+            get
+            {
+                // Recorder.MaxArrayIndex tracks scratch growth, but repeated/routed commands
+                // can reference explicit original indices that are not reflected there.
+                int maxExplicit = -1;
+
+                if (OrderedSourceIndices != null && OrderedSourceIndices.Count > 0)
+                    maxExplicit = Math.Max(maxExplicit, OrderedSourceIndices.Max());
+
+                if (OrderedDestinationIndices != null && OrderedDestinationIndices.Count > 0)
+                    maxExplicit = Math.Max(maxExplicit, OrderedDestinationIndices.Max());
+
+                int maxIndex = Math.Max(Recorder.MaxArrayIndex, maxExplicit);
+                return maxIndex + 1;
+            }
+        }
 
         // ──────────────────────────────────────────────────────────────────────
         //  Ordered‑buffer index lists (filled at author‑time only)
@@ -77,6 +94,10 @@ namespace ACESimBase.Util.ArrayProcessing
         private Stack<int> _depthStartSlots = new();
         private Stack<int> _repeatRangeStack = new();
         private Stack<int> _repeatRangeEndStack = new();
+        // Map a chunk's StartCommandRange → its EndCommandRangeExclusive
+        private readonly Dictionary<int, int> _originalRangeEnds = new();
+        // Scratch-index snapshots for repeat bodies (separate from depth)
+        private readonly Stack<int> _repeatScratchIndexStack = new();
 
 
         public bool RepeatingExistingCommandRange = false;
@@ -112,7 +133,11 @@ namespace ACESimBase.Util.ArrayProcessing
                 VirtualStack = (double[])VirtualStack.Clone(),
                 MaxCommandIndex = MaxCommandIndex,
                 SizeOfMainData = SizeOfMainData,
+
+                // Ensure both ordered lists are cloned — destination was previously omitted.
                 OrderedSourceIndices = new List<int>(OrderedSourceIndices),
+                OrderedDestinationIndices = new List<int>(OrderedDestinationIndices),
+
                 Parallelize = Parallelize,
                 MaxCommandsPerSplittableChunk = MaxCommandsPerSplittableChunk,
                 CommandTree = CommandTree,
@@ -130,8 +155,6 @@ namespace ACESimBase.Util.ArrayProcessing
             clone.Recorder = Recorder.Clone(clone);
             return clone;
         }
-
-
 
         // ──────────────────────────────────────────────────────────────────────
         //  Chunk helpers
@@ -154,16 +177,13 @@ namespace ACESimBase.Util.ArrayProcessing
 
             if (RepeatIdenticalRanges && identicalStartCommandRange is int identical)
             {
-                // Record the original range we intend to repeat: [identical, repeatEnd)
-                int repeatEnd = Recorder.NextCommandIndex;
+                // Record original range start; end will be read from _originalRangeEnds on close
                 _repeatRangeStack.Push(identical);
-                _repeatRangeEndStack.Push(repeatEnd);
 
-                // Snapshot current scratch index so repeats can rewind it later
-                _depthStartSlots.Push(Recorder.NextArrayIndex);
+                // Snapshot current scratch counter so the repeat uses identical slots
+                _repeatScratchIndexStack.Push(Recorder.NextArrayIndex);
 
-                // Rewind command pointer so any emissions inside the repeated
-                // block must match the original
+                // Rewind command pointer so emissions must byte-match the original
                 Recorder.NextCommandIndex = identical;
                 RepeatingExistingCommandRange = true;
             }
@@ -214,26 +234,19 @@ namespace ACESimBase.Util.ArrayProcessing
             if (endingRepeatedChunk && RepeatIdenticalRanges && _repeatRangeStack.Count > 0)
             {
                 int repeatStart = _repeatRangeStack.Pop();
-                _repeatRangeEndStack.Pop(); // discard stale end
 
-                // Restore scratch index to match the original body
-                int rewind = _depthStartSlots.Pop();
-                Recorder.NextArrayIndex = rewind;
+                // Restore scratch counter so repeated body uses identical slots
+                int scratchRewind = _repeatScratchIndexStack.Pop();
+                Recorder.NextArrayIndex = scratchRewind;
 
-                // Find the original child node whose StartCommandRange matches repeatStart
-                var parentNode = CurrentNode.Parent as NWayTreeStorageInternal<ArrayCommandChunk>;
-                var originalChild = parentNode?.Branches?
-                    .Select(b => (NWayTreeStorageInternal<ArrayCommandChunk>)b)
-                    .FirstOrDefault(n => n.StoredValue.StartCommandRange == repeatStart);
-
-                if (originalChild == null)
-                    throw new InvalidOperationException("Could not locate original chunk for repeated range.");
-
-                int repeatEnd = originalChild.StoredValue.EndCommandRangeExclusive;
+                // Stamp the repeated child's true [start,end) from the original record
+                if (!_originalRangeEnds.TryGetValue(repeatStart, out int repeatEnd))
+                    throw new InvalidOperationException("Original range end not recorded for repeated chunk.");
 
                 finished.StartCommandRange = repeatStart;
                 finished.EndCommandRangeExclusive = repeatEnd;
 
+                // Recompute ordered source/dest ranges for this repeated child
                 int srcBefore = CountOps(UnderlyingCommands, 0, repeatStart, ArrayCommandType.NextSource);
                 int srcInRange = CountOps(UnderlyingCommands, repeatStart, repeatEnd, ArrayCommandType.NextSource);
                 finished.StartSourceIndices = srcBefore;
@@ -249,11 +262,16 @@ namespace ACESimBase.Util.ArrayProcessing
             }
             else
             {
+                // Normal child: close at current pointers…
                 finished.EndCommandRangeExclusive = NextCommandIndex;
                 finished.EndSourceIndicesExclusive = OrderedSourceIndices.Count;
                 finished.EndDestinationIndicesExclusive = OrderedDestinationIndices.Count;
+
+                // …and remember its true end for any future repeats that reference it
+                _originalRangeEnds[finished.StartCommandRange] = finished.EndCommandRangeExclusive;
             }
 
+            // Pop to parent and keep parent’s end ranges monotonically non-decreasing
             _currentPath.RemoveAt(_currentPath.Count - 1);
             var parent = CurrentChunk;
 
@@ -261,6 +279,8 @@ namespace ACESimBase.Util.ArrayProcessing
             parent.EndSourceIndicesExclusive = Math.Max(parent.EndSourceIndicesExclusive, finished.EndSourceIndicesExclusive);
             parent.EndDestinationIndicesExclusive = Math.Max(parent.EndDestinationIndicesExclusive, finished.EndDestinationIndicesExclusive);
         }
+
+
 
 
 
