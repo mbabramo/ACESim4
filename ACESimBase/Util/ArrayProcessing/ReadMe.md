@@ -75,7 +75,7 @@ The **`ArrayCommandList`** class is the core of the ArrayProcessing module. It i
 - **Ordered I/O structures:** `OrderedSourceIndices` and `OrderedDestinationIndices` track contiguous lists of original indices for batched reading and writing. `ReusableOrderedDestinationIndices` maps repeated outputs to slots for accumulation.  
 - `Checkpoints`: list for checkpoint values when enabled.  
 - `CheckpointTrigger = -2`: a marker index for checkpoint commands.  
-- Settings flags such as `UseOrderedSources`, `UseOrderedDestinations`, `ReuseDestinations`, `ReuseScratchSlots`, `UseCheckpoints`, `UseRoslyn`. These control optimizations, memory reuse, and code generation strategy.  
+- Settings flags such as  `UseCheckpoints`, `UseRoslyn`. These control optimizations, memory reuse, and code generation strategy.  
 
 **Command addition mechanism:**  
 

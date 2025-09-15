@@ -257,7 +257,6 @@ namespace ACESim
                 targetMet = Status.BestResponseTargetMet(EvolutionSettings.BestResponseTarget);
                 if (TraceCFR)
                 { // only trace through iteration
-                    // There are a number of advanced settings in ArrayCommandList that must be disabled for this feature to work properly. Parallelize || RepeatIdenticalRanges || UseOrderedDestinations || UseOrderedSources must be false.
                     string resultWithReplacementOfArray = TraceCommandList(array);
                     TabbedText.WriteLine(resultWithReplacementOfArray);
                 }
