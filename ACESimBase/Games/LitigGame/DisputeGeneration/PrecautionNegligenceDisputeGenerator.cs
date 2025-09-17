@@ -190,6 +190,7 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
                 {
                     StoreActionInGameCacheItem = g.GameHistoryCacheIndex_LiabilityStrength,
                     IsReversible = true,
+                    // DEBUG GameStructureSameForEachAction = true // But may be omitted
                 });
 
             if (ChanceAffectsDPerceptionofPrecautionCost)
@@ -213,6 +214,7 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
                 unevenChanceActions: true)
             {
                 IsReversible = true,
+                GameStructureSameForEachAction = true
             });
 
             var plsDecision = new Decision("Plaintiff Signal", "PLS", true,

@@ -25,7 +25,7 @@ namespace ACESim
         PostIterationUpdaterBase PostIterationUpdater;
         Dictionary<InformationSetNode, InformationSetNode> InformationSetSymmetryMap;
         public bool TakeShortcutInSymmetricGames = true;
-        bool VerifySymmetry = false; // if true, symmetry is verified instead of used as a way of saving time
+        bool VerifySymmetry = false; // if true, symmetry is verified instead of used as a way of saving time,
 
         public GeneralizedVanilla(List<Strategy> existingStrategyState, EvolutionSettings evolutionSettings, GameDefinition gameDefinition, PostIterationUpdaterBase postIterationUpdater) : base(existingStrategyState, evolutionSettings, gameDefinition)
         {
@@ -838,30 +838,59 @@ namespace ACESim
             ChanceNode chanceNode = (ChanceNode)gameStateForCurrentPlayer;
 
             if (EvolutionSettings.IncludeCommentsWhenUnrolling)
-                Unroll_Commands.InsertComment($"Chance node {chanceNode.Decision.Name} (node {chanceNode.ChanceNodeNumber})");
+                Unroll_Commands.InsertComment($"Chance node {chanceNode.Decision.Name} (node {chanceNode.ChanceNodeNumber})");
+
             byte numPossibleActions = chanceNode.Decision.NumPossibleActions;
             byte numPossibleActionsToExplore = numPossibleActions;
+
             var historyPointCopy = historyPoint; // can't use historyPoint in anonymous method below. This is costly, so it might be worth optimizing if we use GeneralizedVanillaCFR much.
-            int[] probabilityAdjustedInnerResult = Unroll_Commands.NewZeroArray(3); // must allocate this outside the parallel loop, because if we have commands writing to an array created in the parallel loop, the array indices will change
+            int[] probabilityAdjustedInnerResult = Unroll_Commands.NewZeroArray(3); // must allocate this outside the parallel loop, because if we have commands writing to an array created in the parallel loop, the array indices will change 
+
+            bool useIdenticalRepeat = EvolutionSettings.UnrollRepeatIdenticalRanges && chanceNode.Decision.GameStructureSameForEachAction;
+
+            if (useIdenticalRepeat)
+            {
+                var DEBUG = 0;
+            }
+
+            int? firstChunkStartIndex = null;
+            string repeatedChunkName = useIdenticalRepeat ? $"Chance {chanceNode.Decision.Name} identical-branch" : null;
+
             for (byte action = 1; action <= numPossibleActionsToExplore; action++)
             {
-                if (EvolutionSettings.IncludeCommentsWhenUnrolling)
-                    Unroll_Commands.InsertComment($"Chance node {chanceNode.Decision.Name} (node {chanceNode.ChanceNodeNumber}) action {action}");
-                var historyPointCopy2 = historyPointCopy; // Need to do this because we need a separate copy for each thread
+                if (EvolutionSettings.IncludeCommentsWhenUnrolling && !useIdenticalRepeat)
+                    Unroll_Commands.InsertComment($"Chance node {chanceNode.Decision.Name} (node {chanceNode.ChanceNodeNumber}) action {action}");
+
+                if (useIdenticalRepeat)
+                {
+                    if (action == 1)
+                        firstChunkStartIndex = Unroll_Commands.MaxCommandIndex + 1;
+                    int? identicalStart = action == 1 ? (int?)null : firstChunkStartIndex;
+                    Unroll_Commands.StartCommandChunk(false, identicalStart, repeatedChunkName);
+                }
+
+                var historyPointCopy2 = historyPointCopy;   // Need to do this because we need a separate copy for each thread
                 Unroll_Commands.ZeroExisting(probabilityAdjustedInnerResult);
                 Unroll_GeneralizedVanillaCFR_ChanceNode_NextAction(in historyPointCopy2,
                     playerBeingOptimized, piValues, avgStratPiValues,
-                        chanceNode, action, probabilityAdjustedInnerResult, false);
+                    chanceNode, action, probabilityAdjustedInnerResult, false,
+                    useIdenticalRepeat);
+
+                if (useIdenticalRepeat)
+                    Unroll_Commands.EndCommandChunk();
+
                 Unroll_Commands.IncrementArrayBy(resultArray, algorithmIsLowestDepth, probabilityAdjustedInnerResult);
             }
 
             Unroll_Commands.DecrementDepth();
         }
 
-        private void Unroll_GeneralizedVanillaCFR_ChanceNode_NextAction(in HistoryPoint historyPoint, byte playerBeingOptimized, int[] piValues, int[] avgStratPiValues, ChanceNode chanceNode, byte action, int[] resultArray, bool algorithmIsLowestDepth)
+
+        private void Unroll_GeneralizedVanillaCFR_ChanceNode_NextAction(in HistoryPoint historyPoint, byte playerBeingOptimized, int[] piValues, int[] avgStratPiValues, ChanceNode chanceNode, byte action, int[] resultArray, bool algorithmIsLowestDepth, bool suppressCommentsForRepeat)
         {
-            if (EvolutionSettings.IncludeCommentsWhenUnrolling)
-                Unroll_Commands.InsertComment($"Chance node {chanceNode.Decision.Name} (node {chanceNode.ChanceNodeNumber}) action {action} -> next action");
+            if (EvolutionSettings.IncludeCommentsWhenUnrolling && !suppressCommentsForRepeat)
+                Unroll_Commands.InsertComment($"Chance node {chanceNode.Decision.Name} (node {chanceNode.ChanceNodeNumber}) action {action} -> next action");
+
             Unroll_Commands.IncrementDepth();
             int actionProbabilityIndex = Unroll_GetChanceNodeIndex_ProbabilityForAction(chanceNode.ChanceNodeNumber, action);
             int actionProbability = Unroll_Commands.CopyToNew(actionProbabilityIndex, true);
@@ -883,7 +912,6 @@ namespace ACESim
             Unroll_Commands.CopyToExisting(resultArray, innerResult);
             if (TraceCFR)
             {
-                // save current result before multiplying
                 int beforeMultipleCurrentCopy = Unroll_Commands.CopyToNew(resultArray[Unroll_Result_CurrentVsCurrentIndex], false);
                 int actionProbabilityCopy = Unroll_Commands.CopyToNew(actionProbability, false);
 
@@ -900,6 +928,7 @@ namespace ACESim
 
             Unroll_Commands.DecrementDepth();
         }
+
 
         private void Unroll_GetNextPiValues(int[] currentPiValues, byte playerIndex, int probabilityToMultiplyBy, bool changeOtherPlayers, int[] resultArray)
         {
