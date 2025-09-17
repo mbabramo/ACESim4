@@ -72,9 +72,11 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
 
                         if (odLen <= 0 || (uint)codi >= (uint)odLen)
                             throw new IndexOutOfRangeException(
-                                $"Interpreter NextDestination OOB: ip={idx}, codi={codi}, odLen={odLen}, srcVS={cmd.Index}");
+                                $"Interpreter NextDestination OOB: ip={idx}, codi={codi}, odLen={odLen}, srcVS={cmd.SourceIndex}");
 
-                        orderedDestinations[codi++] = virtualStack[cmd.Index];
+                        // Accumulate into the ordered-destination value buffer; indices are queued elsewhere.
+                        orderedDestinations[codi] += virtualStack[cmd.SourceIndex];
+                        codi++;
                     }
                     break;
 

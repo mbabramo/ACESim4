@@ -106,7 +106,7 @@ namespace ACESimBase.Util.ArrayProcessing
         }
 
         public int[] CopyToNew(int[] sourceIndices, bool fromOriginalSources) =>
-    sourceIndices.Select(idx => CopyToNew(idx, fromOriginalSources)).ToArray();
+            sourceIndices.Select(idx => CopyToNew(idx, fromOriginalSources)).ToArray();
 
         public void CopyToExisting(int index, int sourceIndex)
         {
@@ -129,12 +129,18 @@ namespace ACESimBase.Util.ArrayProcessing
             AddCommand(new ArrayCommand(ArrayCommandType.MultiplyBy, idx, multIdx));
 
         /// <summary>Increment or stage-increment slot <paramref name="idx"/> by value from <paramref name="incIdx"/>.</summary>
-        public void Increment(int idx, bool /*targetOriginal*/ _, int incIdx)
+        public void Increment(int idx, bool targetOriginal, int incIdx)
         {
-            // Simply emit “add r[idx], r[incIdx]” – no ordered-destination bookkeeping.
-            AddCommand(new ArrayCommand(ArrayCommandType.IncrementBy, idx, incIdx));
+            if (targetOriginal)
+            {
+                _acl.OrderedDestinationIndices.Add(idx);
+                AddCommand(new ArrayCommand(ArrayCommandType.NextDestination, -1, incIdx));
+            }
+            else
+            {
+                AddCommand(new ArrayCommand(ArrayCommandType.IncrementBy, idx, incIdx));
+            }
         }
-
 
         public void Decrement(int idx, int decIdx) =>
             AddCommand(new ArrayCommand(ArrayCommandType.DecrementBy, idx, decIdx));
@@ -255,7 +261,7 @@ namespace ACESimBase.Util.ArrayProcessing
             AddCommand(new ArrayCommand(ArrayCommandType.LessThanOtherArrayIndex, i1, i2));
 
         public void InsertEqualsValueCommand(int idx, int v) =>
-    AddCommand(new ArrayCommand(ArrayCommandType.EqualsValue, idx, v));
+            AddCommand(new ArrayCommand(ArrayCommandType.EqualsValue, idx, v));
 
         public void InsertNotEqualsValueCommand(int idx, int v) =>
             AddCommand(new ArrayCommand(ArrayCommandType.NotEqualsValue, idx, v));

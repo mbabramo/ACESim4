@@ -851,22 +851,31 @@ namespace ACESim
             if (useIdenticalRepeat)
             {
                 var DEBUG = 0;
+                if (useIdenticalRepeat && TraceCFR)
+                    TabbedText.WriteLine($"Beginning identical range set for decision {chanceNode.Decision.Name}");
             }
 
-            int? firstChunkStartIndex = null;
             string repeatedChunkName = useIdenticalRepeat ? $"Chance {chanceNode.Decision.Name} identical-branch" : null;
+
+            int? firstChunkStartIndex = null;
 
             for (byte action = 1; action <= numPossibleActionsToExplore; action++)
             {
                 if (EvolutionSettings.IncludeCommentsWhenUnrolling && !useIdenticalRepeat)
                     Unroll_Commands.InsertComment($"Chance node {chanceNode.Decision.Name} (node {chanceNode.ChanceNodeNumber}) action {action}");
+                
+                if (useIdenticalRepeat && TraceCFR)
+                    TabbedText.WriteLine($"Beginning identical range action {action} for decision {chanceNode.Decision.Name}");
 
                 if (useIdenticalRepeat)
                 {
-                    if (action == 1)
-                        firstChunkStartIndex = Unroll_Commands.MaxCommandIndex + 1;
-                    int? identicalStart = action == 1 ? (int?)null : firstChunkStartIndex;
+                    bool repeatThisAction = action != 1;
+                    int? identicalStart = repeatThisAction ? firstChunkStartIndex : (int?)null;
                     Unroll_Commands.StartCommandChunk(false, identicalStart, repeatedChunkName);
+                    if (action == 1 && firstChunkStartIndex == null)
+                        firstChunkStartIndex = Unroll_Commands.NextCommandIndex;
+
+                    Unroll_Commands.IncrementDepth();
                 }
 
                 var historyPointCopy2 = historyPointCopy;   // Need to do this because we need a separate copy for each thread
@@ -877,10 +886,19 @@ namespace ACESim
                     useIdenticalRepeat);
 
                 if (useIdenticalRepeat)
-                    Unroll_Commands.EndCommandChunk();
+                {
+                
+                    if (TraceCFR)
+                        TabbedText.WriteLine($"Ending identical range action {action} for decision {chanceNode.Decision.Name}");
+                    Unroll_Commands.DecrementDepth();
+                    Unroll_Commands.EndCommandChunk(action != 1);
+                }
 
                 Unroll_Commands.IncrementArrayBy(resultArray, algorithmIsLowestDepth, probabilityAdjustedInnerResult);
             }
+            
+            if (useIdenticalRepeat && TraceCFR)
+                TabbedText.WriteLine($"Ending identical range set for decision {chanceNode.Decision.Name}");
 
             Unroll_Commands.DecrementDepth();
         }

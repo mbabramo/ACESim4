@@ -158,6 +158,7 @@ namespace ACESimBase.Util.ArrayProcessing
             //------------------------------------------------------------------
             _buffers = new OrderedBufferManager();
             _buffers.SourceIndices.AddRange(acl.OrderedSourceIndices);
+            _buffers.DestinationIndices.AddRange(acl.OrderedDestinationIndices);
             _buffers.PrepareBuffers(data, false);
             _cosi = 0;
             _condition = true;
