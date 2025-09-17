@@ -76,16 +76,10 @@ namespace ACESimBase.Util.ArrayProcessing
                 int targetIdx = DestinationIndices[i];
                 double increment = Destinations[i];
                 if (increment != 0.0)
-                {
-                    // += semantics preserved; if you later want true atomic add for doubles,
-                    // switch to a CompareExchange loop. For this fix, the early return is key.
-                    System.Threading.Interlocked.Exchange(
-                        ref data[targetIdx],
-                        data[targetIdx] + increment
-                    );
-                }
+                    data[targetIdx] += increment;
             });
         }
+
 
     }
 }

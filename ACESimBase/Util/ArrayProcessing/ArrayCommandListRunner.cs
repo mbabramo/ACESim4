@@ -145,38 +145,37 @@ namespace ACESimBase.Util.ArrayProcessing
             _acl = acl;
             _data = data;
 
-            //------------------------------------------------------------------
-            // Virtual stack initialization
-            //------------------------------------------------------------------
+            // Initialize virtual stack from the incoming data.
             for (int d = 0; d < data.Length; d++)
                 acl.VirtualStack[d] = data[d];
             for (int i = data.Length; i < acl.VirtualStack.Length; i++)
                 acl.VirtualStack[i] = 0;
 
-            //------------------------------------------------------------------
-            // Stage ordered buffers
-            //------------------------------------------------------------------
+            // Stage ordered buffers (sources snapshot + zeroed destinations).
             _buffers = new OrderedBufferManager();
             _buffers.SourceIndices.AddRange(acl.OrderedSourceIndices);
             _buffers.DestinationIndices.AddRange(acl.OrderedDestinationIndices);
             _buffers.PrepareBuffers(data, false);
+
+            // Reset consumption pointers and the current condition.
             _cosi = 0;
+            _codi = 0;
             _condition = true;
 
-            //------------------------------------------------------------------
-            // Depth-first traversal with pre/post hooks
-            //------------------------------------------------------------------
+            // Traverse and execute.
             acl.CommandTree!.WalkTreeWithPredicate(ShouldVisitNodesChildren, ExecuteOrSkipNode);
 
-            //------------------------------------------------------------------
-            // Copy back to original data
-            //------------------------------------------------------------------
+            // Merge buffered destination increments back into the working array.
+            _buffers.ApplyDestinations(_acl.VirtualStack, false);
+
+            // Optionally copy result back to the original data array.
             if (copyBackToOriginalData)
             {
                 for (int i = 0; i < _data.Length; i++)
                     _data[i] = acl.VirtualStack[i];
             }
         }
+
 
         private bool ShouldVisitNodesChildren(NWayTreeStorage<ArrayCommandChunk> node)
         {
@@ -195,21 +194,25 @@ namespace ACESimBase.Util.ArrayProcessing
         private void ExecuteOrSkipNode(NWayTreeStorage<ArrayCommandChunk> node)
         {
             bool skipBecauseConditionFails = IsConditionalNodeThatShouldBeSkipped(node);
-            if (skipBecauseConditionFails) 
-                _cosi += node.StoredValue.SourcesInBody;
-            else
+            if (skipBecauseConditionFails)
             {
-                bool isLeaf = node.IsLeaf();
-                if (!isLeaf)
-                    return; // this node has been split into other nodes, so we'll execute then
-                _executor.Execute(node.StoredValue,
-                                  _acl.VirtualStack,
-                                  _buffers.Sources,
-                                  _buffers.Destinations,
-                                  ref _cosi,
-                                  ref _codi,
-                                  ref _condition);
+                _cosi += node.StoredValue.SourcesInBody;
+                _codi += node.StoredValue.EndDestinationIndicesExclusive - node.StoredValue.StartDestinationIndices;
+                return;
             }
+
+            bool isLeaf = node.IsLeaf();
+            if (!isLeaf)
+                return;
+
+            _executor.Execute(node.StoredValue,
+                              _acl.VirtualStack,
+                              _buffers.Sources,
+                              _buffers.Destinations,
+                              ref _cosi,
+                              ref _codi,
+                              ref _condition);
         }
+
     }
 }

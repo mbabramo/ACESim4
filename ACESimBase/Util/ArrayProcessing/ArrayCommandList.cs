@@ -246,16 +246,14 @@ namespace ACESimBase.Util.ArrayProcessing
                 finished.StartCommandRange = repeatStart;
                 finished.EndCommandRangeExclusive = repeatEnd;
 
-                // Recompute ordered source/dest ranges for this repeated child
-                int srcBefore = CountOps(UnderlyingCommands, 0, repeatStart, ArrayCommandType.NextSource);
+                // IMPORTANT: keep the live starts captured at StartCommandChunk.
+                // Only compute how many sources/dests are in the repeated body,
+                // then advance each child's *end* from its own live start.
                 int srcInRange = CountOps(UnderlyingCommands, repeatStart, repeatEnd, ArrayCommandType.NextSource);
-                finished.StartSourceIndices = srcBefore;
-                finished.EndSourceIndicesExclusive = srcBefore + srcInRange;
+                finished.EndSourceIndicesExclusive = finished.StartSourceIndices + srcInRange;
 
-                int dstBefore = CountOps(UnderlyingCommands, 0, repeatStart, ArrayCommandType.NextDestination);
                 int dstInRange = CountOps(UnderlyingCommands, repeatStart, repeatEnd, ArrayCommandType.NextDestination);
-                finished.StartDestinationIndices = dstBefore;
-                finished.EndDestinationIndicesExclusive = dstBefore + dstInRange;
+                finished.EndDestinationIndicesExclusive = finished.StartDestinationIndices + dstInRange;
 
                 if (_repeatRangeStack.Count == 0)
                     RepeatingExistingCommandRange = false;
@@ -279,6 +277,7 @@ namespace ACESimBase.Util.ArrayProcessing
             parent.EndSourceIndicesExclusive = Math.Max(parent.EndSourceIndicesExclusive, finished.EndSourceIndicesExclusive);
             parent.EndDestinationIndicesExclusive = Math.Max(parent.EndDestinationIndicesExclusive, finished.EndDestinationIndicesExclusive);
         }
+
 
 
 

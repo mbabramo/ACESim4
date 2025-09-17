@@ -172,8 +172,6 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
                         throw new NotImplementedException($"Interpreter: unsupported command {cmd.CommandType}");
                 }
             }
-
-            chunk.StartSourceIndices = cosi;
         }
 
     }
