@@ -63,6 +63,7 @@ namespace ACESimTest.ArrayProcessingTests
         public void RepeatIdenticalRange_AddsValues(bool parallel)
         {
             var acl = NewAcl();
+            acl.UseOrderedSourcesAndDestinations = true; // ensure CopyToNew(..., true) emits NextSource for identical-range repeats
             acl.MaxCommandsPerSplittableChunk = int.MaxValue;
 
             acl.StartCommandChunk(false, null, "root");
@@ -104,6 +105,7 @@ namespace ACESimTest.ArrayProcessingTests
         public void RepeatIdenticalRange_MultipleIterations_SumsSources(bool parallel)
         {
             var acl = NewAcl();
+            acl.UseOrderedSourcesAndDestinations = true; // identical-range repeats rely on ordered-source mode
             acl.MaxCommandsPerSplittableChunk = int.MaxValue;
             acl.StartCommandChunk(false, null, "root");
 
@@ -138,6 +140,7 @@ namespace ACESimTest.ArrayProcessingTests
 
             acl.VirtualStack[total].Should().Be(10);
         }
+
 
 
         /* -------------------------------------------------------------

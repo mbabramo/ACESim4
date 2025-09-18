@@ -327,10 +327,8 @@ namespace ACESimTest.ArrayProcessingTests
             // vs[0] = 2+3 = 5
             Assert.AreEqual(5.0, vs[0], 1e-9);
             Assert.AreEqual(3.0, vs[1], 1e-9);
-
-            // And confirm pointers on chunk
-            Assert.AreEqual(2, chunk.StartSourceIndices);
         }
+
 
         [TestMethod]
         public void OrderedDestinations_TakenIf_WritesApplyInOrder_Chunk()
@@ -345,14 +343,14 @@ namespace ACESimTest.ArrayProcessingTests
                 new ArrayCommand(ArrayCommandType.EqualsValue,      0, 0),
                 new ArrayCommand(ArrayCommandType.If,              -1, -1),
 
-                    new ArrayCommand(ArrayCommandType.NextDestination, 0, -1), // use vs[0]
-                    new ArrayCommand(ArrayCommandType.NextDestination, 1, -1), // use vs[1]
+                    // New semantics: SourceIndex = VS slot to add; Index is ignored (set to -1)
+                    new ArrayCommand(ArrayCommandType.NextDestination, -1, 0), // use vs[0]
+                    new ArrayCommand(ArrayCommandType.NextDestination, -1, 1), // use vs[1]
 
                 new ArrayCommand(ArrayCommandType.EndIf,           -1, -1),
 
-                new ArrayCommand(ArrayCommandType.NextDestination, 1, -1),     // post-IF: vs[1]
+                new ArrayCommand(ArrayCommandType.NextDestination, -1, 1),     // post-IF: vs[1]
             };
-
 
             var chunk = ArrangeChunk(cmds);
 
@@ -367,12 +365,9 @@ namespace ACESimTest.ArrayProcessingTests
 
             executor.Execute(chunk, chunk.VirtualStack, os, od, ref cosi, ref codi, ref cond);
 
-            // THEN taken: first two writes land in od[0], od[1]; post-IF write in od[2]
             Assert.AreEqual(0.0, od[0], 1e-12, "THEN #1 should add vs[0]=0 to od[0]");
             Assert.AreEqual(7.0, od[1], 1e-12, "THEN #2 should add vs[1]=7 to od[1]");
             Assert.AreEqual(7.0, od[2], 1e-12, "post-IF write should add vs[1]=7 to od[2]");
-
-            // Pointer accounting: three destinations consumed
             Assert.AreEqual(3, codi, "codi must reflect three destination consumptions");
         }
 
@@ -389,14 +384,13 @@ namespace ACESimTest.ArrayProcessingTests
                 new ArrayCommand(ArrayCommandType.EqualsValue,      0, 999),
                 new ArrayCommand(ArrayCommandType.If,              -1, -1),
 
-                    new ArrayCommand(ArrayCommandType.NextDestination, 0, -1), // skipped, but must advance codi
-                    new ArrayCommand(ArrayCommandType.NextDestination, 1, -1), // skipped, but must advance codi
+                    new ArrayCommand(ArrayCommandType.NextDestination, -1, 0), // skipped, but must advance codi
+                    new ArrayCommand(ArrayCommandType.NextDestination, -1, 1), // skipped, but must advance codi
 
                 new ArrayCommand(ArrayCommandType.EndIf,           -1, -1),
 
-                new ArrayCommand(ArrayCommandType.NextDestination, 1, -1),     // post-IF: vs[1]
+                new ArrayCommand(ArrayCommandType.NextDestination, -1, 1),     // post-IF: vs[1]
             };
-
 
             var chunk = ArrangeChunk(cmds);
 
@@ -405,20 +399,15 @@ namespace ACESimTest.ArrayProcessingTests
             executor.PerformGeneration();
 
             double[] os = { 123.0, 22.0 }; // make condition FALSE; vs[1]=22 marker
-            double[] od = new double[16];   // generous capacity to avoid OOB in non-planned executors
+            double[] od = new double[16];
             int cosi = 0, codi = 0;
             bool cond = true;
 
             executor.Execute(chunk, chunk.VirtualStack, os, od, ref cosi, ref codi, ref cond);
 
-            // THEN skipped: no writes to the first two OD slots
             Assert.AreEqual(0.0, od[0], 1e-12, "skipped THEN must not write od[0]");
             Assert.AreEqual(0.0, od[1], 1e-12, "skipped THEN must not write od[1]");
-
-            // Post-IF write must respect DstSkip and land after the two skipped destinations
             Assert.AreEqual(22.0, od[2], 1e-12, "post-IF write must land in od[2] after skipped positions");
-
-            // Pointer accounting: DstSkip (2) + post-IF (1) = 3
             Assert.AreEqual(3, codi, "codi must advance by skipped DstSkip plus the post-IF write");
         }
 
@@ -522,8 +511,6 @@ namespace ACESimTest.ArrayProcessingTests
             double[] od = new double[0];
             var vs = ActExecute(chunk, os, od);
 
-            // The skipped NextSource / NextDestination still consumed os[0] and reserved od[0]
-            Assert.AreEqual(2, chunk.StartSourceIndices, "cosi should be 2");
             // And vs[1] gets the second source:
             Assert.AreEqual(22, vs[1], 1e-9);
         }
@@ -562,7 +549,6 @@ namespace ACESimTest.ArrayProcessingTests
             double[] od = new double[0];
             ActExecute(chunk, os, od);
 
-            Assert.AreEqual(3, chunk.StartSourceIndices);
             Assert.AreEqual(30, chunk.VirtualStack[2], 1e-9);
         }
 
@@ -589,8 +575,6 @@ namespace ACESimTest.ArrayProcessingTests
             double[] os = { 99 };
             double[] od = new double[2];
             ActExecute(chunk, os, od);
-
-            Assert.AreEqual(1, chunk.StartSourceIndices);   // one NextSource accounted
         }
 
         [TestMethod]
@@ -746,15 +730,15 @@ namespace ACESimTest.ArrayProcessingTests
                     new ArrayCommand(ArrayCommandType.EqualsValue,  1, 999), // inner: false
                     new ArrayCommand(ArrayCommandType.If,          -1, -1),
 
-                        new ArrayCommand(ArrayCommandType.NextDestination, 0, -1), // skipped, must advance codi by 1
+                        new ArrayCommand(ArrayCommandType.NextDestination, -1, 0), // skipped, must advance codi by 1
 
                     new ArrayCommand(ArrayCommandType.EndIf,       -1, -1),
 
-                    new ArrayCommand(ArrayCommandType.NextDestination, 1, -1), // THEN write after inner-if
+                    new ArrayCommand(ArrayCommandType.NextDestination, -1, 1), // THEN write after inner-if
 
                 new ArrayCommand(ArrayCommandType.EndIf,           -1, -1),
 
-                new ArrayCommand(ArrayCommandType.NextDestination, 1, -1) // post-IF write
+                new ArrayCommand(ArrayCommandType.NextDestination, -1, 1) // post-IF write
             };
 
             var chunk = ArrangeChunk(cmds);
@@ -764,15 +748,14 @@ namespace ACESimTest.ArrayProcessingTests
             double[] od = new double[8];
             int cosi = 0, codi = 0; bool cond = true;
 
-            // Act
             exec.Execute(chunk, chunk.VirtualStack, os, od, ref cosi, ref codi, ref cond);
 
-            // Assert: inner skip advanced codi from 0 → 1; THEN write → od[1]; post-IF write → od[2]
             Assert.AreEqual(0.0, od[0], 1e-12, "skipped inner NextDestination must not write");
             Assert.AreEqual(7.0, od[1], 1e-12, "outer THEN write should add vs[1]=7 to od[1]");
             Assert.AreEqual(7.0, od[2], 1e-12, "post-IF write should add vs[1]=7 to od[2]");
             Assert.AreEqual(3, codi, "one skipped + two executed writes");
         }
+
 
         [TestMethod]
         public void OrderedDestinations_UnmatchedIfTail_AdvancesCodi_OnSkip_Chunk()

@@ -302,6 +302,7 @@ namespace ACESimBase.Util.ArrayProcessing
             while (_currentPath.Count > 0) EndCommandChunk();
             EndCommandChunk(); // root
             CompleteCommandTree(hoistLargeIfBodies);
+            VerifyCorrectness2();
             VirtualStack = new double[VirtualStackSize];
             commandListCompleted = true;
         }
@@ -360,6 +361,72 @@ namespace ACESimBase.Util.ArrayProcessing
                 throw new InvalidOperationException(
                     $"Mismatch: IncrementDepth={incDepths}  DecrementDepth={decDepths}");
         }
+        private void VerifyCorrectness2()
+        {
+            // Count a specific opcode in a [start,end) slice
+            int CountOpsInRange(ArrayCommandType t, int start, int end)
+            {
+                int count = 0;
+                var cmds = UnderlyingCommands;
+                int max = Math.Min(end, MaxCommandIndex);
+                for (int i = start; i < max; i++)
+                    if (cmds[i].CommandType == t)
+                        count++;
+                return count;
+            }
+
+            long totalNextSourceAcrossLeaves = 0;
+            long totalNextDestinationAcrossLeaves = 0;
+
+            // After CompleteCommandTree(), the tree is populated with gap/tail leaves too.
+            // Sum consumptions across *leaf* slices (each leaf runs once),
+            // and also assert each leaf’s metadata matches its command slice.
+            CommandTree.WalkTree(n =>
+            {
+                var node = (ACESimBase.Util.NWayTreeStorage.NWayTreeStorageInternal<ArrayCommandChunk>)n;
+                var c = node.StoredValue;
+
+                // Skip empty placeholders
+                if (c.EndCommandRangeExclusive <= c.StartCommandRange)
+                    return;
+
+                bool isLeaf = node.Branches is null || node.Branches.Length == 0;
+                if (!isLeaf)
+                    return;
+
+                int sliceNextSource = CountOpsInRange(ArrayCommandType.NextSource,      c.StartCommandRange, c.EndCommandRangeExclusive);
+                int sliceNextDest   = CountOpsInRange(ArrayCommandType.NextDestination, c.StartCommandRange, c.EndCommandRangeExclusive);
+
+                int metaNextSource = c.EndSourceIndicesExclusive       - c.StartSourceIndices;
+                int metaNextDest   = c.EndDestinationIndicesExclusive  - c.StartDestinationIndices;
+
+                if (sliceNextSource != metaNextSource)
+                    throw new InvalidOperationException(
+                        $"Chunk [{c.StartCommandRange},{c.EndCommandRangeExclusive}) NextSource mismatch: commands={sliceNextSource} metadata={metaNextSource}.");
+
+                if (sliceNextDest != metaNextDest)
+                    throw new InvalidOperationException(
+                        $"Chunk [{c.StartCommandRange},{c.EndCommandRangeExclusive}) NextDestination mismatch: commands={sliceNextDest} metadata={metaNextDest}.");
+
+                totalNextSourceAcrossLeaves     += sliceNextSource;
+                totalNextDestinationAcrossLeaves += sliceNextDest;
+            });
+
+            int recordedSources = OrderedSourceIndices?.Count ?? 0;
+            int recordedDests   = OrderedDestinationIndices?.Count ?? 0;
+
+            // With identical-range repeats, multiple leaves can point at the same command range.
+            // Summing per-leaf slice counts reflects actual *consumptions* and must match the ordered lists.
+            if (totalNextSourceAcrossLeaves != recordedSources)
+                throw new InvalidOperationException(
+                    $"Mismatch between total NextSource consumptions across leaf chunks ({totalNextSourceAcrossLeaves}) and OrderedSourceIndices.Count ({recordedSources}).");
+
+            if (totalNextDestinationAcrossLeaves != recordedDests)
+                throw new InvalidOperationException(
+                    $"Mismatch between total NextDestination consumptions across leaf chunks ({totalNextDestinationAcrossLeaves}) and OrderedDestinationIndices.Count ({recordedDests}).");
+        }
+
+
 
         public void CompleteCommandTree(bool hoistLargeIfBodies = true)
         {
