@@ -190,7 +190,7 @@ namespace ACESim
         static bool PerfectInformationToo = false;
 
         static byte ParameterForMultipleOptions_Simplified = 2;
-        static byte ParameterForMultipleOptions = 8;
+        static byte ParameterForMultipleOptions = 3; // DEBUG 8
         public static LitigGameOptions PrecautionNegligenceGame()
         {
             var game = UseSimplifiedPrecautionNegligenceGame ?
