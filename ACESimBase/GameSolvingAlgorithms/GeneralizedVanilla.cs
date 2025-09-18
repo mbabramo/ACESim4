@@ -852,7 +852,6 @@ namespace ACESim
 
             if (useIdenticalRepeat)
             {
-                var DEBUG = 0;
                 if (useIdenticalRepeat && TraceCFR)
                     TabbedText.WriteLine($"Beginning identical range set for decision {chanceNode.Decision.Name}");
             }

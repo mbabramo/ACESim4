@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using ACESim.Util;
+using ACESimBase.Games.LitigGame.Options;
 using ACESimBase.Games.LitigGame.PrecautionModel;
 using ACESimBase.Util.Mathematics;
 
@@ -183,26 +184,21 @@ namespace ACESim
 
             return options;
         }
-
-        static bool UseSimplifiedPrecautionNegligenceGame = true; // DEBUG
-        static bool CollapseDecisionsInSimplifiedPrecautionNegligenceGame = false;
-        static bool PerfectAdjudication = false;
-        static bool PerfectInformationToo = false;
-
-        static byte ParameterForMultipleOptions_Simplified = 2;
-        static byte ParameterForMultipleOptions = 3; // DEBUG 8
-        public static LitigGameOptions PrecautionNegligenceGame()
+        public static LitigGameOptions PrecautionNegligenceGame(PrecautionNegligenceOptionsGeneratorSettings settings = null)
         {
-            var game = UseSimplifiedPrecautionNegligenceGame ?
-                PrecautionNegligenceGame(CollapseDecisionsInSimplifiedPrecautionNegligenceGame, allowQuitting: true, numSignalsAndOffers: ParameterForMultipleOptions_Simplified, numPotentialBargainingRounds: 1, numPrecautionPowerLevels: ParameterForMultipleOptions_Simplified, precautionLevels: ParameterForMultipleOptions_Simplified)
+            if (settings == null)
+                settings = new PrecautionNegligenceOptionsGeneratorSettings();
+
+            var game = settings.UseSimplifiedPrecautionNegligenceGame ?
+                PrecautionNegligenceGame(settings.CollapseDecisionsInSimplifiedPrecautionNegligenceGame, allowQuitting: true, numSignalsAndOffers: settings.ParameterForMultipleOptions_Simplified, numPotentialBargainingRounds: 1, numPrecautionPowerLevels: settings.ParameterForMultipleOptions_Simplified, precautionLevels: settings.ParameterForMultipleOptions_Simplified)
                 :
-                PrecautionNegligenceGame(true, true, ParameterForMultipleOptions, 1, ParameterForMultipleOptions, ParameterForMultipleOptions);
-            if (PerfectAdjudication)
+                PrecautionNegligenceGame(true, true, settings.ParameterForMultipleOptions, 1, settings.ParameterForMultipleOptions, settings.ParameterForMultipleOptions);
+            if (settings.PerfectAdjudication)
             {
                 game.CourtDamagesNoiseStdev = 0;
                 game.CourtLiabilityNoiseStdev = 0;
                 game.DTrialCosts = game.PTrialCosts = game.PerPartyCostsLeadingUpToBargainingRound = game.PFilingCost = game.DAnswerCost = 0;
-                if (PerfectInformationToo)
+                if (settings.PerfectInformationToo)
                 {
                     game.PLiabilityNoiseStdev = 0;
                     game.DLiabilityNoiseStdev = 0;

@@ -82,43 +82,73 @@ namespace ACESimBase.Util.ArrayProcessing
 #endif
         }
 
-        private static void Split(ArrayCommandList acl,
-                                       NWayTreeStorageInternal<ArrayCommandChunk> leaf,
-                                       int spanStart,
-                                       int spanEndEx,
-                                       bool isConditionalSplit)
+        private static void Split(
+            ArrayCommandList acl,
+            ACESimBase.Util.NWayTreeStorage.NWayTreeStorageInternal<ArrayCommandChunk> leaf,
+            int spanStart,
+            int spanEndEx,
+            bool isConditionalSplit)
         {
             var info = leaf.StoredValue;
-            int originalStart = info.StartCommandRange;
-            int originalEnd = info.EndCommandRangeExclusive;
-            int prefixEnd = spanStart;
-            int bodyStart = spanStart + 1;
-            int bodyEnd = spanEndEx - 1;
-            int suffixStart = spanEndEx;
+            var cmds = acl.UnderlyingCommands;
 
-#if OUTPUT_HOISTING_INFO
-            TabbedText.WriteLine($"[SPLIT] leaf ID{info.ID} body=[{bodyStart},{bodyEnd})");
-#endif
-            List<(int start, int endEx, bool isConditional)> branches = new();
-            if (originalStart <= prefixEnd)
-                branches.Add((originalStart, prefixEnd, false));
-            branches.Add((bodyStart, bodyEnd, isConditionalSplit)); // the body is the only part that runs conditionally (along with its children)
-            if (suffixStart <= originalEnd)
-                branches.Add((suffixStart, originalEnd, false));
-            var branchesNodes = branches.Select(x => new NWayTreeStorageInternal<ArrayCommandChunk>(leaf)
+            int originalStart = info.StartCommandRange;
+            int originalEnd   = info.EndCommandRangeExclusive;
+
+            int prefixEnd   = spanStart;        // [originalStart, prefixEnd)
+            int bodyStart   = spanStart + 1;    // [bodyStart, bodyEnd)
+            int bodyEnd     = spanEndEx - 1;
+            int suffixStart = spanEndEx;        // [suffixStart, originalEnd)
+
+            static int CountOps(ArrayCommand[] c, int s, int e, ArrayCommandType t)
             {
-                StoredValue = CloneMeta(info, x.start, x.endEx, x.isConditional)
-            }).ToArray();
-            for (byte b = 1; b <= branches.Count; b++)
-            {
-                NWayTreeStorageInternal<ArrayCommandChunk> branchNode = branchesNodes[b - 1];
-                leaf.SetBranch(b, branchNode);
-#if OUTPUT_HOISTING_INFO
-                TabbedText.WriteLine($"       ↳ [SLICE] ID{branchNode.StoredValue.ID} cmds=[{branches[b - 1].start},{branches[b - 1].endEx})");
-#endif
+                int count = 0;
+                for (int i = s; i < e; i++)
+                    if (c[i].CommandType == t) count++;
+                return count;
             }
 
-            info.LastChild = (byte) branches.Count;
+            ArrayCommandChunk MakeSlice(int sliceStart, int sliceEndEx, bool isConditional)
+            {
+                int beforeSrc = CountOps(cmds, originalStart, sliceStart, ArrayCommandType.NextSource);
+                int sliceSrc  = CountOps(cmds, sliceStart, sliceEndEx, ArrayCommandType.NextSource);
+
+                int beforeDst = CountOps(cmds, originalStart, sliceStart, ArrayCommandType.NextDestination);
+                int sliceDst  = CountOps(cmds, sliceStart, sliceEndEx, ArrayCommandType.NextDestination);
+
+                return new ArrayCommandChunk
+                {
+                    StartCommandRange = sliceStart,
+                    EndCommandRangeExclusive = sliceEndEx,
+
+                    StartSourceIndices = info.StartSourceIndices + beforeSrc,
+                    EndSourceIndicesExclusive = info.StartSourceIndices + beforeSrc + sliceSrc,
+
+                    StartDestinationIndices = info.StartDestinationIndices + beforeDst,
+                    EndDestinationIndicesExclusive = info.StartDestinationIndices + beforeDst + sliceDst,
+
+                    IsConditional = isConditional
+                };
+            }
+
+            var branches = new List<(int start, int endEx, bool cond)>();
+            if (originalStart <= prefixEnd)
+                branches.Add((originalStart, prefixEnd, false));
+            branches.Add((bodyStart, bodyEnd, isConditionalSplit));
+            if (suffixStart <= originalEnd)
+                branches.Add((suffixStart, originalEnd, false));
+
+            var branchNodes = branches.Select(b =>
+                new ACESimBase.Util.NWayTreeStorage.NWayTreeStorageInternal<ArrayCommandChunk>(leaf)
+                {
+                    StoredValue = MakeSlice(b.start, b.endEx, b.cond)
+                }
+            ).ToArray();
+
+            for (byte i = 1; i <= branchNodes.Length; i++)
+                leaf.SetBranch(i, branchNodes[i - 1]);
+
+            info.LastChild = (byte)branchNodes.Length;
         }
 
         /* Helpers */
