@@ -30,12 +30,17 @@ namespace ACESimTest
         [DataRow(true, true)]
         public async Task CollapsingDecisionsGivesEquivalentUtilities(bool randomInformationSets, bool largerTree)
         {
+
+            EvolutionSettings evolutionSettings = new EvolutionSettings();
+            evolutionSettings.TotalIterations = 1;
+            evolutionSettings.UnrollRepeatIdenticalRanges = false;
+
             byte branching = largerTree ? (byte)5 : (byte)2; // signals, precaution powers, and precaution levels
             var regular = LitigGameOptionsGenerator.PrecautionNegligenceGame(false, false, branching, 1, branching, branching);
-            double[] regularUtilities = await GetUtilities(regular, "Regular", randomInformationSets);
+            double[] regularUtilities = await GetUtilities(regular, "Regular", randomInformationSets, evolutionSettings);
 
             var collapsed = LitigGameOptionsGenerator.PrecautionNegligenceGame(true, false, branching, 1, branching, branching);
-            double[] collapsedUtilities = await GetUtilities(collapsed, "Collapse", randomInformationSets);
+            double[] collapsedUtilities = await GetUtilities(collapsed, "Collapse", randomInformationSets, evolutionSettings);
 
             regularUtilities.Should().Equal(
                 collapsedUtilities,
@@ -54,11 +59,15 @@ namespace ACESimTest
         {
             byte branching = largerTree ? (byte) 3 : (byte) 2; // signals, precaution powers, and precaution levels
 
+            EvolutionSettings evolutionSettings = new EvolutionSettings();
+            evolutionSettings.TotalIterations = 1;
+            evolutionSettings.UnrollRepeatIdenticalRanges = false;
+
             var regular = LitigGameOptionsGenerator.PrecautionNegligenceGame(false, false, branching, 1, branching, branching);
-            List<(double probability, PrecautionNegligenceProgress progress)> regularResults = await GetConsistentProgressForEveryGamePathAsync(regular, randomInformationSets);
+            List<(double probability, PrecautionNegligenceProgress progress)> regularResults = await GetConsistentProgressForEveryGamePathAsync(regular, randomInformationSets, evolutionSettings);
 
             var collapsed = LitigGameOptionsGenerator.PrecautionNegligenceGame(true, false, branching, 1, branching, branching);
-            List<(double probability, PrecautionNegligenceProgress progress)> collapsedResults = await GetConsistentProgressForEveryGamePathAsync(collapsed, randomInformationSets);
+            List<(double probability, PrecautionNegligenceProgress progress)> collapsedResults = await GetConsistentProgressForEveryGamePathAsync(collapsed, randomInformationSets, evolutionSettings);
 
             regularResults.Sum(x => x.probability).Should().BeApproximately(1.0, tolerance);
             collapsedResults.Sum(x => x.probability).Should().BeApproximately(1.0, tolerance);
@@ -164,10 +173,10 @@ namespace ACESimTest
         /// and returns each associated with its corresponding probability.
         /// </summary>
         private static async Task<List<(double probability, PrecautionNegligenceProgress progress)>>
-            GetConsistentProgressForEveryGamePathAsync(LitigGameOptions options, bool randomInformationSets)
+            GetConsistentProgressForEveryGamePathAsync(LitigGameOptions options, bool randomInformationSets, EvolutionSettings evolutionSettings = null)
         {
             var finalResults = new List<(double probability, PrecautionNegligenceProgress progress)>();
-            var initialResults = await GetProgressForEveryGamePathAsync(options, randomInformationSets);
+            var initialResults = await GetProgressForEveryGamePathAsync(options, randomInformationSets, evolutionSettings);
 
             double initialProbabilitySum = initialResults.Sum(x => x.probability);
             var disputeGenerator = (PrecautionNegligenceDisputeGenerator)options.LitigGameDisputeGenerator;
@@ -188,9 +197,9 @@ namespace ACESimTest
         /// resulting LitigGameProgress.
         /// </summary>
         private static async Task<List<(double probability, PrecautionNegligenceProgress progress)>>
-            GetProgressForEveryGamePathAsync(LitigGameOptions options, bool randomInformationSets)
+            GetProgressForEveryGamePathAsync(LitigGameOptions options, bool randomInformationSets, EvolutionSettings evolutionSettings = null)
         {
-            var developer = await GetGeneralizedVanilla(options, "PathEnumeration");
+            var developer = await GetGeneralizedVanilla(options, "PathEnumeration", evolutionSettings);
             if (randomInformationSets)
                 RandomizeInformationSetProbabilities(developer);
 
@@ -215,9 +224,9 @@ namespace ACESimTest
             return results;
         }
 
-        private static async Task<double[]> GetUtilities(LitigGameOptions options, string optionsName, bool randomInformationSets)
+        private static async Task<double[]> GetUtilities(LitigGameOptions options, string optionsName, bool randomInformationSets, EvolutionSettings evolutionSettings = null)
         {
-            var developer = await GetGeneralizedVanilla(options, optionsName);
+            var developer = await GetGeneralizedVanilla(options, optionsName, evolutionSettings);
             if (randomInformationSets)
                 RandomizeInformationSetProbabilities(developer);
             var treeWalker = new CalculateUtilitiesAtEachInformationSet();
@@ -254,10 +263,11 @@ namespace ACESimTest
             return informationSetProbabilities;
         }
 
-        private static async Task<GeneralizedVanilla> GetGeneralizedVanilla(LitigGameOptions gameOptions, string optionsName)
+        private static async Task<GeneralizedVanilla> GetGeneralizedVanilla(LitigGameOptions gameOptions, string optionsName, EvolutionSettings evolutionSettings = null)
         {
             var launcher = new LitigGameEndogenousDisputesLauncher();
-            var evolutionSettings = launcher.GetEvolutionSettings();
+            if (evolutionSettings == null)
+                evolutionSettings = launcher.GetEvolutionSettings();
             evolutionSettings.Algorithm = GameApproximationAlgorithm.GeneralizedVanilla;
             var developer = (GeneralizedVanilla)await launcher.GetInitializedDevelper(gameOptions, optionsName, evolutionSettings);
             return developer;

@@ -375,30 +375,30 @@ namespace ACESimBase.Util.ArrayProcessing
                 return count;
             }
 
-            long totalNextSourceAcrossLeaves = 0;
-            long totalNextDestinationAcrossLeaves = 0;
+            long totalCmdNextSourceAcrossLeaves = 0;
+            long totalCmdNextDestinationAcrossLeaves = 0;
+            long totalMetaNextSourceAcrossLeaves = 0;
+            long totalMetaNextDestinationAcrossLeaves = 0;
 
-            // After CompleteCommandTree(), the tree is populated with gap/tail leaves too.
-            // Sum consumptions across *leaf* slices (each leaf runs once),
-            // and also assert each leaf’s metadata matches its command slice.
-            CommandTree.WalkTree(n =>
+            // After CompleteCommandTree(), the tree includes gap/tail leaves too.
+            // For each *leaf*:
+            //   1) Assert its metadata matches its command slice.
+            //   2) Accumulate both the slice opcode counts and the metadata counts.
+            CommandTree.WalkTree(nObj =>
             {
-                var node = (ACESimBase.Util.NWayTreeStorage.NWayTreeStorageInternal<ArrayCommandChunk>)n;
+                var node = (ACESimBase.Util.NWayTreeStorage.NWayTreeStorageInternal<ArrayCommandChunk>)nObj;
                 var c = node.StoredValue;
 
-                // Skip empty placeholders
-                if (c.EndCommandRangeExclusive <= c.StartCommandRange)
-                    return;
-
+                // Skip non‑leaf and empty placeholders
                 bool isLeaf = node.Branches is null || node.Branches.Length == 0;
-                if (!isLeaf)
-                    return;
+                if (!isLeaf) return;
+                if (c.EndCommandRangeExclusive <= c.StartCommandRange) return;
 
                 int sliceNextSource = CountOpsInRange(ArrayCommandType.NextSource,      c.StartCommandRange, c.EndCommandRangeExclusive);
                 int sliceNextDest   = CountOpsInRange(ArrayCommandType.NextDestination, c.StartCommandRange, c.EndCommandRangeExclusive);
 
-                int metaNextSource = c.EndSourceIndicesExclusive       - c.StartSourceIndices;
-                int metaNextDest   = c.EndDestinationIndicesExclusive  - c.StartDestinationIndices;
+                int metaNextSource = c.EndSourceIndicesExclusive      - c.StartSourceIndices;
+                int metaNextDest   = c.EndDestinationIndicesExclusive - c.StartDestinationIndices;
 
                 if (sliceNextSource != metaNextSource)
                     throw new InvalidOperationException(
@@ -408,23 +408,27 @@ namespace ACESimBase.Util.ArrayProcessing
                     throw new InvalidOperationException(
                         $"Chunk [{c.StartCommandRange},{c.EndCommandRangeExclusive}) NextDestination mismatch: commands={sliceNextDest} metadata={metaNextDest}.");
 
-                totalNextSourceAcrossLeaves     += sliceNextSource;
-                totalNextDestinationAcrossLeaves += sliceNextDest;
+                totalCmdNextSourceAcrossLeaves  += sliceNextSource;
+                totalCmdNextDestinationAcrossLeaves += sliceNextDest;
+
+                totalMetaNextSourceAcrossLeaves += metaNextSource;
+                totalMetaNextDestinationAcrossLeaves += metaNextDest;
             });
 
             int recordedSources = OrderedSourceIndices?.Count ?? 0;
             int recordedDests   = OrderedDestinationIndices?.Count ?? 0;
 
-            // With identical-range repeats, multiple leaves can point at the same command range.
-            // Summing per-leaf slice counts reflects actual *consumptions* and must match the ordered lists.
-            if (totalNextSourceAcrossLeaves != recordedSources)
+            // FINAL global checks: compare ordered lists against the *metadata* totals,
+            // because the executors and branch‑skipping logic advance cosi/codi using metadata.
+            if (totalMetaNextSourceAcrossLeaves != recordedSources)
                 throw new InvalidOperationException(
-                    $"Mismatch between total NextSource consumptions across leaf chunks ({totalNextSourceAcrossLeaves}) and OrderedSourceIndices.Count ({recordedSources}).");
+                    $"Mismatch between total NextSource consumptions across leaf chunks (by metadata: {totalMetaNextSourceAcrossLeaves}) and OrderedSourceIndices.Count ({recordedSources}).");
 
-            if (totalNextDestinationAcrossLeaves != recordedDests)
+            if (totalMetaNextDestinationAcrossLeaves != recordedDests)
                 throw new InvalidOperationException(
-                    $"Mismatch between total NextDestination consumptions across leaf chunks ({totalNextDestinationAcrossLeaves}) and OrderedDestinationIndices.Count ({recordedDests}).");
+                    $"Mismatch between total NextDestination consumptions across leaf chunks (by metadata: {totalMetaNextDestinationAcrossLeaves}) and OrderedDestinationIndices.Count ({recordedDests}).");
         }
+
 
 
 
