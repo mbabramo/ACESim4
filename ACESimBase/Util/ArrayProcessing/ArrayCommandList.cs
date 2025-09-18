@@ -55,6 +55,7 @@ namespace ACESimBase.Util.ArrayProcessing
         // ──────────────────────────────────────────────────────────────────────
         //  Ordered‑buffer index lists (filled at author‑time only)
         // ──────────────────────────────────────────────────────────────────────
+        public bool UseOrderedSourcesAndDestinations = false;
         public List<int> OrderedSourceIndices = new();        
         public List<int> OrderedDestinationIndices = new();
 
@@ -135,6 +136,7 @@ namespace ACESimBase.Util.ArrayProcessing
                 SizeOfMainData = SizeOfMainData,
 
                 // Ensure both ordered lists are cloned — destination was previously omitted.
+                UseOrderedSourcesAndDestinations = UseOrderedSourcesAndDestinations,
                 OrderedSourceIndices = new List<int>(OrderedSourceIndices),
                 OrderedDestinationIndices = new List<int>(OrderedDestinationIndices),
 

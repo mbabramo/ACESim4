@@ -93,7 +93,7 @@ namespace ACESimBase.Util.ArrayProcessing
         public int CopyToNew(int sourceIdx, bool fromOriginalSources)
         {
             int target = NextArrayIndex++;
-            if (fromOriginalSources)
+            if (fromOriginalSources && _acl.UseOrderedSourcesAndDestinations)
             {
                 _acl.OrderedSourceIndices.Add(sourceIdx);
                 AddCommand(new ArrayCommand(ArrayCommandType.NextSource, target, -1));
@@ -131,7 +131,7 @@ namespace ACESimBase.Util.ArrayProcessing
         /// <summary>Increment or stage-increment slot <paramref name="idx"/> by value from <paramref name="incIdx"/>.</summary>
         public void Increment(int idx, bool targetOriginal, int incIdx)
         {
-            if (targetOriginal)
+            if (targetOriginal && _acl.UseOrderedSourcesAndDestinations)
             {
                 _acl.OrderedDestinationIndices.Add(idx);
                 AddCommand(new ArrayCommand(ArrayCommandType.NextDestination, -1, incIdx));

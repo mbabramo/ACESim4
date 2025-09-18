@@ -326,6 +326,8 @@ namespace ACESim
                 Unroll_CommandListRunner_Cached = null; // free memory
                 TabbedText.WriteLine($"Unrolling commands...");
                 Unroll_Commands = new ArrayCommandList(max_num_commands, Unroll_InitialArrayIndex);
+                Unroll_Commands.UseOrderedSourcesAndDestinations = EvolutionSettings.UnrollRepeatIdenticalRanges;
+
                 ActionStrategy = ActionStrategies.CurrentProbability;
                 HistoryPoint historyPoint = GetStartOfGameHistoryPoint();
                 List<int> resultIndices = new List<int>();
