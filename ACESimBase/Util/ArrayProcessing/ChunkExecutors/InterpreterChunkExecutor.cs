@@ -54,7 +54,7 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
                     case ArrayCommandType.CopyTo:
                         if (UseCheckpoints && cmd.Index == CheckpointTrigger)
                         {
-                            RecordCheckpoint(cmd.SourceIndex, virtualStack[cmd.SourceIndex]);
+                            ArrayCommandListForCheckpoints.Checkpoints.Add((cmd.SourceIndex, virtualStack[cmd.SourceIndex]));
                         }
                         else
                         {
@@ -77,9 +77,8 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
                         // Accumulate into the ordered-destination value buffer; indices are queued elsewhere.
                         orderedDestinations[codi] += virtualStack[cmd.SourceIndex];
                         codi++;
+                        break;
                     }
-                    break;
-
 
                     case ArrayCommandType.MultiplyBy:
                         virtualStack[cmd.Index] *= virtualStack[cmd.SourceIndex];
@@ -116,48 +115,24 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
                         if (!condition)
                         {
                             int depth = 1;
-                            int skippedNextSources = 0;
-                            int skippedNextDestinations = 0;
-
-                            // Scan ONLY within this chunk's range. Do not look past EndCommandRangeExclusive.
-                            // This ensures unmatched IF tails don't advance cosi/codi based on future-chunk commands.
+                            // Advance source/destination pointers for commands we *skip*,
+                            // but only within this chunk’s range.
                             while (depth > 0 && idx + 1 < chunk.EndCommandRangeExclusive)
                             {
                                 idx++;
                                 var t = Commands[idx].CommandType;
-                                if (t == ArrayCommandType.If)
-                                {
-                                    depth++;
-                                }
-                                else if (t == ArrayCommandType.EndIf)
-                                {
-                                    depth--;
-                                }
-                                else if (t == ArrayCommandType.NextSource)
-                                {
-                                    skippedNextSources++;
-                                    cosi++;
-                                }
-                                else if (t == ArrayCommandType.NextDestination)
-                                {
-                                    skippedNextDestinations++;
-                                    codi++;
-                                }
+                                if      (t == ArrayCommandType.If)           depth++;
+                                else if (t == ArrayCommandType.EndIf)        depth--;
+                                else if (t == ArrayCommandType.NextSource)   cosi++;
+                                else if (t == ArrayCommandType.NextDestination) codi++;
                             }
-
-                            // If depth > 0 here, we've hit the end of the chunk with an unmatched IF.
-                            // That's OK: we've advanced cosi/codi for any NextSource/NextDestination that
-                            // actually reside in THIS chunk. The remainder (in the next chunk) will be
-                            // handled when that chunk executes.
                         }
                         break;
-
-
 
                     case ArrayCommandType.Checkpoint:
                         if (UseCheckpoints)
                         {
-                            RecordCheckpoint(cmd.SourceIndex, virtualStack[cmd.SourceIndex]);
+                            ArrayCommandListForCheckpoints.Checkpoints.Add((cmd.SourceIndex, virtualStack[cmd.SourceIndex]));
                         }
                         break;
 
@@ -173,6 +148,7 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
                 }
             }
         }
+
 
     }
 }

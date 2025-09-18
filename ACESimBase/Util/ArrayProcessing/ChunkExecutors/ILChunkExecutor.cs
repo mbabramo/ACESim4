@@ -465,6 +465,7 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
                         }
 
                     /* ── ignored ── */
+                    case ArrayCommandType.Checkpoint:
                     case ArrayCommandType.Comment:
                     case ArrayCommandType.Blank:
                     case ArrayCommandType.IncrementDepth:
