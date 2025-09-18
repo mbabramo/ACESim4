@@ -99,7 +99,7 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
                 if (chunk.EndCommandRangeExclusive <= chunk.StartCommandRange)
                     return;
                 _compiled[chunk](virtualStack, orderedSources, orderedDestinations, ref cosi, ref codi, ref condition);
-                chunk.StartSourceIndices = cosi;
+                // DEBUG chunk.StartSourceIndices = cosi;
             }
             catch (Exception ex)
             {
@@ -319,27 +319,32 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
 
                     case ArrayCommandType.NextDestination:
                     {
+                        // int tmpI = codi;
                         EI(OpCodes.Ldarg, 4);
                         E0(OpCodes.Ldind_I4);
                         ELb(OpCodes.Stloc, tmpI);
 
+                        // double acc = od[tmpI];
                         E0(OpCodes.Ldarg_2);
                         ELb(OpCodes.Ldloc, tmpI);
                         E0(OpCodes.Ldelem_R8);
 
-                        Load(cmd.Index);
+                        // acc += <VS value from SourceIndex>
+                        Load(cmd.SourceIndex);
                         E0(OpCodes.Add);
 
+                        // od[tmpI] = acc;
                         ELb(OpCodes.Stloc, tmp);
-
                         E0(OpCodes.Ldarg_2);
                         ELb(OpCodes.Ldloc, tmpI);
                         ELb(OpCodes.Ldloc, tmp);
                         E0(OpCodes.Stelem_R8);
 
+                        // codi++;
                         IncrementRefInt(4);
                         break;
                     }
+
 
                     case ArrayCommandType.MultiplyBy:
                         Load(cmd.Index);

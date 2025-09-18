@@ -102,14 +102,32 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
             _scheduled.Clear();
         }
 
-        public override void Execute(ArrayCommandChunk chunk, double[] vs, double[] os, double[] od, ref int cosi, ref int codi,
-                                      ref bool cond)
+        public override void Execute(
+            ArrayCommandChunk chunk,
+            double[] vs,
+            double[] os,
+            double[] od,
+            ref int cosi,
+            ref int codi,
+            ref bool cond)
         {
             if (chunk.EndCommandRangeExclusive <= chunk.StartCommandRange)
                 return;
-            _compiled[chunk](vs, os, od, ref cosi, ref codi, ref cond);
-            chunk.StartSourceIndices = cosi;
+
+            try
+            {
+                _compiled[chunk](vs, os, od, ref cosi, ref codi, ref cond);
+                // IMPORTANT: executors must not mutate chunk metadata here.
+            }
+            catch (Exception ex)
+            {
+                var code = GeneratedCode ?? "<no generated source preserved>";
+                throw new InvalidOperationException(
+                    $"Error executing chunk [{chunk.StartCommandRange},{chunk.EndCommandRangeExclusive}).",
+                    ex);
+            }
         }
+
 
         private static string FnName(ArrayCommandChunk c)
             => $"S{c.StartCommandRange}_{c.EndCommandRangeExclusive - 1}";
@@ -346,7 +364,7 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
                     break;
 
                 case ArrayCommandType.NextDestination:
-                    cb.AppendLine($"od[codi++] += {R(cmd.Index)};");
+                    cb.AppendLine($"od[codi++] += {R(cmd.SourceIndex)};");
                     break;
 
                 case ArrayCommandType.MultiplyBy:
@@ -468,6 +486,7 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
 
 
                 // comments / blanks – ignore
+                case ArrayCommandType.Checkpoint:
                 case ArrayCommandType.Comment:
                 case ArrayCommandType.Blank:
                 case ArrayCommandType.IncrementDepth:

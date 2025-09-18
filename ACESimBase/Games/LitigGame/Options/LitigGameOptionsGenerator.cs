@@ -184,7 +184,7 @@ namespace ACESim
             return options;
         }
 
-        static bool UseSimplifiedPrecautionNegligenceGame = true; // DEBUG
+        static bool UseSimplifiedPrecautionNegligenceGame = false; 
         static bool CollapseDecisionsInSimplifiedPrecautionNegligenceGame = false;
         static bool PerfectAdjudication = false;
         static bool PerfectInformationToo = false;
