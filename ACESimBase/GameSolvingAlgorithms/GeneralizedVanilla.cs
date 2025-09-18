@@ -192,8 +192,16 @@ namespace ACESim
         private static (int Chance, int Decision, int Final) GameTreeNodeCount_Cached = default;
         private int Unroll_SizeOfArray;
         private static int Unroll_SizeOfArray_Cached = -1;
+        
 
         int UnrollCheckpointIteration = -1; // if using checkpoints to debug unrolling, set an iteration (such as 1) here
+        public static void ClearCache()
+        {
+            Unroll_Commands_Cached = null;
+            Unroll_CommandListRunner_Cached = null;
+            Unroll_SizeOfArray_Cached = -1;
+            GameTreeNodeCount_Cached = default;
+        }
 
         public async Task<ReportCollection> Unroll_SolveGeneralizedVanillaCFR()
         {

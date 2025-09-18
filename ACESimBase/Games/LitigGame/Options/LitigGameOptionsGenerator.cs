@@ -190,9 +190,9 @@ namespace ACESim
                 settings = new PrecautionNegligenceOptionsGeneratorSettings();
 
             var game = settings.UseSimplifiedPrecautionNegligenceGame ?
-                PrecautionNegligenceGame(settings.CollapseDecisionsInSimplifiedPrecautionNegligenceGame, allowQuitting: true, numSignalsAndOffers: settings.ParameterForMultipleOptions_Simplified, numPotentialBargainingRounds: 1, numPrecautionPowerLevels: settings.ParameterForMultipleOptions_Simplified, precautionLevels: settings.ParameterForMultipleOptions_Simplified)
+                PrecautionNegligenceGame(settings.CollapseDecisionsInSimplifiedPrecautionNegligenceGame, allowQuitting: false, numSignalsAndOffers: settings.ParameterForMultipleOptions_Simplified, numPotentialBargainingRounds: settings.NumPotentialBargainingRounds, numPrecautionPowerLevels: settings.ParameterForMultipleOptions_Simplified, precautionLevels: settings.ParameterForMultipleOptions_Simplified)
                 :
-                PrecautionNegligenceGame(true, true, settings.ParameterForMultipleOptions, 1, settings.ParameterForMultipleOptions, settings.ParameterForMultipleOptions);
+                PrecautionNegligenceGame(true, true, settings.ParameterForMultipleOptions, settings.NumPotentialBargainingRounds, settings.ParameterForMultipleOptions, settings.ParameterForMultipleOptions);
             if (settings.PerfectAdjudication)
             {
                 game.CourtDamagesNoiseStdev = 0;

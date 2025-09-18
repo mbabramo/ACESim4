@@ -9,14 +9,17 @@ namespace ACESimBase.Games.LitigGame.Options
 
     
 
-        public class PrecautionNegligenceOptionsGeneratorSettings
-        {
-            public bool UseSimplifiedPrecautionNegligenceGame = true; // DEBUG
-            public bool CollapseDecisionsInSimplifiedPrecautionNegligenceGame = false;
-            public bool PerfectAdjudication = false;
-            public bool PerfectInformationToo = false;
+    public class PrecautionNegligenceOptionsGeneratorSettings
+    {
+        public bool UseSimplifiedPrecautionNegligenceGame = false;
+        public byte ParameterForMultipleOptions_Simplified = 2;
+        public byte ParameterForMultipleOptions = 8;
 
-            public byte ParameterForMultipleOptions_Simplified = 2;
-            public byte ParameterForMultipleOptions = 3; // DEBUG 8
-        }
+        public bool CollapseDecisionsInSimplifiedPrecautionNegligenceGame = false;
+        public bool PerfectAdjudication = false;
+        public bool PerfectInformationToo = false;
+
+        public byte NumPotentialBargainingRounds = 1;     
+
+    }
 }
