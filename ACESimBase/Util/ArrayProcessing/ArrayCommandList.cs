@@ -63,7 +63,7 @@ namespace ACESimBase.Util.ArrayProcessing
         //  Settings and feature flags
         // ──────────────────────────────────────────────────────────────────────
         public bool Parallelize = false;
-        public int MaxCommandsPerSplittableChunk = int.MaxValue; // DEBUG 10_000;
+        public int MaxCommandsPerSplittableChunk = 1_000; // DEBUG
         public bool ReuseScratchSlots => true;
         public bool RepeatIdenticalRanges => ReuseScratchSlots;
 

@@ -900,10 +900,9 @@ namespace ACESim
                     if (TraceCFR)
                         TabbedText.WriteLine($"Ending identical range action {action} for decision {chanceNode.Decision.Name}");
                     Unroll_Commands.DecrementDepth();
+                    Unroll_Commands.IncrementArrayBy(resultArray, algorithmIsLowestDepth, probabilityAdjustedInnerResult);
                     Unroll_Commands.EndCommandChunk(action != 1);
                 }
-
-                Unroll_Commands.IncrementArrayBy(resultArray, algorithmIsLowestDepth, probabilityAdjustedInnerResult);
             }
             
             if (useIdenticalRepeat && TraceCFR)

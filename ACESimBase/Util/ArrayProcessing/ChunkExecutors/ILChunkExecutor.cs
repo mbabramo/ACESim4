@@ -99,7 +99,6 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
                 if (chunk.EndCommandRangeExclusive <= chunk.StartCommandRange)
                     return;
                 _compiled[chunk](virtualStack, orderedSources, orderedDestinations, ref cosi, ref codi, ref condition);
-                // DEBUG chunk.StartSourceIndices = cosi;
             }
             catch (Exception ex)
             {

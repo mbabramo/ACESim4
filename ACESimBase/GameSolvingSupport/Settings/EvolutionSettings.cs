@@ -21,7 +21,7 @@ namespace ACESimBase.GameSolvingSupport.Settings
         public bool IncludeCommentsWhenUnrolling = false;
         public bool UseCheckpointsWhenNotUnrolling = false; // for when unrolling, look at ArrayCommandList.UseCheckpoints
         public bool UnrollRepeatIdenticalRanges = true; // DEBUG
-        public ChunkExecutorKind Unroll_ChunkExecutorKind = ChunkExecutorKind.ILWithLocalVariableRecycling; // Note: RoslynWithLocalVariableRecycling seems to be repeating the same iteration over and over again. 
+        public ChunkExecutorKind Unroll_ChunkExecutorKind = ChunkExecutorKind.ILWithLocalVariableRecycling; // DEBUG // Note: With a large tree, the regular Roslyn and IL are practical only if using RepeatIdenticalRanges. RoslynWithLocalVariableRecycling seems to be repeating the same iteration over and over again. 
         public bool ReuseUnrolledAlgorithm = true; // if the tree structure is the same, then it will be reused (but final utilities etc. will be updated)
         public bool SaveToAzureBlob = false;
         // Note: Many of the below are overridden by launcher.
