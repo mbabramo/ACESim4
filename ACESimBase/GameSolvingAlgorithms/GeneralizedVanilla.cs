@@ -948,6 +948,8 @@ for (byte p = 0; p < NumNonChancePlayers; p++)
                     playerBeingOptimized, piValues, avgStratPiValues,
                     chanceNode, action, probabilityAdjustedInnerResult, false,
                     useIdenticalRepeat);
+                
+                Unroll_Commands.IncrementArrayBy(resultArray, algorithmIsLowestDepth, probabilityAdjustedInnerResult);
 
                 if (useIdenticalRepeat)
                 {
@@ -955,7 +957,6 @@ for (byte p = 0; p < NumNonChancePlayers; p++)
                     if (TraceCFR)
                         TabbedText.WriteLine($"Ending identical range action {action} for decision {chanceNode.Decision.Name}");
                     Unroll_Commands.DecrementDepth();
-                    Unroll_Commands.IncrementArrayBy(resultArray, algorithmIsLowestDepth, probabilityAdjustedInnerResult);
                     Unroll_Commands.EndCommandChunk(action != 1);
                 }
             }
