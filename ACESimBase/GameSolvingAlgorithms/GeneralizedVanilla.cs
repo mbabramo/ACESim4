@@ -317,7 +317,7 @@ namespace ACESim
         retry:
             try
             {
-                const int max_num_commands = 150_000_000;
+                const int max_num_commands = 10_000_000;
                 Unroll_InitializeInitialArrayIndices();
                 if (EvolutionSettings.ReuseUnrolledAlgorithm && Unroll_CommandListRunner_Cached != null)
                 {

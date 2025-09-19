@@ -37,10 +37,10 @@ namespace ACESimBase.GameSolvingSupport.Settings
         public int? AlwaysDoTaskID = null;  // set this to a task to replay a particular task (either over and over again, using ACESimDistributed, or just once, using ACESimConsole).
         public int[] LimitToTaskIDs = null; // new int[] { 421 }; // set this to non-null to repeat specific IDs (e.g., from failures) from a distributed action set.
 
-        public const int VanillaIterations = 100; // DEBUG // Note: Also used for GeneralizedVanilla, DeepCFR
+        public const int VanillaIterations = 1000; // DEBUG // Note: Also used for GeneralizedVanilla, DeepCFR
         public const int VanillaReportEveryNIterations = VanillaIterations;  // EffectivelyNever
         public int? SuppressReportBeforeIteration = null;
-        public int VanillaBestResponseEveryMIterations => Math.Min(1 /* DEBUG 100 */, VanillaIterations);
+        public int VanillaBestResponseEveryMIterations => Math.Min(100, VanillaIterations);
         public int? SuppressBestResponseBeforeIteration = null;
         public const bool CalculatePerturbedBestResponseRefinement = true;
         public const int MiniReportEveryPIterations = EffectivelyNever;
