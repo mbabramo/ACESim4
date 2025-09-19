@@ -17,11 +17,11 @@ namespace ACESimBase.GameSolvingSupport.Settings
     [Serializable]
     public class EvolutionSettings
     {
-        public bool UnrollAlgorithm = true;
+        public bool UnrollAlgorithm = false; // DEBUG
         public bool IncludeCommentsWhenUnrolling = false;
         public bool UseCheckpointsWhenNotUnrolling = false; // for when unrolling, look at ArrayCommandList.UseCheckpoints
-        public bool UnrollRepeatIdenticalRanges = true; // DEBUG
-        public ChunkExecutorKind Unroll_ChunkExecutorKind = ChunkExecutorKind.ILWithLocalVariableRecycling; // DEBUG // Note: With a large tree, the regular Roslyn and IL are practical only if using RepeatIdenticalRanges. RoslynWithLocalVariableRecycling seems to be repeating the same iteration over and over again. 
+        public bool UnrollRepeatIdenticalRanges = false; // DEBUG
+        public ChunkExecutorKind Unroll_ChunkExecutorKind = ChunkExecutorKind.Interpreted; // DEBUG // Note: With a large tree, the regular Roslyn and IL are practical only if using RepeatIdenticalRanges. RoslynWithLocalVariableRecycling seems to be repeating the same iteration over and over again. 
         public bool ReuseUnrolledAlgorithm = true; // if the tree structure is the same, then it will be reused (but final utilities etc. will be updated)
         public bool SaveToAzureBlob = false;
         // Note: Many of the below are overridden by launcher.
@@ -130,7 +130,7 @@ namespace ACESimBase.GameSolvingSupport.Settings
         internal int NumRandomIterationsForUtilityCalculation = 1000;
         internal bool SuppressReportDisplayOnScreen;
 
-        public static bool PruneOnOpponentStrategy = true; // NOTE: In general sum games, this seemed to cause difficulties at one point, because some of the player's own information sets may not be visited, as a result of pruning on opponents' sets. Also, note that this cannot be used with symmetric games.
+        public static bool PruneOnOpponentStrategy = false; // DEBUG // NOTE: In general sum games, this seemed to cause difficulties at one point, because some of the player's own information sets may not be visited, as a result of pruning on opponents' sets. Also, note that this cannot be used with symmetric games.
         public static double PruneOnOpponentStrategyThreshold = 1E-4; // NOTE: This is the probability for this action, not the cumulative probability. Meanwhile, this is not looked at directly during the generalized tree walk. This value affects only the updating of the information sets, by setting pruned probability to the smallest value possible (a positive value about 1). Pruning will then happen in turn in the tree walk.
         public static bool PredeterminePrunabilityBasedOnRelativeContributions = false; // if True, then we prune if and only if the action contributes negligibly at any later information set
 

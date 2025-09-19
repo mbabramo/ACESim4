@@ -257,17 +257,17 @@ namespace ACESim
                 }
                 else
                     SaveWeightedGameProgressesAfterEachReport = false;
+                if (TraceCFR)
+                { // only trace through iteration
+                    string resultWithReplacementOfArray = TraceCommandList(array);
+                    TabbedText.WriteLine(resultWithReplacementOfArray);
+                }
                 var result = await ConsiderGeneratingReports(iteration,
                     () =>
                         $"{GameDefinition.OptionSetName} Iteration {iteration} Overall milliseconds per iteration {((StrategiesDeveloperStopwatch.ElapsedMilliseconds / ((double)iteration)))}");
                 ConsiderModelSuccessTrackingForIteration(iteration);
                 reportCollection.Add(result);
                 targetMet = Status.BestResponseTargetMet(EvolutionSettings.BestResponseTarget);
-                if (TraceCFR)
-                { // only trace through iteration
-                    string resultWithReplacementOfArray = TraceCommandList(array);
-                    TabbedText.WriteLine(resultWithReplacementOfArray);
-                }
                 if (EvolutionSettings.PruneOnOpponentStrategy && EvolutionSettings.PredeterminePrunabilityBasedOnRelativeContributions)
                     CalculateReachProbabilitiesAndPrunability(EvolutionSettings.ParallelOptimization);
                 ReinitializeInformationSetsIfNecessary(iteration);
@@ -302,10 +302,10 @@ namespace ACESim
             return String.Join("\r\n", Enumerable.Range(0, CurrentCheckpoints.Count).Select(x => $"{x}: {CurrentCheckpoints[x].value}"));
         }
 
+        string TraceCFRTemplate = "";
         public string TraceCommandList(double[] array)
         {
-            string traceStringWithArrayStubs = TabbedText.AccumulatedText.ToString();
-            string replaced = StringUtil.ReplaceArrayDesignationWithArrayItem(traceStringWithArrayStubs, array);
+            string replaced = StringUtil.ReplaceArrayDesignationWithArrayItem(TraceCFRTemplate, array);
             return replaced;
         }
 
@@ -345,6 +345,7 @@ namespace ACESim
                     Unroll_Commands.InsertComment("--- BEGIN ITERATION ARRAY BUILD ---");
 
                 bool takeSymmetryShortcut = NumNonChancePlayers == 2 && GameDefinition.GameIsSymmetric() && TakeShortcutInSymmetricGames;
+                int stuffToDeleteTracing = TabbedText.AccumulatedText.Length;
                 for (byte p = 0; p < NumNonChancePlayers; p++)
                 {
                     if (takeSymmetryShortcut && p == 1)
@@ -352,6 +353,8 @@ namespace ACESim
                     Unroll_Commands.StartCommandChunk(false, null, "Optimizing player " + p.ToString());
                     if (EvolutionSettings.IncludeCommentsWhenUnrolling)
                         Unroll_Commands.InsertComment($"Player {p}: optimization block start");
+                    if (TraceCFR && EvolutionSettings.UnrollRepeatIdenticalRanges)
+                        throw new Exception("Trace mechanism won't work with repeat identical ranges.");
                     if (TraceCFR)
                         TabbedText.WriteLine($"Unrolling for Player {p}");
                     Unroll_GeneralizedVanillaCFR(in historyPoint, p, Unroll_InitialPiValuesIndices, Unroll_InitialAvgStratPiValuesIndices, Unroll_IterationResultForPlayersIndices[p], true, takeSymmetryShortcut || p == NumNonChancePlayers - 1);
@@ -361,6 +364,10 @@ namespace ACESim
                     Unroll_Commands.EndCommandChunk();
                 }
                 Unroll_Commands.EndCommandChunk();
+                if (TraceCFR)
+                {
+                    TraceCFRTemplate = TabbedText.AccumulatedText.ToString()[stuffToDeleteTracing..];
+                }
                 Unroll_SizeOfArray = Unroll_Commands.VirtualStackSize;
                 Unroll_CommandListRunner = Unroll_Commands.GetCompiledRunner(kind: EvolutionSettings.Unroll_ChunkExecutorKind, null);
                 if (EvolutionSettings.ReuseUnrolledAlgorithm)
@@ -394,6 +401,50 @@ namespace ACESim
                 Unroll_CopyInformationSetsToArray(array, copyChanceAndFinalUtilities);
                 Unroll_CommandListRunner.Run(Unroll_Commands, array, copyBackToOriginalData: true, trace: TraceCFR);
                 Unroll_CopyArrayToInformationSets(array);
+
+                // DEBUG
+for (byte p = 0; p < NumNonChancePlayers; p++)
+{
+    double sumLastCumStratIncr = 0.0;
+    double sumLastRegretDen = 0.0;
+
+    foreach (var infoSet in InformationSets)
+    {
+        if (infoSet.PlayerIndex != p)
+            continue;
+
+        for (byte a = 1; a <= infoSet.NumPossibleActions; a++)
+        {
+            sumLastCumStratIncr += infoSet.GetLastCumulativeStrategyIncrement(a);
+            sumLastRegretDen += infoSet.NodeInformation[InformationSetNode.sumInversePiDimension, a - 1];
+        }
+    }
+
+    System.Diagnostics.Debug.WriteLine(
+        $"[Iter {Status.IterationNum}] Player {p}: " +
+        $"cumStratIncrSum={sumLastCumStratIncr}, regretDenSum={sumLastRegretDen}");
+                        var vals = new List<double>(4096);
+    foreach (var iset in InformationSets)
+    {
+        if (iset.PlayerIndex != p) continue;
+        for (byte a = 1; a <= iset.NumPossibleActions; a++)
+            vals.Add(iset.NodeInformation[InformationSetNode.sumInversePiDimension, a - 1]); // denom
+    }
+
+    vals.Sort();
+    int n = vals.Count;
+    double tinyCut = 1e-12;
+    int tiny = vals.Count(v => v < tinyCut);
+    double min = n > 0 ? vals[0] : 0;
+    double med = n > 0 ? vals[n/2] : 0;
+    double max = n > 0 ? vals[^1] : 0;
+
+    System.Diagnostics.Debug.WriteLine(
+        $"[Iter {Status.IterationNum}] P{p} denom stats: tiny<{tinyCut}={tiny}/{n}, " +
+        $"min={min:e3}, med={med:e3}, max={max:e3}");
+}
+// DEBUG end
+
                 Unroll_DetermineIterationResultForEachPlayer(array);
             }
             catch (Exception ex)
@@ -774,6 +825,10 @@ namespace ACESim
                     int bestResponseExpectedValueCopy = Unroll_Commands.CopyToNew(resultArray[Unroll_Result_BestResponseIndex], false);
                     int cumExpectedValueCopy = Unroll_Commands.CopyToNew(expectedValue, false);
                     TabbedText.TabUnindent();
+                    if (expectedValueOfActionCopy == 753)
+                    {
+                        var DEBUG = 0;
+                    }
                     TabbedText.WriteLine(
                         $"... action {action} expected value ARRAY{expectedValueOfActionCopy} best response expected value ARRAY{bestResponseExpectedValueCopy} cum expected value ARRAY{cumExpectedValueCopy}{(action == numPossibleActions && IncludeAsteriskForBestResponseInTrace ? "*" : "")}");
                 }
@@ -944,7 +999,6 @@ namespace ACESim
                 Unroll_Commands.MultiplyArrayBy(resultArray, actionProbability);
 
                 int resultCurrentCopy = Unroll_Commands.CopyToNew(resultArray[Unroll_Result_CurrentVsCurrentIndex], false);
-
                 TabbedText.TabUnindent();
                 TabbedText.WriteLine(
                     $"... action {action} value ARRAY{beforeMultipleCurrentCopy} probability ARRAY{actionProbabilityCopy} expected value contribution ARRAY{resultCurrentCopy}");
