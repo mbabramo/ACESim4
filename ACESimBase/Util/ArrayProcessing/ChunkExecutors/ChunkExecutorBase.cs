@@ -14,9 +14,15 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
         public bool UseCheckpoints { get; protected set; } = false;
         public ArrayCommandList ArrayCommandListForCheckpoints { get; protected set; } = null;
 
-        public ArrayCommand[] UnderlyingCommands;
+        private ArrayCommand[] UnderlyingCommands;
         private int StartIndex;
         private int EndIndexExclusive;
+
+        // Place inside class ChunkExecutorBase
+        protected ArrayCommand[] UnderlyingCommandsBuffer => UnderlyingCommands;
+        protected int ExecutorStartIndex => StartIndex;
+        protected int ExecutorEndIndexExclusive => EndIndexExclusive;
+
 
         public Span<ArrayCommand> Commands => UnderlyingCommands.AsSpan(StartIndex, EndIndexExclusive - StartIndex);
 

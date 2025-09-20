@@ -165,32 +165,21 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
             foreach (var c in chunks)
                 GenerateSourceForChunk(c);
         }
-
         private void GenerateSourceForChunk(ArrayCommandChunk c)
         {
-            // Build a *chunk-scoped* local plan instead of using the global plan.
-            // This bounds declarations, dirty-bit arrays, and flush loops to only the
-            // locals actually relevant for this [start,end) slice.
-            var plan = ReuseLocals
-                ? LocalVariablePlanner.PlanLocals(Commands.ToArray(),
-                                                  c.StartCommandRange,
-                                                  c.EndCommandRangeExclusive)
-                : LocalVariablePlanner.PlanNoReuse(Commands.ToArray(),
-                                                   c.StartCommandRange,
-                                                   c.EndCommandRangeExclusive);
+            // Use the full underlying buffer; indices in c are absolute.
+            var depthMap = new DepthMap(UnderlyingCommandsBuffer,
+                                        c.StartCommandRange,
+                                        c.EndCommandRangeExclusive);
 
-            var depthMap   = new DepthMap(Commands.ToArray(),
-                                          c.StartCommandRange,
-                                          c.EndCommandRangeExclusive);
-            var intervalIx = new IntervalIndex(plan);
-            var bind       = new LocalBindingState(plan.LocalCount);
-            var cb         = new CodeBuilder();
+            var bind = new LocalBindingState(_plan.LocalCount);
+            var cb = new CodeBuilder();
 
             var usedSlots = new HashSet<int>();
             for (int i = c.StartCommandRange; i < c.EndCommandRangeExclusive; i++)
             {
                 var cmd = Commands[i];
-                if (cmd.Index >= 0)       usedSlots.Add(cmd.Index);
+                if (cmd.Index >= 0) usedSlots.Add(cmd.Index);
                 if (cmd.SourceIndex >= 0) usedSlots.Add(cmd.SourceIndex);
             }
 
@@ -203,18 +192,15 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
 
             cb.Indent();
 
-            // Declare only the locals that can appear in *this* chunk.
-            for (int l = 0; l < plan.LocalCount; l++)
+            for (int l = 0; l < _plan.LocalCount; l++)
                 cb.AppendLine($"double l{l} = 0;");
             cb.AppendLine();
 
             if (ReuseLocals)
-                EmitReusingBody(c, plan, cb, depthMap, intervalIx, bind,
-                                skipMap, ifStack, usedSlots);
+                EmitReusingBody(c, _plan, cb, depthMap, _intervalIx, bind, skipMap, ifStack, usedSlots);
             else
-                EmitZeroReuseBody(c, plan, cb, skipMap, ifStack, usedSlots);
+                EmitZeroReuseBody(c, _plan, cb, skipMap, ifStack, usedSlots);
 
-            // Close any unmatched IFs in the chunk range (tail ELSE emission)
             while (ifStack.Count > 0)
             {
                 var ctx = ifStack.Pop();
@@ -227,25 +213,18 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
                 foreach (var (slot, local) in ctx.Initialises)
                     cb.AppendLine($"l{local} = vs[{slot}];");
 
-                cb.AppendLine($"i += {ctx.SrcSkip};");
-                cb.AppendLine($"codi += {ctx.DstSkip};");
-                cb.AppendLine("}");
+                if (ctx.SrcSkip > 0) cb.AppendLine($"i += {ctx.SrcSkip};");
+                if (ctx.DstSkip > 0) cb.AppendLine($"codi += {ctx.DstSkip};");
 
-                // Post-branch cleanup
-                foreach (var (slot, local) in ctx.Initialises)
-                    if (bind != null &&
-                        bind.NeedsFlushBeforeReuse(local, out int boundSlot) &&
-                        boundSlot == slot)
-                    {
-                        cb.AppendLine($"vs[{slot}] = l{local} ;");
-                        bind.FlushLocal(local);
-                    }
+                cb.AppendLine("}");
+                cb.Indent();
             }
 
             cb.Unindent();
             _src.AppendLine(cb.ToString());
             _src.AppendLine("}");
         }
+
 
         private void EmitZeroReuseBody(
             ArrayCommandChunk c,
