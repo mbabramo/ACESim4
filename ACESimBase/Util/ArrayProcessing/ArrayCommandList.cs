@@ -183,7 +183,6 @@ namespace ACESimBase.Util.ArrayProcessing
 
             if (RepeatIdenticalRanges && identicalStartCommandRange is int identical)
             {
-                // explicit repeat
                 _repeatRangeStack.Push(identical);
                 _repeatScratchIndexStack.Push(Recorder.NextArrayIndex);
                 Recorder.NextCommandIndex = identical;
@@ -194,13 +193,19 @@ namespace ACESimBase.Util.ArrayProcessing
                      RepeatingExistingCommandRange &&
                      identicalStartCommandRange is null)
             {
-                // implicit repeat when parent is already replaying and we're aligned on an original child start
                 int candidate = Recorder.NextCommandIndex;
-                if (_originalRangeEnds.ContainsKey(candidate))
+
+                if (_repeatRangeStack.Count > 0)
                 {
-                    _repeatRangeStack.Push(candidate);
-                    _repeatScratchIndexStack.Push(Recorder.NextArrayIndex);
-                    childIsRepeat = true;
+                    int parentStart = _repeatRangeStack.Peek();
+                    if (_originalRangeEnds.TryGetValue(parentStart, out int parentEnd) &&
+                        candidate >= parentStart && candidate < parentEnd &&
+                        _originalRangeEnds.ContainsKey(candidate))
+                    {
+                        _repeatRangeStack.Push(candidate);
+                        _repeatScratchIndexStack.Push(Recorder.NextArrayIndex);
+                        childIsRepeat = true;
+                    }
                 }
             }
 
@@ -222,6 +227,7 @@ namespace ACESimBase.Util.ArrayProcessing
 
             _repeatChildIsRepeatedStack.Push(childIsRepeat);
         }
+
 
 
         public void EndCommandChunk(bool endingRepeatedChunk = false)
@@ -378,17 +384,6 @@ namespace ACESimBase.Util.ArrayProcessing
         }
         private void VerifyCorrectness2()
         {
-            // Count a specific opcode in a [start,end) slice
-            int CountOpsInRange(ArrayCommandType t, int start, int end)
-            {
-                int count = 0;
-                var cmds = UnderlyingCommands;
-                int max = Math.Min(end, MaxCommandIndex);
-                for (int i = start; i < max; i++)
-                    if (cmds[i].CommandType == t)
-                        count++;
-                return count;
-            }
 
             long totalCmdNextSourceAcrossLeaves = 0;
             long totalCmdNextDestinationAcrossLeaves = 0;
@@ -444,7 +439,18 @@ namespace ACESimBase.Util.ArrayProcessing
                     $"Mismatch between total NextDestination consumptions across leaf chunks (by metadata: {totalMetaNextDestinationAcrossLeaves}) and OrderedDestinationIndices.Count ({recordedDests}).");
         }
 
-
+        
+        // Count a specific opcode in a [start,end) slice
+        int CountOpsInRange(ArrayCommandType t, int start, int end)
+        {
+            int count = 0;
+            var cmds = UnderlyingCommands;
+            int max = Math.Min(end, MaxCommandIndex);
+            for (int i = start; i < max; i++)
+                if (cmds[i].CommandType == t)
+                    count++;
+            return count;
+        }
 
 
         public void CompleteCommandTree(bool hoistLargeIfBodies = true)
@@ -497,11 +503,6 @@ namespace ACESimBase.Util.ArrayProcessing
             byte lastChild = node.StoredValue.LastChild;
             if (lastChild == 0) return;
 
-        #if OUTPUT_HOISTING_INFO
-            TabbedText.WriteLine(
-                $"[BRANCHES] parent ID{node.StoredValue.ID}  lastChild={lastChild}");
-        #endif
-
             var children = new List<NWayTreeStorageInternal<ArrayCommandChunk>>();
             int curCmd = node.StoredValue.StartCommandRange;
             int curSrc = node.StoredValue.StartSourceIndices;
@@ -515,21 +516,25 @@ namespace ACESimBase.Util.ArrayProcessing
                 if (bVal.StartCommandRange > curCmd)
                 {
                     var gap = new NWayTreeStorageInternal<ArrayCommandChunk>(node);
+                    int gapCmdEnd = bVal.StartCommandRange;
+
+                    int gapSrcEnd = curSrc + CountOpsInRange(ArrayCommandType.NextSource,      curCmd, gapCmdEnd);
+                    int gapDstEnd = curDst + CountOpsInRange(ArrayCommandType.NextDestination, curCmd, gapCmdEnd);
+
                     gap.StoredValue = new ArrayCommandChunk
                     {
                         StartCommandRange = curCmd,
-                        EndCommandRangeExclusive = bVal.StartCommandRange,
+                        EndCommandRangeExclusive = gapCmdEnd,
                         StartSourceIndices = curSrc,
-                        EndSourceIndicesExclusive = bVal.StartSourceIndices,
+                        EndSourceIndicesExclusive = gapSrcEnd,
                         StartDestinationIndices = curDst,
-                        EndDestinationIndicesExclusive = bVal.StartDestinationIndices,
+                        EndDestinationIndicesExclusive = gapDstEnd,
                     };
                     children.Add(gap);
 
-        #if OUTPUT_HOISTING_INFO
-                    TabbedText.WriteLine(
-                        $"    ↳ [GAP] ID{gap.StoredValue.ID} cmds=[{curCmd},{bVal.StartCommandRange})");
-        #endif
+                    curCmd = gapCmdEnd;
+                    curSrc = gapSrcEnd;
+                    curDst = gapDstEnd;
                 }
 
                 children.Add(branch);
@@ -543,31 +548,31 @@ namespace ACESimBase.Util.ArrayProcessing
                      curDst < node.StoredValue.EndDestinationIndicesExclusive))
                 {
                     var tail = new NWayTreeStorageInternal<ArrayCommandChunk>(node);
+                    int tailCmdEnd = node.StoredValue.EndCommandRangeExclusive;
+
+                    int tailSrcEnd = curSrc + CountOpsInRange(ArrayCommandType.NextSource,      curCmd, tailCmdEnd);
+                    int tailDstEnd = curDst + CountOpsInRange(ArrayCommandType.NextDestination, curCmd, tailCmdEnd);
+
                     tail.StoredValue = new ArrayCommandChunk
                     {
                         StartCommandRange = curCmd,
-                        EndCommandRangeExclusive = node.StoredValue.EndCommandRangeExclusive,
+                        EndCommandRangeExclusive = tailCmdEnd,
                         StartSourceIndices = curSrc,
-                        EndSourceIndicesExclusive = node.StoredValue.EndSourceIndicesExclusive,
+                        EndSourceIndicesExclusive = tailSrcEnd,
                         StartDestinationIndices = curDst,
-                        EndDestinationIndicesExclusive = node.StoredValue.EndDestinationIndicesExclusive,
+                        EndDestinationIndicesExclusive = tailDstEnd,
                     };
                     children.Add(tail);
 
-        #if OUTPUT_HOISTING_INFO
-                    TabbedText.WriteLine(
-                        $"    ↳ [TAIL] ID{tail.StoredValue.ID} cmds=[{curCmd},{tail.StoredValue.EndCommandRangeExclusive})");
-        #endif
+                    curCmd = tailCmdEnd;
+                    curSrc = tailSrcEnd;
+                    curDst = tailDstEnd;
                 }
             }
 
             node.Branches = children.ToArray();
-
-        #if OUTPUT_HOISTING_INFO
-            TabbedText.WriteLine(
-                $"[BRANCHES-END] parent ID{node.StoredValue.ID}  branches={node.Branches.Length}");
-        #endif
         }
+
 
 
 
