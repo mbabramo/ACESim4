@@ -224,6 +224,7 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
                 unevenChanceActions: true)
             {
                 IsReversible = true,
+                GameStructureSameForEachAction = true // DEBUG
             };
             if (!collapse) r.Add(plsDecision);
 

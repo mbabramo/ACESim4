@@ -95,6 +95,7 @@ namespace ACESimBase.Util.ArrayProcessing
         private Stack<int> _depthStartSlots = new();
         private Stack<int> _repeatRangeStack = new();
         private Stack<int> _repeatRangeEndStack = new();
+        private Stack<bool> _repeatChildIsRepeatedStack = new();
         // Map a chunk's StartCommandRange → its EndCommandRangeExclusive
         private readonly Dictionary<int, int> _originalRangeEnds = new();
         // Scratch-index snapshots for repeat bodies (separate from depth)
@@ -150,6 +151,7 @@ namespace ACESimBase.Util.ArrayProcessing
                 _depthStartSlots = new Stack<int>(_depthStartSlots.Reverse()),
                 _repeatRangeStack = new Stack<int>(_repeatRangeStack.Reverse()),
                 _repeatRangeEndStack = new Stack<int>(_repeatRangeEndStack.Reverse()),
+                _repeatChildIsRepeatedStack = new Stack<bool>(_repeatChildIsRepeatedStack.Reverse()),
                 RepeatingExistingCommandRange = RepeatingExistingCommandRange,
                 _keepTogetherLevel = _keepTogetherLevel,
                 _rootChunkInitialised = _rootChunkInitialised,
@@ -177,17 +179,29 @@ namespace ACESimBase.Util.ArrayProcessing
             if (_keepTogetherLevel > 0 && !ignoreKeepTogether)
                 return;
 
+            bool childIsRepeat = false;
+
             if (RepeatIdenticalRanges && identicalStartCommandRange is int identical)
             {
-                // Record original range start; end will be read from _originalRangeEnds on close
+                // explicit repeat
                 _repeatRangeStack.Push(identical);
-
-                // Snapshot current scratch counter so the repeat uses identical slots
                 _repeatScratchIndexStack.Push(Recorder.NextArrayIndex);
-
-                // Rewind command pointer so emissions must byte-match the original
                 Recorder.NextCommandIndex = identical;
                 RepeatingExistingCommandRange = true;
+                childIsRepeat = true;
+            }
+            else if (RepeatIdenticalRanges &&
+                     RepeatingExistingCommandRange &&
+                     identicalStartCommandRange is null)
+            {
+                // implicit repeat when parent is already replaying and we're aligned on an original child start
+                int candidate = Recorder.NextCommandIndex;
+                if (_originalRangeEnds.ContainsKey(candidate))
+                {
+                    _repeatRangeStack.Push(candidate);
+                    _repeatScratchIndexStack.Push(Recorder.NextArrayIndex);
+                    childIsRepeat = true;
+                }
             }
 
             var parent = CurrentNode;
@@ -205,7 +219,10 @@ namespace ACESimBase.Util.ArrayProcessing
             parent.SetBranch(branch, child);
             parent.StoredValue.LastChild = branch;
             _currentPath.Add(branch);
+
+            _repeatChildIsRepeatedStack.Push(childIsRepeat);
         }
+
 
         public void EndCommandChunk(bool endingRepeatedChunk = false)
         {
@@ -233,24 +250,24 @@ namespace ACESimBase.Util.ArrayProcessing
                 return c;
             }
 
-            if (endingRepeatedChunk && RepeatIdenticalRanges && _repeatRangeStack.Count > 0)
+            bool childWasRepeated = _repeatChildIsRepeatedStack.Count > 0 && _repeatChildIsRepeatedStack.Pop();
+
+            if (RepeatIdenticalRanges && childWasRepeated)
             {
+                if (_repeatRangeStack.Count == 0)
+                    throw new InvalidOperationException("Repeat-child flagged but repeat range stack is empty.");
+
                 int repeatStart = _repeatRangeStack.Pop();
 
-                // Restore scratch counter so repeated body uses identical slots
                 int scratchRewind = _repeatScratchIndexStack.Pop();
                 Recorder.NextArrayIndex = scratchRewind;
 
-                // Stamp the repeated child's true [start,end) from the original record
                 if (!_originalRangeEnds.TryGetValue(repeatStart, out int repeatEnd))
                     throw new InvalidOperationException("Original range end not recorded for repeated chunk.");
 
                 finished.StartCommandRange = repeatStart;
                 finished.EndCommandRangeExclusive = repeatEnd;
 
-                // IMPORTANT: keep the live starts captured at StartCommandChunk.
-                // Only compute how many sources/dests are in the repeated body,
-                // then advance each child's *end* from its own live start.
                 int srcInRange = CountOps(UnderlyingCommands, repeatStart, repeatEnd, ArrayCommandType.NextSource);
                 finished.EndSourceIndicesExclusive = finished.StartSourceIndices + srcInRange;
 
@@ -262,16 +279,13 @@ namespace ACESimBase.Util.ArrayProcessing
             }
             else
             {
-                // Normal child: close at current pointers…
                 finished.EndCommandRangeExclusive = NextCommandIndex;
                 finished.EndSourceIndicesExclusive = OrderedSourceIndices.Count;
                 finished.EndDestinationIndicesExclusive = OrderedDestinationIndices.Count;
 
-                // …and remember its true end for any future repeats that reference it
                 _originalRangeEnds[finished.StartCommandRange] = finished.EndCommandRangeExclusive;
             }
 
-            // Pop to parent and keep parent’s end ranges monotonically non-decreasing
             _currentPath.RemoveAt(_currentPath.Count - 1);
             var parent = CurrentChunk;
 
@@ -279,6 +293,7 @@ namespace ACESimBase.Util.ArrayProcessing
             parent.EndSourceIndicesExclusive = Math.Max(parent.EndSourceIndicesExclusive, finished.EndSourceIndicesExclusive);
             parent.EndDestinationIndicesExclusive = Math.Max(parent.EndDestinationIndicesExclusive, finished.EndDestinationIndicesExclusive);
         }
+
 
 
 
