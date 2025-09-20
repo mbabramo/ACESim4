@@ -16,6 +16,8 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
     internal sealed class RoslynChunkExecutor : ChunkExecutorBase
     {
         private readonly LocalsAllocationPlan _plan;
+        private readonly IntervalIndex _intervalIx;
+
         private readonly List<ArrayCommandChunk> _scheduled = new();
         private readonly ConcurrentDictionary<ArrayCommandChunk, ArrayCommandChunkDelegate> _compiled = new();
         private readonly Dictionary<string, List<ArrayCommandChunk>> _chunksByFn = new();
@@ -62,6 +64,7 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
             _plan = ReuseLocals
                 ? LocalVariablePlanner.PlanLocals(commands, start, end)
                 : LocalVariablePlanner.PlanNoReuse(commands, start, end);
+            _intervalIx = new IntervalIndex(_plan);
         }
 
         public override void AddToGeneration(ArrayCommandChunk chunk)
@@ -168,7 +171,6 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
             var depthMap = new DepthMap(Commands.ToArray(),
                                           c.StartCommandRange,
                                           c.EndCommandRangeExclusive);
-            var intervalIx = new IntervalIndex(_plan);
             var bind = new LocalBindingState(_plan.LocalCount);
             var cb = new CodeBuilder();
 
@@ -194,7 +196,7 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
             cb.AppendLine();
 
             if (ReuseLocals)
-                EmitReusingBody(c, cb, depthMap, intervalIx, bind,
+                EmitReusingBody(c, cb, depthMap, _intervalIx, bind,
                                 skipMap, ifStack, usedSlots);
             else
                 EmitZeroReuseBody(c, cb, skipMap, ifStack, usedSlots);
