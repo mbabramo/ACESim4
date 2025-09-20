@@ -54,33 +54,64 @@ namespace ACESimBase.Util.ArrayProcessing
             if (acl.MaxCommandIndex == 0)
                 acl.CompleteCommandList();
 
-
-#if OUTPUT_HOISTING_INFO
-            int originals = acl.OrderedSourceIndices.Count(i => i < acl.SizeOfMainData); 
-            int scratch = acl.OrderedSourceIndices.Count - originals; 
+        #if OUTPUT_HOISTING_INFO
+            int originals = acl.OrderedSourceIndices.Count(i => i < acl.SizeOfMainData);
+            int scratch = acl.OrderedSourceIndices.Count - originals;
             TabbedText.WriteLine($"[ACL-DBG] OrderedSourceIndices originals={originals}  scratch={scratch}");
             TabbedText.WriteLine("Commands:");
             TabbedText.WriteLine(acl.CommandListString());
             TabbedText.WriteLine("");
             TabbedText.WriteLine("Tree:");
             TabbedText.WriteLine(acl.CommandTreeString);
-#endif
+        #endif
 
-            // Collect leaf chunks requiring compilation
+            // Collect EFFECTFUL leaf chunks only (skip true no-ops like gaps/tails of blanks/comments/depth markers)
             var leafChunks = new List<ArrayCommandChunk>();
+            var cmds = acl.UnderlyingCommands;
+
+            bool SliceHasEffect(ArrayCommandChunk c)
+            {
+                int s = c.StartCommandRange, e = c.EndCommandRangeExclusive;
+                for (int i = s; i < e; i++)
+                {
+                    switch (cmds[i].CommandType)
+                    {
+                        case ArrayCommandType.Zero:
+                        case ArrayCommandType.CopyTo:
+                        case ArrayCommandType.NextSource:
+                        case ArrayCommandType.MultiplyBy:
+                        case ArrayCommandType.IncrementBy:
+                        case ArrayCommandType.DecrementBy:
+                        case ArrayCommandType.EqualsOtherArrayIndex:
+                        case ArrayCommandType.NotEqualsOtherArrayIndex:
+                        case ArrayCommandType.GreaterThanOtherArrayIndex:
+                        case ArrayCommandType.LessThanOtherArrayIndex:
+                        case ArrayCommandType.EqualsValue:
+                        case ArrayCommandType.NotEqualsValue:
+                        case ArrayCommandType.NextDestination:
+                            return true; // has side-effects or mutates cond/pointers
+                        default:
+                            break; // Blank/Comment/If/EndIf/IncDepth/DecDepth/Checkpoint → ignore for codegen
+                    }
+                }
+                return false;
+            }
+
             acl.CommandTree!.WalkTree(n =>
             {
-                var node = (NWayTreeStorageInternal<ArrayCommandChunk>)n;
+                var node = (ACESimBase.Util.NWayTreeStorage.NWayTreeStorageInternal<ArrayCommandChunk>)n;
                 var c = node.StoredValue;
 
-                // a slice executes only if it is a leaf *or* the Conditional gate itself
+                // Only compile executable leaves with content
                 bool isLeaf = node.Branches is null || node.Branches.Length == 0;
                 if (!isLeaf)
                     return;
 
-                // ignore gaps and placeholders
                 if (c.EndCommandRangeExclusive <= c.StartCommandRange)
-                    return; 
+                    return; // empty placeholder
+
+                if (!SliceHasEffect(c))
+                    return; // true no-op slice → don't schedule
 
                 leafChunks.Add(c);
             });
@@ -99,6 +130,7 @@ namespace ACESimBase.Util.ArrayProcessing
             var runner = new ArrayCommandListRunner(leafChunks, exec);
             return runner;
         }
+
     }
 
 
@@ -112,7 +144,8 @@ namespace ACESimBase.Util.ArrayProcessing
     /// </summary>
     public sealed class ArrayCommandListRunner
     {
-        private readonly IChunkExecutor _executor;
+        private readonly IChunkExecutor _executor;    
+        private readonly HashSet<ArrayCommandChunk> _scheduledLeaves;
 
         // Runtime helpers (one instance per Run)
         private OrderedBufferManager _buffers = null!;  // created in Run()
@@ -123,11 +156,13 @@ namespace ACESimBase.Util.ArrayProcessing
         private bool _condition = true;
 
         public ArrayCommandListRunner(IEnumerable<ArrayCommandChunk> leafChunks,
-                                  IChunkExecutor compiledExecutor = null)
+                                      IChunkExecutor compiledExecutor = null)
         {
-            _executor  = compiledExecutor ?? throw new ArgumentNullException(nameof(compiledExecutor));
+            _executor = compiledExecutor ?? throw new ArgumentNullException(nameof(compiledExecutor));
 
-            // register all slices with the executor and compile once
+            // Track the compiled set so we can skip no-op leaves at runtime as well
+            _scheduledLeaves = new HashSet<ArrayCommandChunk>(leafChunks);
+
             foreach (var c in leafChunks)
                 _executor.AddToGeneration(c);
             _executor.PerformGeneration();
@@ -201,8 +236,11 @@ namespace ACESimBase.Util.ArrayProcessing
                 return;
             }
 
-            bool isLeaf = node.IsLeaf();
-            if (!isLeaf)
+            if (!node.IsLeaf())
+                return;
+
+            // If we didn’t schedule this leaf (true no-op), silently skip at runtime.
+            if (!_scheduledLeaves.Contains(node.StoredValue))
                 return;
 
             _executor.Execute(node.StoredValue,
