@@ -33,6 +33,7 @@ namespace ACESimTest
             EvolutionSettings evolutionSettings = new EvolutionSettings();
             evolutionSettings.TotalIterations = 1;
             evolutionSettings.UnrollRepeatIdenticalRanges = false;
+            evolutionSettings.Unroll_ChunkExecutorKind = ACESimBase.Util.ArrayProcessing.ChunkExecutors.ChunkExecutorKind.Interpreted;
 
             byte branching = largerTree ? (byte)5 : (byte)2; // signals, precaution powers, and precaution levels
             var regular = LitigGameOptionsGenerator.PrecautionNegligenceGame(false, false, branching, 1, branching, branching);
