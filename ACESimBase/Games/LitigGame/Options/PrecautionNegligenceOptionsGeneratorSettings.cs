@@ -11,7 +11,7 @@ namespace ACESimBase.Games.LitigGame.Options
 
     public class PrecautionNegligenceOptionsGeneratorSettings
     {
-        public bool UseSimplifiedPrecautionNegligenceGame = true;
+        public bool UseSimplifiedPrecautionNegligenceGame = false;
         public byte ParameterForMultipleOptions_Simplified = 2;
         public byte ParameterForMultipleOptions = 10; // DEBUG
 
