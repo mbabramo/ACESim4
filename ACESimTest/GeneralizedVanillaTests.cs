@@ -4,6 +4,7 @@ using ACESim.Util.DiscreteProbabilities;
 using ACESimBase.Games.LitigGame.Options;
 using ACESimBase.GameSolvingSupport.Settings;
 using ACESimBase.Util;
+using ACESimBase.Util.ArrayProcessing.ChunkExecutors;
 using ACESimBase.Util.Debugging;
 using ACESimBase.Util.DiscreteProbabilities;
 using ACESimBase.Util.Mathematics;
@@ -38,6 +39,7 @@ namespace ACESimTest
             evolutionSettings.TotalIterations = 100;
             evolutionSettings.UnrollAlgorithm = false;
             evolutionSettings.UnrollRepeatIdenticalRanges = false;
+            evolutionSettings.Unroll_ChunkExecutorKind = ChunkExecutorKind.Interpreted;
 
             double[] notUnrolled = await DevelopStrategyAndGetUtilities(randomInformationSets, largerTree, evolutionSettings);
 
@@ -49,6 +51,32 @@ namespace ACESimTest
 
             notUnrolled.SequenceEqual(unrolled).Should().BeTrue();
             unrolledWithRepeats.SequenceEqual(unrolled).Should().BeTrue();
+        }
+
+        [TestMethod]
+        [DataRow(false, false)]
+        [DataRow(false, true)]
+        [DataRow(true, false)]
+        [DataRow(true, true)]
+        public async Task EachExecutorProducesSameResults(bool randomInformationSets, bool largerTree)
+        {
+            EvolutionSettings evolutionSettings = new EvolutionSettings();
+            evolutionSettings.TotalIterations = 100;
+            evolutionSettings.UnrollAlgorithm = true;
+            evolutionSettings.UnrollRepeatIdenticalRanges = true;
+            List<double[]> results = new();
+
+            foreach (ChunkExecutorKind kind in new ChunkExecutorKind[] { ChunkExecutorKind.Interpreted, ChunkExecutorKind.Roslyn, ChunkExecutorKind.RoslynWithLocalVariableRecycling, ChunkExecutorKind.IL, ChunkExecutorKind.ILWithLocalVariableRecycling })
+            {
+                Stopwatch s = new Stopwatch();
+                s.Start();
+                evolutionSettings.Unroll_ChunkExecutorKind = kind;
+                double[] addToResults = await DevelopStrategyAndGetUtilities(randomInformationSets, largerTree, evolutionSettings);
+                if (results.Any())
+                    addToResults.SequenceEqual(results.First()).Should().BeTrue();
+                s.Stop();
+                Debug.WriteLine($"Time (random? {randomInformationSets} larger? {largerTree}) -- kind {kind} ==> {s.ElapsedMilliseconds}");
+            }
         }
 
         private static async Task<double[]> DevelopStrategyAndGetUtilities(bool randomInformationSets, bool largerTree, EvolutionSettings evolutionSettings)

@@ -18,6 +18,7 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
         private readonly LocalsAllocationPlan _plan;
         private readonly List<ArrayCommandChunk> _scheduled = new();
         private readonly ConcurrentDictionary<ArrayCommandChunk, ArrayCommandChunkDelegate> _compiled = new();
+        private readonly Dictionary<string, List<ArrayCommandChunk>> _chunksByFn = new();
         private readonly StringBuilder _src = new();
         private Type _cgType;
 
@@ -65,21 +66,36 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
 
         public override void AddToGeneration(ArrayCommandChunk chunk)
         {
-            if (!_compiled.ContainsKey(chunk))
+            // Already have a delegate for this exact chunk object?
+            if (_compiled.ContainsKey(chunk))
+                return;
+
+            // Group by generated function name (i.e., by [start,end) span).
+            string fn = FnName(chunk);
+            if (!_chunksByFn.TryGetValue(fn, out var list))
+            {
+                list = new List<ArrayCommandChunk>(capacity: 1);
+                _chunksByFn[fn] = list;
+
+                // First time we see this span → schedule a single representative for codegen.
                 _scheduled.Add(chunk);
+            }
+
+            // Keep all chunk objects that share this span so we can map them after codegen.
+            list.Add(chunk);
         }
 
         public override void PerformGeneration()
         {
-            // This will be called only once. Execution will happen many times.
-
-            if (_scheduled.Count == 0) return;
+            if (_scheduled.Count == 0)
+                return;
 
             _src.Clear();
             _src.AppendLine("using System; namespace CG { static class G {");
 
             try
             {
+                // Generate source once per unique span (the reps in _scheduled).
                 GenerateSourceForChunks(_scheduled);
             }
             catch (Exception ex)
@@ -93,14 +109,23 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
             if (PreserveGeneratedCode)
                 GeneratedCode = code;
 
+            // Compile once and wire the same delegate to *all* chunks sharing that span.
             _cgType = StringToCode.LoadCode(code, "CG.G");
-            foreach (var c in _scheduled)
+            foreach (var rep in _scheduled)
             {
-                var mi = _cgType!.GetMethod(FnName(c), BindingFlags.Static | BindingFlags.Public)!;
-                _compiled[c] = (ArrayCommandChunkDelegate)Delegate.CreateDelegate(typeof(ArrayCommandChunkDelegate), mi);
+                var mi = _cgType!.GetMethod(FnName(rep), BindingFlags.Static | BindingFlags.Public)!;
+                var del = (ArrayCommandChunkDelegate)Delegate.CreateDelegate(typeof(ArrayCommandChunkDelegate), mi);
+
+                // Assign compiled delegate to every chunk object with the same span.
+                var fn = FnName(rep);
+                foreach (var chunk in _chunksByFn[fn])
+                    _compiled[chunk] = del;
             }
+
             _scheduled.Clear();
+            _chunksByFn.Clear();
         }
+
 
         public override void Execute(
             ArrayCommandChunk chunk,

@@ -401,50 +401,6 @@ namespace ACESim
                 Unroll_CopyInformationSetsToArray(array, copyChanceAndFinalUtilities);
                 Unroll_CommandListRunner.Run(Unroll_Commands, array, copyBackToOriginalData: true, trace: TraceCFR);
                 Unroll_CopyArrayToInformationSets(array);
-
-                // DEBUG
-for (byte p = 0; p < NumNonChancePlayers; p++)
-{
-    double sumLastCumStratIncr = 0.0;
-    double sumLastRegretDen = 0.0;
-
-    foreach (var infoSet in InformationSets)
-    {
-        if (infoSet.PlayerIndex != p)
-            continue;
-
-        for (byte a = 1; a <= infoSet.NumPossibleActions; a++)
-        {
-            sumLastCumStratIncr += infoSet.GetLastCumulativeStrategyIncrement(a);
-            sumLastRegretDen += infoSet.NodeInformation[InformationSetNode.sumInversePiDimension, a - 1];
-        }
-    }
-
-    System.Diagnostics.Debug.WriteLine(
-        $"[Iter {Status.IterationNum}] Player {p}: " +
-        $"cumStratIncrSum={sumLastCumStratIncr}, regretDenSum={sumLastRegretDen}");
-                        var vals = new List<double>(4096);
-    foreach (var iset in InformationSets)
-    {
-        if (iset.PlayerIndex != p) continue;
-        for (byte a = 1; a <= iset.NumPossibleActions; a++)
-            vals.Add(iset.NodeInformation[InformationSetNode.sumInversePiDimension, a - 1]); // denom
-    }
-
-    vals.Sort();
-    int n = vals.Count;
-    double tinyCut = 1e-12;
-    int tiny = vals.Count(v => v < tinyCut);
-    double min = n > 0 ? vals[0] : 0;
-    double med = n > 0 ? vals[n/2] : 0;
-    double max = n > 0 ? vals[^1] : 0;
-
-    System.Diagnostics.Debug.WriteLine(
-        $"[Iter {Status.IterationNum}] P{p} denom stats: tiny<{tinyCut}={tiny}/{n}, " +
-        $"min={min:e3}, med={med:e3}, max={max:e3}");
-}
-// DEBUG end
-
                 Unroll_DetermineIterationResultForEachPlayer(array);
             }
             catch (Exception ex)
