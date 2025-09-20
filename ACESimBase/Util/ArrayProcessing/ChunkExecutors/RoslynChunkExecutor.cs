@@ -168,17 +168,29 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
 
         private void GenerateSourceForChunk(ArrayCommandChunk c)
         {
-            var depthMap = new DepthMap(Commands.ToArray(),
+            // Build a *chunk-scoped* local plan instead of using the global plan.
+            // This bounds declarations, dirty-bit arrays, and flush loops to only the
+            // locals actually relevant for this [start,end) slice.
+            var plan = ReuseLocals
+                ? LocalVariablePlanner.PlanLocals(Commands.ToArray(),
+                                                  c.StartCommandRange,
+                                                  c.EndCommandRangeExclusive)
+                : LocalVariablePlanner.PlanNoReuse(Commands.ToArray(),
+                                                   c.StartCommandRange,
+                                                   c.EndCommandRangeExclusive);
+
+            var depthMap   = new DepthMap(Commands.ToArray(),
                                           c.StartCommandRange,
                                           c.EndCommandRangeExclusive);
-            var bind = new LocalBindingState(_plan.LocalCount);
-            var cb = new CodeBuilder();
+            var intervalIx = new IntervalIndex(plan);
+            var bind       = new LocalBindingState(plan.LocalCount);
+            var cb         = new CodeBuilder();
 
             var usedSlots = new HashSet<int>();
             for (int i = c.StartCommandRange; i < c.EndCommandRangeExclusive; i++)
             {
                 var cmd = Commands[i];
-                if (cmd.Index >= 0) usedSlots.Add(cmd.Index);
+                if (cmd.Index >= 0)       usedSlots.Add(cmd.Index);
                 if (cmd.SourceIndex >= 0) usedSlots.Add(cmd.SourceIndex);
             }
 
@@ -191,16 +203,18 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
 
             cb.Indent();
 
-            for (int l = 0; l < _plan.LocalCount; l++)
+            // Declare only the locals that can appear in *this* chunk.
+            for (int l = 0; l < plan.LocalCount; l++)
                 cb.AppendLine($"double l{l} = 0;");
             cb.AppendLine();
 
             if (ReuseLocals)
-                EmitReusingBody(c, cb, depthMap, _intervalIx, bind,
+                EmitReusingBody(c, plan, cb, depthMap, intervalIx, bind,
                                 skipMap, ifStack, usedSlots);
             else
-                EmitZeroReuseBody(c, cb, skipMap, ifStack, usedSlots);
+                EmitZeroReuseBody(c, plan, cb, skipMap, ifStack, usedSlots);
 
+            // Close any unmatched IFs in the chunk range (tail ELSE emission)
             while (ifStack.Count > 0)
             {
                 var ctx = ifStack.Pop();
@@ -217,12 +231,13 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
                 cb.AppendLine($"codi += {ctx.DstSkip};");
                 cb.AppendLine("}");
 
+                // Post-branch cleanup
                 foreach (var (slot, local) in ctx.Initialises)
                     if (bind != null &&
                         bind.NeedsFlushBeforeReuse(local, out int boundSlot) &&
                         boundSlot == slot)
                     {
-                        cb.AppendLine($"vs[{slot}] = l{local};");
+                        cb.AppendLine($"vs[{slot}] = l{local} ;");
                         bind.FlushLocal(local);
                     }
             }
@@ -230,40 +245,39 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
             cb.Unindent();
             _src.AppendLine(cb.ToString());
             _src.AppendLine("}");
-
         }
 
-
-
         private void EmitZeroReuseBody(
-    ArrayCommandChunk c,
-    CodeBuilder cb,
-    Dictionary<int, (int src, int dst)> skipMap,
-    Stack<IfContext> ifStack,
-    HashSet<int> usedSlots)
+            ArrayCommandChunk c,
+            LocalsAllocationPlan plan,
+            CodeBuilder cb,
+            Dictionary<int, (int src, int dst)> skipMap,
+            Stack<IfContext> ifStack,
+            HashSet<int> usedSlots)
         {
-            // preload every slot that is ever used
-            foreach (var kv in _plan.SlotToLocal)
+            // Preload only locals present in this chunk
+            foreach (var kv in plan.SlotToLocal)
                 if (usedSlots.Contains(kv.Key))
                     cb.AppendLine($"l{kv.Value} = vs[{kv.Key}];");
 
             Span<ArrayCommand> cmds = Commands;
             for (int ci = c.StartCommandRange; ci < c.EndCommandRangeExclusive; ci++)
-                // bind == null → no dirty tracking in this mode
-                EmitCmdBasic(ci, cmds[ci], cb, skipMap, ifStack, bind: null);
+                EmitCmdBasic(ci, plan, cmds[ci], cb, skipMap, ifStack, bind: null);
 
-            // write all locals back – safe because mapping never changes
-            foreach (var kv in _plan.SlotToLocal)
+            // Write back locals relevant to this chunk
+            foreach (var kv in plan.SlotToLocal)
                 if (usedSlots.Contains(kv.Key))
                     cb.AppendLine($"vs[{kv.Key}] = l{kv.Value};");
         }
 
+
         /// <summary>
         /// Generate source for a chunk in local‑reuse mode, now flushing *all* slots
         /// whose intervals end on a given instruction.
-        /// </summary>
+                /// </summary>
         private void EmitReusingBody(
             ArrayCommandChunk c,
+            LocalsAllocationPlan plan,
             CodeBuilder cb,
             DepthMap depth,
             IntervalIndex intervalIx,
@@ -278,10 +292,11 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
             {
                 int d = depth.GetDepth(ci);
 
-                // ───── interval starts ─────
+                // interval starts
                 foreach (int slot in intervalIx.StartSlots(ci))
                 {
-                    int local = _plan.SlotToLocal[slot];
+                    if (!plan.SlotToLocal.TryGetValue(slot, out int local))
+                        continue;
 
                     if (bind.TryReuse(local, slot, d, out int flushSlot))
                     {
@@ -302,13 +317,14 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
                     }
                 }
 
-                // ───── emit the command ─────
-                EmitCmdBasic(ci, cmds[ci], cb, skipMap, ifStack, bind);
+                // emit command
+                EmitCmdBasic(ci, plan, cmds[ci], cb, skipMap, ifStack, bind);
 
-                // ───── interval ends ─────
+                // interval ends
                 foreach (int endSlot in intervalIx.EndSlots(ci))
                 {
-                    int local = _plan.SlotToLocal[endSlot];
+                    if (!plan.SlotToLocal.TryGetValue(endSlot, out int local))
+                        continue;
 
                     if (bind.NeedsFlushBeforeReuse(local, out int boundSlot) && boundSlot == endSlot)
                     {
@@ -325,8 +341,8 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
                 }
             }
 
-            // ───── final flush for locals that stayed live to the end of the chunk ─────
-            for (int local = 0; local < _plan.LocalCount; local++)
+            // final flush for locals that stayed live to the end of the chunk
+            for (int local = 0; local < plan.LocalCount; local++)
             {
                 if (bind.NeedsFlushBeforeReuse(local, out int slot) && slot != -1)
                 {
@@ -340,6 +356,7 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
 
 
 
+
         /// <summary>
         /// Emit one ArrayCommand.  When <paramref name="bind"/> is non‑null
         /// (i.e. local‑reuse mode) we call <c>bind.MarkWritten()</c> for every
@@ -348,6 +365,7 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
         /// </summary>
         private void EmitCmdBasic(
             int cmdIndex,
+            LocalsAllocationPlan plan,
             ArrayCommand cmd,
             CodeBuilder cb,
             Dictionary<int, (int src, int dst)> skipMap,
@@ -356,16 +374,16 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
         {
             void MarkWritten(int slot)
             {
-                if (bind != null && _plan.SlotToLocal.TryGetValue(slot, out int localId))
+                if (bind != null && plan.SlotToLocal.TryGetValue(slot, out int localId))
                     bind.MarkWritten(localId);
             }
 
-            string R(int slot) => _plan.SlotToLocal.TryGetValue(slot, out int l) ? $"l{l}" : $"vs[{slot}]";
+            string R(int slot) => plan.SlotToLocal.TryGetValue(slot, out int l) ? $"l{l}" : $"vs[{slot}]";
             string W(int slot) => R(slot);
 
             switch (cmd.CommandType)
             {
-                // ────────── write-only / read-modify-write commands ──────────
+                // write-only / read-modify-write
                 case ArrayCommandType.Zero:
                     cb.AppendLine($"{W(cmd.Index)} = 0;");
                     MarkWritten(cmd.Index);
@@ -377,11 +395,10 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
                     break;
 
                 case ArrayCommandType.NextSource:
-                    // If the slot is promoted to a local, update BOTH the local and vs[slot]
-                    if (_plan.SlotToLocal.TryGetValue(cmd.Index, out int loc))
+                    if (plan.SlotToLocal.TryGetValue(cmd.Index, out int loc))
                     {
                         cb.AppendLine($"l{loc} = os[i++];");
-                        cb.AppendLine($"vs[{cmd.Index}] = l{loc};");   // write‑through
+                        cb.AppendLine($"vs[{cmd.Index}] = l{loc};");
                     }
                     else
                     {
@@ -400,44 +417,28 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
                     break;
 
                 case ArrayCommandType.IncrementBy:
-                    {
-                        // If the destination slot is promoted to a local variable we can
-                        // safely use the compound operator.  When it’s still an array slot
-                        // (`mem[...]`) the C# ‘+=’ translates to a *double read*
-                        //   tmp = mem[i];                // 1st read
-                        //   mem[i] = tmp + rhs;          // 2nd read (after we already wrote)
-                        // …which breaks when the same slot is also being written elsewhere
-                        // in the generated method.  Emit an explicit read‑modify‑write
-                        // instead so the value is fetched exactly once.
-                        bool local = _plan.SlotToLocal.ContainsKey(cmd.Index);
-                        string lhs = W(cmd.Index);         // write‑target
-                        string rhs = R(cmd.SourceIndex);   // value we’re adding
-
-                        if (local)
-                            cb.AppendLine($"{lhs} += {rhs};");
-                        else
-                            cb.AppendLine($"{lhs} = {lhs} + {rhs};");   // single‑read path
-
-                        MarkWritten(cmd.Index);
-                        break;
-                    }
+                {
+                    bool local = plan.SlotToLocal.ContainsKey(cmd.Index);
+                    string lhs = W(cmd.Index);
+                    string rhs = R(cmd.SourceIndex);
+                    if (local) cb.AppendLine($"{lhs} += {rhs};");
+                    else       cb.AppendLine($"{lhs} = {lhs} + {rhs};");
+                    MarkWritten(cmd.Index);
+                    break;
+                }
 
                 case ArrayCommandType.DecrementBy:
-                    {
-                        bool local = _plan.SlotToLocal.ContainsKey(cmd.Index);
-                        string lhs = W(cmd.Index);
-                        string rhs = R(cmd.SourceIndex);
+                {
+                    bool local = plan.SlotToLocal.ContainsKey(cmd.Index);
+                    string lhs = W(cmd.Index);
+                    string rhs = R(cmd.SourceIndex);
+                    if (local) cb.AppendLine($"{lhs} -= {rhs};");
+                    else       cb.AppendLine($"{lhs} = {lhs} - {rhs};");
+                    MarkWritten(cmd.Index);
+                    break;
+                }
 
-                        if (local)
-                            cb.AppendLine($"{lhs} -= {rhs};");
-                        else
-                            cb.AppendLine($"{lhs} = {lhs} - {rhs};");
-
-                        MarkWritten(cmd.Index);
-                        break;
-                    }
-
-                // ────────── comparisons ──────────
+                // comparisons
                 case ArrayCommandType.EqualsOtherArrayIndex:
                     cb.AppendLine($"cond = {R(cmd.Index)} == {R(cmd.SourceIndex)};");
                     break;
@@ -457,62 +458,49 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
                     cb.AppendLine($"cond = {R(cmd.Index)} != (double){cmd.SourceIndex};");
                     break;
 
-
-                // ────────── control flow ──────────
+                // control flow
                 case ArrayCommandType.If:
-                    {
-                        var sk = skipMap.TryGetValue(cmdIndex, out var c)
-                                    ? c
-                                    : (src: 0, dst: 0);
+                {
+                    var sk = skipMap.TryGetValue(cmdIndex, out var c)
+                                ? c
+                                : (src: 0, dst: 0);
 
-                        var dirty = new bool[_plan.LocalCount];
-                        if (bind != null)
-                            for (int l = 0; l < _plan.LocalCount; l++)
-                                dirty[l] = bind.NeedsFlushBeforeReuse(l, out _);
+                    var dirty = new bool[bind is null ? 0 : plan.LocalCount];
+                    if (bind != null)
+                        for (int l = 0; l < plan.LocalCount; l++)
+                            dirty[l] = bind.NeedsFlushBeforeReuse(l, out _);
 
-                        ifStack.Push(new IfContext(sk.src, sk.dst, dirty));
-                        cb.AppendLine("if(cond){"); cb.Indent();
-                        break;
-                    }
+                    ifStack.Push(new IfContext(sk.src, sk.dst, dirty));
+                    cb.AppendLine("if(cond){"); cb.Indent();
+                    break;
+                }
 
                 case ArrayCommandType.EndIf:
+                {
+                    if (ifStack.Count == 0) break;
+                    var ctx = ifStack.Pop();
+
+                    cb.Unindent();
+                    cb.AppendLine("} else {");
+
+                    var elseBuilder = new ElseBlockBuilder(ctx.Flushes, ctx.Initialises);
+                    elseBuilder.EmitElseBlock(cb);
+
+                    cb.AppendLine($"i += {ctx.SrcSkip}; codi += {ctx.DstSkip}; }}");
+
+                    foreach (var (slot, local) in ctx.Initialises)
                     {
-                        if (ifStack.Count == 0)
+                        if (bind != null &&
+                            bind.NeedsFlushBeforeReuse(local, out int boundSlot) &&
+                            boundSlot == slot)
                         {
-                            // Unmatched EndIf – skip
-                            break;
+                            cb.AppendLine($"vs[{slot}] = l{local};");
+                            bind.FlushLocal(local);
                         }
-                        var ctx = ifStack.Pop();
-
-                        // Close the THEN block and open the ELSE block
-                        cb.Unindent();
-                        cb.AppendLine("} else {");
-
-                        // Use ElseBlockBuilder to handle all flushes/reloads in the ELSE leg with correct ordering.
-                        var elseBuilder = new ElseBlockBuilder(ctx.Flushes, ctx.Initialises);
-                        elseBuilder.EmitElseBlock(cb);
-
-                        // Advance source pointer past the THEN-branch commands, then close the ELSE block
-                        cb.AppendLine($"i += {ctx.SrcSkip}; codi += {ctx.DstSkip}; }}");
-
-                        // (Post-branch cleanup) Ensure any local first initialized in THEN is flushed if it became dirty.
-                        // This prevents a dirty value from escaping when a nested branch is skipped.
-                        foreach (var (slot, local) in ctx.Initialises)
-                        {
-                            if (bind != null &&
-                                bind.NeedsFlushBeforeReuse(local, out int boundSlot) &&
-                                boundSlot == slot)
-                            {
-                                cb.AppendLine($"vs[{slot}] = l{local};");
-                                bind.FlushLocal(local);   // mark the local as clean in the binding state
-                            }
-                        }
-
-                        break;
                     }
+                    break;
+                }
 
-
-                // comments / blanks – ignore
                 case ArrayCommandType.Checkpoint:
                 case ArrayCommandType.Comment:
                 case ArrayCommandType.Blank:
@@ -524,6 +512,7 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
                     throw new NotImplementedException($"Unhandled command {cmd.CommandType}");
             }
         }
+
 
         /// <summary>
         /// Utility to build the else-block code that handles flushing and reinitializing locals.
