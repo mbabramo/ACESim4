@@ -81,7 +81,7 @@ namespace ACESimTest
 
         private static async Task<double[]> DevelopStrategyAndGetUtilities(bool randomInformationSets, bool largerTree, EvolutionSettings evolutionSettings)
         {
-            byte branching = largerTree ? (byte)5 : (byte)2; // signals, precaution powers, and precaution levels
+            byte branching = largerTree ? (byte)4 : (byte)2; // signals, precaution powers, and precaution levels
             var options = LitigGameOptionsGenerator.PrecautionNegligenceGame(largerTree, largerTree, branching, 1, branching, branching);
             GeneralizedVanilla.ClearCache();
             var developer = await GetGeneralizedVanilla(options, "TESTOPTIONS", evolutionSettings);

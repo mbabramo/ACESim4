@@ -166,30 +166,24 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
                 GenerateSourceForChunk(c);
         }
 
+
         private void GenerateSourceForChunk(ArrayCommandChunk c)
         {
-            // Build a *chunk-scoped* local plan instead of using the global plan.
-            // This bounds declarations, dirty-bit arrays, and flush loops to only the
-            // locals actually relevant for this [start,end) slice.
+            // Build a chunk‑scoped plan and maps without copying the command buffer.
             var plan = ReuseLocals
-                ? LocalVariablePlanner.PlanLocals(Commands.ToArray(),
-                                                  c.StartCommandRange,
-                                                  c.EndCommandRangeExclusive)
-                : LocalVariablePlanner.PlanNoReuse(Commands.ToArray(),
-                                                   c.StartCommandRange,
-                                                   c.EndCommandRangeExclusive);
+                ? LocalVariablePlanner.PlanLocals(UnderlyingCommands, c.StartCommandRange, c.EndCommandRangeExclusive)
+                : LocalVariablePlanner.PlanNoReuse(UnderlyingCommands, c.StartCommandRange, c.EndCommandRangeExclusive);
 
-            var depthMap   = new DepthMap(Commands.ToArray(),
-                                          c.StartCommandRange,
-                                          c.EndCommandRangeExclusive);
+            var depthMap   = new DepthMap(UnderlyingCommands, c.StartCommandRange, c.EndCommandRangeExclusive);
             var intervalIx = new IntervalIndex(plan);
             var bind       = new LocalBindingState(plan.LocalCount);
             var cb         = new CodeBuilder();
 
+            // Identify only the VS slots actually used inside this chunk.
             var usedSlots = new HashSet<int>();
             for (int i = c.StartCommandRange; i < c.EndCommandRangeExclusive; i++)
             {
-                var cmd = Commands[i];
+                var cmd = UnderlyingCommands[i];
                 if (cmd.Index >= 0)       usedSlots.Add(cmd.Index);
                 if (cmd.SourceIndex >= 0) usedSlots.Add(cmd.SourceIndex);
             }
@@ -198,23 +192,21 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
             var ifStack = new Stack<IfContext>();
 
             string fn = FnName(c);
-            _src.AppendLine(
-                $"public static void {fn}(double[]vs,double[]os,double[]od,ref int i,ref int codi,ref bool cond){{");
+            _src.AppendLine($"public static void {fn}(double[]vs,double[]os,double[]od,ref int i,ref int codi,ref bool cond){{");
 
             cb.Indent();
 
-            // Declare only the locals that can appear in *this* chunk.
+            // Declare only the locals referenced by this chunk’s plan.
             for (int l = 0; l < plan.LocalCount; l++)
                 cb.AppendLine($"double l{l} = 0;");
             cb.AppendLine();
 
             if (ReuseLocals)
-                EmitReusingBody(c, plan, cb, depthMap, intervalIx, bind,
-                                skipMap, ifStack, usedSlots);
+                EmitReusingBody(c, plan, cb, depthMap, intervalIx, bind, skipMap, ifStack, usedSlots);
             else
                 EmitZeroReuseBody(c, plan, cb, skipMap, ifStack, usedSlots);
 
-            // Close any unmatched IFs in the chunk range (tail ELSE emission)
+            // Close any unmatched IFs that started in this chunk (tail ELSE emission).
             while (ifStack.Count > 0)
             {
                 var ctx = ifStack.Pop();
@@ -231,13 +223,13 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
                 cb.AppendLine($"codi += {ctx.DstSkip};");
                 cb.AppendLine("}");
 
-                // Post-branch cleanup
+                // Post‑branch cleanup for locals first bound inside IF.
                 foreach (var (slot, local) in ctx.Initialises)
                     if (bind != null &&
                         bind.NeedsFlushBeforeReuse(local, out int boundSlot) &&
                         boundSlot == slot)
                     {
-                        cb.AppendLine($"vs[{slot}] = l{local} ;");
+                        cb.AppendLine($"vs[{slot}] = l{local};");
                         bind.FlushLocal(local);
                     }
             }
@@ -247,6 +239,7 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
             _src.AppendLine("}");
         }
 
+
         private void EmitZeroReuseBody(
             ArrayCommandChunk c,
             LocalsAllocationPlan plan,
@@ -255,26 +248,21 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
             Stack<IfContext> ifStack,
             HashSet<int> usedSlots)
         {
-            // Preload only locals present in this chunk
+            // Preload only locals present in this chunk.
             foreach (var kv in plan.SlotToLocal)
                 if (usedSlots.Contains(kv.Key))
                     cb.AppendLine($"l{kv.Value} = vs[{kv.Key}];");
 
-            Span<ArrayCommand> cmds = Commands;
             for (int ci = c.StartCommandRange; ci < c.EndCommandRangeExclusive; ci++)
-                EmitCmdBasic(ci, plan, cmds[ci], cb, skipMap, ifStack, bind: null);
+                EmitCmdBasic(ci, plan, UnderlyingCommands[ci], cb, skipMap, ifStack, bind: null);
 
-            // Write back locals relevant to this chunk
+            // Write back locals relevant to this chunk.
             foreach (var kv in plan.SlotToLocal)
                 if (usedSlots.Contains(kv.Key))
                     cb.AppendLine($"vs[{kv.Key}] = l{kv.Value};");
         }
 
 
-        /// <summary>
-        /// Generate source for a chunk in local‑reuse mode, now flushing *all* slots
-        /// whose intervals end on a given instruction.
-                /// </summary>
         private void EmitReusingBody(
             ArrayCommandChunk c,
             LocalsAllocationPlan plan,
@@ -286,13 +274,11 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
             Stack<IfContext> ifStack,
             HashSet<int> usedSlots)
         {
-            Span<ArrayCommand> cmds = Commands;
-
             for (int ci = c.StartCommandRange; ci < c.EndCommandRangeExclusive; ci++)
             {
                 int d = depth.GetDepth(ci);
 
-                // interval starts
+                // Interval starts (may require flush before reuse).
                 foreach (int slot in intervalIx.StartSlots(ci))
                 {
                     if (!plan.SlotToLocal.TryGetValue(slot, out int local))
@@ -317,10 +303,10 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
                     }
                 }
 
-                // emit command
-                EmitCmdBasic(ci, plan, cmds[ci], cb, skipMap, ifStack, bind);
+                // Emit the command for this absolute index.
+                EmitCmdBasic(ci, plan, UnderlyingCommands[ci], cb, skipMap, ifStack, bind);
 
-                // interval ends
+                // Interval ends (flush dirty if needed, then release).
                 foreach (int endSlot in intervalIx.EndSlots(ci))
                 {
                     if (!plan.SlotToLocal.TryGetValue(endSlot, out int local))
@@ -341,7 +327,7 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
                 }
             }
 
-            // final flush for locals that stayed live to the end of the chunk
+            // Final flush for any locals live to the end of the chunk.
             for (int local = 0; local < plan.LocalCount; local++)
             {
                 if (bind.NeedsFlushBeforeReuse(local, out int slot) && slot != -1)
@@ -351,10 +337,6 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
                 }
             }
         }
-
-
-
-
 
 
         /// <summary>
