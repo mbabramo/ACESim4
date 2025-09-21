@@ -169,15 +169,40 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
                 GenerateSourceForChunk(c);
         }
 
+        private readonly struct IntervalEvent
+        {
+            public readonly int Cmd;
+            public readonly int Slot;
+            public IntervalEvent(int cmd, int slot) { Cmd = cmd; Slot = slot; }
+        }
+
+        private (IntervalEvent[] starts, IntervalEvent[] ends) BuildIntervalCursor(LocalsAllocationPlan plan)
+        {
+            int n = plan.Intervals.Count;
+            var starts = new IntervalEvent[n];
+            var ends   = new IntervalEvent[n];
+
+            int i = 0;
+            foreach (var iv in plan.Intervals)
+            {
+                starts[i] = new IntervalEvent(iv.First, iv.Slot);
+                ends[i]   = new IntervalEvent(iv.Last,  iv.Slot);
+                i++;
+            }
+
+            Array.Sort(starts, (a, b) => a.Cmd.CompareTo(b.Cmd));
+            Array.Sort(ends,   (a, b) => a.Cmd.CompareTo(b.Cmd));
+            return (starts, ends);
+        }
+
         private void GenerateSourceForChunk(ArrayCommandChunk c)
         {
             var plan = ReuseLocals
                 ? LocalVariablePlanner.PlanLocals(UnderlyingCommands, c.StartCommandRange, c.EndCommandRangeExclusive)
                 : LocalVariablePlanner.PlanNoReuse(UnderlyingCommands, c.StartCommandRange, c.EndCommandRangeExclusive);
 
-            var intervalIx = new IntervalIndex(plan);
-            var bind       = new LocalBindingState(plan.LocalCount);
-            var cb         = new CodeBuilder();
+            var bind = new LocalBindingState(plan.LocalCount);
+            var cb   = new CodeBuilder();
 
             var usedSlots = new HashSet<int>();
             for (int i = c.StartCommandRange; i < c.EndCommandRangeExclusive; i++)
@@ -200,9 +225,16 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
             cb.AppendLine();
 
             if (ReuseLocals)
-                EmitReusingBody(c, plan, cb, _globalDepth, intervalIx, bind, skipMap, ifStack);
+            {
+                // Per‑chunk depth baseline and interval cursors (array‑based, no dictionaries)
+                var depthMap = new DepthMap(UnderlyingCommands, c.StartCommandRange, c.EndCommandRangeExclusive);
+                var (starts, ends) = BuildIntervalCursor(plan);
+                EmitReusingBody(c, plan, cb, depthMap, starts, ends, bind, skipMap, ifStack);
+            }
             else
+            {
                 EmitZeroReuseBody(c, plan, cb, skipMap, ifStack, usedSlots);
+            }
 
             while (ifStack.Count > 0)
             {
@@ -238,17 +270,24 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
             LocalsAllocationPlan plan,
             CodeBuilder cb,
             DepthMap depth,
-            IntervalIndex intervalIx,
+            IntervalEvent[] starts,
+            IntervalEvent[] ends,
             LocalBindingState bind,
             Dictionary<int, (int src, int dst)> skipMap,
             Stack<IfContext> ifStack)
         {
+            int sPtr = 0, ePtr = 0, sLen = starts.Length, eLen = ends.Length;
+
             for (int ci = c.StartCommandRange; ci < c.EndCommandRangeExclusive; ci++)
             {
                 int d = depth.GetDepth(ci);
 
-                foreach (int slot in intervalIx.StartSlots(ci))
+                // Bind intervals that start at this instruction
+                while (sPtr < sLen && starts[sPtr].Cmd == ci)
                 {
+                    int slot = starts[sPtr].Slot;
+                    sPtr++;
+
                     if (!plan.SlotToLocal.TryGetValue(slot, out int local))
                         continue;
 
@@ -271,10 +310,15 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
                     }
                 }
 
+                // Emit the command at absolute index ci
                 EmitCmdBasic(ci, plan, UnderlyingCommands[ci], cb, skipMap, ifStack, bind);
 
-                foreach (int endSlot in intervalIx.EndSlots(ci))
+                // Release intervals that end at this instruction
+                while (ePtr < eLen && ends[ePtr].Cmd == ci)
                 {
+                    int endSlot = ends[ePtr].Slot;
+                    ePtr++;
+
                     if (!plan.SlotToLocal.TryGetValue(endSlot, out int local))
                         continue;
 
@@ -293,6 +337,7 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
                 }
             }
 
+            // Final flush for any locals still live at chunk end
             for (int local = 0; local < plan.LocalCount; local++)
             {
                 if (bind.NeedsFlushBeforeReuse(local, out int slot) && slot != -1)
@@ -303,7 +348,6 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
             }
         }
 
-
         private void EmitZeroReuseBody(
             ArrayCommandChunk c,
             LocalsAllocationPlan plan,
@@ -312,7 +356,6 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
             Stack<IfContext> ifStack,
             HashSet<int> usedSlots)
         {
-            // Preload only locals present in this chunk.
             foreach (var kv in plan.SlotToLocal)
                 if (usedSlots.Contains(kv.Key))
                     cb.AppendLine($"l{kv.Value} = vs[{kv.Key}];");
@@ -320,11 +363,11 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
             for (int ci = c.StartCommandRange; ci < c.EndCommandRangeExclusive; ci++)
                 EmitCmdBasic(ci, plan, UnderlyingCommands[ci], cb, skipMap, ifStack, bind: null);
 
-            // Write back locals relevant to this chunk.
             foreach (var kv in plan.SlotToLocal)
                 if (usedSlots.Contains(kv.Key))
                     cb.AppendLine($"vs[{kv.Key}] = l{kv.Value};");
         }
+
 
 
 
