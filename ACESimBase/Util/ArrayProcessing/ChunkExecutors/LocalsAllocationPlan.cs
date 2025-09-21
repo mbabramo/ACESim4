@@ -138,20 +138,22 @@ public static class LocalVariablePlanner
         if (start >= end)
             return new LocalsAllocationPlan();
 
-        int len = end - start;
-
-        // 1) Depth map over [start,end)
-        var depthAt = new int[len];
+        // ------------------------------------------------------------------
+        // 1. Build depth map  (depthAt[i] == syntactic depth of command i)
+        // ------------------------------------------------------------------
+        var depthAt = new int[end];
         int depth = 0;
-        for (int i = start, j = 0; i < end; i++, j++)
+        for (int i = start; i < end; i++)
         {
             var t = commands[i].CommandType;
             if (t == ArrayCommandType.EndIf) depth--;
-            depthAt[j] = depth;
+            depthAt[i] = depth;
             if (t == ArrayCommandType.If) depth++;
         }
 
-        // 2) Use-counts and first/last indices per VS slot in [start,end)
+        // ------------------------------------------------------------------
+        // 2. Collect use‑counts and first/last indices per slot
+        // ------------------------------------------------------------------
         var useCount = new Dictionary<int, int>();
         var firstIdx = new Dictionary<int, int>();
         var lastIdx = new Dictionary<int, int>();
@@ -170,19 +172,21 @@ public static class LocalVariablePlanner
             }
         }
 
-        // 3) Filter and optionally cap
+        // ------------------------------------------------------------------
+        // 3. Filter by minUses and (optional) maxLocals
+        // ------------------------------------------------------------------
         var intervals = useCount
             .Where(kv => kv.Value >= minUses)
-            .Select(kv => new
-            {
+            .Select(kv => new {
                 Slot = kv.Key,
                 Uses = kv.Value,
                 First = firstIdx[kv.Key],
                 Last = lastIdx[kv.Key],
-                BindDepth = depthAt[firstIdx[kv.Key] - start]
+                BindDepth = depthAt[firstIdx[kv.Key]]
             })
             .ToList();
 
+        // Sort by hotness then first occurrence when capped
         if (maxLocals.HasValue && intervals.Count > maxLocals.Value)
         {
             intervals = intervals
@@ -192,9 +196,12 @@ public static class LocalVariablePlanner
                 .ToList();
         }
 
+        // Sort by First for interval‑allocation sweep
         intervals.Sort((a, b) => a.First.CompareTo(b.First));
 
-        // 4) Depth-aware linear-scan allocation
+        // ------------------------------------------------------------------
+        // 4. Depth‑aware linear‑scan allocation
+        // ------------------------------------------------------------------
         var plan = new LocalsAllocationPlan();
         var active = new List<(int Slot, int End, int Local, int BindDepth)>();
         var freeList = new Stack<int>();
@@ -202,10 +209,11 @@ public static class LocalVariablePlanner
 
         foreach (var iv in intervals)
         {
+            // Evict locals that have expired AND whose bind‑depth is shallower/equal
             for (int j = active.Count - 1; j >= 0; j--)
             {
                 var a = active[j];
-                if (a.End < iv.First && depthAt[iv.First - start] <= a.BindDepth)
+                if (a.End < iv.First && depthAt[iv.First] <= a.BindDepth)
                 {
                     freeList.Push(a.Local);
                     active.RemoveAt(j);
@@ -217,9 +225,9 @@ public static class LocalVariablePlanner
             active.Add((iv.Slot, iv.Last, local, iv.BindDepth));
         }
 
+
         return plan;
     }
-
 
     // ------------------------------ helpers ------------------------------
     private static IEnumerable<int> GetReadSlots(ArrayCommand cmd) => cmd.CommandType switch
