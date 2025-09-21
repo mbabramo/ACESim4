@@ -25,19 +25,7 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
         private Type _cgType;
 
         // Global interval lookup & depth for the whole executor window
-        private readonly int _start;
-        private readonly int _end;
         private readonly DepthMap _globalDepth;
-
-        // Absolute-index → list of slots that START/END at this index (built once)
-        private readonly Dictionary<int, List<int>> _startsByIndex = new();
-        private readonly Dictionary<int, List<int>> _endsByIndex = new();
-
-        // Per-slot global first/last occurrence (absolute command indices)
-        private readonly Dictionary<int, int> _slotFirst = new();
-        private readonly Dictionary<int, int> _slotLast = new();
-
-
 
         public bool ReuseLocals { get; init; } = true;
 
@@ -77,85 +65,9 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
             : base(commands, start, end, useCheckpoints, arrayCommandListForCheckpoints: null)
         {
             ReuseLocals = localVariableReuse;
-
-            // Remember absolute window once; build a single depth map over it.
-            _start = start;
-            _end = end;
             _globalDepth = new DepthMap(commands, start, end);
-
-            // Build a single global interval lookup (first/last use per VS slot, plus
-            // per-index start/end lists) so chunks don’t need IntervalIndex(plan).
-            BuildGlobalIntervalLookup();
-        }
-        // Build first/last occurrence for every VS slot across [_start, _end),
-        // then populate global per-index start/end lists.
-        private void BuildGlobalIntervalLookup()
-        {
-            for (int i = _start; i < _end; i++)
-            {
-                var cmd = UnderlyingCommands[i];
-
-                foreach (int slot in EnumerateSlots(cmd))
-                {
-                    if (slot < 0) continue;
-
-                    if (!_slotFirst.ContainsKey(slot))
-                        _slotFirst[slot] = i;
-
-                    _slotLast[slot] = i;
-                }
-            }
-
-            foreach (var kv in _slotFirst)
-            {
-                int slot = kv.Key;
-                int first = kv.Value;
-                int last = _slotLast[slot];
-
-                (_startsByIndex.TryGetValue(first, out var fl) ? fl : _startsByIndex[first] = new()).Add(slot);
-                (_endsByIndex.TryGetValue(last,  out var ll) ? ll  : _endsByIndex[last]  = new()).Add(slot);
-            }
         }
 
-        // Same read/write slot rules used by LocalVariablePlanner (kept local here
-        // to avoid allocations and ToArray()). Mirrors the logic in tests.
-        // Writes: Index for Zero/CopyTo/NextSource and RMW ops.
-        // Reads : SourceIndex and the read side of RMW / comparisons.
-        private static IEnumerable<int> EnumerateSlots(ArrayCommand cmd)
-        {
-            // Writes
-            switch (cmd.CommandType)
-            {
-                case ArrayCommandType.Zero:
-                case ArrayCommandType.CopyTo:
-                case ArrayCommandType.NextSource:
-                case ArrayCommandType.MultiplyBy:
-                case ArrayCommandType.IncrementBy:
-                case ArrayCommandType.DecrementBy:
-                    if (cmd.Index >= 0) yield return cmd.Index;
-                    break;
-            }
-
-            // Reads
-            switch (cmd.CommandType)
-            {
-                case ArrayCommandType.CopyTo:
-                case ArrayCommandType.MultiplyBy:
-                case ArrayCommandType.IncrementBy:
-                case ArrayCommandType.DecrementBy:
-                case ArrayCommandType.EqualsOtherArrayIndex:
-                case ArrayCommandType.NotEqualsOtherArrayIndex:
-                case ArrayCommandType.GreaterThanOtherArrayIndex:
-                case ArrayCommandType.LessThanOtherArrayIndex:
-                    if (cmd.SourceIndex >= 0) yield return cmd.SourceIndex;
-                    break;
-
-                case ArrayCommandType.EqualsValue:
-                case ArrayCommandType.NotEqualsValue:
-                    // constant compare — no slot read
-                    break;
-            }
-        }
 
 
         public override void AddToGeneration(ArrayCommandChunk chunk)
@@ -259,15 +171,14 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
 
         private void GenerateSourceForChunk(ArrayCommandChunk c)
         {
-            // Per‑chunk local plan (decide which VS slots become locals in this chunk).
             var plan = ReuseLocals
                 ? LocalVariablePlanner.PlanLocals(UnderlyingCommands, c.StartCommandRange, c.EndCommandRangeExclusive)
                 : LocalVariablePlanner.PlanNoReuse(UnderlyingCommands, c.StartCommandRange, c.EndCommandRangeExclusive);
 
-            var bind = new LocalBindingState(plan.LocalCount);
-            var cb = new CodeBuilder();
+            var intervalIx = new IntervalIndex(plan);
+            var bind       = new LocalBindingState(plan.LocalCount);
+            var cb         = new CodeBuilder();
 
-            // Limit preloads/writebacks to the VS slots actually touched by this chunk.
             var usedSlots = new HashSet<int>();
             for (int i = c.StartCommandRange; i < c.EndCommandRangeExclusive; i++)
             {
@@ -276,10 +187,7 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
                 if (cmd.SourceIndex >= 0) usedSlots.Add(cmd.SourceIndex);
             }
 
-            // IF pointer-skip map (sources/dests to advance when THEN branch is skipped).
             var skipMap = PrecomputePointerSkips(c);
-
-            // IF-stack tracks flushes/initialisations (unchanged behaviour).
             var ifStack = new Stack<IfContext>();
 
             string fn = FnName(c);
@@ -287,17 +195,15 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
 
             cb.Indent();
 
-            // Declare only the locals that this plan uses.
             for (int l = 0; l < plan.LocalCount; l++)
                 cb.AppendLine($"double l{l} = 0;");
             cb.AppendLine();
 
             if (ReuseLocals)
-                EmitReusingBody(c, plan, cb, _globalDepth, bind, skipMap, ifStack);
+                EmitReusingBody(c, plan, cb, _globalDepth, intervalIx, bind, skipMap, ifStack);
             else
                 EmitZeroReuseBody(c, plan, cb, skipMap, ifStack, usedSlots);
 
-            // Close any unmatched IFs started in the chunk (tail ELSE emission).
             while (ifStack.Count > 0)
             {
                 var ctx = ifStack.Pop();
@@ -314,7 +220,6 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
                 cb.AppendLine($"codi += {ctx.DstSkip};");
                 cb.AppendLine("}");
 
-                // Post-branch cleanup for locals first bound inside IF.
                 foreach (var (slot, local) in ctx.Initialises)
                     if (bind.NeedsFlushBeforeReuse(local, out int boundSlot) && boundSlot == slot)
                     {
@@ -333,104 +238,61 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
             LocalsAllocationPlan plan,
             CodeBuilder cb,
             DepthMap depth,
+            IntervalIndex intervalIx,
             LocalBindingState bind,
             Dictionary<int, (int src, int dst)> skipMap,
             Stack<IfContext> ifStack)
         {
-            // Slots that are already live when the chunk begins:
-            // global first < chunkStart ≤ global last, and the slot is used in this chunk’s plan.
-            var liveAtEntry = new List<int>();
-            foreach (var slot in plan.SlotToLocal.Keys)
-                if (_slotFirst.TryGetValue(slot, out int f) &&
-                    _slotLast.TryGetValue(slot, out int l) &&
-                    f < c.StartCommandRange && l >= c.StartCommandRange)
-                    liveAtEntry.Add(slot);
-
             for (int ci = c.StartCommandRange; ci < c.EndCommandRangeExclusive; ci++)
             {
                 int d = depth.GetDepth(ci);
 
-                // Starts at this instruction (from the global lookup) filtered to this chunk’s plan.
-                if (_startsByIndex.TryGetValue(ci, out var startsHere))
+                foreach (int slot in intervalIx.StartSlots(ci))
                 {
-                    foreach (int slot in startsHere)
+                    if (!plan.SlotToLocal.TryGetValue(slot, out int local))
+                        continue;
+
+                    if (bind.TryReuse(local, slot, d, out int flushSlot))
                     {
-                        if (!plan.SlotToLocal.TryGetValue(slot, out int local)) continue;
-
-                        if (bind.TryReuse(local, slot, d, out int flushSlot))
+                        if (flushSlot != -1)
                         {
-                            if (flushSlot != -1)
-                            {
-                                cb.AppendLine($"vs[{flushSlot}] = l{local};");
-                                if (ifStack.Count > 0)
-                                    foreach (var ctx in ifStack)
-                                        ctx.Flushes.Add((flushSlot, local));
-                            }
-
-                            cb.AppendLine($"l{local} = vs[{slot}];");
+                            cb.AppendLine($"vs[{flushSlot}] = l{local};");
                             if (ifStack.Count > 0)
                                 foreach (var ctx in ifStack)
-                                    ctx.Initialises.Add((slot, local));
-
-                            bind.StartInterval(slot, local, d);
+                                    ctx.Flushes.Add((flushSlot, local));
                         }
+
+                        cb.AppendLine($"l{local} = vs[{slot}];");
+                        if (ifStack.Count > 0)
+                            foreach (var ctx in ifStack)
+                                ctx.Initialises.Add((slot, local));
+
+                        bind.StartInterval(slot, local, d);
                     }
                 }
 
-                // Also bind any slots that were live when the chunk began.
-                if (ci == c.StartCommandRange && liveAtEntry.Count > 0)
-                {
-                    foreach (int slot in liveAtEntry)
-                    {
-                        if (!plan.SlotToLocal.TryGetValue(slot, out int local)) continue;
-
-                        if (bind.TryReuse(local, slot, d, out int flushSlot))
-                        {
-                            if (flushSlot != -1)
-                            {
-                                cb.AppendLine($"vs[{flushSlot}] = l{local};");
-                                if (ifStack.Count > 0)
-                                    foreach (var ctx in ifStack)
-                                        ctx.Flushes.Add((flushSlot, local));
-                            }
-
-                            cb.AppendLine($"l{local} = vs[{slot}];");
-                            if (ifStack.Count > 0)
-                                foreach (var ctx in ifStack)
-                                    ctx.Initialises.Add((slot, local));
-
-                            bind.StartInterval(slot, local, d);
-                        }
-                    }
-                }
-
-                // Emit the command at absolute index ci.
                 EmitCmdBasic(ci, plan, UnderlyingCommands[ci], cb, skipMap, ifStack, bind);
 
-                // Ends at this instruction (global lookup), filtered to this chunk’s plan.
-                if (_endsByIndex.TryGetValue(ci, out var endsHere))
+                foreach (int endSlot in intervalIx.EndSlots(ci))
                 {
-                    foreach (int endSlot in endsHere)
+                    if (!plan.SlotToLocal.TryGetValue(endSlot, out int local))
+                        continue;
+
+                    if (bind.NeedsFlushBeforeReuse(local, out int boundSlot) && boundSlot == endSlot)
                     {
-                        if (!plan.SlotToLocal.TryGetValue(endSlot, out int local)) continue;
+                        cb.AppendLine($"vs[{endSlot}] = l{local};");
+                        if (ifStack.Count > 0)
+                            foreach (var ctx in ifStack)
+                                if (ctx.DirtyBefore[local])
+                                    ctx.Flushes.Add((endSlot, local));
 
-                        if (bind.NeedsFlushBeforeReuse(local, out int boundSlot) && boundSlot == endSlot)
-                        {
-                            cb.AppendLine($"vs[{endSlot}] = l{local};");
-                            if (ifStack.Count > 0)
-                                foreach (var ctx in ifStack)
-                                    if (ctx.DirtyBefore[local])
-                                        ctx.Flushes.Add((endSlot, local));
-
-                            bind.FlushLocal(local);
-                        }
-
-                        bind.Release(local);
+                        bind.FlushLocal(local);
                     }
+
+                    bind.Release(local);
                 }
             }
 
-            // Final flush for any locals still live at the end of the chunk.
             for (int local = 0; local < plan.LocalCount; local++)
             {
                 if (bind.NeedsFlushBeforeReuse(local, out int slot) && slot != -1)
@@ -440,6 +302,8 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
                 }
             }
         }
+
+
         private void EmitZeroReuseBody(
             ArrayCommandChunk c,
             LocalsAllocationPlan plan,
