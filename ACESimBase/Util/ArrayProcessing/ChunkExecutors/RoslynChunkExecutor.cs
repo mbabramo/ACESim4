@@ -1,6 +1,4 @@
-﻿// RoslynChunkExecutor.cs – generated‑code executor
-
-using System;
+﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,52 +7,17 @@ using System.Text;
 using ACESimBase.Util.ArrayProcessing;
 using ACESimBase.Util.ArrayProcessing.ChunkExecutors;
 using ACESimBase.Util.CodeGen;
-using Google.Protobuf.Reflection;
 
 namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
 {
     internal sealed class RoslynChunkExecutor : ChunkExecutorBase
     {
-        private readonly LocalsAllocationPlan _plan;
-        private readonly IntervalIndex _intervalIx;
-
         private readonly List<ArrayCommandChunk> _scheduled = new();
         private readonly ConcurrentDictionary<ArrayCommandChunk, ArrayCommandChunkDelegate> _compiled = new();
         private readonly Dictionary<string, List<ArrayCommandChunk>> _chunksByFn = new();
-        private readonly StringBuilder _src = new();
-        private Type _cgType;
-
-        // Global interval lookup & depth for the whole executor window
-        private readonly DepthMap _globalDepth;
+        private readonly StringBuilder _sourceUnit = new();
 
         public bool ReuseLocals { get; init; } = true;
-
-        // ──────────────────────────────────────────────────────────────────────────────
-        // Tracks data while we are inside an `if(cond){…}` block.
-        // ──────────────────────────────────────────────────────────────────────────────
-        private sealed class IfContext
-        {
-            public readonly int SrcSkip;
-            public readonly int DstSkip;
-
-            public readonly bool[] DirtyBefore;
-
-            // (slot,local) pairs whose *last* flush happens inside the branch
-            public readonly List<(int slot, int local)> Flushes = new();
-
-            // (slot,local) pairs bound for the first time inside the branch
-            // → must be replayed in the ELSE leg to guarantee initialisation.
-            public readonly List<(int slot, int local)> Initialises = new();
-
-            public IfContext(int srcSkip, int dstSkip, bool[] dirtyBefore)
-            {
-                SrcSkip = srcSkip;
-                DstSkip = dstSkip;
-                DirtyBefore = dirtyBefore;
-            }
-        }
-
-
 
         public RoslynChunkExecutor(
             ArrayCommand[] commands,
@@ -65,29 +28,20 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
             : base(commands, start, end, useCheckpoints, arrayCommandListForCheckpoints: null)
         {
             ReuseLocals = localVariableReuse;
-            _globalDepth = new DepthMap(commands, start, end);
         }
-
-
 
         public override void AddToGeneration(ArrayCommandChunk chunk)
         {
-            // Already have a delegate for this exact chunk object?
             if (_compiled.ContainsKey(chunk))
                 return;
 
-            // Group by generated function name (i.e., by [start,end) span).
             string fn = FnName(chunk);
             if (!_chunksByFn.TryGetValue(fn, out var list))
             {
                 list = new List<ArrayCommandChunk>(capacity: 1);
                 _chunksByFn[fn] = list;
-
-                // First time we see this span → schedule a single representative for codegen.
                 _scheduled.Add(chunk);
             }
-
-            // Keep all chunk objects that share this span so we can map them after codegen.
             list.Add(chunk);
         }
 
@@ -96,42 +50,39 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
             if (_scheduled.Count == 0)
                 return;
 
-            _src.Clear();
-            _src.AppendLine("using System; namespace CG { static class G {");
+            _sourceUnit.Clear();
+            _sourceUnit.AppendLine("using System; namespace CG { static class G {");
 
-            try
+            foreach (var chunk in _scheduled)
             {
-                // Generate source once per unique span (the reps in _scheduled).
-                GenerateSourceForChunks(_scheduled);
-            }
-            catch (Exception ex)
-            {
-                throw new Exception("Roslyn generate source failed", ex);
+                var method = new ChunkMethodBuilder(
+                    commands: UnderlyingCommands,
+                    chunk: chunk,
+                    reuseLocals: ReuseLocals,
+                    precomputedSkips: PrecomputePointerSkips(chunk));
+
+                _sourceUnit.AppendLine(method.Build());
             }
 
-            _src.AppendLine("}} // CG.G");
+            _sourceUnit.AppendLine("}} // CG.G");
 
-            string code = _src.ToString();
+            string code = _sourceUnit.ToString();
             if (PreserveGeneratedCode)
                 GeneratedCode = code;
 
-            // Compile once and wire the same delegate to *all* chunks sharing that span.
-            _cgType = StringToCode.LoadCode(code, "CG.G");
+            var cgType = StringToCode.LoadCode(code, "CG.G");
+
             foreach (var rep in _scheduled)
             {
-                var mi = _cgType!.GetMethod(FnName(rep), BindingFlags.Static | BindingFlags.Public)!;
+                var mi = cgType.GetMethod(FnName(rep), BindingFlags.Static | BindingFlags.Public)!;
                 var del = (ArrayCommandChunkDelegate)Delegate.CreateDelegate(typeof(ArrayCommandChunkDelegate), mi);
-
-                // Assign compiled delegate to every chunk object with the same span.
-                var fn = FnName(rep);
-                foreach (var chunk in _chunksByFn[fn])
-                    _compiled[chunk] = del;
+                foreach (var c in _chunksByFn[FnName(rep)])
+                    _compiled[c] = del;
             }
 
             _scheduled.Clear();
             _chunksByFn.Clear();
         }
-
 
         public override void Execute(
             ArrayCommandChunk chunk,
@@ -148,7 +99,6 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
             try
             {
                 _compiled[chunk](vs, os, od, ref cosi, ref codi, ref cond);
-                // IMPORTANT: executors must not mutate chunk metadata here.
             }
             catch (Exception ex)
             {
@@ -159,474 +109,483 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
             }
         }
 
+        private static string FnName(ArrayCommandChunk c) => $"S{c.StartCommandRange}_{c.EndCommandRangeExclusive - 1}";
 
-        private static string FnName(ArrayCommandChunk c)
-            => $"S{c.StartCommandRange}_{c.EndCommandRangeExclusive - 1}";
+        // ───────────────────────────────────────────────────────────────────────────
+        //  ChunkMethodBuilder
+        // ───────────────────────────────────────────────────────────────────────────
 
-        private void GenerateSourceForChunks(IEnumerable<ArrayCommandChunk> chunks)
+        private sealed class ChunkMethodBuilder
         {
-            foreach (var c in chunks)
-                GenerateSourceForChunk(c);
-        }
+            private readonly ArrayCommand[] _cmds;
+            private readonly ArrayCommandChunk _chunk;
+            private readonly bool _reuseLocals;
+            private readonly Dictionary<int, (int src, int dst)> _skipMap;
+            private readonly CodeBuilder _cb = new();
 
-        private readonly struct IntervalEvent
-        {
-            public readonly int Cmd;
-            public readonly int Slot;
-            public IntervalEvent(int cmd, int slot) { Cmd = cmd; Slot = slot; }
-        }
-
-        private (IntervalEvent[] starts, IntervalEvent[] ends) BuildIntervalCursor(LocalsAllocationPlan plan)
-        {
-            int n = plan.Intervals.Count;
-            var starts = new IntervalEvent[n];
-            var ends   = new IntervalEvent[n];
-
-            int i = 0;
-            foreach (var iv in plan.Intervals)
+            public ChunkMethodBuilder(
+                ArrayCommand[] commands,
+                ArrayCommandChunk chunk,
+                bool reuseLocals,
+                Dictionary<int, (int src, int dst)> precomputedSkips)
             {
-                starts[i] = new IntervalEvent(iv.First, iv.Slot);
-                ends[i]   = new IntervalEvent(iv.Last,  iv.Slot);
-                i++;
+                _cmds = commands;
+                _chunk = chunk;
+                _reuseLocals = reuseLocals;
+                _skipMap = precomputedSkips ?? new Dictionary<int, (int src, int dst)>();
             }
 
-            Array.Sort(starts, (a, b) => a.Cmd.CompareTo(b.Cmd));
-            Array.Sort(ends,   (a, b) => a.Cmd.CompareTo(b.Cmd));
-            return (starts, ends);
-        }
-
-        private void GenerateSourceForChunk(ArrayCommandChunk c)
-        {
-            var plan = ReuseLocals
-                ? LocalVariablePlanner.PlanLocals(UnderlyingCommands, c.StartCommandRange, c.EndCommandRangeExclusive)
-                : LocalVariablePlanner.PlanNoReuse(UnderlyingCommands, c.StartCommandRange, c.EndCommandRangeExclusive);
-
-            var bind = new LocalBindingState(plan.LocalCount);
-            var cb   = new CodeBuilder();
-
-            var usedSlots = new HashSet<int>();
-            for (int i = c.StartCommandRange; i < c.EndCommandRangeExclusive; i++)
+            public string Build()
             {
-                var cmd = UnderlyingCommands[i];
-                if (cmd.Index       >= 0) usedSlots.Add(cmd.Index);
-                if (cmd.SourceIndex >= 0) usedSlots.Add(cmd.SourceIndex);
-            }
+                var plan = _reuseLocals
+                    ? LocalVariablePlanner.PlanLocals(_cmds, _chunk.StartCommandRange, _chunk.EndCommandRangeExclusive)
+                    : LocalVariablePlanner.PlanNoReuse(_cmds, _chunk.StartCommandRange, _chunk.EndCommandRangeExclusive);
 
-            var skipMap = PrecomputePointerSkips(c);
-            var ifStack = new Stack<IfContext>();
+                var method = new CodeBuilder();
+                string fn = FnName(_chunk);
+                method.AppendLine($"public static void {fn}(double[] vs, double[] os, double[] od, ref int i, ref int codi, ref bool cond){{");
+                _cb.Indent();
 
-            string fn = FnName(c);
-            _src.AppendLine($"public static void {fn}(double[]vs,double[]os,double[]od,ref int i,ref int codi,ref bool cond){{");
+                for (int l = 0; l < plan.LocalCount; l++)
+                    _cb.AppendLine($"double l{l} = 0;");
 
-            cb.Indent();
+                _cb.AppendLine();
 
-            for (int l = 0; l < plan.LocalCount; l++)
-                cb.AppendLine($"double l{l} = 0;");
-            cb.AppendLine();
-
-            if (ReuseLocals)
-            {
-                // Per‑chunk depth baseline and interval cursors (array‑based, no dictionaries)
-                var depthMap = new DepthMap(UnderlyingCommands, c.StartCommandRange, c.EndCommandRangeExclusive);
-                var (starts, ends) = BuildIntervalCursor(plan);
-                EmitReusingBody(c, plan, cb, depthMap, starts, ends, bind, skipMap, ifStack);
-            }
-            else
-            {
-                EmitZeroReuseBody(c, plan, cb, skipMap, ifStack, usedSlots);
-            }
-
-            while (ifStack.Count > 0)
-            {
-                var ctx = ifStack.Pop();
-                cb.Unindent();
-                cb.AppendLine("} else {");
-
-                foreach (var (slot, local) in ctx.Flushes)
-                    cb.AppendLine($"vs[{slot}] = l{local};");
-
-                foreach (var (slot, local) in ctx.Initialises)
-                    cb.AppendLine($"l{local} = vs[{slot}];");
-
-                cb.AppendLine($"i += {ctx.SrcSkip};");
-                cb.AppendLine($"codi += {ctx.DstSkip};");
-                cb.AppendLine("}");
-
-                foreach (var (slot, local) in ctx.Initialises)
-                    if (bind.NeedsFlushBeforeReuse(local, out int boundSlot) && boundSlot == slot)
-                    {
-                        cb.AppendLine($"vs[{slot}] = l{local};");
-                        bind.FlushLocal(local);
-                    }
-            }
-
-            cb.Unindent();
-            _src.AppendLine(cb.ToString());
-            _src.AppendLine("}");
-        }
-
-        private void EmitReusingBody(
-            ArrayCommandChunk c,
-            LocalsAllocationPlan plan,
-            CodeBuilder cb,
-            DepthMap depth,
-            IntervalEvent[] starts,
-            IntervalEvent[] ends,
-            LocalBindingState bind,
-            Dictionary<int, (int src, int dst)> skipMap,
-            Stack<IfContext> ifStack)
-        {
-            int sPtr = 0, ePtr = 0, sLen = starts.Length, eLen = ends.Length;
-
-            for (int ci = c.StartCommandRange; ci < c.EndCommandRangeExclusive; ci++)
-            {
-                int d = depth.GetDepth(ci);
-
-                // Bind intervals that start at this instruction
-                while (sPtr < sLen && starts[sPtr].Cmd == ci)
+                if (_reuseLocals)
                 {
-                    int slot = starts[sPtr].Slot;
-                    sPtr++;
-
-                    if (!plan.SlotToLocal.TryGetValue(slot, out int local))
-                        continue;
-
-                    if (bind.TryReuse(local, slot, d, out int flushSlot))
-                    {
-                        if (flushSlot != -1)
-                        {
-                            cb.AppendLine($"vs[{flushSlot}] = l{local};");
-                            if (ifStack.Count > 0)
-                                foreach (var ctx in ifStack)
-                                    ctx.Flushes.Add((flushSlot, local));
-                        }
-
-                        cb.AppendLine($"l{local} = vs[{slot}];");
-                        if (ifStack.Count > 0)
-                            foreach (var ctx in ifStack)
-                                ctx.Initialises.Add((slot, local));
-
-                        bind.StartInterval(slot, local, d);
-                    }
+                    var depth = new DepthMap(_cmds, _chunk.StartCommandRange, _chunk.EndCommandRangeExclusive);
+                    var (starts, ends) = IntervalCursor.Build(plan);
+                    EmitReusingBody(plan, depth, starts, ends);
+                }
+                else
+                {
+                    EmitZeroReuseBody(plan);
                 }
 
-                // Emit the command at absolute index ci
-                EmitCmdBasic(ci, plan, UnderlyingCommands[ci], cb, skipMap, ifStack, bind);
+                // Defensive close for any unterminated IFs in leaf slicing.
+                CloseAnyPendingIfs(_chunk, plan);
 
-                // Release intervals that end at this instruction
-                while (ePtr < eLen && ends[ePtr].Cmd == ci)
-                {
-                    int endSlot = ends[ePtr].Slot;
-                    ePtr++;
-
-                    if (!plan.SlotToLocal.TryGetValue(endSlot, out int local))
-                        continue;
-
-                    if (bind.NeedsFlushBeforeReuse(local, out int boundSlot) && boundSlot == endSlot)
-                    {
-                        cb.AppendLine($"vs[{endSlot}] = l{local};");
-                        if (ifStack.Count > 0)
-                            foreach (var ctx in ifStack)
-                                if (ctx.DirtyBefore[local])
-                                    ctx.Flushes.Add((endSlot, local));
-
-                        bind.FlushLocal(local);
-                    }
-
-                    bind.Release(local);
-                }
+                _cb.Unindent();
+                method.AppendLine(_cb.ToString());
+                method.AppendLine("}");
+                return method.ToString();
             }
 
-            // Final flush for any locals still live at chunk end
-            for (int local = 0; local < plan.LocalCount; local++)
+            private void EmitZeroReuseBody(LocalsAllocationPlan plan)
             {
-                if (bind.NeedsFlushBeforeReuse(local, out int slot) && slot != -1)
+                var usedSlots = CollectUsedSlots(_cmds, _chunk.StartCommandRange, _chunk.EndCommandRangeExclusive);
+                foreach (var kv in plan.SlotToLocal)
+                    if (usedSlots.Contains(kv.Key))
+                        _cb.AppendLine($"l{kv.Value} = vs[{kv.Key}];");
+
+                var ifStack = new Stack<IfContext>();
+
+                for (int ci = _chunk.StartCommandRange; ci < _chunk.EndCommandRangeExclusive; ci++)
+                    EmitCmdBasic(ci, plan, _cmds[ci], ifStack, bind: null);
+
+                // Close any IFs that started in this chunk but didn’t end inside it.
+                while (ifStack.Count > 0)
                 {
-                    cb.AppendLine($"vs[{slot}] = l{local};");
-                    bind.FlushLocal(local);
-                }
-            }
-        }
-
-        private void EmitZeroReuseBody(
-            ArrayCommandChunk c,
-            LocalsAllocationPlan plan,
-            CodeBuilder cb,
-            Dictionary<int, (int src, int dst)> skipMap,
-            Stack<IfContext> ifStack,
-            HashSet<int> usedSlots)
-        {
-            foreach (var kv in plan.SlotToLocal)
-                if (usedSlots.Contains(kv.Key))
-                    cb.AppendLine($"l{kv.Value} = vs[{kv.Key}];");
-
-            for (int ci = c.StartCommandRange; ci < c.EndCommandRangeExclusive; ci++)
-                EmitCmdBasic(ci, plan, UnderlyingCommands[ci], cb, skipMap, ifStack, bind: null);
-
-            foreach (var kv in plan.SlotToLocal)
-                if (usedSlots.Contains(kv.Key))
-                    cb.AppendLine($"vs[{kv.Key}] = l{kv.Value};");
-        }
-
-
-
-
-        /// <summary>
-        /// Emit one ArrayCommand.  When <paramref name="bind"/> is non‑null
-        /// (i.e. local‑reuse mode) we call <c>bind.MarkWritten()</c> for every
-        /// command that writes to its target VS slot so that the dirty‑bit is
-        /// accurate.
-        /// </summary>
-        private void EmitCmdBasic(
-            int cmdIndex,
-            LocalsAllocationPlan plan,
-            ArrayCommand cmd,
-            CodeBuilder cb,
-            Dictionary<int, (int src, int dst)> skipMap,
-            Stack<IfContext> ifStack,
-            LocalBindingState bind)
-        {
-            void MarkWritten(int slot)
-            {
-                if (bind != null && plan.SlotToLocal.TryGetValue(slot, out int localId))
-                    bind.MarkWritten(localId);
-            }
-
-            string R(int slot) => plan.SlotToLocal.TryGetValue(slot, out int l) ? $"l{l}" : $"vs[{slot}]";
-            string W(int slot) => R(slot);
-
-            switch (cmd.CommandType)
-            {
-                // write-only / read-modify-write
-                case ArrayCommandType.Zero:
-                    cb.AppendLine($"{W(cmd.Index)} = 0;");
-                    MarkWritten(cmd.Index);
-                    break;
-
-                case ArrayCommandType.CopyTo:
-                    cb.AppendLine($"{W(cmd.Index)} = {R(cmd.SourceIndex)};");
-                    MarkWritten(cmd.Index);
-                    break;
-
-                case ArrayCommandType.NextSource:
-                    if (plan.SlotToLocal.TryGetValue(cmd.Index, out int loc))
-                    {
-                        cb.AppendLine($"l{loc} = os[i++];");
-                        cb.AppendLine($"vs[{cmd.Index}] = l{loc};");
-                    }
-                    else
-                    {
-                        cb.AppendLine($"vs[{cmd.Index}] = os[i++];");
-                    }
-                    MarkWritten(cmd.Index);
-                    break;
-
-                case ArrayCommandType.NextDestination:
-                    cb.AppendLine($"od[codi++] += {R(cmd.SourceIndex)};");
-                    break;
-
-                case ArrayCommandType.MultiplyBy:
-                    cb.AppendLine($"{W(cmd.Index)} *= {R(cmd.SourceIndex)};");
-                    MarkWritten(cmd.Index);
-                    break;
-
-                case ArrayCommandType.IncrementBy:
-                {
-                    bool local = plan.SlotToLocal.ContainsKey(cmd.Index);
-                    string lhs = W(cmd.Index);
-                    string rhs = R(cmd.SourceIndex);
-                    if (local) cb.AppendLine($"{lhs} += {rhs};");
-                    else       cb.AppendLine($"{lhs} = {lhs} + {rhs};");
-                    MarkWritten(cmd.Index);
-                    break;
-                }
-
-                case ArrayCommandType.DecrementBy:
-                {
-                    bool local = plan.SlotToLocal.ContainsKey(cmd.Index);
-                    string lhs = W(cmd.Index);
-                    string rhs = R(cmd.SourceIndex);
-                    if (local) cb.AppendLine($"{lhs} -= {rhs};");
-                    else       cb.AppendLine($"{lhs} = {lhs} - {rhs};");
-                    MarkWritten(cmd.Index);
-                    break;
-                }
-
-                // comparisons
-                case ArrayCommandType.EqualsOtherArrayIndex:
-                    cb.AppendLine($"cond = {R(cmd.Index)} == {R(cmd.SourceIndex)};");
-                    break;
-                case ArrayCommandType.NotEqualsOtherArrayIndex:
-                    cb.AppendLine($"cond = {R(cmd.Index)} != {R(cmd.SourceIndex)};");
-                    break;
-                case ArrayCommandType.GreaterThanOtherArrayIndex:
-                    cb.AppendLine($"cond = {R(cmd.Index)} > {R(cmd.SourceIndex)};");
-                    break;
-                case ArrayCommandType.LessThanOtherArrayIndex:
-                    cb.AppendLine($"cond = {R(cmd.Index)} < {R(cmd.SourceIndex)};");
-                    break;
-                case ArrayCommandType.EqualsValue:
-                    cb.AppendLine($"cond = {R(cmd.Index)} == (double){cmd.SourceIndex};");
-                    break;
-                case ArrayCommandType.NotEqualsValue:
-                    cb.AppendLine($"cond = {R(cmd.Index)} != (double){cmd.SourceIndex};");
-                    break;
-
-                // control flow
-                case ArrayCommandType.If:
-                {
-                    var sk = skipMap.TryGetValue(cmdIndex, out var c)
-                                ? c
-                                : (src: 0, dst: 0);
-
-                    var dirty = new bool[bind is null ? 0 : plan.LocalCount];
-                    if (bind != null)
-                        for (int l = 0; l < plan.LocalCount; l++)
-                            dirty[l] = bind.NeedsFlushBeforeReuse(l, out _);
-
-                    ifStack.Push(new IfContext(sk.src, sk.dst, dirty));
-                    cb.AppendLine("if(cond){"); cb.Indent();
-                    break;
-                }
-
-                case ArrayCommandType.EndIf:
-                {
-                    if (ifStack.Count == 0) break;
                     var ctx = ifStack.Pop();
 
-                    cb.Unindent();
-                    cb.AppendLine("} else {");
+                    _cb.Unindent();
+                    _cb.AppendLine("} else {");
 
-                    var elseBuilder = new ElseBlockBuilder(ctx.Flushes, ctx.Initialises);
-                    elseBuilder.EmitElseBlock(cb);
+                    // Reproduce ELSE‑leg effects just like the inline EndIf case.
+                    ElseBlockBuilder.Emit(_cb, ctx.Flushes, ctx.Initialises);
 
-                    cb.AppendLine($"i += {ctx.SrcSkip}; codi += {ctx.DstSkip}; }}");
+                    _cb.AppendLine($"i += {ctx.SrcSkip}; codi += {ctx.DstSkip};");
+                    _cb.AppendLine("}");
+                }
 
+                foreach (var kv in plan.SlotToLocal)
+                    if (usedSlots.Contains(kv.Key))
+                        _cb.AppendLine($"vs[{kv.Key}] = l{kv.Value};");
+            }
+
+
+            private void EmitReusingBody(
+                LocalsAllocationPlan plan,
+                DepthMap depth,
+                IntervalCursor.Event[] starts,
+                IntervalCursor.Event[] ends)
+            {
+                var bind = new LocalBindingState(plan.LocalCount);
+                var ifStack = new Stack<IfContext>();
+
+                int sPtr = 0, ePtr = 0, sLen = starts.Length, eLen = ends.Length;
+
+                for (int ci = _chunk.StartCommandRange; ci < _chunk.EndCommandRangeExclusive; ci++)
+                {
+                    int d = depth.GetDepth(ci);
+
+                    // Start intervals at this instruction
+                    while (sPtr < sLen && starts[sPtr].Cmd == ci)
+                    {
+                        int slot = starts[sPtr].Slot;
+                        sPtr++;
+
+                        if (!plan.SlotToLocal.TryGetValue(slot, out int local))
+                            continue;
+
+                        if (bind.TryReuse(local, slot, d, out int flushSlot))
+                        {
+                            if (flushSlot != -1)
+                            {
+                                _cb.AppendLine($"vs[{flushSlot}] = l{local};");
+                                if (ifStack.Count > 0)
+                                    foreach (var ctx in ifStack)
+                                        ctx.Flushes.Add((flushSlot, local));
+                            }
+
+                            _cb.AppendLine($"l{local} = vs[{slot}];");
+                            if (ifStack.Count > 0)
+                                foreach (var ctx in ifStack)
+                                    ctx.Initialises.Add((slot, local));
+
+                            bind.StartInterval(slot, local, d);
+                        }
+                    }
+
+                    // Emit this command
+                    EmitCmdBasic(ci, plan, _cmds[ci], ifStack, bind);
+
+                    // End intervals at this instruction
+                    while (ePtr < eLen && ends[ePtr].Cmd == ci)
+                    {
+                        int endSlot = ends[ePtr].Slot;
+                        ePtr++;
+
+                        if (!plan.SlotToLocal.TryGetValue(endSlot, out int local))
+                            continue;
+
+                        if (bind.NeedsFlushBeforeReuse(local, out int boundSlot) && boundSlot == endSlot)
+                        {
+                            _cb.AppendLine($"vs[{endSlot}] = l{local};");
+                            if (ifStack.Count > 0)
+                                foreach (var ctx in ifStack)
+                                    if (ctx.DirtyBefore.Length > local && ctx.DirtyBefore[local])
+                                        ctx.Flushes.Add((endSlot, local));
+                            bind.FlushLocal(local);
+                        }
+
+                        bind.Release(local);
+                    }
+                }
+
+                // Final flush for any locals still live at chunk end
+                for (int local = 0; local < plan.LocalCount; local++)
+                {
+                    if (bind.NeedsFlushBeforeReuse(local, out int slot) && slot != -1)
+                    {
+                        _cb.AppendLine($"vs[{slot}] = l{local};");
+                        bind.FlushLocal(local);
+                    }
+                }
+
+                // Close any IFs that started in this chunk but didn’t end inside it.
+                while (ifStack.Count > 0)
+                {
+                    var ctx = ifStack.Pop();
+
+                    _cb.Unindent();
+                    _cb.AppendLine("} else {");
+
+                    // Reproduce ELSE‑leg effects just like the inline EndIf case.
+                    ElseBlockBuilder.Emit(_cb, ctx.Flushes, ctx.Initialises);
+
+                    _cb.AppendLine($"i += {ctx.SrcSkip}; codi += {ctx.DstSkip};");
+                    _cb.AppendLine("}");
+
+                    // Mirror the inline EndIf post‑else flush for locals initialised in the IF
                     foreach (var (slot, local) in ctx.Initialises)
                     {
-                        if (bind != null &&
-                            bind.NeedsFlushBeforeReuse(local, out int boundSlot) &&
-                            boundSlot == slot)
+                        if (bind.NeedsFlushBeforeReuse(local, out int boundSlot) && boundSlot == slot)
                         {
-                            cb.AppendLine($"vs[{slot}] = l{local};");
+                            _cb.AppendLine($"vs[{slot}] = l{local};");
                             bind.FlushLocal(local);
                         }
                     }
-                    break;
+                }
+            }
+
+
+            private void CloseAnyPendingIfs(ArrayCommandChunk c, LocalsAllocationPlan plan)
+            {
+                // No-op here; pending-IF closure is handled inline during emission
+                // via the EndIf cases plus leaf slicing guarantees.
+            }
+
+            private void EmitCmdBasic(
+                int cmdIndex,
+                LocalsAllocationPlan plan,
+                ArrayCommand cmd,
+                Stack<IfContext> ifStack,
+                LocalBindingState bind)
+            {
+                string R(int slot) => plan.SlotToLocal.TryGetValue(slot, out int l) ? $"l{l}" : $"vs[{slot}]";
+                string W(int slot) => R(slot);
+
+                void MarkWritten(int slot)
+                {
+                    if (bind != null && plan.SlotToLocal.TryGetValue(slot, out int localId))
+                        bind.MarkWritten(localId);
                 }
 
-                case ArrayCommandType.Checkpoint:
-                case ArrayCommandType.Comment:
-                case ArrayCommandType.Blank:
-                case ArrayCommandType.IncrementDepth:
-                case ArrayCommandType.DecrementDepth:
-                    break;
+                switch (cmd.CommandType)
+                {
+                    case ArrayCommandType.Zero:
+                        _cb.AppendLine($"{W(cmd.Index)} = 0;");
+                        MarkWritten(cmd.Index);
+                        break;
 
-                default:
-                    throw new NotImplementedException($"Unhandled command {cmd.CommandType}");
+                    case ArrayCommandType.CopyTo:
+                        _cb.AppendLine($"{W(cmd.Index)} = {R(cmd.SourceIndex)};");
+                        MarkWritten(cmd.Index);
+                        break;
+
+                    case ArrayCommandType.NextSource:
+                        if (plan.SlotToLocal.TryGetValue(cmd.Index, out int loc))
+                        {
+                            _cb.AppendLine($"l{loc} = os[i++];");
+                            _cb.AppendLine($"vs[{cmd.Index}] = l{loc};");
+                        }
+                        else
+                        {
+                            _cb.AppendLine($"vs[{cmd.Index}] = os[i++];");
+                        }
+                        MarkWritten(cmd.Index);
+                        break;
+
+
+                    case ArrayCommandType.NextDestination:
+                        _cb.AppendLine($"od[codi++] += {R(cmd.SourceIndex)};");
+                        break;
+
+                    case ArrayCommandType.MultiplyBy:
+                        _cb.AppendLine($"{W(cmd.Index)} *= {R(cmd.SourceIndex)};");
+                        MarkWritten(cmd.Index);
+                        break;
+
+                    case ArrayCommandType.IncrementBy:
+                    {
+                        bool local = plan.SlotToLocal.ContainsKey(cmd.Index);
+                        string lhs = W(cmd.Index);
+                        string rhs = R(cmd.SourceIndex);
+                        if (local) _cb.AppendLine($"{lhs} += {rhs};");
+                        else       _cb.AppendLine($"{lhs} = {lhs} + {rhs};");
+                        MarkWritten(cmd.Index);
+                        break;
+                    }
+
+                    case ArrayCommandType.DecrementBy:
+                    {
+                        bool local = plan.SlotToLocal.ContainsKey(cmd.Index);
+                        string lhs = W(cmd.Index);
+                        string rhs = R(cmd.SourceIndex);
+                        if (local) _cb.AppendLine($"{lhs} -= {rhs};");
+                        else       _cb.AppendLine($"{lhs} = {lhs} - {rhs};");
+                        MarkWritten(cmd.Index);
+                        break;
+                    }
+
+                    case ArrayCommandType.EqualsOtherArrayIndex:
+                        _cb.AppendLine($"cond = {R(cmd.Index)} == {R(cmd.SourceIndex)};");
+                        break;
+                    case ArrayCommandType.NotEqualsOtherArrayIndex:
+                        _cb.AppendLine($"cond = {R(cmd.Index)} != {R(cmd.SourceIndex)};");
+                        break;
+                    case ArrayCommandType.GreaterThanOtherArrayIndex:
+                        _cb.AppendLine($"cond = {R(cmd.Index)} > {R(cmd.SourceIndex)};");
+                        break;
+                    case ArrayCommandType.LessThanOtherArrayIndex:
+                        _cb.AppendLine($"cond = {R(cmd.Index)} < {R(cmd.SourceIndex)};");
+                        break;
+                    case ArrayCommandType.EqualsValue:
+                        _cb.AppendLine($"cond = {R(cmd.Index)} == (double){cmd.SourceIndex};");
+                        break;
+                    case ArrayCommandType.NotEqualsValue:
+                        _cb.AppendLine($"cond = {R(cmd.Index)} != (double){cmd.SourceIndex};");
+                        break;
+
+                    case ArrayCommandType.If:
+                    {
+                        var sk = _skipMap.TryGetValue(cmdIndex, out var tup) ? tup : (src: 0, dst: 0);
+                        var dirty = new bool[bind is null ? 0 : plan.LocalCount];
+                        if (bind != null)
+                            for (int l = 0; l < plan.LocalCount; l++)
+                                dirty[l] = bind.NeedsFlushBeforeReuse(l, out _);
+
+                        ifStack.Push(new IfContext(sk.src, sk.dst, dirty));
+                        _cb.AppendLine("if (cond) {"); _cb.Indent();
+                        break;
+                    }
+
+                    case ArrayCommandType.EndIf:
+                    {
+                        if (ifStack.Count == 0) break;
+                        var ctx = ifStack.Pop();
+
+                        _cb.Unindent();
+                        _cb.AppendLine("} else {");
+
+                        ElseBlockBuilder.Emit(_cb, ctx.Flushes, ctx.Initialises);
+
+                        _cb.AppendLine($"i += {ctx.SrcSkip}; codi += {ctx.DstSkip};");
+                        _cb.AppendLine("}");
+
+                        foreach (var (slot, local) in ctx.Initialises)
+                        {
+                            if (bind != null &&
+                                bind.NeedsFlushBeforeReuse(local, out int boundSlot) &&
+                                boundSlot == slot)
+                            {
+                                _cb.AppendLine($"vs[{slot}] = l{local};");
+                                bind.FlushLocal(local);
+                            }
+                        }
+                        break;
+                    }
+
+
+                    case ArrayCommandType.Checkpoint:
+                    case ArrayCommandType.Comment:
+                    case ArrayCommandType.Blank:
+                    case ArrayCommandType.IncrementDepth:
+                    case ArrayCommandType.DecrementDepth:
+                        break;
+
+                    default:
+                        throw new NotImplementedException($"Unhandled command {cmd.CommandType}");
+                }
+            }
+
+            private static HashSet<int> CollectUsedSlots(ArrayCommand[] cmds, int start, int end)
+            {
+                var set = new HashSet<int>();
+                for (int i = start; i < end; i++)
+                {
+                    var c = cmds[i];
+                    if (c.Index >= 0) set.Add(c.Index);
+                    if (c.SourceIndex >= 0) set.Add(c.SourceIndex);
+                }
+                return set;
             }
         }
 
+        // ───────────────────────────────────────────────────────────────────────────
+        //  IntervalCursor
+        // ───────────────────────────────────────────────────────────────────────────
 
-        /// <summary>
-        /// Utility to build the else-block code that handles flushing and reinitializing locals.
-        /// Ensures correct ordering of flushes (writing back to vs array) and reloads (reading from vs) 
-        /// for each local variable when the THEN branch is skipped.
-        /// </summary>
-        private class ElseBlockBuilder
+        private static class IntervalCursor
         {
-            // Collections of flush and init actions recorded from the IF branch
-            private readonly List<(int slot, int local)> _flushes;
-            private readonly List<(int slot, int local)> _initializes;
-
-            public ElseBlockBuilder(IEnumerable<(int slot, int local)> flushes,
-                                     IEnumerable<(int slot, int local)> initializes)
+            internal readonly struct Event
             {
-                // Copy lists to avoid modifying the original IfContext data
-                _flushes = flushes.ToList();
-                _initializes = initializes.ToList();
+                public readonly int Cmd;
+                public readonly int Slot;
+                public Event(int cmd, int slot) { Cmd = cmd; Slot = slot; }
             }
 
-            /// <summary>
-            /// Emit the proper sequence of vs/local assignments for the ELSE block.
-            /// For each local that had actions in the IF branch:
-            /// - If the local was reused (appears in both flushes and initializes lists with different slots), 
-            ///   flush its old slot value first, then reload the new slot’s value.
-            /// - If a flush and initialize refer to the *same* slot (local’s entire life was inside the IF), 
-            ///   perform a reload before flush (this ends up writing the original value back, preserving state).
-            /// - Otherwise, perform any standalone flushes or initializes as needed.
-            /// </summary>
-            public void EmitElseBlock(CodeBuilder cb)
+            public static (Event[] starts, Event[] ends) Build(LocalsAllocationPlan plan)
             {
-                // Group flush and init actions by local variable for ordered emission
-                var actionsByLocal = new Dictionary<int, (int? initSlot, List<int> flushSlots)>();
-                foreach (var (slot, local) in _initializes)
+                int n = plan.Intervals.Count;
+                var starts = new Event[n];
+                var ends   = new Event[n];
+
+                int i = 0;
+                foreach (var iv in plan.Intervals)
                 {
-                    if (!actionsByLocal.ContainsKey(local))
-                        actionsByLocal[local] = (initSlot: slot, flushSlots: new List<int>());
-                    else
-                        actionsByLocal[local] = (initSlot: slot, flushSlots: actionsByLocal[local].flushSlots);
-                }
-                foreach (var (slot, local) in _flushes)
-                {
-                    if (!actionsByLocal.ContainsKey(local))
-                        actionsByLocal[local] = (initSlot: (int?)null, flushSlots: new List<int>());
-                    actionsByLocal[local].flushSlots.Add(slot);
+                    starts[i] = new Event(iv.First, iv.Slot);
+                    ends[i]   = new Event(iv.Last,  iv.Slot);
+                    i++;
                 }
 
-                // Emit actions for each local in a stable order (e.g., increasing local id)
-                foreach (int local in actionsByLocal.Keys.OrderBy(l => l))
+                Array.Sort(starts, (a, b) => a.Cmd.CompareTo(b.Cmd));
+                Array.Sort(ends,   (a, b) => a.Cmd.CompareTo(b.Cmd));
+                return (starts, ends);
+            }
+        }
+
+        // ───────────────────────────────────────────────────────────────────────────
+        //  IfContext & ElseBlockBuilder
+        // ───────────────────────────────────────────────────────────────────────────
+
+        private sealed class IfContext
+        {
+            public readonly int SrcSkip;
+            public readonly int DstSkip;
+            public readonly bool[] DirtyBefore;
+            public readonly List<(int slot, int local)> Flushes = new();
+            public readonly List<(int slot, int local)> Initialises = new();
+
+            public IfContext(int srcSkip, int dstSkip, bool[] dirtyBefore)
+            {
+                SrcSkip = srcSkip;
+                DstSkip = dstSkip;
+                DirtyBefore = dirtyBefore ?? Array.Empty<bool>();
+            }
+        }
+
+        private static class ElseBlockBuilder
+        {
+            public static void Emit(
+                CodeBuilder cb,
+                IEnumerable<(int slot, int local)> flushes,
+                IEnumerable<(int slot, int local)> initializes)
+            {
+                var byLocal = new Dictionary<int, (int? initSlot, List<int> flushSlots)>();
+
+                foreach (var (slot, local) in initializes)
                 {
-                    int? initSlot = actionsByLocal[local].initSlot;
-                    var flushSlots = actionsByLocal[local].flushSlots;
+                    if (!byLocal.ContainsKey(local))
+                        byLocal[local] = (initSlot: slot, flushSlots: new List<int>());
+                    else
+                        byLocal[local] = (slot, byLocal[local].flushSlots);
+                }
+
+                foreach (var (slot, local) in flushes)
+                {
+                    if (!byLocal.ContainsKey(local))
+                        byLocal[local] = (initSlot: (int?)null, flushSlots: new List<int>());
+                    byLocal[local].flushSlots.Add(slot);
+                }
+
+                foreach (int local in byLocal.Keys.OrderBy(l => l))
+                {
+                    int? initSlot = byLocal[local].initSlot;
+                    var flushSlots = byLocal[local].flushSlots;
 
                     bool hasInit = initSlot.HasValue;
                     bool hasFlush = flushSlots.Count > 0;
 
                     if (hasInit && hasFlush)
                     {
-                        // This local had a value flushed in the IF and was also initialized to a new slot in the IF.
-                        // Determine if the flush and init target the same slot or different slots.
                         int initTarget = initSlot.Value;
-                        // Separate flush slots into "same as init" vs "others"
-                        int? sameSlotFlush = flushSlots.Contains(initTarget) ? initTarget : (int?)null;
+                        int? sameSlot = flushSlots.Contains(initTarget) ? initTarget : (int?)null;
                         var otherFlushes = flushSlots.Where(s => s != initTarget);
 
-                        // Flush any "other" slot first (preserve the old value before we reuse the local).
                         foreach (int slot in otherFlushes)
-                        {
-                            cb.AppendLine($"vs[{slot}] = l{local};");  // flush old value to its slot
-                        }
+                            cb.AppendLine($"vs[{slot}] = l{local};");
 
-                        if (sameSlotFlush.HasValue)
+                        if (sameSlot.HasValue)
                         {
-                            // If the local’s flush and init involve the same slot, reload before flushing.
-                            // (This scenario typically means the slot’s entire lifetime was within the IF.)
-                            cb.AppendLine($"l{local} = vs[{initTarget}];");   // reload the value from vs (ensure local is up to date)
-                            cb.AppendLine($"vs[{initTarget}] = l{local};");  // flush it back (preserving the value in memory)
+                            cb.AppendLine($"l{local} = vs[{initTarget}];");
+                            cb.AppendLine($"vs[{initTarget}] = l{local};");
                         }
                         else
                         {
-                            // Flush and init are for different slots (true reuse scenario).
-                            cb.AppendLine($"l{local} = vs[{initTarget}];");  // now load the new slot’s value into the local
+                            cb.AppendLine($"l{local} = vs[{initTarget}];");
                         }
                     }
                     else if (hasFlush && !hasInit)
                     {
-                        // Local wasn’t first bound in this IF (no new init), but had flushes inside the IF.
-                        // Flush all such slots to memory, as those writes didn’t occur when the branch was skipped.
                         foreach (int slot in flushSlots)
-                        {
                             cb.AppendLine($"vs[{slot}] = l{local};");
-                        }
                     }
                     else if (hasInit && !hasFlush)
                     {
-                        // Local was first initialized in the IF (and not flushed there), meaning its value is needed after the IF.
-                        // Ensure it’s initialized in the else path as well.
                         cb.AppendLine($"l{local} = vs[{initSlot.Value}];");
                     }
-                    // If neither flush nor init, nothing to do for this local in else (should not happen for locals in context).
                 }
             }
         }
