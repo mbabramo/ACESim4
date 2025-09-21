@@ -8,33 +8,53 @@ using static ACESimBase.Util.ArrayProcessing.ArrayCommandList;
 namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
 {
     /// <summary>
-    /// Emits a <see cref="DynamicMethod"/> per unique <see cref="ArrayCommandChunk"/> span and executes it.
-    /// Supports depth‑aware local reuse; when reuse is disabled, operates directly on the VS array.
-    /// Compiles once per unique [Start, End) span and declares only the locals used by that slice.
+    /// Emits JIT methods that execute ArrayCommandChunk spans.
+    /// Compiles once per unique [Start, End) span, supports depth‑aware local reuse,
+    /// and can batch many spans into a single DynamicMethod with a switch dispatcher.
     /// </summary>
     internal sealed class ILChunkExecutor : ChunkExecutorBase
     {
-        // compiled delegate per unique span
+        // ──────────────────────────────────────────────────────────────
+        //  Configuration
+        // ──────────────────────────────────────────────────────────────
+        private const int MaxBatchSize = 32;
+
+        // ──────────────────────────────────────────────────────────────
+        //  State
+        // ──────────────────────────────────────────────────────────────
+
+        // Compiled delegate per unique span
         private readonly Dictionary<(int start, int end), ArrayCommandChunkDelegate> _compiledBySpan = new();
 
-        // compiled delegate per chunk object (direct map for Execute)
+        // Compiled delegate per chunk object (direct map for Execute)
         private readonly Dictionary<ArrayCommandChunk, ArrayCommandChunkDelegate> _compiledByChunk = new();
 
-        // representative chunk per not‑yet‑compiled span
+        // Representative chunk per not‑yet‑compiled span
         private readonly Dictionary<(int start, int end), ArrayCommandChunk> _repBySpan = new();
 
-        // chunks queued during AddToGeneration (used to bind _compiledByChunk after generation)
+        // Chunks queued during AddToGeneration (used to bind _compiledByChunk after generation)
         private readonly List<ArrayCommandChunk> _queuedChunks = new();
 
-        // optional source trace
+        // Optional source trace (for debugging)
         private StringBuilder _trace;
 
+        /// <summary>
+        /// When true, emit depth‑aware local reuse using a locals allocation plan.
+        /// When false, operate directly on VS (no bulk preload/writeback).
+        /// </summary>
         public bool ReuseLocals { get; init; }
 
+        // Global analysis across the executor window
         private readonly LocalsAllocationPlan _globalPlan;
         private readonly DepthMap _globalDepth;
 
+        // Sub‑plans per span to avoid recomputation
         private readonly Dictionary<(int start, int end), LocalsAllocationPlan> _subPlanCache = new();
+
+        // Batched invoker signature (extra leafId)
+        private delegate void BatchedInvoker(double[] vs, double[] os, double[] od,
+                                             ref int cosi, ref int codi, ref bool cond,
+                                             int leafId);
 
         public ILChunkExecutor(ArrayCommand[] cmds,
                                int start, int end,
@@ -45,10 +65,14 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
 
             _globalPlan = ReuseLocals
                 ? LocalVariablePlanner.PlanLocals(cmds, start, end)
-                : LocalVariablePlanner.PlanNoReuse(cmds, start, end);
+                : LocalVariablePlanner.PlanNoReuse(cmds, start, end); // maintained for symmetry
 
             _globalDepth = new DepthMap(cmds, start, end);
         }
+
+        // ──────────────────────────────────────────────────────────────
+        //  IChunkExecutor
+        // ──────────────────────────────────────────────────────────────
 
         public override void AddToGeneration(ArrayCommandChunk chunk)
         {
@@ -74,26 +98,42 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
             if (PreserveGeneratedCode)
                 _trace = new StringBuilder();
 
-            foreach (var (key, rep) in _repBySpan)
-            {
-                try
-                {
-                    var dm = BuildDynamicMethod(rep, out var srcDump);
-                    var del = (ArrayCommandChunkDelegate)dm.CreateDelegate(typeof(ArrayCommandChunkDelegate));
-                    _compiledBySpan[key] = del;
+            // Batch compilation
+            var reps = new List<ArrayCommandChunk>(_repBySpan.Values);
+            int total = reps.Count;
+            int cursor = 0;
 
-                    if (PreserveGeneratedCode && _trace != null)
-                        _trace.Append(srcDump);
-                }
-                catch (Exception ex)
+            while (cursor < total)
+            {
+                int count = Math.Min(MaxBatchSize, total - cursor);
+                var batch = reps.GetRange(cursor, count);
+
+                // Build a single DynamicMethod with a switch over leafId
+                var dm = BuildBatchDynamicMethod(batch, out var srcDump);
+                var invoker = (BatchedInvoker)dm.CreateDelegate(typeof(BatchedInvoker));
+
+                // For each span in the batch, create a tiny stub that passes a constant leafId
+                for (int i = 0; i < batch.Count; i++)
                 {
-                    throw new InvalidOperationException(
-                        $"Error generating IL for chunk [{rep.StartCommandRange},{rep.EndCommandRangeExclusive}).",
-                        ex);
+                    int leafId = i; // capture stable id for this span
+                    ArrayCommandChunk rep = batch[i];
+
+                    ArrayCommandChunkDelegate stub = (double[] vs, double[] os, double[] od,
+                                                      ref int cosi, ref int codi, ref bool cond) =>
+                    {
+                        invoker(vs, os, od, ref cosi, ref codi, ref cond, leafId);
+                    };
+
+                    _compiledBySpan[(rep.StartCommandRange, rep.EndCommandRangeExclusive)] = stub;
                 }
+
+                if (PreserveGeneratedCode && _trace != null)
+                    _trace.Append(srcDump);
+
+                cursor += count;
             }
 
-            // bind per‑chunk map to avoid span key creation in Execute
+            // Bind per‑chunk map to avoid span key creation in Execute
             foreach (var ch in _queuedChunks)
             {
                 var key = (ch.StartCommandRange, ch.EndCommandRangeExclusive);
@@ -144,10 +184,14 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
             }
         }
 
-        private DynamicMethod BuildDynamicMethod(ArrayCommandChunk chunk, out string trace)
+        // ──────────────────────────────────────────────────────────────
+        //  Batched IL generation
+        // ──────────────────────────────────────────────────────────────
+
+        private DynamicMethod BuildBatchDynamicMethod(IReadOnlyList<ArrayCommandChunk> batch, out string trace)
         {
             var dm = new DynamicMethod(
-                $"IL_{chunk.StartCommandRange}_{chunk.EndCommandRangeExclusive - 1}",
+                $"ILB_{batch[0].StartCommandRange}_{batch[^1].EndCommandRangeExclusive - 1}",
                 typeof(void),
                 new[]
                 {
@@ -157,6 +201,7 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
                     typeof(int).MakeByRefType(),   // 3 cosi
                     typeof(int).MakeByRefType(),   // 4 codi
                     typeof(bool).MakeByRefType(),  // 5 cond
+                    typeof(int),                   // 6 leafId
                 },
                 typeof(ILChunkExecutor).Module,
                 skipVisibility: true);
@@ -223,359 +268,377 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
             var tmp = il.DeclareLocal(typeof(double));
             var tmpI = il.DeclareLocal(typeof(int));
 
-            LocalsAllocationPlan plan = null;
-            if (ReuseLocals)
-                plan = GetOrBuildSubPlan(chunk);
+            // Switch over leafId to jump to each span block
+            var labels = new Label[batch.Count];
+            for (int i = 0; i < labels.Length; i++) labels[i] = il.DefineLabel();
+            var defaultLabel = il.DefineLabel();
 
-            LocalBuilder[] locals = null;
-            LocalBindingState bind = null;
-            IReadOnlyDictionary<int, int> slotMap = null;
+            EI(OpCodes.Ldarg, 6);
+            il.Emit(OpCodes.Switch, labels);
+            EL(OpCodes.Br, defaultLabel);
 
-            if (ReuseLocals && plan.LocalCount > 0)
+            // Emit each span body under its label
+            for (int leaf = 0; leaf < batch.Count; leaf++)
             {
-                locals = new LocalBuilder[plan.LocalCount];
-                for (int i = 0; i < plan.LocalCount; i++)
-                    locals[i] = il.DeclareLocal(typeof(double));
-                bind = new LocalBindingState(plan.LocalCount);
-                slotMap = plan.SlotToLocal;
-            }
+                var chunk = batch[leaf];
+                il.MarkLabel(labels[leaf]);
 
-            bool usingReuse = bind != null;
+                // Per‑leaf plan and helpers
+                LocalsAllocationPlan plan = null;
+                if (ReuseLocals)
+                    plan = GetOrBuildSubPlan(chunk);
 
-            IntervalIndex intervalIx = null;
-            if (usingReuse)
-                intervalIx = new IntervalIndex(plan);
+                LocalBuilder[] locals = null;
+                LocalBindingState bind = null;
+                IReadOnlyDictionary<int, int> slotMap = null;
+                IntervalIndex intervalIx = null;
 
-            var ifStack = new Stack<IfContext>();
-
-            void MarkWrittenIfReuse(int slot)
-            {
-                if (usingReuse && slotMap.TryGetValue(slot, out var l))
-                    bind.MarkWritten(l);
-            }
-
-            void LoadSlot(int slot)
-            {
-                if (usingReuse && slotMap.TryGetValue(slot, out var lR) && bind.IsBound(lR, slot))
+                if (ReuseLocals && plan.LocalCount > 0)
                 {
-                    ELb(OpCodes.Ldloc, locals[lR]);
-                }
-                else
-                {
-                    LoadVs(slot);
-                }
-            }
-
-            void StoreSlotFromTop(int slot)
-            {
-                ELb(OpCodes.Stloc, tmp);
-
-                if (usingReuse && slotMap.TryGetValue(slot, out var lR) && bind.IsBound(lR, slot))
-                {
-                    ELb(OpCodes.Ldloc, tmp);
-                    ELb(OpCodes.Stloc, locals[lR]);
-                }
-                else
-                {
-                    E0(OpCodes.Ldarg_0);
-                    LdcI4(slot);
-                    ELb(OpCodes.Ldloc, tmp);
-                    E0(OpCodes.Stelem_R8);
+                    locals = new LocalBuilder[plan.LocalCount];
+                    for (int i = 0; i < plan.LocalCount; i++)
+                        locals[i] = il.DeclareLocal(typeof(double));
+                    bind = new LocalBindingState(plan.LocalCount);
+                    slotMap = plan.SlotToLocal;
+                    intervalIx = new IntervalIndex(plan);
                 }
 
-                MarkWrittenIfReuse(slot);
-            }
+                bool usingReuse = bind != null;
+                var ifStack = new Stack<IfContext>();
 
-            for (int ci = chunk.StartCommandRange; ci < chunk.EndCommandRangeExclusive; ci++)
-            {
-                if (usingReuse)
+                void MarkWrittenIfReuse(int slot)
                 {
-                    foreach (int slot in intervalIx.StartSlots(ci))
+                    if (usingReuse && slotMap.TryGetValue(slot, out var l))
+                        bind.MarkWritten(l);
+                }
+
+                void LoadSlot(int slot)
+                {
+                    if (usingReuse && slotMap.TryGetValue(slot, out var lR) && bind.IsBound(lR, slot))
                     {
-                        if (!slotMap.TryGetValue(slot, out int local))
-                            continue;
+                        ELb(OpCodes.Ldloc, locals[lR]);
+                    }
+                    else
+                    {
+                        LoadVs(slot);
+                    }
+                }
 
-                        int depth = _globalDepth.GetDepth(ci);
-                        if (bind.TryReuse(local, slot, depth, out int flushSlot))
+                void StoreSlotFromTop(int slot)
+                {
+                    ELb(OpCodes.Stloc, tmp);
+
+                    if (usingReuse && slotMap.TryGetValue(slot, out var lR) && bind.IsBound(lR, slot))
+                    {
+                        ELb(OpCodes.Ldloc, tmp);
+                        ELb(OpCodes.Stloc, locals[lR]);
+                    }
+                    else
+                    {
+                        E0(OpCodes.Ldarg_0);
+                        LdcI4(slot);
+                        ELb(OpCodes.Ldloc, tmp);
+                        E0(OpCodes.Stelem_R8);
+                    }
+
+                    MarkWrittenIfReuse(slot);
+                }
+
+                for (int ci = chunk.StartCommandRange; ci < chunk.EndCommandRangeExclusive; ci++)
+                {
+                    if (usingReuse)
+                    {
+                        foreach (int slot in intervalIx.StartSlots(ci))
                         {
-                            if (flushSlot != -1)
+                            if (!slotMap.TryGetValue(slot, out int local))
+                                continue;
+
+                            int depth = _globalDepth.GetDepth(ci);
+                            if (bind.TryReuse(local, slot, depth, out int flushSlot))
+                            {
+                                if (flushSlot != -1)
+                                {
+                                    E0(OpCodes.Ldarg_0);
+                                    LdcI4(flushSlot);
+                                    ELb(OpCodes.Ldloc, locals[local]);
+                                    E0(OpCodes.Stelem_R8);
+
+                                    foreach (var ctx in ifStack)
+                                        ctx.Flushes.Add((flushSlot, local));
+                                }
+
+                                LoadVs(slot);
+                                ELb(OpCodes.Stloc, locals[local]);
+
+                                foreach (var ctx in ifStack)
+                                    ctx.Initialises.Add((slot, local));
+
+                                bind.StartInterval(slot, local, depth);
+                            }
+                        }
+                    }
+
+                    var cmd = Commands[ci];
+
+                    switch (cmd.CommandType)
+                    {
+                        case ArrayCommandType.Zero:
+                            LdcR8(0.0);
+                            StoreSlotFromTop(cmd.Index);
+                            break;
+
+                        case ArrayCommandType.CopyTo:
+                            LoadSlot(cmd.SourceIndex);
+                            StoreSlotFromTop(cmd.Index);
+                            break;
+
+                        case ArrayCommandType.NextSource:
+                            E0(OpCodes.Ldarg_1);
+                            EI(OpCodes.Ldarg, 3);
+                            E0(OpCodes.Ldind_I4);
+                            E0(OpCodes.Ldelem_R8);
+                            StoreSlotFromTop(cmd.Index);
+                            IncrementRefInt(3);
+                            break;
+
+                        case ArrayCommandType.NextDestination:
+                        {
+                            EI(OpCodes.Ldarg, 4);
+                            E0(OpCodes.Ldind_I4);
+                            ELb(OpCodes.Stloc, tmpI);
+
+                            E0(OpCodes.Ldarg_2);
+                            ELb(OpCodes.Ldloc, tmpI);
+                            E0(OpCodes.Ldelem_R8);
+
+                            LoadSlot(cmd.SourceIndex);
+                            E0(OpCodes.Add);
+
+                            ELb(OpCodes.Stloc, tmp);
+                            E0(OpCodes.Ldarg_2);
+                            ELb(OpCodes.Ldloc, tmpI);
+                            ELb(OpCodes.Ldloc, tmp);
+                            E0(OpCodes.Stelem_R8);
+
+                            IncrementRefInt(4);
+                            break;
+                        }
+
+                        case ArrayCommandType.MultiplyBy:
+                            LoadSlot(cmd.Index);
+                            LoadSlot(cmd.SourceIndex);
+                            E0(OpCodes.Mul);
+                            StoreSlotFromTop(cmd.Index);
+                            break;
+
+                        case ArrayCommandType.IncrementBy:
+                            LoadSlot(cmd.Index);
+                            LoadSlot(cmd.SourceIndex);
+                            E0(OpCodes.Add);
+                            StoreSlotFromTop(cmd.Index);
+                            break;
+
+                        case ArrayCommandType.DecrementBy:
+                            LoadSlot(cmd.Index);
+                            LoadSlot(cmd.SourceIndex);
+                            E0(OpCodes.Sub);
+                            StoreSlotFromTop(cmd.Index);
+                            break;
+
+                        case ArrayCommandType.EqualsOtherArrayIndex:
+                            LoadSlot(cmd.Index);
+                            LoadSlot(cmd.SourceIndex);
+                            E0(OpCodes.Ceq);
+                            StoreCond(invert: false);
+                            break;
+
+                        case ArrayCommandType.NotEqualsOtherArrayIndex:
+                            LoadSlot(cmd.Index);
+                            LoadSlot(cmd.SourceIndex);
+                            E0(OpCodes.Ceq);
+                            StoreCond(invert: true);
+                            break;
+
+                        case ArrayCommandType.GreaterThanOtherArrayIndex:
+                            LoadSlot(cmd.Index);
+                            LoadSlot(cmd.SourceIndex);
+                            E0(OpCodes.Cgt);
+                            StoreCond(invert: false);
+                            break;
+
+                        case ArrayCommandType.LessThanOtherArrayIndex:
+                            LoadSlot(cmd.Index);
+                            LoadSlot(cmd.SourceIndex);
+                            E0(OpCodes.Clt);
+                            StoreCond(invert: false);
+                            break;
+
+                        case ArrayCommandType.EqualsValue:
+                            LoadSlot(cmd.Index);
+                            LdcR8(cmd.SourceIndex);
+                            E0(OpCodes.Ceq);
+                            StoreCond(invert: false);
+                            break;
+
+                        case ArrayCommandType.NotEqualsValue:
+                            LoadSlot(cmd.Index);
+                            LdcR8(cmd.SourceIndex);
+                            E0(OpCodes.Ceq);
+                            StoreCond(invert: true);
+                            break;
+
+                        case ArrayCommandType.If:
+                        {
+                            var elseLbl = il.DefineLabel();
+                            var endLbl  = il.DefineLabel();
+
+                            EI(OpCodes.Ldarg, 5);
+                            E0(OpCodes.Ldind_I1);
+                            EL(OpCodes.Brfalse, elseLbl);
+
+                            var (srcSkip, dstSkip) = CountPointerSkips(UnderlyingCommands, ci, chunk.EndCommandRangeExclusive);
+
+                            bool[] dirtyBefore = null;
+                            var flushes = (List<(int slot, int local)>)null;
+
+                            if (usingReuse)
+                            {
+                                dirtyBefore = new bool[plan.LocalCount];
+                                flushes = new List<(int, int)>();
+                                for (int l = 0; l < plan.LocalCount; l++)
+                                    dirtyBefore[l] = bind.NeedsFlushBeforeReuse(l, out _);
+                            }
+
+                            ifStack.Push(new IfContext(elseLbl, endLbl, srcSkip, dstSkip, dirtyBefore, flushes));
+                            break;
+                        }
+
+                        case ArrayCommandType.EndIf:
+                        {
+                            if (ifStack.Count == 0)
+                                break;
+
+                            var ctx = ifStack.Pop();
+
+                            EL(OpCodes.Br, ctx.EndLabel);
+
+                            il.MarkLabel(ctx.ElseLabel);
+
+                            if (ctx.Flushes != null)
+                            {
+                                foreach (var (slot, local) in ctx.Flushes)
+                                {
+                                    E0(OpCodes.Ldarg_0);
+                                    LdcI4(slot);
+                                    ELb(OpCodes.Ldloc, locals[local]);
+                                    E0(OpCodes.Stelem_R8);
+                                }
+                            }
+
+                            if (ctx.Initialises != null)
+                            {
+                                foreach (var (slot, local) in ctx.Initialises)
+                                {
+                                    LoadVs(slot);
+                                    ELb(OpCodes.Stloc, locals[local]);
+                                }
+                            }
+
+                            if (ctx.SrcSkip > 0) AdvanceRefInt(3, ctx.SrcSkip);
+                            if (ctx.DstSkip > 0) AdvanceRefInt(4, ctx.DstSkip);
+
+                            il.MarkLabel(ctx.EndLabel);
+                            break;
+                        }
+
+                        case ArrayCommandType.Checkpoint:
+                        case ArrayCommandType.Comment:
+                        case ArrayCommandType.Blank:
+                        case ArrayCommandType.IncrementDepth:
+                        case ArrayCommandType.DecrementDepth:
+                            break;
+
+                        default:
+                            throw new NotImplementedException(cmd.CommandType.ToString());
+                    }
+
+                    if (usingReuse)
+                    {
+                        foreach (int endSlot in intervalIx.EndSlots(ci))
+                        {
+                            if (!slotMap.TryGetValue(endSlot, out int local))
+                                continue;
+
+                            if (bind.NeedsFlushBeforeReuse(local, out int boundSlot) && boundSlot == endSlot)
                             {
                                 E0(OpCodes.Ldarg_0);
-                                LdcI4(flushSlot);
+                                LdcI4(endSlot);
                                 ELb(OpCodes.Ldloc, locals[local]);
                                 E0(OpCodes.Stelem_R8);
 
                                 foreach (var ctx in ifStack)
-                                    ctx.Flushes.Add((flushSlot, local));
+                                    if (ctx.DirtyBefore != null && ctx.DirtyBefore[local])
+                                        ctx.Flushes.Add((endSlot, local));
+
+                                bind.FlushLocal(local);
                             }
 
-                            LoadVs(slot);
-                            ELb(OpCodes.Stloc, locals[local]);
-
-                            foreach (var ctx in ifStack)
-                                ctx.Initialises.Add((slot, local));
-
-                            bind.StartInterval(slot, local, depth);
+                            bind.Release(local);
                         }
                     }
-                }
-
-                var cmd = Commands[ci];
-
-                switch (cmd.CommandType)
-                {
-                    case ArrayCommandType.Zero:
-                        LdcR8(0.0);
-                        StoreSlotFromTop(cmd.Index);
-                        break;
-
-                    case ArrayCommandType.CopyTo:
-                        LoadSlot(cmd.SourceIndex);
-                        StoreSlotFromTop(cmd.Index);
-                        break;
-
-                    case ArrayCommandType.NextSource:
-                        E0(OpCodes.Ldarg_1);
-                        EI(OpCodes.Ldarg, 3);
-                        E0(OpCodes.Ldind_I4);
-                        E0(OpCodes.Ldelem_R8);
-                        StoreSlotFromTop(cmd.Index);
-                        IncrementRefInt(3);
-                        break;
-
-                    case ArrayCommandType.NextDestination:
-                    {
-                        EI(OpCodes.Ldarg, 4);
-                        E0(OpCodes.Ldind_I4);
-                        ELb(OpCodes.Stloc, tmpI);
-
-                        E0(OpCodes.Ldarg_2);
-                        ELb(OpCodes.Ldloc, tmpI);
-                        E0(OpCodes.Ldelem_R8);
-
-                        LoadSlot(cmd.SourceIndex);
-                        E0(OpCodes.Add);
-
-                        ELb(OpCodes.Stloc, tmp);
-                        E0(OpCodes.Ldarg_2);
-                        ELb(OpCodes.Ldloc, tmpI);
-                        ELb(OpCodes.Ldloc, tmp);
-                        E0(OpCodes.Stelem_R8);
-
-                        IncrementRefInt(4);
-                        break;
-                    }
-
-                    case ArrayCommandType.MultiplyBy:
-                        LoadSlot(cmd.Index);
-                        LoadSlot(cmd.SourceIndex);
-                        E0(OpCodes.Mul);
-                        StoreSlotFromTop(cmd.Index);
-                        break;
-
-                    case ArrayCommandType.IncrementBy:
-                        LoadSlot(cmd.Index);
-                        LoadSlot(cmd.SourceIndex);
-                        E0(OpCodes.Add);
-                        StoreSlotFromTop(cmd.Index);
-                        break;
-
-                    case ArrayCommandType.DecrementBy:
-                        LoadSlot(cmd.Index);
-                        LoadSlot(cmd.SourceIndex);
-                        E0(OpCodes.Sub);
-                        StoreSlotFromTop(cmd.Index);
-                        break;
-
-                    case ArrayCommandType.EqualsOtherArrayIndex:
-                        LoadSlot(cmd.Index);
-                        LoadSlot(cmd.SourceIndex);
-                        E0(OpCodes.Ceq);
-                        StoreCond(invert: false);
-                        break;
-
-                    case ArrayCommandType.NotEqualsOtherArrayIndex:
-                        LoadSlot(cmd.Index);
-                        LoadSlot(cmd.SourceIndex);
-                        E0(OpCodes.Ceq);
-                        StoreCond(invert: true);
-                        break;
-
-                    case ArrayCommandType.GreaterThanOtherArrayIndex:
-                        LoadSlot(cmd.Index);
-                        LoadSlot(cmd.SourceIndex);
-                        E0(OpCodes.Cgt);
-                        StoreCond(invert: false);
-                        break;
-
-                    case ArrayCommandType.LessThanOtherArrayIndex:
-                        LoadSlot(cmd.Index);
-                        LoadSlot(cmd.SourceIndex);
-                        E0(OpCodes.Clt);
-                        StoreCond(invert: false);
-                        break;
-
-                    case ArrayCommandType.EqualsValue:
-                        LoadSlot(cmd.Index);
-                        LdcR8(cmd.SourceIndex);
-                        E0(OpCodes.Ceq);
-                        StoreCond(invert: false);
-                        break;
-
-                    case ArrayCommandType.NotEqualsValue:
-                        LoadSlot(cmd.Index);
-                        LdcR8(cmd.SourceIndex);
-                        E0(OpCodes.Ceq);
-                        StoreCond(invert: true);
-                        break;
-
-                    case ArrayCommandType.If:
-                    {
-                        var elseLbl = il.DefineLabel();
-                        var endLbl  = il.DefineLabel();
-
-                        EI(OpCodes.Ldarg, 5);
-                        E0(OpCodes.Ldind_I1);
-                        EL(OpCodes.Brfalse, elseLbl);
-
-                        var (srcSkip, dstSkip) = CountPointerSkips(UnderlyingCommands, ci, chunk.EndCommandRangeExclusive);
-
-                        bool[] dirtyBefore = null;
-                        var flushes = (List<(int slot, int local)>)null;
-
-                        if (usingReuse)
-                        {
-                            dirtyBefore = new bool[plan.LocalCount];
-                            flushes = new List<(int, int)>();
-                            for (int l = 0; l < plan.LocalCount; l++)
-                                dirtyBefore[l] = bind.NeedsFlushBeforeReuse(l, out _);
-                        }
-
-                        ifStack.Push(new IfContext(elseLbl, endLbl, srcSkip, dstSkip, dirtyBefore, flushes));
-                        break;
-                    }
-
-                    case ArrayCommandType.EndIf:
-                    {
-                        if (ifStack.Count == 0)
-                            break;
-
-                        var ctx = ifStack.Pop();
-
-                        EL(OpCodes.Br, ctx.EndLabel);
-
-                        il.MarkLabel(ctx.ElseLabel);
-
-                        if (ctx.Flushes != null)
-                        {
-                            foreach (var (slot, local) in ctx.Flushes)
-                            {
-                                E0(OpCodes.Ldarg_0);
-                                LdcI4(slot);
-                                ELb(OpCodes.Ldloc, locals[local]);
-                                E0(OpCodes.Stelem_R8);
-                            }
-                        }
-
-                        if (ctx.Initialises != null)
-                        {
-                            foreach (var (slot, local) in ctx.Initialises)
-                            {
-                                LoadVs(slot);
-                                ELb(OpCodes.Stloc, locals[local]);
-                            }
-                        }
-
-                        if (ctx.SrcSkip > 0) AdvanceRefInt(3, ctx.SrcSkip);
-                        if (ctx.DstSkip > 0) AdvanceRefInt(4, ctx.DstSkip);
-
-                        il.MarkLabel(ctx.EndLabel);
-                        break;
-                    }
-
-                    case ArrayCommandType.Checkpoint:
-                    case ArrayCommandType.Comment:
-                    case ArrayCommandType.Blank:
-                    case ArrayCommandType.IncrementDepth:
-                    case ArrayCommandType.DecrementDepth:
-                        break;
-
-                    default:
-                        throw new NotImplementedException(cmd.CommandType.ToString());
                 }
 
                 if (usingReuse)
                 {
-                    foreach (int endSlot in intervalIx.EndSlots(ci))
+                    for (int local = 0; local < plan.LocalCount; local++)
                     {
-                        if (!slotMap.TryGetValue(endSlot, out int local))
-                            continue;
-
-                        if (bind.NeedsFlushBeforeReuse(local, out int boundSlot) && boundSlot == endSlot)
+                        if (bind.NeedsFlushBeforeReuse(local, out int slot) && slot != -1)
                         {
                             E0(OpCodes.Ldarg_0);
-                            LdcI4(endSlot);
+                            LdcI4(slot);
                             ELb(OpCodes.Ldloc, locals[local]);
                             E0(OpCodes.Stelem_R8);
-
-                            foreach (var ctx in ifStack)
-                                if (ctx.DirtyBefore != null && ctx.DirtyBefore[local])
-                                    ctx.Flushes.Add((endSlot, local));
-
                             bind.FlushLocal(local);
                         }
-
-                        bind.Release(local);
                     }
                 }
-            }
 
-            if (usingReuse)
-            {
-                for (int local = 0; local < plan.LocalCount; local++)
+                while (ifStack.Count > 0)
                 {
-                    if (bind.NeedsFlushBeforeReuse(local, out int slot) && slot != -1)
-                    {
-                        E0(OpCodes.Ldarg_0);
-                        LdcI4(slot);
-                        ELb(OpCodes.Ldloc, locals[local]);
-                        E0(OpCodes.Stelem_R8);
-                        bind.FlushLocal(local);
-                    }
+                    var ctx = ifStack.Pop();
+
+                    EL(OpCodes.Br, ctx.EndLabel);
+
+                    il.MarkLabel(ctx.ElseLabel);
+
+                    if (ctx.Flushes != null)
+                        foreach (var (slot, local) in ctx.Flushes)
+                        {
+                            E0(OpCodes.Ldarg_0);
+                            LdcI4(slot);
+                            ELb(OpCodes.Ldloc, locals[local]);
+                            E0(OpCodes.Stelem_R8);
+                        }
+
+                    if (ctx.Initialises != null)
+                        foreach (var (slot, local) in ctx.Initialises)
+                        {
+                            LoadVs(slot);
+                            ELb(OpCodes.Stloc, locals[local]);
+                        }
+
+                    if (ctx.SrcSkip > 0) AdvanceRefInt(3, ctx.SrcSkip);
+                    if (ctx.DstSkip > 0) AdvanceRefInt(4, ctx.DstSkip);
+
+                    il.MarkLabel(ctx.EndLabel);
                 }
+
+                E0(OpCodes.Ret); // return after executing this leaf
             }
 
-            while (ifStack.Count > 0)
-            {
-                var ctx = ifStack.Pop();
-
-                EL(OpCodes.Br, ctx.EndLabel);
-
-                il.MarkLabel(ctx.ElseLabel);
-
-                if (ctx.Flushes != null)
-                    foreach (var (slot, local) in ctx.Flushes)
-                    {
-                        E0(OpCodes.Ldarg_0);
-                        LdcI4(slot);
-                        ELb(OpCodes.Ldloc, locals[local]);
-                        E0(OpCodes.Stelem_R8);
-                    }
-
-                if (ctx.Initialises != null)
-                    foreach (var (slot, local) in ctx.Initialises)
-                    {
-                        LoadVs(slot);
-                        ELb(OpCodes.Stloc, locals[local]);
-                    }
-
-                if (ctx.SrcSkip > 0) AdvanceRefInt(3, ctx.SrcSkip);
-                if (ctx.DstSkip > 0) AdvanceRefInt(4, ctx.DstSkip);
-
-                il.MarkLabel(ctx.EndLabel);
-            }
-
+            il.MarkLabel(defaultLabel);
             E0(OpCodes.Ret);
+
             trace = sb?.ToString();
             return dm;
 
@@ -593,6 +656,10 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
                 E0(OpCodes.Stind_I1);
             }
         }
+
+        // ──────────────────────────────────────────────────────────────
+        //  Sub‑plan slicing from global plan
+        // ──────────────────────────────────────────────────────────────
 
         private LocalsAllocationPlan GetOrBuildSubPlan(ArrayCommandChunk chunk)
         {
@@ -627,6 +694,10 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
             return sub;
         }
 
+        // ──────────────────────────────────────────────────────────────
+        //  Inline pointer‑skip analysis for IF bodies
+        // ──────────────────────────────────────────────────────────────
+
         private static (int src, int dst) CountPointerSkips(ArrayCommand[] cmds, int ifIndex, int endExclusive)
         {
             int src = 0, dst = 0;
@@ -653,6 +724,10 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
 
             return (src, dst);
         }
+
+        // ──────────────────────────────────────────────────────────────
+        //  IfContext
+        // ──────────────────────────────────────────────────────────────
 
         private sealed class IfContext
         {
