@@ -781,10 +781,6 @@ namespace ACESim
                     int bestResponseExpectedValueCopy = Unroll_Commands.CopyToNew(resultArray[Unroll_Result_BestResponseIndex], false);
                     int cumExpectedValueCopy = Unroll_Commands.CopyToNew(expectedValue, false);
                     TabbedText.TabUnindent();
-                    if (expectedValueOfActionCopy == 753)
-                    {
-                        var DEBUG = 0;
-                    }
                     TabbedText.WriteLine(
                         $"... action {action} expected value ARRAY{expectedValueOfActionCopy} best response expected value ARRAY{bestResponseExpectedValueCopy} cum expected value ARRAY{cumExpectedValueCopy}{(action == numPossibleActions && IncludeAsteriskForBestResponseInTrace ? "*" : "")}");
                 }

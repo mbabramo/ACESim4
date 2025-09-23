@@ -17,11 +17,11 @@ namespace ACESimBase.GameSolvingSupport.Settings
     [Serializable]
     public class EvolutionSettings
     {
-        public bool UnrollAlgorithm = true; // DEBUG
+        public bool UnrollAlgorithm = true;
         public bool IncludeCommentsWhenUnrolling = false;
         public bool UseCheckpointsWhenNotUnrolling = false; // for when unrolling, look at ArrayCommandList.UseCheckpoints
-        public bool UnrollRepeatIdenticalRanges = true; // DEBUG
-        public ChunkExecutorKind Unroll_ChunkExecutorKind = ChunkExecutorKind.RoslynWithLocalVariableRecycling; // DEBUG ILWithLocalVariableRecycling was 18:24 // Note: With a large tree, the regular Roslyn and IL are practical only if using RepeatIdenticalRanges. RoslynWithLocalVariableRecycling seems to be repeating the same iteration over and over again. 
+        public bool UnrollRepeatIdenticalRanges = true; 
+        public ChunkExecutorKind Unroll_ChunkExecutorKind = ChunkExecutorKind.ILWithLocalVariableRecycling; 
         public bool ReuseUnrolledAlgorithm = true; // if the tree structure is the same, then it will be reused (but final utilities etc. will be updated)
         public bool SaveToAzureBlob = false;
         // Note: Many of the below are overridden by launcher.
@@ -120,7 +120,7 @@ namespace ACESimBase.GameSolvingSupport.Settings
         public int NumRandomIterationsForSummaryTable = 1_000;
         public bool PrintGameTree = false;
         public bool KeepPrintingGameTree = false; // after printing once, keep printing again
-        public bool PrintedGameTreeIncludesInformationSetData = true; // set to true to print Tikz diagrams
+        public bool PrintedGameTreeIncludesInformationSetData = false; // set to true to print Tikz diagrams
         public bool PrintInformationSets = false;
         public bool AnalyzeInformationSets = false;
         public List<int> RestrictToTheseInformationSets = null;

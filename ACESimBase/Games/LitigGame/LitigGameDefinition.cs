@@ -566,7 +566,7 @@ namespace ACESim
                     CanTerminateGame = false, 
                     CriticalNode = false, // doesn't matter -- just one possibility,
                     SymmetryMap = (SymmetryMapInput.NotInInformationSet, SymmetryMapOutput.ChanceDecision),
-                    IsReversible = true
+                    IsReversible = true,
                 };
             decisions.Add(dummyDecision);
         }

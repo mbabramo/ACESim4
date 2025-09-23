@@ -102,7 +102,7 @@ namespace ACESimTest
 
         private static async Task<GeneralizedVanilla> Initialize(bool largerTree, EvolutionSettings evolutionSettings)
         {
-            byte branching = largerTree ? (byte)5 /* DEBUG */ : (byte)2; // signals, precaution powers, and precaution levels
+            byte branching = largerTree ? (byte)5 : (byte)2; // signals, precaution powers, and precaution levels
             var options = LitigGameOptionsGenerator.PrecautionNegligenceGame(largerTree, largerTree, branching, 1, branching, branching);
             GeneralizedVanilla.ClearCache();
             var developer = await GetGeneralizedVanilla(options, "TESTOPTIONS", evolutionSettings);

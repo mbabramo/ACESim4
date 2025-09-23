@@ -95,7 +95,7 @@ namespace ACESim
             options.NumPotentialBargainingRounds = 1;
             options.BargainingRoundsSimultaneous = true;
             options.SimultaneousOffersUltimatelyRevealed = true;
-            options.PGoesFirstIfNotSimultaneous = new List<bool> { true, false, true, false, true, false, true, false };
+            options.PGoesFirstIfNotSimultaneous = new List<bool> { true, true, true, true, true }; //  { true, false, true, false, true, false, true, false }; NOTE: Alternating will break RepeatIdenticalRanges in CFR.
 
             options.SkipFileAndAnswerDecisions = false; 
             options.IncludeAgreementToBargainDecisions = false;
@@ -189,24 +189,25 @@ namespace ACESim
             if (settings == null)
                 settings = new PrecautionNegligenceOptionsGeneratorSettings();
 
-            var game = settings.UseSimplifiedPrecautionNegligenceGame ?
+            var gameOptions = settings.UseSimplifiedPrecautionNegligenceGame ?
                 PrecautionNegligenceGame(settings.CollapseDecisionsInSimplifiedPrecautionNegligenceGame, allowQuitting: false, numSignalsAndOffers: settings.ParameterForMultipleOptions_Simplified, numPotentialBargainingRounds: settings.NumPotentialBargainingRounds, numPrecautionPowerLevels: settings.ParameterForMultipleOptions_Simplified, precautionLevels: settings.ParameterForMultipleOptions_Simplified)
                 :
                 PrecautionNegligenceGame(true, true, settings.ParameterForMultipleOptions, settings.NumPotentialBargainingRounds, settings.ParameterForMultipleOptions, settings.ParameterForMultipleOptions);
+            gameOptions.PredeterminedAbandonAndDefaults = settings.PredeterminedAbandonAndDefaults;
             if (settings.PerfectAdjudication)
             {
-                game.CourtDamagesNoiseStdev = 0;
-                game.CourtLiabilityNoiseStdev = 0;
-                game.DTrialCosts = game.PTrialCosts = game.PerPartyCostsLeadingUpToBargainingRound = game.PFilingCost = game.DAnswerCost = 0;
+                gameOptions.CourtDamagesNoiseStdev = 0;
+                gameOptions.CourtLiabilityNoiseStdev = 0;
+                gameOptions.DTrialCosts = gameOptions.PTrialCosts = gameOptions.PerPartyCostsLeadingUpToBargainingRound = gameOptions.PFilingCost = gameOptions.DAnswerCost = 0;
                 if (settings.PerfectInformationToo)
                 {
-                    game.PLiabilityNoiseStdev = 0;
-                    game.DLiabilityNoiseStdev = 0;
-                    game.PDamagesNoiseStdev = 0;
-                    game.DDamagesNoiseStdev = 0;
+                    gameOptions.PLiabilityNoiseStdev = 0;
+                    gameOptions.DLiabilityNoiseStdev = 0;
+                    gameOptions.PDamagesNoiseStdev = 0;
+                    gameOptions.DDamagesNoiseStdev = 0;
                 }
             }
-            return game;
+            return gameOptions;
         }
     } 
 }
