@@ -1068,10 +1068,13 @@ namespace LitigCharts
             for (int r = 0; r < rows; r++)
             {
                 var rowPath = basePath.DeepClone();
-                rowPath.AddSubpath($"Costs {majorYLabels[r]}x", 1); // optional subfolder per row
+                string yLabel = $"Costs: {majorYLabels[r]}x";
+                rowPath.AddSubpath(yLabel, 1); // optional subfolder per row
 
                 for (int c = 0; c < cols; c++)
                 {
+                    string xLabel = variation.nameOfSet + ": " + majorXLabels[c];
+
                     var slices  = matrix[r][c];
                     var scaling = axisScalingInfos[scaleIdx++];
 
@@ -1082,12 +1085,13 @@ namespace LitigCharts
                         slices,
                         scaling,
                         pres: true,                      // dark mode
-                        title: "",
+                        title: $"{xLabel}; {yLabel}",
                         splitRareHarmPanel: CostBreakdownReport.HasTwoPanels(slices),
                         standalone: true,
                         includeLegend: true,
                         includeAxisLabels: false,
-                        includeDisputeLabels: false);
+                        includeDisputeLabels: true,
+                        showTotalCost: true);
 
                     GenerateLatex(rowPath, filename, tikz);
                 }

@@ -717,7 +717,7 @@ namespace ACESimBase.Games.LitigGame.ManualReports
             string[] fills = pres ? PresFill : RegFill;
             var sb = new StringBuilder();
 
-            // ── background & title ─────────────────────────────────────
+            // ── background & title ─────────────────────────────────────────
             if (pres)
                 sb.AppendLine(outer.DrawCommand("fill=black"));
 
@@ -727,7 +727,7 @@ namespace ACESimBase.Games.LitigGame.ManualReports
                 sb.AppendLine(head.DrawCommand($"draw=none,text={pen}", $"\\huge {title}"));
             }
 
-            // ── cost rectangles  ────────────────────────────────────────
+            // ── cost rectangles  ───────────────────────────────────────────
             double sx = pane.width, sy = pane.height;
             var rectangles = GetComponentRects(slices, sc, splitRareHarmPanel);
             foreach (var rc in rectangles)
@@ -740,24 +740,20 @@ namespace ACESimBase.Games.LitigGame.ManualReports
                 sb.AppendLine(box.DrawCommand($"{fills[rc.Category]},draw={pen},very thin"));
             }
 
-            // ── total‑cost label (optional) ─────────────────────────────
+            // ── total-cost label (optional) ─────────────────────────────
             if (showTotalCost)
             {
-                // local helper: choose plain‑decimal vs. LaTeX scientific notation
                 static string FormatTotalCost(double value)
                 {
                     double absVal = Math.Abs(value);
-
-                    // Show plain decimal when it rounds to a non-tiny two-decimal number
                     double rounded = Math.Round(value, 2, MidpointRounding.AwayFromZero);
                     bool useScientific =
-                        (absVal > 0 && Math.Abs(rounded) < 0.005) || // tiny values
-                        absVal >= 10.0;                               // large values
+                        (absVal > 0 && Math.Abs(rounded) < 0.005) ||
+                        absVal >= 10.0;
 
                     if (!useScientific)
                         return rounded.ToString("0.00", CultureInfo.InvariantCulture);
 
-                    // Scientific notation with exactly two decimals in the mantissa
                     int exponent = (int)Math.Floor(Math.Log10(absVal));
                     double mantissa = value / Math.Pow(10, exponent);
                     string mantissaStr = mantissa.ToString("0.00", CultureInfo.InvariantCulture);
@@ -765,22 +761,23 @@ namespace ACESimBase.Games.LitigGame.ManualReports
                     return $"${mantissaStr}\\times 10^{{{exponent}}}$";
                 }
 
-
-
                 double totalCost  = slices.Sum(s => s.Total * s.width);
-                string formatted  = FormatTotalCost(totalCost);   // helper added previously
+                string formatted  = FormatTotalCost(totalCost);
                 string totalLabel = includeTotalPrefix ? $"Total: {formatted}" : formatted;
+
+                // Increase the node’s rendered height in presentation (dark) mode.
+                // Using scale=2 approximately doubles the text height.
+                string sizeOpt = pres ? ",scale=2" : "";
 
                 sb.AppendLine(
                     TikzHelper.DrawText(
                         pane.left + pane.width / 2.0,
                         pane.top,
                         totalLabel,
-                        $"font=\\small,text={pen},anchor=north"));
-
+                        $"font=\\small,text={pen},anchor=north{sizeOpt}"));
             }
 
-            // ── left y‑axis ─────────────────────────────────────────────
+            // ── left y-axis ─────────────────────────────────────────────
             var yL = new TikzLine(new(pane.left, pane.bottom),
                                   new(pane.left, pane.top));
 
@@ -799,7 +796,7 @@ namespace ACESimBase.Games.LitigGame.ManualReports
                 includeAxisLabels ? $"font=\\small,rotate=90,text={pen}" : null,
                 shiftXLeft, shiftYL));
 
-            // ── right y‑axis (split‑panel only) ─────────────────────────
+            // ── right y-axis (split-panel only) ─────────────────────────
             if (splitRareHarmPanel)
             {
                 double gap = 0.03 * sy;
@@ -825,7 +822,7 @@ namespace ACESimBase.Games.LitigGame.ManualReports
                     shiftXRight, 0, useContour: tickLabelsInside && !pres));
             }
 
-            // ── x‑axis & panel captions ────────────────────────────────
+            // ── x-axis & panel captions ────────────────────────────────
             var xB = new TikzLine(new(pane.left, pane.bottom), new(pane.right, pane.bottom));
             var xTicks = includeAxisLabels
                 ? new List<(double, string)> { (0, "0\\%"), (1, "100\\%") }
@@ -893,6 +890,7 @@ namespace ACESimBase.Games.LitigGame.ManualReports
                 additionalHeaderInfo: pres ? "\\usepackage[sfdefault]{ClearSans}" : null,
                 additionalTikzLibraries: new() { "patterns", "positioning" });
         }
+
 
 
 

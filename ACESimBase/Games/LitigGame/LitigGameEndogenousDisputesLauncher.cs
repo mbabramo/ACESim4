@@ -527,7 +527,7 @@ namespace ACESim
                     new SimulationIdentifier("Low Indet",  DefaultVariableValues.WithReplacement("Court Noise", "Low Indet")),
                     new SimulationIdentifier("High Noise", DefaultVariableValues.WithReplacement("Court Noise", "High Noise")),
                     new SimulationIdentifier("High Indet",  DefaultVariableValues.WithReplacement("Court Noise", "High Indet")),
-                    new SimulationIdentifier("High Noise and Indet",  DefaultVariableValues.WithReplacement("Court Noise", "High Noise and Indet")),
+                    new SimulationIdentifier("High Both",  DefaultVariableValues.WithReplacement("Court Noise", "High Both")),
                 };
 
                 var varyingRelativeCosts = new List<SimulationIdentifier>()
