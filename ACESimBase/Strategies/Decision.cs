@@ -150,6 +150,16 @@ namespace ACESim
         public bool GameStructureSameForEachAction;
 
         /// <summary>
+        /// Indicates a chance decision that begins a range of repeated decisions. The set of commands demarcated can then be repeated. This should be nested beneath any repetition induced by GameStructureSameForEachAction.
+        /// </summary>
+        public bool BeginRepeatedRange;
+
+        /// <summary>
+        /// Indicates a chance decision that ends a range of repeated decisions.
+        /// </summary>
+        public bool EndRepeatedRange;
+
+        /// <summary>
         /// If non-null, then through the specified iteration, the action of this player, when an opponent is being optimized using the opponent action probability in the information set, will be set to the WarmStartValue.
         /// </summary>
         public int? WarmStartThroughIteration;
@@ -189,7 +199,7 @@ namespace ACESim
 
         public Decision Clone()
         {
-            Decision d = new Decision(Name, Abbreviation, IsChance, PlayerIndex, PlayersToInform?.ToArray() ?? new byte[] { }, NumPossibleActions, DecisionByteCode, DecisionTypeCode, RepetitionsAfterFirst, PreevolvedStrategyFilename, InformationSetAbbreviations, AlwaysDoAction, UnevenChanceActions, CriticalNode) { IsAlwaysPlayersLastDecision = IsAlwaysPlayersLastDecision, CanTerminateGame = CanTerminateGame, IncrementGameCacheItem = IncrementGameCacheItem, CustomByte = CustomByte, DeferNotificationOfPlayers = DeferNotificationOfPlayers, RequiresCustomInformationSetManipulation = RequiresCustomInformationSetManipulation, IsReversible = IsReversible, StoreActionInGameCacheItem = StoreActionInGameCacheItem, AlwaysTerminatesGame = AlwaysTerminatesGame,  IsChance = IsChance, IsContinuousAction = IsContinuousAction, GameStructureSameForEachAction = GameStructureSameForEachAction, WarmStartThroughIteration = WarmStartThroughIteration, WarmStartValue = WarmStartValue, SymmetryMap = SymmetryMap };
+            Decision d = new Decision(Name, Abbreviation, IsChance, PlayerIndex, PlayersToInform?.ToArray() ?? new byte[] { }, NumPossibleActions, DecisionByteCode, DecisionTypeCode, RepetitionsAfterFirst, PreevolvedStrategyFilename, InformationSetAbbreviations, AlwaysDoAction, UnevenChanceActions, CriticalNode) { IsAlwaysPlayersLastDecision = IsAlwaysPlayersLastDecision, CanTerminateGame = CanTerminateGame, IncrementGameCacheItem = IncrementGameCacheItem, CustomByte = CustomByte, DeferNotificationOfPlayers = DeferNotificationOfPlayers, RequiresCustomInformationSetManipulation = RequiresCustomInformationSetManipulation, IsReversible = IsReversible, StoreActionInGameCacheItem = StoreActionInGameCacheItem, AlwaysTerminatesGame = AlwaysTerminatesGame,  IsChance = IsChance, IsContinuousAction = IsContinuousAction, GameStructureSameForEachAction = GameStructureSameForEachAction, BeginRepeatedRange = BeginRepeatedRange, EndRepeatedRange = EndRepeatedRange, WarmStartThroughIteration = WarmStartThroughIteration, WarmStartValue = WarmStartValue, SymmetryMap = SymmetryMap };
             return d;
         }
 

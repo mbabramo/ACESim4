@@ -667,16 +667,18 @@ namespace ACESim
                 piValues = Unroll_Commands.CopyToNew(piValues, true);
                 avgStratPiValues = Unroll_Commands.CopyToNew(avgStratPiValues, true);
             }
+
             Unroll_Commands.IncrementDepth();
             int inversePi = Unroll_Commands.NewZero();
             Unroll_GetInversePiValue(piValues, playerBeingOptimized, inversePi);
             int inversePiAvgStrat = Unroll_Commands.NewZero();
             Unroll_GetInversePiValue(avgStratPiValues, playerBeingOptimized, inversePiAvgStrat);
-            //var actionsToHere = historyPoint.GetActionsToHere(Navigation);
-            //var historyPointString = historyPoint.ToString();
 
             IGameState gameStateForCurrentPlayer = GetGameState(in historyPoint);
             var informationSet = (InformationSetNode)gameStateForCurrentPlayer;
+
+            Unroll_BeginRepeatedRangeIfNeeded(informationSet.Decision);
+
             byte decisionNum = informationSet.DecisionIndex;
             byte playerMakingDecision = informationSet.PlayerIndex;
             byte numPossibleActions = NumPossibleActionsAtDecision(decisionNum);
@@ -719,22 +721,13 @@ namespace ACESim
                 int probabilityOfAction = actionProbabilities[action - 1];
                 if (pruningPossible)
                 {
-                    // NOTE: When we insert this IF command, we need to ensure that all of the subsequent commands before the "end if"
-                    // are in the same command chunk. If all chance decisions precede all player decisions, then that should be possible.
-                    // We are setting up the IF in a player decision, but we are only starting the new command chunk in the chance nodes. 
-                    // Thus, even if we have multiple IF/THENs, they will all be contained within the same command chunk.
-                    // But if we have a different structure, then we need to make sure that we don't break up the command chunk.
-                    // The ArrayCommandList currently takes care of this by keeping commands together within the if/then loop.
-
-                    Unroll_Commands.InsertGreaterThanOtherArrayIndexCommand(probabilityOfAction, opponentPruningThresholdIndex); // if less than or equal to then prune, so if greater than, don't prune (continue into if block)
+                    Unroll_Commands.InsertGreaterThanOtherArrayIndexCommand(probabilityOfAction, opponentPruningThresholdIndex);
                     Unroll_Commands.InsertIfCommand();
                 }
 
-                //if (EvolutionSettings.PruneOnOpponentStrategy && playerBeingOptimized != playerMakingDecision && probabilityOfAction < EvolutionSettings.PruneOnOpponentStrategyThreshold)
-                //    continue;
                 int probabilityOfActionAvgStrat = Unroll_Commands.CopyToNew(Unroll_GetInformationSetIndex_AverageStrategy(informationSet.InformationSetNodeNumber, action), true);
                 int[] nextPiValues = Unroll_Commands.NewZeroArray(NumNonChancePlayers);
-                Unroll_GetNextPiValues(piValues, playerMakingDecision, probabilityOfAction, false, nextPiValues); // reduce probability associated with player being optimized, without changing probabilities for other players
+                Unroll_GetNextPiValues(piValues, playerMakingDecision, probabilityOfAction, false, nextPiValues);
                 int[] nextAvgStratPiValues = Unroll_Commands.NewZeroArray(NumNonChancePlayers);
                 Unroll_GetNextPiValues(avgStratPiValues, playerMakingDecision, probabilityOfActionAvgStrat, false, nextAvgStratPiValues);
                 if (TraceCFR)
@@ -755,14 +748,13 @@ namespace ACESim
                     Unroll_Commands.InsertIfCommand();
                     Unroll_Commands.Increment(resultArray[Unroll_Result_BestResponseIndex], algorithmIsLowestDepth, innerResult[Unroll_Result_BestResponseIndex]);
                     Unroll_Commands.InsertEndIfCommand();
-                    // Get the best response indices to write to -- note that we're not reading the value in
+
                     int bestResponseNumerator = Unroll_GetInformationSetIndex_BestResponseNumerator(informationSet.InformationSetNodeNumber, action);
                     int bestResponseDenominator = Unroll_GetInformationSetIndex_BestResponseDenominator(informationSet.InformationSetNodeNumber, action);
 
-
                     if (EvolutionSettings.IncludeCommentsWhenUnrolling)
                         Unroll_Commands.InsertComment($"Decision  {decisionNum} InfoSet {informationSet.InformationSetNodeNumber} player {playerMakingDecision} updating regrets");
-                    Unroll_Commands.IncrementByProduct(bestResponseNumerator, true, inversePiAvgStrat, innerResult[Unroll_Result_BestResponseIndex]); // since we are not using these internal to the tree walk, we target originals
+                    Unroll_Commands.IncrementByProduct(bestResponseNumerator, true, inversePiAvgStrat, innerResult[Unroll_Result_BestResponseIndex]);
                     Unroll_Commands.Increment(bestResponseDenominator, true, inversePiAvgStrat);
                     Unroll_Commands.IncrementByProduct(resultArray[Unroll_Result_CurrentVsCurrentIndex], algorithmIsLowestDepth, probabilityOfAction, innerResult[Unroll_Result_CurrentVsCurrentIndex]);
                     Unroll_Commands.IncrementByProduct(resultArray[Unroll_Result_AverageStrategyIndex], algorithmIsLowestDepth, probabilityOfActionAvgStrat, innerResult[Unroll_Result_AverageStrategyIndex]);
@@ -797,21 +789,20 @@ namespace ACESim
                 {
                     if (EvolutionSettings.IncludeCommentsWhenUnrolling)
                         Unroll_Commands.InsertComment($"Decision  {decisionNum} InfoSet {informationSet.InformationSetNodeNumber} player {playerMakingDecision} Action {action} incrementing regrets");
-                    int pi = Unroll_Commands.CopyToNew(piValues[playerBeingOptimized], false); 
+                    int pi = Unroll_Commands.CopyToNew(piValues[playerBeingOptimized], false);
                     Unroll_Commands.CreateCheckpoint(pi);
                     Unroll_Commands.InsertLessThanOtherArrayIndexCommand(pi, smallestPossible);
                     Unroll_Commands.InsertIfCommand();
                     Unroll_Commands.CopyToExisting(pi, smallestPossible);
                     Unroll_Commands.InsertEndIfCommand();
-                    int regret = Unroll_Commands.CopyToNew(expectedValueOfAction[action - 1], false); 
+                    int regret = Unroll_Commands.CopyToNew(expectedValueOfAction[action - 1], false);
                     Unroll_Commands.Decrement(regret, expectedValue);
                     int lastRegretNumerator = Unroll_GetInformationSetIndex_LastRegretNumerator(informationSet.InformationSetNodeNumber, action);
                     int lastRegretDenominator = Unroll_GetInformationSetIndex_LastRegretDenominator(informationSet.InformationSetNodeNumber, action);
                     Unroll_Commands.IncrementByProduct(lastRegretNumerator, true, regret, inversePi);
                     Unroll_Commands.Increment(lastRegretDenominator, true, inversePi);
-                    // now contribution to average strategy
                     int contributionToAverageStrategy = Unroll_Commands.CopyToNew(pi, false);
-                    Unroll_Commands.MultiplyBy(contributionToAverageStrategy, actionProbabilities[action - 1]); // note: we don't multiply by average strategy adjustment here -- we do so at end of iteration
+                    Unroll_Commands.MultiplyBy(contributionToAverageStrategy, actionProbabilities[action - 1]);
                     int lastCumulativeStrategyIncrement = Unroll_GetInformationSetIndex_LastCumulativeStrategyIncrement(informationSet.InformationSetNodeNumber, action);
                     Unroll_Commands.Increment(lastCumulativeStrategyIncrement, true, contributionToAverageStrategy);
                     if (TraceCFR || Unroll_Commands.UseCheckpoints)
@@ -834,25 +825,30 @@ namespace ACESim
                             Unroll_Commands.CreateCheckpoint(actionProbabilities[action - 1]);
                             Unroll_Commands.CreateCheckpoint(regretCopy);
                             Unroll_Commands.CreateCheckpoint(inversePiCopy);
-                            Unroll_Commands.CreateCheckpoint(piCopy); 
-                            // IMPORTANT NOTE: must exclude cumulativeStrategyCopy, because it's a copy of something targeting original, so the value will not be available.
+                            Unroll_Commands.CreateCheckpoint(piCopy);
                         }
                     }
                 }
             }
             Unroll_Commands.DecrementDepth();
+
+            Unroll_EndRepeatedRangeIfNeeded(informationSet.Decision);
         }
+
 
         private void Unroll_GeneralizedVanillaCFR_ChanceNode(in HistoryPoint historyPoint, byte playerBeingOptimized, int[] piValues, int[] avgStratPiValues, int[] resultArray, bool algorithmIsLowestDepth)
         {
+            IGameState gameStateForCurrentPlayer = GetGameState(in historyPoint);
+            ChanceNode chanceNode = (ChanceNode)gameStateForCurrentPlayer;
+
+            Unroll_BeginRepeatedRangeIfNeeded(chanceNode.Decision);
+
             if (algorithmIsLowestDepth)
             {
                 piValues = Unroll_Commands.CopyToNew(piValues, true);
                 avgStratPiValues = Unroll_Commands.CopyToNew(avgStratPiValues, true);
             }
             Unroll_Commands.IncrementDepth();
-            IGameState gameStateForCurrentPlayer = GetGameState(in historyPoint);
-            ChanceNode chanceNode = (ChanceNode)gameStateForCurrentPlayer;
 
             if (EvolutionSettings.IncludeCommentsWhenUnrolling)
                 Unroll_Commands.InsertComment($"Chance node {chanceNode.Decision.Name} (node {chanceNode.ChanceNodeNumber})");
@@ -879,10 +875,7 @@ namespace ACESim
             {
                 if (EvolutionSettings.IncludeCommentsWhenUnrolling && !useIdenticalRepeat)
                     Unroll_Commands.InsertComment($"Chance node {chanceNode.Decision.Name} (node {chanceNode.ChanceNodeNumber}) action {action}");
-                
-                if (useIdenticalRepeat && TraceCFR)
-                    TabbedText.WriteLine($"Beginning identical range action {action} for decision {chanceNode.Decision.Name}");
-
+        
                 if (useIdenticalRepeat)
                 {
                     bool repeatThisAction = action != 1;
@@ -900,24 +893,26 @@ namespace ACESim
                     playerBeingOptimized, piValues, avgStratPiValues,
                     chanceNode, action, probabilityAdjustedInnerResult, false,
                     useIdenticalRepeat);
-                
+        
                 Unroll_Commands.IncrementArrayBy(resultArray, algorithmIsLowestDepth, probabilityAdjustedInnerResult);
 
                 if (useIdenticalRepeat)
                 {
-                
                     if (TraceCFR)
                         TabbedText.WriteLine($"Ending identical range action {action} for decision {chanceNode.Decision.Name}");
                     Unroll_Commands.DecrementDepth();
                     Unroll_Commands.EndCommandChunk(action != 1);
                 }
             }
-            
+    
             if (useIdenticalRepeat && TraceCFR)
                 TabbedText.WriteLine($"Ending identical range set for decision {chanceNode.Decision.Name}");
 
             Unroll_Commands.DecrementDepth();
+
+            Unroll_EndRepeatedRangeIfNeeded(chanceNode.Decision);
         }
+
 
 
         private void Unroll_GeneralizedVanillaCFR_ChanceNode_NextAction(in HistoryPoint historyPoint, byte playerBeingOptimized, int[] piValues, int[] avgStratPiValues, ChanceNode chanceNode, byte action, int[] resultArray, bool algorithmIsLowestDepth, bool suppressCommentsForRepeat)
@@ -960,6 +955,58 @@ namespace ACESim
                 Unroll_Commands.MultiplyArrayBy(resultArray, actionProbability);
 
             Unroll_Commands.DecrementDepth();
+        }
+
+
+        // Repeated-range state (BeginRepeatedRange/EndRepeatedRange)
+        private bool Unroll_InRepeatedRange = false;
+        private bool Unroll_ReplayingRepeatedRange = false;
+        private int  Unroll_RepeatRangeFirstStartIndex = -1;
+        private int  Unroll_RepeatNestingDepth = 0;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void Unroll_BeginRepeatedRangeIfNeeded(Decision decision)
+        {
+            if (decision == null || !decision.BeginRepeatedRange)
+                return;
+
+        #if DEBUG
+            if (Unroll_InRepeatedRange || Unroll_RepeatNestingDepth != 0)
+                throw new InvalidOperationException("Nested repeated ranges are not supported.");
+        #endif
+
+            if (Unroll_RepeatRangeFirstStartIndex < 0)
+            {
+                Unroll_Commands.StartCommandChunk(false, null, "RepeatedRound");
+                Unroll_RepeatRangeFirstStartIndex = Unroll_Commands.NextCommandIndex;
+                Unroll_ReplayingRepeatedRange = false;
+            }
+            else
+            {
+                Unroll_Commands.StartCommandChunk(false, Unroll_RepeatRangeFirstStartIndex, "RepeatedRound");
+                Unroll_ReplayingRepeatedRange = true;
+            }
+
+            Unroll_InRepeatedRange = true;
+            Unroll_RepeatNestingDepth = 1;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void Unroll_EndRepeatedRangeIfNeeded(Decision decision)
+        {
+            if (decision == null || !decision.EndRepeatedRange)
+                return;
+
+        #if DEBUG
+            if (!Unroll_InRepeatedRange || Unroll_RepeatNestingDepth != 1)
+                throw new InvalidOperationException("EndRepeatedRange encountered without a matching BeginRepeatedRange.");
+        #endif
+
+            Unroll_Commands.EndCommandChunk(endingRepeatedChunk: Unroll_ReplayingRepeatedRange);
+
+            Unroll_InRepeatedRange = false;
+            Unroll_ReplayingRepeatedRange = false;
+            Unroll_RepeatNestingDepth = 0;
         }
 
 

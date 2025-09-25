@@ -567,6 +567,7 @@ namespace ACESim
                     CriticalNode = false, // doesn't matter -- just one possibility,
                     SymmetryMap = (SymmetryMapInput.NotInInformationSet, SymmetryMapOutput.ChanceDecision),
                     IsReversible = true,
+                    BeginRepeatedRange = true,
                 };
             decisions.Add(dummyDecision);
         }
@@ -582,7 +583,8 @@ namespace ACESim
                     CanTerminateGame = false,
                     CriticalNode = false, // doesn't matter -- just one possibility
                     IsReversible = true,
-                    SymmetryMap = (SymmetryMapInput.NotInInformationSet, SymmetryMapOutput.ChanceDecision)
+                    SymmetryMap = (SymmetryMapInput.NotInInformationSet, SymmetryMapOutput.ChanceDecision),
+                    EndRepeatedRange = true,
                 };
             decisions.Add(dummyDecision);
         }
