@@ -1155,17 +1155,16 @@ namespace ACESim
             BeginningOfGame,
             BeginningOfGame_Collapsed,
             MiddleOfGame,
-            EndOfGame_Adjudication,
             EndOfGame,
         }
 
-        private TreeDiagramExclusions Exclusions = TreeDiagramExclusions.FullDiagram;
+        private TreeDiagramExclusions Exclusions = TreeDiagramExclusions.BeginningOfGame_Collapsed;
 
         public override (Func<ConstructGameTreeInformationSetInfo.GamePointNode, bool> excludeBelow, Func<ConstructGameTreeInformationSetInfo.GamePointNode, bool> includeBelow) GetTreeDiagramExclusions()
         {
             bool isEndogenousGame = true;
             string endOfBeginningPortion = isEndogenousGame ? "Accident" : "D Liability Signal";
-            string endOfMiddlePortion = "D Defaults";
+            string endOfMiddlePortion = "D Offer";
 
             (Func<ConstructGameTreeInformationSetInfo.GamePointNode, bool> excludeBelow, Func<ConstructGameTreeInformationSetInfo.GamePointNode, bool> includeBelow)
                 = (null, null);
@@ -1227,6 +1226,7 @@ namespace ACESim
                 case TreeDiagramExclusions.EndOfGame:
                     if (!isEndogenousGame)
                         throw new NotImplementedException();
+                    int index = 0;
                     includeBelow = gpn =>
                     {
                         var edge = gpn.EdgeFromParent;
@@ -1235,24 +1235,9 @@ namespace ACESim
                         string actionString = edge.parentNameWithActionString(this);
                         string nodePlayerString = gpn.NodePlayerString(this);
                         if (actionString.Contains(endOfMiddlePortion))
-                            return true;
-                        return false;
-                    };
-                    break;
-
-                case TreeDiagramExclusions.EndOfGame_Adjudication:
-                    includeBelow = gpn =>
-                    {
-                        var edge = gpn.EdgeFromParent;
-                        if (edge == null)
-                            return false;
-                        string actionString = edge.parentNameWithActionString(this);
-                        string nodePlayerString = gpn.NodePlayerString(this);
-                        if (actionString.Contains("D Defaults") && edge.action == 2)
                         {
-                            var nextUpNode = edge.parentNode;
-                            var nextUpEdge = nextUpNode.EdgeFromParent;
-                            if (nextUpEdge.action == 2)
+                            index++;
+                            if (index == 3)
                                 return true;
                         }
                         return false;

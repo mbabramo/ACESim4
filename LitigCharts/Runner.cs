@@ -68,7 +68,7 @@ namespace LitigCharts
         private static bool OneTimeDiagrams()
         {
             bool doCoefficientOfVariationCalculations = false; // if so, only this will be run. Note that this will generally be useful when there are many equilibria for a single set of parameters, not when there are many different sets of parameters.
-            bool doSignalsDiagram = false; // if so, only this will be run. This is the figure that shows how truly liable or not truly liable cases convert to litigation quality levels and how litigation quality levels convert to signals for the players.
+            bool doSignalsDiagram = false;  // if so, only this will be run. This is the figure that shows how truly liable or not truly liable cases convert to litigation quality levels and how litigation quality levels convert to signals for the players.
             bool doProbitLiabilityDiagram = false; // same. This is the figure for endogenous disputes that shows for each signal (different curves), and each relative precaution level (x axis), what the probability of liability is (integrating over all hidden states).
 
             if (doCoefficientOfVariationCalculations)
