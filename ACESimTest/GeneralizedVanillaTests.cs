@@ -38,7 +38,7 @@ namespace ACESimTest
             EvolutionSettings evolutionSettings = new EvolutionSettings();
             evolutionSettings.TotalIterations = 100;
             evolutionSettings.UnrollAlgorithm = false;
-            evolutionSettings.UnrollRepeatIdenticalRanges = false;
+            evolutionSettings.UnrollTemplateIdenticalRanges = false;
             evolutionSettings.Unroll_ChunkExecutorKind = ChunkExecutorKind.Interpreted;
 
             double[] notUnrolled = await DevelopStrategyAndGetUtilities(randomInformationSets, largerTree, evolutionSettings);
@@ -46,7 +46,7 @@ namespace ACESimTest
             evolutionSettings.UnrollAlgorithm = true;
             double[] unrolled = await DevelopStrategyAndGetUtilities(randomInformationSets, largerTree, evolutionSettings);
 
-            evolutionSettings.UnrollRepeatIdenticalRanges = true;
+            evolutionSettings.UnrollTemplateIdenticalRanges = true;
             double[] unrolledWithRepeats = await DevelopStrategyAndGetUtilities(randomInformationSets, largerTree, evolutionSettings);
 
             notUnrolled.SequenceEqual(unrolled).Should().BeTrue();
@@ -63,7 +63,7 @@ namespace ACESimTest
             EvolutionSettings evolutionSettings = new EvolutionSettings();
             evolutionSettings.TotalIterations = 100;
             evolutionSettings.UnrollAlgorithm = true;
-            evolutionSettings.UnrollRepeatIdenticalRanges = true;
+            evolutionSettings.UnrollTemplateIdenticalRanges = true;
             List<double[]> results = new();
 
             foreach (ChunkExecutorKind kind in new ChunkExecutorKind[] { ChunkExecutorKind.Interpreted, ChunkExecutorKind.Roslyn, ChunkExecutorKind.RoslynWithLocalVariableRecycling, ChunkExecutorKind.IL, ChunkExecutorKind.ILWithLocalVariableRecycling })

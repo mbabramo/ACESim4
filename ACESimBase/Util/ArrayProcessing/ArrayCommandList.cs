@@ -58,6 +58,10 @@ namespace ACESimBase.Util.ArrayProcessing
         public bool UseOrderedSourcesAndDestinations = false;
         public List<int> OrderedSourceIndices = new();        
         public List<int> OrderedDestinationIndices = new();
+        private readonly Dictionary<int, int> _originalRangeScratchStarts = new(); // DEBUG?
+        private readonly Dictionary<int, int> _originalRangeStartScratchIndex = new();
+
+
 
         // ──────────────────────────────────────────────────────────────────────
         //  Settings and feature flags
@@ -157,6 +161,10 @@ namespace ACESimBase.Util.ArrayProcessing
                 _rootChunkInitialised = _rootChunkInitialised,
             };
             clone.Recorder = Recorder.Clone(clone);
+            foreach (var kv in _originalRangeStartScratchIndex)
+                clone._originalRangeStartScratchIndex[kv.Key] = kv.Value;
+            foreach (var kv in _originalRangeEnds)
+                clone._originalRangeEnds[kv.Key] = kv.Value;
             return clone;
         }
 
@@ -180,12 +188,19 @@ namespace ACESimBase.Util.ArrayProcessing
                 return;
 
             bool childIsRepeat = false;
+            int scratchAtEntry = Recorder.NextArrayIndex;
 
             if (RepeatIdenticalRanges && identicalStartCommandRange is int identical)
             {
                 _repeatRangeStack.Push(identical);
-                _repeatScratchIndexStack.Push(Recorder.NextArrayIndex);
+                _repeatScratchIndexStack.Push(scratchAtEntry);
                 Recorder.NextCommandIndex = identical;
+
+                if (!_originalRangeStartScratchIndex.TryGetValue(identical, out int startScratch))
+                    throw new InvalidOperationException("Original start scratch index not recorded for repeated chunk.");
+
+                Recorder.NextArrayIndex = startScratch;
+
                 RepeatingExistingCommandRange = true;
                 childIsRepeat = true;
             }
@@ -203,7 +218,13 @@ namespace ACESimBase.Util.ArrayProcessing
                         _originalRangeEnds.ContainsKey(candidate))
                     {
                         _repeatRangeStack.Push(candidate);
-                        _repeatScratchIndexStack.Push(Recorder.NextArrayIndex);
+                        _repeatScratchIndexStack.Push(scratchAtEntry);
+
+                        if (!_originalRangeStartScratchIndex.TryGetValue(candidate, out int nestedStartScratch))
+                            throw new InvalidOperationException("Original start scratch index not recorded for nested repeated chunk.");
+
+                        Recorder.NextArrayIndex = nestedStartScratch;
+
                         childIsRepeat = true;
                     }
                 }
@@ -225,9 +246,11 @@ namespace ACESimBase.Util.ArrayProcessing
             parent.StoredValue.LastChild = branch;
             _currentPath.Add(branch);
 
+            if (!childIsRepeat)
+                _originalRangeStartScratchIndex[child.StoredValue.StartCommandRange] = scratchAtEntry;
+
             _repeatChildIsRepeatedStack.Push(childIsRepeat);
         }
-
 
 
         public void EndCommandChunk(bool endingRepeatedChunk = false)
