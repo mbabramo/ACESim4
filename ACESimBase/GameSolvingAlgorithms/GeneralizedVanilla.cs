@@ -689,6 +689,7 @@ namespace ACESim
             IGameState gameStateForCurrentPlayer = GetGameState(in historyPoint);
             var informationSet = (InformationSetNode)gameStateForCurrentPlayer;
 
+            Unroll_MaybeStageParametersForRepeatedRange(informationSet.Decision, ref piValues, ref avgStratPiValues);
             Unroll_BeginRepeatedRangeIfNeeded(informationSet.Decision);
 
             byte decisionNum = informationSet.DecisionIndex;
