@@ -82,25 +82,19 @@ namespace ACESimBase.Util.ArrayProcessing
         {
             if (_acl.RepeatingExistingCommandRange)
             {
-                var existing = _acl.UnderlyingCommands[NextCommandIndex];
-                if (existing.CommandType != ArrayCommandType.Zero)
-                    throw new InvalidOperationException(
-                        $"Repeat-range expected Zero at cmd {NextCommandIndex} but found {existing.CommandType}.");
-
-                // Adopt the recorded target index and keep our allocator in sync.
-                int slot = existing.Index;
-                if (slot < 0)
-                    throw new InvalidOperationException($"Recorded Zero target index invalid: {slot}.");
-                NextArrayIndex = Math.Max(NextArrayIndex, slot + 1);
-
-                // Re-emit identically (recorder will verify & advance).
-                AddCommand(existing);
+                var expected = _acl.UnderlyingCommands[NextCommandIndex];
+                if (expected.CommandType != ArrayCommandType.Zero)
+                    throw new InvalidOperationException($"Repeat-range mismatch at cmd {NextCommandIndex}: recorded {expected.CommandType} vs new Zero.");
+                int slot = expected.Index;
+                // Ensure our scratch pointer never lags behind the recorded slot.
+                if (slot + 1 > NextArrayIndex) NextArrayIndex = slot + 1;
+                AddCommand(new ArrayCommand(ArrayCommandType.Zero, slot, -1)); // advances NextCommandIndex via AddCommand
                 return slot;
             }
 
-            int newSlot = NextArrayIndex++;
-            AddCommand(new ArrayCommand(ArrayCommandType.Zero, newSlot, -1));
-            return newSlot;
+            int fresh = NextArrayIndex++;
+            AddCommand(new ArrayCommand(ArrayCommandType.Zero, fresh, -1));
+            return fresh;
         }
 
 
@@ -120,44 +114,44 @@ namespace ACESimBase.Util.ArrayProcessing
         /// <summary>Copy value from <paramref name="sourceIdx"/> into a <em>new</em> scratch slot.</summary>
         public int CopyToNew(int sourceIdx, bool fromOriginalSources)
         {
-            bool ordered = fromOriginalSources && _acl.UseOrderedSourcesAndDestinations;
-
             if (_acl.RepeatingExistingCommandRange)
             {
-                var existing = _acl.UnderlyingCommands[NextCommandIndex];
-                var expectedType = ordered ? ArrayCommandType.NextSource : ArrayCommandType.CopyTo;
+                var expected = _acl.UnderlyingCommands[NextCommandIndex];
+                // In ordered-source mode the first recording will have emitted NextSource; otherwise CopyTo.
+                bool expectNextSource = expected.CommandType == ArrayCommandType.NextSource;
+                bool expectCopyTo     = expected.CommandType == ArrayCommandType.CopyTo;
+                if (!expectNextSource && !expectCopyTo)
+                    throw new InvalidOperationException($"Repeat-range mismatch at cmd {NextCommandIndex}: recorded {expected.CommandType} vs new {(fromOriginalSources && _acl.UseOrderedSourcesAndDestinations ? "NextSource" : "CopyTo")}.");
 
-                if (existing.CommandType != expectedType)
-                    throw new InvalidOperationException(
-                        $"Repeat-range expected {expectedType} at cmd {NextCommandIndex} but found {existing.CommandType}.");
+                int target = expected.Index;
+                if (target + 1 > NextArrayIndex) NextArrayIndex = target + 1;
 
-                // Adopt the recorded target index and keep allocator in sync.
-                int target = existing.Index;
-                if (target < 0)
-                    throw new InvalidOperationException($"Recorded Copy target index invalid: {target}.");
-                NextArrayIndex = Math.Max(NextArrayIndex, target + 1);
-
-                // We must still queue the live ordered source index for this repetition.
-                if (ordered)
+                if (expectNextSource)
+                {
+                    // Keep ordered-source side effect identical on repeats.
                     _acl.OrderedSourceIndices.Add(sourceIdx);
-
-                // Re-emit identically; recorder will verify & advance.
-                AddCommand(existing);
+                    AddCommand(new ArrayCommand(ArrayCommandType.NextSource, target, -1));
+                }
+                else
+                {
+                    AddCommand(new ArrayCommand(ArrayCommandType.CopyTo, target, sourceIdx));
+                }
                 return target;
             }
 
-            int newTarget = NextArrayIndex++;
-            if (ordered)
+            int fresh = NextArrayIndex++;
+            if (fromOriginalSources && _acl.UseOrderedSourcesAndDestinations)
             {
                 _acl.OrderedSourceIndices.Add(sourceIdx);
-                AddCommand(new ArrayCommand(ArrayCommandType.NextSource, newTarget, -1));
+                AddCommand(new ArrayCommand(ArrayCommandType.NextSource, fresh, -1));
             }
             else
             {
-                AddCommand(new ArrayCommand(ArrayCommandType.CopyTo, newTarget, sourceIdx));
+                AddCommand(new ArrayCommand(ArrayCommandType.CopyTo, fresh, sourceIdx));
             }
-            return newTarget;
+            return fresh;
         }
+
 
 
         public int[] CopyToNew(int[] sourceIndices, bool fromOriginalSources) =>

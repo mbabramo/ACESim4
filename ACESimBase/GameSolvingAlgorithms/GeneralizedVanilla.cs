@@ -336,7 +336,7 @@ namespace ACESim
                 Unroll_CommandListRunner_Cached = null; // free memory
                 TabbedText.WriteLine($"Unrolling commands...");
                 Unroll_Commands = new ArrayCommandList(max_num_commands, Unroll_InitialArrayIndex);
-                Unroll_Commands.UseOrderedSourcesAndDestinations = EvolutionSettings.UnrollTemplateIdenticalRanges;
+                Unroll_Commands.UseOrderedSourcesAndDestinations = EvolutionSettings.UnrollTemplateIdenticalRanges || EvolutionSettings.UnrollTemplateRepeatedRanges;
 
                 ActionStrategy = ActionStrategies.CurrentProbability;
                 HistoryPoint historyPoint = GetStartOfGameHistoryPoint();
@@ -689,8 +689,8 @@ namespace ACESim
             IGameState gameStateForCurrentPlayer = GetGameState(in historyPoint);
             var informationSet = (InformationSetNode)gameStateForCurrentPlayer;
 
-            Unroll_MaybeStageParametersForRepeatedRange(informationSet.Decision, ref piValues, ref avgStratPiValues);
             Unroll_BeginRepeatedRangeIfNeeded(informationSet.Decision);
+            Unroll_MaybeStageParametersForRepeatedRange(informationSet.Decision, ref piValues, ref avgStratPiValues);
 
             byte decisionNum = informationSet.DecisionIndex;
             byte playerMakingDecision = informationSet.PlayerIndex;
@@ -875,8 +875,8 @@ namespace ACESim
             IGameState gameStateForCurrentPlayer = GetGameState(in historyPoint);
             ChanceNode chanceNode = (ChanceNode)gameStateForCurrentPlayer;
 
-            Unroll_MaybeStageParametersForRepeatedRange(chanceNode.Decision, ref piValues, ref avgStratPiValues);
             Unroll_BeginRepeatedRangeIfNeeded(chanceNode.Decision);
+            Unroll_MaybeStageParametersForRepeatedRange(chanceNode.Decision, ref piValues, ref avgStratPiValues);
 
             if (algorithmIsLowestDepth)
             {
@@ -1135,13 +1135,21 @@ namespace ACESim
 
         private void Unroll_MaybeStageParametersForRepeatedRange(Decision d, ref int[] piValues, ref int[] avgStratPiValues)
         {
+            // Only stage once, at the top of a repeated range, before we open it.
             if (!(EvolutionSettings.UnrollTemplateRepeatedRanges && d != null && d.BeginRepeatedRange))
                 return;
 
+            // If we're already inside a repeated range, this BeginRepeatedRange belongs
+            // to a descendant while the recorder is replaying the parent's commands—skip.
+            if (Unroll_InRepeatedRange)
+                return;
+
+            // Snapshot the current live pi arrays into the stable, per-round slots.
             Unroll_Commands.CopyToExisting(Unroll_RepeatedRoundParamPiIndices,         piValues);
             Unroll_Commands.CopyToExisting(Unroll_RepeatedRoundParamAvgStratPiIndices, avgStratPiValues);
 
-            piValues = Unroll_RepeatedRoundParamPiIndices;
+            // From here on within the range, use the stable indices so the body replays identically.
+            piValues         = Unroll_RepeatedRoundParamPiIndices;
             avgStratPiValues = Unroll_RepeatedRoundParamAvgStratPiIndices;
         }
 
