@@ -670,7 +670,13 @@ namespace ACESim
             Unroll_Commands.DecrementDepth(completeCommandList);
         }
 
-        private void Unroll_GeneralizedVanillaCFR_DecisionNode(in HistoryPoint historyPoint, byte playerBeingOptimized, int[] piValues, int[] avgStratPiValues, int[] resultArray, bool algorithmIsLowestDepth)
+        private void Unroll_GeneralizedVanillaCFR_DecisionNode(
+            in HistoryPoint historyPoint,
+            byte playerBeingOptimized,
+            int[] piValues,
+            int[] avgStratPiValues,
+            int[] resultArray,
+            bool algorithmIsLowestDepth)
         {
             if (algorithmIsLowestDepth)
             {
@@ -722,6 +728,10 @@ namespace ACESim
 
             int[] expectedValueOfAction = Unroll_Commands.NewZeroArray(numPossibleActions);
             int expectedValue = Unroll_Commands.NewZero();
+
+            // *** Reusable, stable child-result buffer for this decision node ***
+            int[] innerBuf = Unroll_Commands.NewZeroArray(3);
+
             bool pruningPossible = (EvolutionSettings.PruneOnOpponentStrategy || EvolutionSettings.CFRBR) && playerBeingOptimized != playerMakingDecision;
             int opponentPruningThresholdIndex = -1;
             if (pruningPossible)
@@ -759,10 +769,13 @@ namespace ACESim
                 }
 
                 HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, action, informationSet.Decision, informationSet.DecisionIndex);
-                int[] innerResult = Unroll_Commands.NewZeroArray(3);
-                Unroll_GeneralizedVanillaCFR(in nextHistoryPoint, playerBeingOptimized, nextPiValues, nextAvgStratPiValues, innerResult, false, playerBeingOptimized == NumNonChancePlayers - 1);
 
-                Unroll_Commands.CopyToExisting(expectedValueOfAction[action - 1], innerResult[Unroll_Result_CurrentVsCurrentIndex]);
+                // *** Key change: reuse the stable buffer instead of allocating a fresh innerResult ***
+                Unroll_Commands.ZeroExisting(innerBuf);
+                Unroll_GeneralizedVanillaCFR(in nextHistoryPoint, playerBeingOptimized, nextPiValues, nextAvgStratPiValues, innerBuf, false, playerBeingOptimized == NumNonChancePlayers - 1);
+
+                // Use the stable innerBuf for all subsequent references
+                Unroll_Commands.CopyToExisting(expectedValueOfAction[action - 1], innerBuf[Unroll_Result_CurrentVsCurrentIndex]);
 
                 // Route outer writes via ordered destinations while inside a repeated-range window,
                 // OR when this decision is the BeginRepeatedRange (so the window may already be closed by children).
@@ -776,7 +789,7 @@ namespace ACESim
                     int lastBestResponseActionIndex = Unroll_Commands.CopyToNew(Unroll_GetInformationSetIndex_LastBestResponse(informationSet.InformationSetNodeNumber, (byte)informationSet.NumPossibleActions), true);
                     Unroll_Commands.InsertEqualsValueCommand(lastBestResponseActionIndex, (int)action);
                     Unroll_Commands.InsertIfCommand();
-                    Unroll_Commands.Increment(resultArray[Unroll_Result_BestResponseIndex], toOriginal, innerResult[Unroll_Result_BestResponseIndex]);
+                    Unroll_Commands.Increment(resultArray[Unroll_Result_BestResponseIndex], toOriginal, innerBuf[Unroll_Result_BestResponseIndex]);
                     Unroll_Commands.InsertEndIfCommand();
 
                     int bestResponseNumerator = Unroll_GetInformationSetIndex_BestResponseNumerator(informationSet.InformationSetNodeNumber, action);
@@ -785,17 +798,17 @@ namespace ACESim
                     if (EvolutionSettings.IncludeCommentsWhenUnrolling)
                         Unroll_Commands.InsertComment($"Decision  {decisionNum} InfoSet {informationSet.InformationSetNodeNumber} player {playerMakingDecision} updating regrets");
 
-                    Unroll_Commands.IncrementByProduct(bestResponseNumerator, true, inversePiAvgStrat, innerResult[Unroll_Result_BestResponseIndex]);
+                    Unroll_Commands.IncrementByProduct(bestResponseNumerator, true, inversePiAvgStrat, innerBuf[Unroll_Result_BestResponseIndex]);
                     Unroll_Commands.Increment(bestResponseDenominator, true, inversePiAvgStrat);
 
-                    Unroll_Commands.IncrementByProduct(resultArray[Unroll_Result_CurrentVsCurrentIndex], toOriginal, probabilityOfAction,       innerResult[Unroll_Result_CurrentVsCurrentIndex]);
-                    Unroll_Commands.IncrementByProduct(resultArray[Unroll_Result_AverageStrategyIndex],   toOriginal, probabilityOfActionAvgStrat, innerResult[Unroll_Result_AverageStrategyIndex]);
+                    Unroll_Commands.IncrementByProduct(resultArray[Unroll_Result_CurrentVsCurrentIndex], toOriginal, probabilityOfAction,       innerBuf[Unroll_Result_CurrentVsCurrentIndex]);
+                    Unroll_Commands.IncrementByProduct(resultArray[Unroll_Result_AverageStrategyIndex],   toOriginal, probabilityOfActionAvgStrat, innerBuf[Unroll_Result_AverageStrategyIndex]);
                 }
                 else
                 {
-                    Unroll_Commands.IncrementByProduct(resultArray[Unroll_Result_CurrentVsCurrentIndex], toOriginal, probabilityOfAction,       innerResult[Unroll_Result_CurrentVsCurrentIndex]);
-                    Unroll_Commands.IncrementByProduct(resultArray[Unroll_Result_AverageStrategyIndex],   toOriginal, probabilityOfActionAvgStrat, innerResult[Unroll_Result_AverageStrategyIndex]);
-                    Unroll_Commands.IncrementByProduct(resultArray[Unroll_Result_BestResponseIndex],      toOriginal, probabilityOfActionAvgStrat, innerResult[Unroll_Result_BestResponseIndex]);
+                    Unroll_Commands.IncrementByProduct(resultArray[Unroll_Result_CurrentVsCurrentIndex], toOriginal, probabilityOfAction,       innerBuf[Unroll_Result_CurrentVsCurrentIndex]);
+                    Unroll_Commands.IncrementByProduct(resultArray[Unroll_Result_AverageStrategyIndex],   toOriginal, probabilityOfActionAvgStrat, innerBuf[Unroll_Result_AverageStrategyIndex]);
+                    Unroll_Commands.IncrementByProduct(resultArray[Unroll_Result_BestResponseIndex],      toOriginal, probabilityOfActionAvgStrat, innerBuf[Unroll_Result_BestResponseIndex]);
                 }
 
                 Unroll_Commands.IncrementByProduct(expectedValue, false, probabilityOfAction, expectedValueOfAction[action - 1]);
@@ -876,6 +889,7 @@ namespace ACESim
             // Fallback scope-exit close if the entire subtree never hit an EndRepeatedRange.
             Unroll_CloseRepeatedRangeAtScopeExitIfOwner(informationSet.Decision);
         }
+
 
         private void Unroll_GeneralizedVanillaCFR_ChanceNode(in HistoryPoint historyPoint, byte playerBeingOptimized, int[] piValues, int[] avgStratPiValues, int[] resultArray, bool algorithmIsLowestDepth)
         {
@@ -962,11 +976,16 @@ namespace ACESim
             Unroll_CloseRepeatedRangeAtScopeExitIfOwner(chanceNode.Decision);
         }
 
-
-
-
-
-        private void Unroll_GeneralizedVanillaCFR_ChanceNode_NextAction(in HistoryPoint historyPoint, byte playerBeingOptimized, int[] piValues, int[] avgStratPiValues, ChanceNode chanceNode, byte action, int[] resultArray, bool algorithmIsLowestDepth, bool suppressCommentsForRepeat)
+        private void Unroll_GeneralizedVanillaCFR_ChanceNode_NextAction(
+            in HistoryPoint historyPoint,
+            byte playerBeingOptimized,
+            int[] piValues,
+            int[] avgStratPiValues,
+            ChanceNode chanceNode,
+            byte action,
+            int[] resultArray,
+            bool algorithmIsLowestDepth,
+            bool suppressCommentsForRepeat)
         {
             if (EvolutionSettings.IncludeCommentsWhenUnrolling && !suppressCommentsForRepeat)
                 Unroll_Commands.InsertComment($"Chance node {chanceNode.Decision.Name} (node {chanceNode.ChanceNodeNumber}) action {action} -> next action");
@@ -982,7 +1001,7 @@ namespace ACESim
             int[] nextAvgStratPiValues = Unroll_Commands.NewZeroArray(NumNonChancePlayers);
             Unroll_GetNextPiValues(avgStratPiValues, playerBeingOptimized, actionProbability, true, nextAvgStratPiValues);
 
-            // Close recorded slice at EndRepeatedRange before descending to children (e.g., Pre Bargaining Round of the next round).
+            // Close recorded slice at EndRepeatedRange before descending (e.g., Pre Bargaining Round of the next round).
             Unroll_EndRepeatedRangeBeforeDescendingIfNeeded(chanceNode.Decision);
 
             HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, action, chanceNode.Decision, chanceNode.DecisionIndex);
@@ -995,10 +1014,9 @@ namespace ACESim
                 TabbedText.TabIndent();
             }
 
-            int[] innerResult = Unroll_Commands.NewZeroArray(3);
-            Unroll_GeneralizedVanillaCFR(in nextHistoryPoint, playerBeingOptimized, nextPiValues, nextAvgStratPiValues, innerResult, false, playerBeingOptimized == NumNonChancePlayers - 1);
-
-            Unroll_Commands.CopyToExisting(resultArray, innerResult);
+            // *** Key change: write child results directly into the stable caller-provided buffer ***
+            Unroll_Commands.ZeroExisting(resultArray);
+            Unroll_GeneralizedVanillaCFR(in nextHistoryPoint, playerBeingOptimized, nextPiValues, nextAvgStratPiValues, resultArray, false, playerBeingOptimized == NumNonChancePlayers - 1);
 
             if (TraceCFR)
             {
@@ -1019,6 +1037,7 @@ namespace ACESim
 
             Unroll_Commands.DecrementDepth();
         }
+
 
 
         private void Unroll_GetNextPiValues(int[] currentPiValues, byte playerIndex, int probabilityToMultiplyBy, bool changeOtherPlayers, int[] resultArray)
