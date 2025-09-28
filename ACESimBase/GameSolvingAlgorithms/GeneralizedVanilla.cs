@@ -355,8 +355,6 @@ namespace ACESim
                     Unroll_Commands.StartCommandChunk(false, null, "Optimizing player " + p.ToString());
                     if (EvolutionSettings.IncludeCommentsWhenUnrolling)
                         Unroll_Commands.InsertComment($"Player {p}: optimization block start");
-                    if (TraceCFR && EvolutionSettings.UnrollTemplateIdenticalRanges)
-                        throw new Exception("Trace mechanism won't work with repeat identical ranges.");
                     if (TraceCFR)
                         TabbedText.WriteLine($"Unrolling for Player {p}");
                     Unroll_GeneralizedVanillaCFR(in historyPoint, p, Unroll_InitialPiValuesIndices, Unroll_InitialAvgStratPiValuesIndices, Unroll_IterationResultForPlayersIndices[p], true, takeSymmetryShortcut || p == NumNonChancePlayers - 1);
@@ -766,8 +764,12 @@ namespace ACESim
 
                 Unroll_Commands.CopyToExisting(expectedValueOfAction[action - 1], innerResult[Unroll_Result_CurrentVsCurrentIndex]);
 
-                // When inside a repeated-range window, route *outer* writes via ordered destinations.
-                bool toOriginal = algorithmIsLowestDepth || Unroll_InRepeatedRange;
+                // Route outer writes via ordered destinations while inside a repeated-range window,
+                // OR when this decision is the BeginRepeatedRange (so the window may already be closed by children).
+                bool toOriginal =
+                    algorithmIsLowestDepth
+                    || Unroll_InRepeatedRange
+                    || (informationSet.Decision.BeginRepeatedRange && EvolutionSettings.UnrollTemplateRepeatedRanges);
 
                 if (playerMakingDecision == playerBeingOptimized)
                 {
@@ -875,7 +877,6 @@ namespace ACESim
             Unroll_CloseRepeatedRangeAtScopeExitIfOwner(informationSet.Decision);
         }
 
-
         private void Unroll_GeneralizedVanillaCFR_ChanceNode(in HistoryPoint historyPoint, byte playerBeingOptimized, int[] piValues, int[] avgStratPiValues, int[] resultArray, bool algorithmIsLowestDepth)
         {
             IGameState gameStateForCurrentPlayer = GetGameState(in historyPoint);
@@ -931,10 +932,16 @@ namespace ACESim
                     chanceNode, action, probabilityAdjustedInnerResult, false,
                     useIdenticalRepeat);
 
-                // Route outer writes via ordered destinations while inside a repeated-range window.
+                // Route outer writes via ordered destinations while inside a repeated-range window
+                // OR when this decision is the BeginRepeatedRange (so the window may already be closed by children).
+                bool routeToOrderedDests =
+                    algorithmIsLowestDepth
+                    || Unroll_InRepeatedRange
+                    || (chanceNode.Decision.BeginRepeatedRange && EvolutionSettings.UnrollTemplateRepeatedRanges);
+
                 Unroll_Commands.IncrementArrayBy(
                     resultArray,
-                    algorithmIsLowestDepth || Unroll_InRepeatedRange,
+                    routeToOrderedDests,
                     probabilityAdjustedInnerResult);
 
                 if (useIdenticalRepeat)
@@ -954,6 +961,10 @@ namespace ACESim
             Unroll_EndRepeatedRangeIfNeeded(chanceNode.Decision);
             Unroll_CloseRepeatedRangeAtScopeExitIfOwner(chanceNode.Decision);
         }
+
+
+
+
 
         private void Unroll_GeneralizedVanillaCFR_ChanceNode_NextAction(in HistoryPoint historyPoint, byte playerBeingOptimized, int[] piValues, int[] avgStratPiValues, ChanceNode chanceNode, byte action, int[] resultArray, bool algorithmIsLowestDepth, bool suppressCommentsForRepeat)
         {
