@@ -1133,22 +1133,36 @@ namespace ACESim
             }
         }
 
-        private void Unroll_MaybeStageParametersForRepeatedRange(Decision d, ref int[] piValues, ref int[] avgStratPiValues)
+        private void Unroll_MaybeStageParametersForRepeatedRange(Decision d,
+            ref int[] piValues,
+            ref int[] avgStratPiValues)
         {
-            // Only stage once, at the top of a repeated range, before we open it.
+            // Only stage for the owner Begin, once per round, before opening the window.
             if (!(EvolutionSettings.UnrollTemplateRepeatedRanges && d != null && d.BeginRepeatedRange))
                 return;
 
-            // If we're already inside a repeated range, this BeginRepeatedRange belongs
-            // to a descendant while the recorder is replaying the parent's commands—skip.
-            if (Unroll_InRepeatedRange)
-                return;
+            // Stage π and π̄ via ordered sources so the recorded commands are identical
+            // across repeats, while the per-round variability lives in OrderedSourceIndices.
+            int numPlayers = NumNonChancePlayers;
 
-            // Snapshot the current live pi arrays into the stable, per-round slots.
-            Unroll_Commands.CopyToExisting(Unroll_RepeatedRoundParamPiIndices,         piValues);
-            Unroll_Commands.CopyToExisting(Unroll_RepeatedRoundParamAvgStratPiIndices, avgStratPiValues);
+            int[] tempPi = new int[numPlayers];
+            int[] tempAvg = new int[numPlayers];
 
-            // From here on within the range, use the stable indices so the body replays identically.
+            for (int p = 0; p < numPlayers; p++)
+            {
+                // NextSource → appends live source to OrderedSourceIndices; command is repeat-stable
+                tempPi[p]  = Unroll_Commands.CopyToNew(piValues[p],          fromOriginalSources: true);
+                tempAvg[p] = Unroll_Commands.CopyToNew(avgStratPiValues[p],  fromOriginalSources: true);
+            }
+
+            Unroll_Commands.ZeroExisting(Unroll_RepeatedRoundParamPiIndices);
+            Unroll_Commands.ZeroExisting(Unroll_RepeatedRoundParamAvgStratPiIndices);
+
+            // Copy staged temps into the fixed per-round parameter slots
+            Unroll_Commands.IncrementArrayBy(Unroll_RepeatedRoundParamPiIndices,         targetOriginals: false, indicesOfIncrements: tempPi);
+            Unroll_Commands.IncrementArrayBy(Unroll_RepeatedRoundParamAvgStratPiIndices, targetOriginals: false, indicesOfIncrements: tempAvg);
+
+            // From here on in this round, use the stable indices
             piValues         = Unroll_RepeatedRoundParamPiIndices;
             avgStratPiValues = Unroll_RepeatedRoundParamAvgStratPiIndices;
         }
