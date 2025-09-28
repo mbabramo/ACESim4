@@ -1135,7 +1135,7 @@ namespace ACESim
 
         private void Unroll_MaybeStageParametersForRepeatedRange(Decision d, ref int[] piValues, ref int[] avgStratPiValues)
         {
-            if (!(EvolutionSettings.UnrollTemplateIdenticalRanges && d != null && d.BeginRepeatedRange))
+            if (!(EvolutionSettings.UnrollTemplateRepeatedRanges && d != null && d.BeginRepeatedRange))
                 return;
 
             Unroll_Commands.CopyToExisting(Unroll_RepeatedRoundParamPiIndices,         piValues);
@@ -1144,6 +1144,7 @@ namespace ACESim
             piValues = Unroll_RepeatedRoundParamPiIndices;
             avgStratPiValues = Unroll_RepeatedRoundParamAvgStratPiIndices;
         }
+
 
 
         #endregion

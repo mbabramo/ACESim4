@@ -43,14 +43,19 @@ namespace ACESimBase.Util.ArrayProcessing
 
         #region InternalHelpers
 
-        public void AddCommand(ArrayCommand cmd)
+        private void AddCommand(ArrayCommand cmd)
         {
-            // Repeat-identical-range optimisation → verify identity
             if (_acl.RepeatingExistingCommandRange)
             {
                 var existing = _acl.UnderlyingCommands[NextCommandIndex];
                 if (!cmd.Equals(existing))
-                    throw new InvalidOperationException("Command mismatch in RepeatIdenticalRanges block.");
+                {
+                    string detail =
+                        $"Repeat-range mismatch at cmd {NextCommandIndex}: " +
+                        $"recorded {existing.CommandType} (idx={existing.Index}, src={existing.SourceIndex}) vs " +
+                        $"new {cmd.CommandType} (idx={cmd.Index}, src={cmd.SourceIndex}).";
+                    throw new InvalidOperationException(detail);
+                }
                 NextCommandIndex++;
                 return;
             }
@@ -67,16 +72,37 @@ namespace ACESimBase.Util.ArrayProcessing
             _acl.UnderlyingCommands[NextCommandIndex++] = cmd;
             if (NextArrayIndex > MaxArrayIndex) MaxArrayIndex = NextArrayIndex;
         }
+
         #endregion
 
         #region ScratchAllocation
+
         /// <summary>Create one scratch slot initialised to 0.</summary>
         public int NewZero()
         {
-            int slot = NextArrayIndex++;
-            AddCommand(new ArrayCommand(ArrayCommandType.Zero, slot, -1));
-            return slot;
+            if (_acl.RepeatingExistingCommandRange)
+            {
+                var existing = _acl.UnderlyingCommands[NextCommandIndex];
+                if (existing.CommandType != ArrayCommandType.Zero)
+                    throw new InvalidOperationException(
+                        $"Repeat-range expected Zero at cmd {NextCommandIndex} but found {existing.CommandType}.");
+
+                // Adopt the recorded target index and keep our allocator in sync.
+                int slot = existing.Index;
+                if (slot < 0)
+                    throw new InvalidOperationException($"Recorded Zero target index invalid: {slot}.");
+                NextArrayIndex = Math.Max(NextArrayIndex, slot + 1);
+
+                // Re-emit identically (recorder will verify & advance).
+                AddCommand(existing);
+                return slot;
+            }
+
+            int newSlot = NextArrayIndex++;
+            AddCommand(new ArrayCommand(ArrayCommandType.Zero, newSlot, -1));
+            return newSlot;
         }
+
 
         /// <summary>Create <paramref name="size"/> consecutive scratch slots initialised to 0.</summary>
         public int[] NewZeroArray(int size) => Enumerable.Range(0, size).Select(_ => NewZero()).ToArray();
@@ -90,20 +116,49 @@ namespace ACESimBase.Util.ArrayProcessing
 
         #region CopyArithmeticPrimitives
         /// <summary>Copy value from <paramref name="sourceIdx"/> into a <em>new</em> scratch slot.</summary>
+
+        /// <summary>Copy value from <paramref name="sourceIdx"/> into a <em>new</em> scratch slot.</summary>
         public int CopyToNew(int sourceIdx, bool fromOriginalSources)
         {
-            int target = NextArrayIndex++;
-            if (fromOriginalSources && _acl.UseOrderedSourcesAndDestinations)
+            bool ordered = fromOriginalSources && _acl.UseOrderedSourcesAndDestinations;
+
+            if (_acl.RepeatingExistingCommandRange)
+            {
+                var existing = _acl.UnderlyingCommands[NextCommandIndex];
+                var expectedType = ordered ? ArrayCommandType.NextSource : ArrayCommandType.CopyTo;
+
+                if (existing.CommandType != expectedType)
+                    throw new InvalidOperationException(
+                        $"Repeat-range expected {expectedType} at cmd {NextCommandIndex} but found {existing.CommandType}.");
+
+                // Adopt the recorded target index and keep allocator in sync.
+                int target = existing.Index;
+                if (target < 0)
+                    throw new InvalidOperationException($"Recorded Copy target index invalid: {target}.");
+                NextArrayIndex = Math.Max(NextArrayIndex, target + 1);
+
+                // We must still queue the live ordered source index for this repetition.
+                if (ordered)
+                    _acl.OrderedSourceIndices.Add(sourceIdx);
+
+                // Re-emit identically; recorder will verify & advance.
+                AddCommand(existing);
+                return target;
+            }
+
+            int newTarget = NextArrayIndex++;
+            if (ordered)
             {
                 _acl.OrderedSourceIndices.Add(sourceIdx);
-                AddCommand(new ArrayCommand(ArrayCommandType.NextSource, target, -1));
+                AddCommand(new ArrayCommand(ArrayCommandType.NextSource, newTarget, -1));
             }
             else
             {
-                AddCommand(new ArrayCommand(ArrayCommandType.CopyTo, target, sourceIdx));
+                AddCommand(new ArrayCommand(ArrayCommandType.CopyTo, newTarget, sourceIdx));
             }
-            return target;
+            return newTarget;
         }
+
 
         public int[] CopyToNew(int[] sourceIndices, bool fromOriginalSources) =>
             sourceIndices.Select(idx => CopyToNew(idx, fromOriginalSources)).ToArray();
