@@ -238,11 +238,35 @@ namespace ACESimBase.Util.ArrayProcessing
 
         public void CopyToExisting(int index, int sourceIndex)
         {
-            if (index == ArrayCommandList.CheckpointTrigger)
-                AddCommand(new ArrayCommand(ArrayCommandType.Checkpoint, ArrayCommandList.CheckpointTrigger,  sourceIndex));
+            // Special-case checkpoints exactly as before.
+            bool isCheckpoint = index == ArrayCommandList.CheckpointTrigger;
+
+            if (_acl.RepeatingExistingCommandRange)
+            {
+                // During identical-range replay we must match the recorded target index
+                // (just like CopyToNew / NewZero do for allocations).
+                var expected = _acl.UnderlyingCommands[NextCommandIndex];
+
+                var expectedKind = isCheckpoint ? ArrayCommandType.Checkpoint : ArrayCommandType.CopyTo;
+                if (expected.CommandType != expectedKind)
+                {
+                    // Surface a structured mismatch with full context
+                    ThrowRepeatMismatch(new ArrayCommand(expectedKind, index, sourceIndex), expected);
+                }
+
+                // Use the recorded target index to keep the template byte-stable.
+                int recordedTarget = expected.Index;
+                AddCommand(new ArrayCommand(expectedKind, recordedTarget, sourceIndex));
+                return;
+            }
+
+            // Normal recording path (unchanged)
+            if (isCheckpoint)
+                AddCommand(new ArrayCommand(ArrayCommandType.Checkpoint, ArrayCommandList.CheckpointTrigger, sourceIndex));
             else
                 AddCommand(new ArrayCommand(ArrayCommandType.CopyTo, index, sourceIndex));
         }
+
 
         public void CopyToExisting(int[] indices, int[] sourceIndices)
         {
@@ -275,8 +299,26 @@ namespace ACESimBase.Util.ArrayProcessing
         #endregion
 
         #region ZeroHelpers
-        public void ZeroExisting(int index) =>
+        public void ZeroExisting(int index)
+        {
+            if (_acl.RepeatingExistingCommandRange)
+            {
+                // Mirror CopyToExisting replay behavior: align to recorded target.
+                var expected = _acl.UnderlyingCommands[NextCommandIndex];
+                if (expected.CommandType != ArrayCommandType.Zero)
+                {
+                    ThrowRepeatMismatch(new ArrayCommand(ArrayCommandType.Zero, index, -1), expected);
+                }
+
+                int recordedTarget = expected.Index;
+                AddCommand(new ArrayCommand(ArrayCommandType.Zero, recordedTarget, -1));
+                return;
+            }
+
+            // Normal recording path
             AddCommand(new ArrayCommand(ArrayCommandType.Zero, index, -1));
+        }
+
 
         public void ZeroExisting(int[] indices)
         {

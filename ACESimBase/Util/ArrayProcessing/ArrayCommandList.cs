@@ -68,8 +68,8 @@ namespace ACESimBase.Util.ArrayProcessing
         // ──────────────────────────────────────────────────────────────────────
         public bool Parallelize = false;
         public int MaxCommandsPerSplittableChunk = 10_000;
-        public bool ReuseScratchSlots => true;
-        public bool RepeatIdenticalRanges => ReuseScratchSlots;
+        public bool ReuseScratchSlots { get; set; } = true;
+        public bool RepeatIdenticalRanges => true;
 
         // ──────────────────────────────────────────────────────────────────────
         //  Chunk tree
