@@ -49,7 +49,7 @@ namespace ACESimBase.Util.ArrayProcessing
 
         #region InternalHelpers
 
-        private void AddCommand(ArrayCommand cmd)
+        public void AddCommand(ArrayCommand cmd)
         {
             // Always remember what we were about to emit (for debug on mismatch)
             RememberNewCandidate(cmd);
@@ -296,25 +296,29 @@ namespace ACESimBase.Util.ArrayProcessing
             if (_acl.RepeatingExistingCommandRange)
             {
                 var expected = _acl.UnderlyingCommands[NextCommandIndex];
-                // In ordered-source mode the first recording will have emitted NextSource; otherwise CopyTo.
                 bool expectNextSource = expected.CommandType == ArrayCommandType.NextSource;
                 bool expectCopyTo     = expected.CommandType == ArrayCommandType.CopyTo;
+
                 if (!expectNextSource && !expectCopyTo)
-                    throw new InvalidOperationException($"Repeat-range mismatch at cmd {NextCommandIndex}: recorded {expected.CommandType} vs new {(fromOriginalSources && _acl.UseOrderedSourcesAndDestinations ? "NextSource" : "CopyTo")}.");
+                    throw new InvalidOperationException(
+                        $"Repeat-range mismatch at cmd {NextCommandIndex}: recorded {expected.CommandType} vs new {(fromOriginalSources && _acl.UseOrderedSourcesAndDestinations ? "NextSource" : "CopyTo")}.");
 
                 int target = expected.Index;
-                if (target + 1 > NextArrayIndex) NextArrayIndex = target + 1;
+                if (target + 1 > NextArrayIndex)
+                    NextArrayIndex = target + 1;
 
+                // During replay, emit the exact recorded command to stay byte-identical.
                 if (expectNextSource)
                 {
-                    // Keep ordered-source side effect identical on repeats.
+                    // Maintain ordered-sources side-effect shape for the replayed NextSource.
                     _acl.OrderedSourceIndices.Add(sourceIdx);
-                    AddCommand(new ArrayCommand(ArrayCommandType.NextSource, target, -1));
+                    AddCommand(expected);
                 }
                 else
                 {
-                    AddCommand(new ArrayCommand(ArrayCommandType.CopyTo, target, sourceIdx));
+                    AddCommand(expected);
                 }
+
                 return target;
             }
 
@@ -332,40 +336,44 @@ namespace ACESimBase.Util.ArrayProcessing
         }
 
 
-
-        public int[] CopyToNew(int[] sourceIndices, bool fromOriginalSources) =>
-            sourceIndices.Select(idx => CopyToNew(idx, fromOriginalSources)).ToArray();
-
         public void CopyToExisting(int index, int sourceIndex)
         {
-            // Special-case checkpoints exactly as before.
+            InsertComment($"[COPY/EXIST] idx={index} src={sourceIndex} replay={_acl.RepeatingExistingCommandRange}");
+
             bool isCheckpoint = index == ArrayCommandList.CheckpointTrigger;
 
             if (_acl.RepeatingExistingCommandRange)
             {
-                // During identical-range replay we must match the recorded target index
-                // (just like CopyToNew / NewZero do for allocations).
                 var expected = _acl.UnderlyingCommands[NextCommandIndex];
-
                 var expectedKind = isCheckpoint ? ArrayCommandType.Checkpoint : ArrayCommandType.CopyTo;
+
                 if (expected.CommandType != expectedKind)
                 {
-                    // Surface a structured mismatch with full context
+                    // Keep strict mismatch for opcode/shape differences
                     ThrowRepeatMismatch(new ArrayCommand(expectedKind, index, sourceIndex), expected);
                 }
 
-                // Use the recorded target index to keep the template byte-stable.
+                // Reproduce the recorded command EXACTLY during replay (target + source).
                 int recordedTarget = expected.Index;
-                AddCommand(new ArrayCommand(expectedKind, recordedTarget, sourceIndex));
+                if (recordedTarget + 1 > NextArrayIndex)
+                    NextArrayIndex = recordedTarget + 1;
+
+                AddCommand(expected); // identical to recorded; advances NextCommandIndex
                 return;
             }
 
-            // Normal recording path (unchanged)
             if (isCheckpoint)
                 AddCommand(new ArrayCommand(ArrayCommandType.Checkpoint, ArrayCommandList.CheckpointTrigger, sourceIndex));
             else
                 AddCommand(new ArrayCommand(ArrayCommandType.CopyTo, index, sourceIndex));
         }
+
+
+
+        public int[] CopyToNew(int[] sourceIndices, bool fromOriginalSources) =>
+            sourceIndices.Select(idx => CopyToNew(idx, fromOriginalSources)).ToArray();
+
+
 
 
         public void CopyToExisting(int[] indices, int[] sourceIndices)
@@ -383,7 +391,7 @@ namespace ACESimBase.Util.ArrayProcessing
         /// <summary>Increment or stage-increment slot <paramref name="idx"/> by value from <paramref name="incIdx"/>.</summary>
         public void Increment(int idx, bool targetOriginal, int incIdx)
         {
-            InsertComment($"[ROUTE] Increment targetOriginal={targetOriginal} idx={idx} src={incIdx}");
+            InsertComment($"[ROUTE] Increment targetOriginal={targetOriginal} idx={idx} src={incIdx} inRepeat={_acl.RepeatingExistingCommandRange} useOSOD={_acl.UseOrderedSourcesAndDestinations}");
 
             if (targetOriginal && _acl.UseOrderedSourcesAndDestinations)
             {
@@ -395,6 +403,7 @@ namespace ACESimBase.Util.ArrayProcessing
                 AddCommand(new ArrayCommand(ArrayCommandType.IncrementBy, idx, incIdx));
             }
         }
+
 
 
         public void Decrement(int idx, int decIdx) =>
@@ -588,6 +597,7 @@ namespace ACESimBase.Util.ArrayProcessing
         public List<string> CommentTable = new List<string>();
         public void InsertComment(string text)
         {
+            // During replay, only emit the comment if the recorded stream expects one here.
             if (_acl.RepeatingExistingCommandRange)
             {
                 var expected = _acl.UnderlyingCommands[NextCommandIndex];
@@ -596,20 +606,22 @@ namespace ACESimBase.Util.ArrayProcessing
                 {
                     int expectedId = expected.SourceIndex;
 
-                    // Ensure our local CommentTable can resolve the recorded id for later diagnostics.
+                    // Ensure local table can resolve the recorded id for later diagnostics.
                     EnsureCommentSlotWithText(expectedId, text);
 
                     AddCommand(new ArrayCommand(ArrayCommandType.Comment, -1, expectedId));
-                    return;
                 }
 
-                // Fall through and let AddCommand surface the mismatch (consistent behavior).
+                // If the recorded stream does not expect a comment at this position,
+                // do not emit one; silently skip to keep replay byte-identical.
+                return;
             }
 
             int id = CommentTable.Count;
             CommentTable.Add(text);
             AddCommand(new ArrayCommand(ArrayCommandType.Comment, -1, id));
         }
+
 
 
 

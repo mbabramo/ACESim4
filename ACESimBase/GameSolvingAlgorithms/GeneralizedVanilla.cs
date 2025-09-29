@@ -1049,16 +1049,15 @@ namespace ACESim
             Unroll_Commands.DecrementDepth();
         }
 
-
-
         private void Unroll_GetNextPiValues(int[] currentPiValues, byte playerIndex, int probabilityToMultiplyBy, bool changeOtherPlayers, int[] resultArray)
         {
             if (EvolutionSettings.IncludeCommentsWhenUnrolling)
-                Unroll_Commands.InsertComment($"Compute next π: current pi Values: {String.Join(",", currentPiValues)} player index {playerIndex}");
+                Unroll_Commands.InsertComment($"Compute next π: current pi Values: {string.Join(",", currentPiValues)} player index {playerIndex}");
             Unroll_Commands.IncrementDepth();
             for (byte p = 0; p < NumNonChancePlayers; p++)
             {
                 int currentPiValue = currentPiValues[p];
+                Unroll_Commands.InsertComment($"[NEXTPI/COPY] p={p} dest={resultArray[p]} src={currentPiValue}");
                 Unroll_Commands.CopyToExisting(resultArray[p], currentPiValue);
                 if (p == playerIndex)
                 {
@@ -1074,6 +1073,7 @@ namespace ACESim
             Unroll_Commands.DecrementDepth();
         }
 
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void Unroll_GetInversePiValue(int[] piValues, byte playerIndex, int inversePiValueResult)
         {
@@ -1086,11 +1086,16 @@ namespace ACESim
             Unroll_Commands.IncrementDepth();
 
             if (NumNonChancePlayers == 2)
-                Unroll_Commands.CopyToExisting(inversePiValueResult, piValues[(byte)1 - playerIndex]);
+            {
+                int src = piValues[(byte)1 - playerIndex];
+                Unroll_Commands.InsertComment($"[INVPI/COPY] dest={inversePiValueResult} src={src}");
+                Unroll_Commands.CopyToExisting(inversePiValueResult, src);
+            }
             else
             {
                 bool firstPlayerOtherThanMainFound = false;
                 for (byte p = 0; p < NumNonChancePlayers; p++)
+                {
                     if (p != playerIndex)
                     {
                         if (firstPlayerOtherThanMainFound)
@@ -1099,10 +1104,13 @@ namespace ACESim
                         }
                         else
                         {
-                            Unroll_Commands.CopyToExisting(inversePiValueResult, piValues[p]);
+                            int src = piValues[p];
+                            Unroll_Commands.InsertComment($"[INVPI/COPY] dest={inversePiValueResult} src={src}");
+                            Unroll_Commands.CopyToExisting(inversePiValueResult, src);
                             firstPlayerOtherThanMainFound = true;
                         }
                     }
+                }
             }
 
             Unroll_Commands.DecrementDepth();
@@ -1112,6 +1120,7 @@ namespace ACESim
                 Unroll_Commands.CreateCheckpoint(inversePiValueResult);
             }
         }
+
 
 
         // Repeated-range state (BeginRepeatedRange/EndRepeatedRange)
