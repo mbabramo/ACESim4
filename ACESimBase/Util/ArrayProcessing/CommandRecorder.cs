@@ -47,21 +47,15 @@ namespace ACESimBase.Util.ArrayProcessing
         {
             if (_acl.RepeatingExistingCommandRange)
             {
-                var existing = _acl.UnderlyingCommands[NextCommandIndex];
-                if (!cmd.Equals(existing))
-                {
-                    string detail =
-                        $"Repeat-range mismatch at cmd {NextCommandIndex}: " +
-                        $"recorded {existing.CommandType} (idx={existing.Index}, src={existing.SourceIndex}) vs " +
-                        $"new {cmd.CommandType} (idx={cmd.Index}, src={cmd.SourceIndex}).";
-                    throw new InvalidOperationException(detail);
-                }
+                var expected = _acl.UnderlyingCommands[NextCommandIndex];
+                if (!cmd.Equals(expected))
+                    ThrowRepeatMismatch(cmd, expected);
+
                 NextCommandIndex++;
                 return;
             }
 
-            // Ensure capacity (hard ceiling = 1 billion commands to prevent OOM)
-            const int HARD_LIMIT = 1_000_000_000;
+            const int HARD_LIMIT = 1_000_000_000; // 1B safety cap
             if (NextCommandIndex >= _acl.UnderlyingCommands.Length)
             {
                 if (_acl.UnderlyingCommands.Length >= HARD_LIMIT)
@@ -72,6 +66,91 @@ namespace ACESimBase.Util.ArrayProcessing
             _acl.UnderlyingCommands[NextCommandIndex++] = cmd;
             if (NextArrayIndex > MaxArrayIndex) MaxArrayIndex = NextArrayIndex;
         }
+
+        // Add these helpers in CommandRecorder
+        private void ThrowRepeatMismatch(in ArrayCommand newCmd, in ArrayCommand recorded)
+        {
+            var sb = new System.Text.StringBuilder();
+
+            sb.AppendLine("Repeat-range mismatch");
+            sb.AppendLine($"  at cmd index: {NextCommandIndex}");
+            sb.AppendLine($"  recorded: {RenderCommand(recorded)}");
+            sb.AppendLine($"  new     : {RenderCommand(newCmd)}");
+            sb.AppendLine();
+
+            // Recorder / ACL state that influences repeat determinism
+            sb.AppendLine("Recorder/ACL state:");
+            sb.AppendLine($"  UseOrderedSourcesAndDestinations: {_acl.UseOrderedSourcesAndDestinations}");
+            sb.AppendLine($"  RepeatIdenticalRanges           : {_acl.RepeatIdenticalRanges}");
+            sb.AppendLine($"  RepeatingExistingCommandRange   : {_acl.RepeatingExistingCommandRange}");
+            sb.AppendLine($"  ReuseScratchSlots               : {_acl.ReuseScratchSlots}");
+            sb.AppendLine($"  NextArrayIndex / MaxArrayIndex  : {NextArrayIndex} / {MaxArrayIndex}");
+            sb.AppendLine($"  Depth frames                    : {_depthStartSlots.Count}");
+            sb.AppendLine();
+
+            // Nearest prior comment (often names decision/range)
+            int priorCommentIdx = -1;
+            for (int i = NextCommandIndex - 1; i >= 0 && i >= NextCommandIndex - 400; i--)
+            {
+                var c = _acl.UnderlyingCommands[i];
+                if (c.CommandType == ArrayCommandType.Comment)
+                {
+                    priorCommentIdx = i;
+                    break;
+                }
+            }
+            if (priorCommentIdx >= 0)
+            {
+                var c = _acl.UnderlyingCommands[priorCommentIdx];
+                string note = (c.SourceIndex >= 0 && c.SourceIndex < CommentTable.Count)
+                    ? CommentTable[c.SourceIndex]
+                    : "<unavailable>";
+                sb.AppendLine("Nearest prior comment:");
+                sb.AppendLine($"  @{priorCommentIdx}: {note}");
+                sb.AppendLine();
+            }
+
+            // Nearby recorded commands for context
+            int windowBefore = 16, windowAfter = 8;
+            int start = Math.Max(0, NextCommandIndex - windowBefore);
+            int end   = Math.Min(_acl.UnderlyingCommands.Length - 1, NextCommandIndex + windowAfter);
+
+            sb.AppendLine("Recorded commands near mismatch:");
+            for (int i = start; i <= end; i++)
+            {
+                var c = _acl.UnderlyingCommands[i];
+                // Stop early if we run into an uninitialized slot
+                if (i > NextCommandIndex && c.CommandType == ArrayCommandType.Blank && c.Index == -1 && c.SourceIndex == -1)
+                    break;
+
+                string row = $"{i:D6}: {RenderCommand(c)}";
+                if (c.CommandType == ArrayCommandType.Comment)
+                {
+                    string txt = (c.SourceIndex >= 0 && c.SourceIndex < CommentTable.Count)
+                        ? CommentTable[c.SourceIndex]
+                        : "<unavailable>";
+                    row += $"    // {txt}";
+                }
+                if (i == NextCommandIndex) row += "    << mismatch here";
+                sb.AppendLine(row);
+            }
+            sb.AppendLine();
+
+            // Ordered-source/destination tails (helpful for NextSource/NextDestination alignment)
+            static string Tail(System.Collections.Generic.IReadOnlyList<int> xs, int k = 12)
+                => xs == null || xs.Count == 0 ? "(empty)"
+                   : string.Join(", ", xs.Skip(Math.Max(0, xs.Count - k)));
+
+            sb.AppendLine("Ordered indices tails:");
+            sb.AppendLine($"  OrderedSourceIndices      : {Tail(_acl.OrderedSourceIndices)}");
+            sb.AppendLine($"  OrderedDestinationIndices : {Tail(_acl.OrderedDestinationIndices)}");
+
+            throw new InvalidOperationException(sb.ToString());
+        }
+
+        private static string RenderCommand(in ArrayCommand c) =>
+            $"{c.CommandType} (idx={c.Index}, src={c.SourceIndex})";
+
 
         #endregion
 

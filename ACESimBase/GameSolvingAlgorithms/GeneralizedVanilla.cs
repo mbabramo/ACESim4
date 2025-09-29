@@ -1121,18 +1121,20 @@ namespace ACESim
             Unroll_InRepeatedRange = true;
             Unroll_RepeatNestingDepth = 1;
             Unroll_RepeatOwnerDecision = decision;
+
+            // Breadcrumb for recorded slice
+            Unroll_Commands.InsertComment($"[REPEAT-BEGIN] decision={decision.Name} replaying={Unroll_ReplayingRepeatedRange} firstStart={Unroll_RepeatRangeFirstStartIndex}");
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void Unroll_EndRepeatedRangeBeforeDescendingIfNeeded(Decision decision)
         {
-            // Close the recorded slice after emitting the End decision's own commands,
-            // but BEFORE descending into its children (e.g., next round).
             if (decision == null || !decision.EndRepeatedRange || !EvolutionSettings.UnrollTemplateRepeatedRanges)
                 return;
 
             if (Unroll_InRepeatedRange && Unroll_RepeatNestingDepth == 1)
             {
+                Unroll_Commands.InsertComment($"[REPEAT-END   ] decision={decision.Name} (pre-descend close)");
                 Unroll_Commands.EndCommandChunk(endingRepeatedChunk: Unroll_ReplayingRepeatedRange);
                 Unroll_InRepeatedRange = false;
                 Unroll_ReplayingRepeatedRange = false;
@@ -1149,6 +1151,7 @@ namespace ACESim
 
             if (Unroll_InRepeatedRange && Unroll_RepeatNestingDepth == 1)
             {
+                Unroll_Commands.InsertComment($"[REPEAT-END   ] decision={decision.Name}");
                 Unroll_Commands.EndCommandChunk(endingRepeatedChunk: Unroll_ReplayingRepeatedRange);
                 Unroll_InRepeatedRange = false;
                 Unroll_ReplayingRepeatedRange = false;
@@ -1160,10 +1163,9 @@ namespace ACESim
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void Unroll_CloseRepeatedRangeAtScopeExitIfOwner(Decision decision)
         {
-            // Fallback: if no EndRepeatedRange was encountered anywhere under the Begin,
-            // close when unwinding the Begin decision's scope (handles early-settlement paths).
             if (Unroll_InRepeatedRange && Unroll_RepeatOwnerDecision == decision)
             {
+                Unroll_Commands.InsertComment($"[REPEAT-END   ] decision={decision.Name} (scope-exit fallback)");
                 Unroll_Commands.EndCommandChunk(endingRepeatedChunk: Unroll_ReplayingRepeatedRange);
                 Unroll_InRepeatedRange = false;
                 Unroll_ReplayingRepeatedRange = false;
@@ -1171,6 +1173,7 @@ namespace ACESim
                 Unroll_RepeatOwnerDecision = null;
             }
         }
+
 
         private void Unroll_MaybeStageParametersForRepeatedRange(Decision d,
             ref int[] piValues,
