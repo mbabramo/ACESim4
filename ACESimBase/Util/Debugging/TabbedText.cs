@@ -89,30 +89,36 @@ namespace ACESimBase.Util.Debugging
 
         private static void OutputAndAccumulate(StringBuilder builder)
         {
-            string localString = builder.ToString();
-            if (OutputEnabled)
+            lock (AccumulatedText)
             {
-                if (WriteToConsole)
+                string localString = builder.ToString();
+                if (OutputEnabled)
                 {
-                    bool isHiddenInitially = !ConsoleProgressStringVisible;
-                    if (!isHiddenInitially)
-                        HideConsoleProgressString();
+                    if (WriteToConsole)
+                    {
+                        bool isHiddenInitially = !ConsoleProgressStringVisible;
+                        if (!isHiddenInitially)
+                            HideConsoleProgressString();
 
-                    Console.Write(localString);
-                    if (localString.EndsWith("\r\n"))
-                        Console.Out.Flush();
-                    if (!isHiddenInitially)
-                        ShowConsoleProgressString();
+                        Console.Write(localString);
+                        if (localString.EndsWith("\r\n"))
+                            Console.Out.Flush();
+                        if (!isHiddenInitially)
+                            ShowConsoleProgressString();
+                    }
+                    else
+                        Debug.Write(localString);
                 }
-                else
-                    Debug.Write(localString);
+                AccumulatedText.Append(localString);
             }
-            AccumulatedText.Append(localString);
         }
 
         public static void ResetAccumulated()
         {
-            AccumulatedText = new StringBuilder();
+            lock (AccumulatedText)
+            {
+                AccumulatedText = new StringBuilder();
+            }
         }
 
         public static void WriteToFile(string baseDirectory, string subDirectory, string fileName, bool reset = true)

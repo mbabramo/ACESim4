@@ -21,7 +21,7 @@ namespace ACESimBase.GameSolvingSupport.Settings
         public bool IncludeCommentsWhenUnrolling = false;
         public bool UseCheckpointsWhenNotUnrolling = false; // for when unrolling, look at ArrayCommandList.UseCheckpoints
         public bool UnrollTemplateIdenticalRanges = true; // identical range here means when we have a chance node where the game structure is same for every chance value
-        public bool UnrollTemplateRepeatedRanges = true; // repeated range is a range (always within the last identical range, if any) of decisions starting with a chance and ending with a chance that are repeated one after the next within the same movement through the tree
+        public bool UnrollTemplateRepeatedRanges = false; // DEBUG // repeated range is a range (always within the last identical range, if any) of decisions starting with a chance and ending with a chance that are repeated one after the next within the same movement through the tree
         public ChunkExecutorKind Unroll_ChunkExecutorKind = ChunkExecutorKind.ILWithLocalVariableRecycling; 
         public bool ReuseUnrolledAlgorithm = true; // if the tree structure is the same, then it will be reused (but final utilities etc. will be updated)
         public bool SaveToAzureBlob = false;
