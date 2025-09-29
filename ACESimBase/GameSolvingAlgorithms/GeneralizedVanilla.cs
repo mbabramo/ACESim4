@@ -1074,9 +1074,17 @@ namespace ACESim
             Unroll_Commands.DecrementDepth();
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void Unroll_GetInversePiValue(int[] piValues, byte playerIndex, int inversePiValueResult)
         {
+            if (EvolutionSettings.IncludeCommentsWhenUnrolling)
+            {
+                Unroll_Commands.InsertComment(
+                    $"[INVPI] call: pIdx={playerIndex} dest={inversePiValueResult} sources=[{string.Join(",", piValues)}]");
+            }
+
             Unroll_Commands.IncrementDepth();
+
             if (NumNonChancePlayers == 2)
                 Unroll_Commands.CopyToExisting(inversePiValueResult, piValues[(byte)1 - playerIndex]);
             else
@@ -1096,8 +1104,15 @@ namespace ACESim
                         }
                     }
             }
+
             Unroll_Commands.DecrementDepth();
+
+            if (Unroll_Commands.UseCheckpoints)
+            {
+                Unroll_Commands.CreateCheckpoint(inversePiValueResult);
+            }
         }
+
 
         // Repeated-range state (BeginRepeatedRange/EndRepeatedRange)
         private bool Unroll_InRepeatedRange = false;
@@ -1133,9 +1148,10 @@ namespace ACESim
             Unroll_RepeatNestingDepth = 1;
             Unroll_RepeatOwnerDecision = decision;
 
-            // Breadcrumb for recorded slice
-            Unroll_Commands.InsertComment($"[REPEAT-BEGIN] decision={decision.Name} replaying={Unroll_ReplayingRepeatedRange} firstStart={Unroll_RepeatRangeFirstStartIndex}");
+            Unroll_Commands.InsertComment(
+                $"[REPEAT-BEGIN] decision={decision.Name} replaying={Unroll_ReplayingRepeatedRange} firstStart={Unroll_RepeatRangeFirstStartIndex} nextCI={Unroll_Commands.NextCommandIndex}");
         }
+
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void Unroll_EndRepeatedRangeBeforeDescendingIfNeeded(Decision decision)
@@ -1145,7 +1161,8 @@ namespace ACESim
 
             if (Unroll_InRepeatedRange && Unroll_RepeatNestingDepth == 1)
             {
-                Unroll_Commands.InsertComment($"[REPEAT-END   ] decision={decision.Name} (pre-descend close)");
+                Unroll_Commands.InsertComment(
+                    $"[REPEAT-END   ] decision={decision.Name} (pre-descend close) nextCI={Unroll_Commands.NextCommandIndex}");
                 Unroll_Commands.EndCommandChunk(endingRepeatedChunk: Unroll_ReplayingRepeatedRange);
                 Unroll_InRepeatedRange = false;
                 Unroll_ReplayingRepeatedRange = false;
@@ -1153,6 +1170,7 @@ namespace ACESim
                 Unroll_RepeatOwnerDecision = null;
             }
         }
+
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void Unroll_EndRepeatedRangeIfNeeded(Decision decision)
@@ -1162,7 +1180,8 @@ namespace ACESim
 
             if (Unroll_InRepeatedRange && Unroll_RepeatNestingDepth == 1)
             {
-                Unroll_Commands.InsertComment($"[REPEAT-END   ] decision={decision.Name}");
+                Unroll_Commands.InsertComment(
+                    $"[REPEAT-END   ] decision={decision.Name} nextCI={Unroll_Commands.NextCommandIndex}");
                 Unroll_Commands.EndCommandChunk(endingRepeatedChunk: Unroll_ReplayingRepeatedRange);
                 Unroll_InRepeatedRange = false;
                 Unroll_ReplayingRepeatedRange = false;
@@ -1170,13 +1189,15 @@ namespace ACESim
                 Unroll_RepeatOwnerDecision = null;
             }
         }
+
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void Unroll_CloseRepeatedRangeAtScopeExitIfOwner(Decision decision)
         {
             if (Unroll_InRepeatedRange && Unroll_RepeatOwnerDecision == decision)
             {
-                Unroll_Commands.InsertComment($"[REPEAT-END   ] decision={decision.Name} (scope-exit fallback)");
+                Unroll_Commands.InsertComment(
+                    $"[REPEAT-END   ] decision={decision.Name} (scope-exit fallback) nextCI={Unroll_Commands.NextCommandIndex}");
                 Unroll_Commands.EndCommandChunk(endingRepeatedChunk: Unroll_ReplayingRepeatedRange);
                 Unroll_InRepeatedRange = false;
                 Unroll_ReplayingRepeatedRange = false;
@@ -1186,16 +1207,21 @@ namespace ACESim
         }
 
 
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void Unroll_MaybeStageParametersForRepeatedRange(Decision d,
             ref int[] piValues,
             ref int[] avgStratPiValues)
         {
-            // Only stage for the owner Begin, once per round, before opening the window.
             if (!(EvolutionSettings.UnrollTemplateRepeatedRanges && d != null && d.BeginRepeatedRange))
                 return;
 
-            // Stage π and π̄ via ordered sources so the recorded commands are identical
-            // across repeats, while the per-round variability lives in OrderedSourceIndices.
+            if (EvolutionSettings.IncludeCommentsWhenUnrolling)
+            {
+                Unroll_Commands.InsertComment(
+                    $"[INVPI] staging-before: pi=[{string.Join(",", piValues)}] avgPi=[{string.Join(",", avgStratPiValues)}]");
+            }
+
             int numPlayers = NumNonChancePlayers;
 
             int[] tempPi = new int[numPlayers];
@@ -1203,23 +1229,25 @@ namespace ACESim
 
             for (int p = 0; p < numPlayers; p++)
             {
-                // NextSource → appends live source to OrderedSourceIndices; command is repeat-stable
-                tempPi[p]  = Unroll_Commands.CopyToNew(piValues[p],          fromOriginalSources: true);
-                tempAvg[p] = Unroll_Commands.CopyToNew(avgStratPiValues[p],  fromOriginalSources: true);
+                tempPi[p]  = Unroll_Commands.CopyToNew(piValues[p],         fromOriginalSources: true);
+                tempAvg[p] = Unroll_Commands.CopyToNew(avgStratPiValues[p], fromOriginalSources: true);
             }
 
             Unroll_Commands.ZeroExisting(Unroll_RepeatedRoundParamPiIndices);
             Unroll_Commands.ZeroExisting(Unroll_RepeatedRoundParamAvgStratPiIndices);
 
-            // Copy staged temps into the fixed per-round parameter slots
             Unroll_Commands.IncrementArrayBy(Unroll_RepeatedRoundParamPiIndices,         targetOriginals: false, indicesOfIncrements: tempPi);
             Unroll_Commands.IncrementArrayBy(Unroll_RepeatedRoundParamAvgStratPiIndices, targetOriginals: false, indicesOfIncrements: tempAvg);
 
-            // From here on in this round, use the stable indices
             piValues         = Unroll_RepeatedRoundParamPiIndices;
             avgStratPiValues = Unroll_RepeatedRoundParamAvgStratPiIndices;
-        }
 
+            if (EvolutionSettings.IncludeCommentsWhenUnrolling)
+            {
+                Unroll_Commands.InsertComment(
+                    $"[INVPI] staging-after: pi=[{string.Join(",", piValues)}] avgPi=[{string.Join(",", avgStratPiValues)}]");
+            }
+        }
 
 
         #endregion

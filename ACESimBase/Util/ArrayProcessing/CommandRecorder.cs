@@ -383,6 +383,8 @@ namespace ACESimBase.Util.ArrayProcessing
         /// <summary>Increment or stage-increment slot <paramref name="idx"/> by value from <paramref name="incIdx"/>.</summary>
         public void Increment(int idx, bool targetOriginal, int incIdx)
         {
+            InsertComment($"[ROUTE] Increment targetOriginal={targetOriginal} idx={idx} src={incIdx}");
+
             if (targetOriginal && _acl.UseOrderedSourcesAndDestinations)
             {
                 _acl.OrderedDestinationIndices.Add(idx);
@@ -393,6 +395,7 @@ namespace ACESimBase.Util.ArrayProcessing
                 AddCommand(new ArrayCommand(ArrayCommandType.IncrementBy, idx, incIdx));
             }
         }
+
 
         public void Decrement(int idx, int decIdx) =>
             AddCommand(new ArrayCommand(ArrayCommandType.DecrementBy, idx, decIdx));
@@ -544,18 +547,26 @@ namespace ACESimBase.Util.ArrayProcessing
         {
             _depthStartSlots.Push(NextArrayIndex);
             InsertIncrementDepthCommand();
+            InsertComment($"[DEPTH] op=INC nextAI={NextArrayIndex} frames={_depthStartSlots.Count} nextCI={NextCommandIndex}");
         }
+
 
         internal void DecrementDepth(bool completeCommandList = false)
         {
             InsertDecrementDepthCommand();
+
             int rewind = _depthStartSlots.Pop();
+            int before = NextArrayIndex;
+
             if (_acl.RepeatIdenticalRanges && _acl.ReuseScratchSlots)
                 NextArrayIndex = rewind;
+
+            InsertComment($"[DEPTH] op=DEC after nextAI={NextArrayIndex} rewind={rewind} before={before} frames={_depthStartSlots.Count} nextCI={NextCommandIndex}");
 
             if (_depthStartSlots.Count == 0 && completeCommandList)
                 _acl.CompleteCommandList();
         }
+
 
         internal void StartCommandChunk(bool runChildrenParallel,
                                         int? identicalStartCmdRange,
