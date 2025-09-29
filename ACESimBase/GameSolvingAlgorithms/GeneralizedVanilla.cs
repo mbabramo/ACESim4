@@ -891,7 +891,13 @@ namespace ACESim
         }
 
 
-        private void Unroll_GeneralizedVanillaCFR_ChanceNode(in HistoryPoint historyPoint, byte playerBeingOptimized, int[] piValues, int[] avgStratPiValues, int[] resultArray, bool algorithmIsLowestDepth)
+        private void Unroll_GeneralizedVanillaCFR_ChanceNode(
+            in HistoryPoint historyPoint,
+            byte playerBeingOptimized,
+            int[] piValues,
+            int[] avgStratPiValues,
+            int[] resultArray,
+            bool algorithmIsLowestDepth)
         {
             IGameState gameStateForCurrentPlayer = GetGameState(in historyPoint);
             ChanceNode chanceNode = (ChanceNode)gameStateForCurrentPlayer;
@@ -919,6 +925,8 @@ namespace ACESim
 
             if (useIdenticalRepeat && TraceCFR)
                 TabbedText.WriteLine($"Beginning identical range set for decision {chanceNode.Decision.Name}");
+            if (useIdenticalRepeat && EvolutionSettings.IncludeCommentsWhenUnrolling)
+                Unroll_Commands.InsertComment($"[IDENTICAL-BEGIN] decision={chanceNode.Decision.Name}");
 
             string repeatedChunkName = useIdenticalRepeat ? $"Chance {chanceNode.Decision.Name} identical-branch" : null;
             int? firstChunkStartIndex = null;
@@ -927,6 +935,8 @@ namespace ACESim
             {
                 if (EvolutionSettings.IncludeCommentsWhenUnrolling && !useIdenticalRepeat)
                     Unroll_Commands.InsertComment($"Chance node {chanceNode.Decision.Name} (node {chanceNode.ChanceNodeNumber}) action {action}");
+                if (useIdenticalRepeat && EvolutionSettings.IncludeCommentsWhenUnrolling)
+                    Unroll_Commands.InsertComment($"[IDENTICAL-ACTION] decision={chanceNode.Decision.Name} action={action}");
 
                 if (useIdenticalRepeat)
                 {
@@ -946,8 +956,6 @@ namespace ACESim
                     chanceNode, action, probabilityAdjustedInnerResult, false,
                     useIdenticalRepeat);
 
-                // Route outer writes via ordered destinations while inside a repeated-range window
-                // OR when this decision is the BeginRepeatedRange (so the window may already be closed by children).
                 bool routeToOrderedDests =
                     algorithmIsLowestDepth
                     || Unroll_InRepeatedRange
@@ -969,12 +977,15 @@ namespace ACESim
 
             if (useIdenticalRepeat && TraceCFR)
                 TabbedText.WriteLine($"Ending identical range set for decision {chanceNode.Decision.Name}");
+            if (useIdenticalRepeat && EvolutionSettings.IncludeCommentsWhenUnrolling)
+                Unroll_Commands.InsertComment($"[IDENTICAL-END] decision={chanceNode.Decision.Name}");
 
             Unroll_Commands.DecrementDepth();
 
             Unroll_EndRepeatedRangeIfNeeded(chanceNode.Decision);
             Unroll_CloseRepeatedRangeAtScopeExitIfOwner(chanceNode.Decision);
         }
+
 
         private void Unroll_GeneralizedVanillaCFR_ChanceNode_NextAction(
             in HistoryPoint historyPoint,
