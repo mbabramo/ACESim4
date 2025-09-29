@@ -435,11 +435,41 @@ namespace ACESimBase.Util.ArrayProcessing
         public List<string> CommentTable = new List<string>();
         public void InsertComment(string text)
         {
+            // During repeat playback, do not allocate a new comment row-id.
+            // Reuse the recorded SourceIndex so the command matches byte-for-byte.
+            if (_acl.RepeatingExistingCommandRange)
+            {
+                // We expect the next recorded command to be a Comment; if not,
+                // let AddCommand handle the mismatch uniformly.
+                var expected = _acl.UnderlyingCommands[NextCommandIndex];
+
+                if (expected.CommandType == ArrayCommandType.Comment)
+                {
+                    // Optional sanity: if we have a recorded text, compare it to 'text'.
+                    // We still reuse the recorded id to keep the template stable.
+                    int expectedId = expected.SourceIndex;
+                    if ((uint)expectedId < (uint)CommentTable.Count)
+                    {
+                        string recordedText = CommentTable[expectedId];
+                        // If desired, you could assert equality here in DEBUG builds:
+                        // System.Diagnostics.Debug.Assert(recordedText == text,
+                        //     $"Repeat comment text differs. Recorded='{recordedText}' New='{text}'");
+                    }
+
+                    AddCommand(new ArrayCommand(ArrayCommandType.Comment, -1, expectedId));
+                    return;
+                }
+
+                // Fall through: emit and let AddCommand surface the structured mismatch
+                // (this keeps behavior consistent with other command kinds).
+            }
+
+            // Normal (recording) path: allocate a fresh comment row-id.
             int id = CommentTable.Count;
             CommentTable.Add(text);
-            // we store the comment’s row‑id in SourceIndex
             AddCommand(new ArrayCommand(ArrayCommandType.Comment, -1, id));
         }
+
 
         /// <summary>
         /// Insert a placeholder “Blank” command and return its position in the command buffer
