@@ -22,12 +22,6 @@ namespace ACESim
 
         }
 
-        #region Options and variables
-
-        public static bool TraceCFR = true; // DEBUG
-
-        #endregion
-
         #region Misc
 
         public byte SampleAction(Span<double> actionProbabilities, byte numPossibleActions, double randomNumber)

@@ -34,15 +34,13 @@ namespace ACESimTest
         [DataRow(true, true)]
         public async Task SameResultsRollingAndUnrolling(bool randomInformationSets, bool largerTree)
         {
-
-            CounterfactualRegretMinimization.TraceCFR = false;
-
             EvolutionSettings evolutionSettings = new EvolutionSettings();
             evolutionSettings.TotalIterations = 100;
             evolutionSettings.UnrollAlgorithm = false;
             evolutionSettings.UnrollTemplateIdenticalRanges = false;
             evolutionSettings.UnrollTemplateRepeatedRanges = false;
             evolutionSettings.Unroll_ChunkExecutorKind = ChunkExecutorKind.Interpreted;
+            evolutionSettings.TraceCFR = false;
 
             double[] notUnrolled = await DevelopStrategyAndGetUtilities(randomInformationSets, largerTree, evolutionSettings);
 
@@ -63,12 +61,12 @@ namespace ACESimTest
         [DataRow(true, true)]
         public async Task EachExecutorProducesSameResults(bool randomInformationSets, bool largerTree)
         {
-            CounterfactualRegretMinimization.TraceCFR = false;
             EvolutionSettings evolutionSettings = new EvolutionSettings();
             evolutionSettings.TotalIterations = 100;
             evolutionSettings.UnrollAlgorithm = true;
             evolutionSettings.UnrollTemplateIdenticalRanges = true;
             evolutionSettings.UnrollTemplateRepeatedRanges = true;
+            evolutionSettings.TraceCFR = false;
             List<double[]> results = new();
 
             foreach (ChunkExecutorKind kind in new ChunkExecutorKind[] { ChunkExecutorKind.Interpreted, ChunkExecutorKind.Roslyn, ChunkExecutorKind.RoslynWithLocalVariableRecycling, ChunkExecutorKind.IL, ChunkExecutorKind.ILWithLocalVariableRecycling })

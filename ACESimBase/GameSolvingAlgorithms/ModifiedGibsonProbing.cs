@@ -43,16 +43,16 @@ namespace ACESim
         public double[] ModifiedGibsonProbe(in HistoryPoint historyPoint, IRandomProducer randomProducer)
         {
             IGameState gameStateForCurrentPlayer = GetGameState(in historyPoint);
-            //if (TraceCFR)
+            //if (EvolutionSettings.TraceCFR)
             //    TabbedText.WriteLine($"Probe optimizing player {playerBeingOptimized}");
             GameStateTypeEnum gameStateType = gameStateForCurrentPlayer.GetGameStateType();
             if (gameStateType == GameStateTypeEnum.FinalUtilities)
             {
-                if (TraceCFR && Navigation.LookupApproach == InformationSetLookupApproach.PlayGameDirectly)
+                if (EvolutionSettings.TraceCFR && Navigation.LookupApproach == InformationSetLookupApproach.PlayGameDirectly)
                     TabbedText.WriteLine($"{historyPoint.GameProgress}");
                 FinalUtilitiesNode finalUtilities = (FinalUtilitiesNode)gameStateForCurrentPlayer;
                 var utility = finalUtilities.Utilities;
-                if (TraceCFR)
+                if (EvolutionSettings.TraceCFR)
                     TabbedText.WriteLine($"Utility returned {String.Join(",", utility)}");
                 return utility;
             }
@@ -74,7 +74,7 @@ namespace ACESim
             informationSet.GetRegretMatchingProbabilities(actionProbabilities);
             byte sampledAction = SampleAction(actionProbabilities, numPossibleActions,
                 randomProducer.GetDoubleAtIndex(informationSet.DecisionIndex));
-            if (TraceCFR)
+            if (EvolutionSettings.TraceCFR)
                 TabbedText.WriteLine(
                     $"{sampledAction}: Sampled action {sampledAction} of {numPossibleActions} player {informationSet.PlayerIndex}");
             return CompleteModifiedGibsonProbe_InPlace(in historyPoint, randomProducer, sampledAction, informationSet.Decision, informationSet.DecisionIndex);
@@ -115,7 +115,7 @@ namespace ACESim
             { // Can sample just one path at this node.
                 byte sampledAction = chanceNode.SampleAction(numPossibleActions,
                     randomProducer.GetDoubleAtIndex(chanceNode.DecisionIndex));
-                if (TraceCFR)
+                if (EvolutionSettings.TraceCFR)
                     TabbedText.WriteLine(
                         $"{sampledAction}: Sampled chance action {sampledAction} of {numPossibleActions} with probability {chanceNode.GetActionProbability(sampledAction)}");
                 return CompleteModifiedGibsonProbe_InPlace(in historyPoint, randomProducer, sampledAction, chanceNode.Decision, chanceNode.DecisionIndex);
@@ -125,10 +125,10 @@ namespace ACESim
         private double[] CompleteModifiedGibsonProbe(in HistoryPoint historyPoint, IRandomProducer randomProducer, byte sampledAction, Decision nextDecision, byte nextDecisionIndex)
         {
             HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, sampledAction, nextDecision, nextDecisionIndex);
-            if (TraceCFR)
+            if (EvolutionSettings.TraceCFR)
                 TabbedText.TabIndent();
             double[] probeResult = ModifiedGibsonProbe(in nextHistoryPoint, randomProducer);
-            if (TraceCFR)
+            if (EvolutionSettings.TraceCFR)
             {
                 TabbedText.TabUnindent();
                 //TabbedText.WriteLine($"Actions to here: {nextHistoryPoint.GetActionsToHereString(Navigation)}");
@@ -141,10 +141,10 @@ namespace ACESim
         private double[] CompleteModifiedGibsonProbe_InPlace(in HistoryPoint historyPoint, IRandomProducer randomProducer, byte sampledAction, Decision nextDecision, byte nextDecisionIndex)
         {
             var nextHistoryPoint = historyPoint.SwitchToBranch(Navigation, sampledAction, nextDecision, nextDecisionIndex);
-            if (TraceCFR)
+            if (EvolutionSettings.TraceCFR)
                 TabbedText.TabIndent();
             double[] probeResult = ModifiedGibsonProbe(in nextHistoryPoint, randomProducer);
-            if (TraceCFR)
+            if (EvolutionSettings.TraceCFR)
             {
                 TabbedText.TabUnindent();
                 //TabbedText.WriteLine($"Actions to here: {nextHistoryPoint.GetActionsToHereString(Navigation)}");
@@ -157,13 +157,13 @@ namespace ACESim
         public double ModifiedGibsonProbe_WalkTree(in HistoryPoint historyPoint, byte playerBeingOptimized,
             double samplingProbabilityQ, IRandomProducer randomProducer, Decision nextDecision, byte nextDecisionIndex)
         {
-            if (TraceCFR)
+            if (EvolutionSettings.TraceCFR)
                 TabbedText.WriteLine($"WalkTree sampling probability {samplingProbabilityQ}");
             IGameState gameStateForCurrentPlayer = GetGameState(in historyPoint);
             if (gameStateForCurrentPlayer is FinalUtilitiesNode finalUtilities)
             {
                 var utility = finalUtilities.Utilities[playerBeingOptimized];
-                if (TraceCFR)
+                if (EvolutionSettings.TraceCFR)
                     TabbedText.WriteLine($"Utility returned {utility}");
                 return utility;
             }
@@ -194,7 +194,7 @@ namespace ACESim
             Span<double> samplingProbabilities = stackalloc double[numPossibleActions];
             informationSet.GetEpsilonAdjustedRegretMatchingProbabilities(samplingProbabilities, EvolutionSettings.EpsilonForMainPlayer);
             byte sampledAction = SampleAction(samplingProbabilities, numPossibleActions, randomDouble);
-            if (TraceCFR)
+            if (EvolutionSettings.TraceCFR)
                 TabbedText.WriteLine(
                     $"{sampledAction}: Sampled action {sampledAction} of {numPossibleActions} player {playerAtPoint} decision {informationSet.DecisionIndex} with regret-matched prob {sigmaRegretMatchedActionProbabilities[sampledAction - 1]}");
             Span<double> counterfactualValues = stackalloc double[numPossibleActions];
@@ -230,7 +230,7 @@ namespace ACESim
                     bestAction = action;
                     bestCumulativeRegretIncrement = cumulativeRegretIncrement;
                 }
-                if (TraceCFR)
+                if (EvolutionSettings.TraceCFR)
                 {
                     //TabbedText.WriteLine($"Optimizing {playerBeingOptimized} Actions to here {historyPoint.GetActionsToHereString(Navigation)} information set:{historyPoint.HistoryToPoint.GetPlayerInformationString(playerBeingOptimized, null)}"); 
                     TabbedText.WriteLine(
@@ -251,30 +251,30 @@ namespace ACESim
         {
             if (action == sampledAction)
             {
-                if (TraceCFR)
+                if (EvolutionSettings.TraceCFR)
                     TabbedText.WriteLine(
                         $"{action}: Sampling selected action {action} for player {informationSet.PlayerIndex} decision {informationSet.DecisionIndex}");
-                if (TraceCFR)
+                if (EvolutionSettings.TraceCFR)
                     TabbedText.TabIndent();
                 double samplingProbabilityQPrime = samplingProbabilityQ * samplingProbabilities[action - 1];
                 // IMPORTANT: Unlike Gibson probing, we don't record the result of the walk through the tree.
                 ModifiedGibsonProbe_WalkTree(in nextHistoryPoint, playerBeingOptimized,
                     samplingProbabilityQPrime, randomProducer, informationSet.Decision, informationSet.DecisionIndex);
-                if (TraceCFR)
+                if (EvolutionSettings.TraceCFR)
                     TabbedText.TabUnindent();
             }
             // IMPORTANT: Unlike Gibson probing, we use a probe to calculate all counterfactual values. 
-            if (TraceCFR)
+            if (EvolutionSettings.TraceCFR)
                 TabbedText.WriteLine(
                     $"{action}: ModifiedGibsonProbing action {action} for player {informationSet.PlayerIndex} decision {informationSet.DecisionIndex}");
-            if (TraceCFR)
+            if (EvolutionSettings.TraceCFR)
                 TabbedText.TabIndent();
             counterfactualValues[action - 1] =
                 ModifiedGibsonProbe_SinglePlayer(nextHistoryPoint, playerBeingOptimized, randomProducer);
             double summationDelta = sigmaRegretMatchedActionProbabilities[action - 1] *
                                     counterfactualValues[action - 1];
             summation += summationDelta;
-            if (TraceCFR)
+            if (EvolutionSettings.TraceCFR)
             {
                 TabbedText.TabUnindent();
                 TabbedText.WriteLine(
@@ -294,13 +294,13 @@ namespace ACESim
                     informationSet.IncrementCumulativeStrategy_Parallel(action, cumulativeStrategyIncrement);
                 else
                     informationSet.IncrementCumulativeStrategy(action, cumulativeStrategyIncrement);
-                if (TraceCFR)
+                if (EvolutionSettings.TraceCFR)
                     TabbedText.WriteLine(
                         $"Incrementing cumulative strategy for {action} by {cumulativeStrategyIncrement} to {informationSet.GetCumulativeStrategy(action)}");
             }
             byte sampledAction = SampleAction(sigmaRegretMatchedActionProbabilities, numPossibleActions,
                 randomDouble);
-            if (TraceCFR)
+            if (EvolutionSettings.TraceCFR)
                 TabbedText.WriteLine(
                     $"{sampledAction}: Sampled action {sampledAction} of {numPossibleActions} player {playerAtPoint} decision {informationSet.DecisionIndex} with regret-matched prob {sigmaRegretMatchedActionProbabilities[sampledAction - 1]}");
             if (Navigation.LookupApproach != InformationSetLookupApproach.PlayGameDirectly && historyPoint.BranchingIsReversible(Navigation, informationSet.Decision))
@@ -311,11 +311,11 @@ namespace ACESim
         private double ModifiedGibsonProbe_WalkTree_DecisionNode_OtherPlayer_NotReversible(in HistoryPoint historyPoint, byte playerBeingOptimized, double samplingProbabilityQ, IRandomProducer randomProducer, InformationSetNode informationSet, byte sampledAction)
         {
             HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, sampledAction, informationSet.Decision, informationSet.DecisionIndex);
-            if (TraceCFR)
+            if (EvolutionSettings.TraceCFR)
                 TabbedText.TabIndent();
             double walkTreeValue2 = ModifiedGibsonProbe_WalkTree(in nextHistoryPoint, playerBeingOptimized, samplingProbabilityQ,
                 randomProducer, informationSet.Decision, informationSet.DecisionIndex);
-            if (TraceCFR)
+            if (EvolutionSettings.TraceCFR)
             {
                 TabbedText.TabUnindent();
                 TabbedText.WriteLine($"Returning walk tree result {walkTreeValue2}");
@@ -327,11 +327,11 @@ namespace ACESim
         {
             IGameState gameStateOriginal = historyPoint.GameState;
             var nextHistoryPoint = historyPoint.SwitchToBranch(Navigation, sampledAction, informationSet.Decision, informationSet.DecisionIndex);
-            if (TraceCFR)
+            if (EvolutionSettings.TraceCFR)
                 TabbedText.TabIndent();
             double walkTreeValue = ModifiedGibsonProbe_WalkTree(in nextHistoryPoint, playerBeingOptimized, samplingProbabilityQ,
                 randomProducer, informationSet.Decision, informationSet.DecisionIndex);
-            if (TraceCFR)
+            if (EvolutionSettings.TraceCFR)
             {
                 TabbedText.TabUnindent();
                 TabbedText.WriteLine($"Returning walk tree result {walkTreeValue}");
@@ -361,16 +361,16 @@ namespace ACESim
 
         private double ModifiedGibsonProbe_WalkTree_ChanceNode_NotReversible(in HistoryPoint historyPoint, byte playerBeingOptimized, double samplingProbabilityQ, IRandomProducer randomProducer, ChanceNode chanceNode, byte sampledAction, byte numPossibleActions)
         {
-            if (TraceCFR)
+            if (EvolutionSettings.TraceCFR)
                 TabbedText.WriteLine(
                     $"{sampledAction}: Sampled action {sampledAction} of {numPossibleActions} for chance decision {chanceNode.DecisionIndex}");
             HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, sampledAction, chanceNode.Decision, chanceNode.DecisionIndex);
-            if (TraceCFR)
+            if (EvolutionSettings.TraceCFR)
                 TabbedText.TabIndent();
             // var actionsToHere = nextHistoryPoint.GetActionsToHereString(Navigation);
             double walkTreeValue = ModifiedGibsonProbe_WalkTree(in nextHistoryPoint, playerBeingOptimized, samplingProbabilityQ,
                 randomProducer, chanceNode.Decision, chanceNode.DecisionIndex);
-            if (TraceCFR)
+            if (EvolutionSettings.TraceCFR)
             {
                 TabbedText.TabUnindent();
                 TabbedText.WriteLine($"Returning walk tree result {walkTreeValue}");
@@ -380,17 +380,17 @@ namespace ACESim
 
         private double ModifiedGibsonProbe_WalkTree_ChanceNode_Reversible(in HistoryPoint historyPoint, byte playerBeingOptimized, double samplingProbabilityQ, IRandomProducer randomProducer, ChanceNode chanceNode, byte sampledAction, byte numPossibleActions)
         {
-            if (TraceCFR)
+            if (EvolutionSettings.TraceCFR)
                 TabbedText.WriteLine(
                     $"{sampledAction}: Sampled action {sampledAction} of {numPossibleActions} for chance decision {chanceNode.DecisionIndex}");
             var nextHistoryPoint = historyPoint.SwitchToBranch(Navigation, sampledAction, chanceNode.Decision, chanceNode.DecisionIndex);
-            if (TraceCFR)
+            if (EvolutionSettings.TraceCFR)
                 TabbedText.TabIndent();
             // var actionsToHere = nextHistoryPoint.GetActionsToHereString(Navigation);
             double walkTreeValue = ModifiedGibsonProbe_WalkTree(in nextHistoryPoint, playerBeingOptimized, samplingProbabilityQ,
                 randomProducer, chanceNode.Decision, chanceNode.DecisionIndex);
             GameDefinition.ReverseSwitchToBranchEffects(chanceNode.Decision, in nextHistoryPoint);
-            if (TraceCFR)
+            if (EvolutionSettings.TraceCFR)
             {
                 TabbedText.TabUnindent();
                 TabbedText.WriteLine($"Returning walk tree result {walkTreeValue}");
@@ -412,13 +412,13 @@ namespace ACESim
                         IRandomProducer randomProducer =
                             new ConsistentRandomSequenceProducer(iteration * 997 + playerBeingOptimized * 283 + GameNumber * 719);
                         HistoryPoint historyPoint = GetStartOfGameHistoryPoint();
-                        if (TraceCFR)
+                        if (EvolutionSettings.TraceCFR)
                         {
                             TabbedText.WriteLine($"{GameDefinition.OptionSetName} Iteration {iteration} Optimize player {playerBeingOptimized}");
                             TabbedText.TabIndent();
                         }
                         ModifiedGibsonProbe_WalkTree(in historyPoint, playerBeingOptimized, 1.0, randomProducer, GameDefinition.DecisionsExecutionOrder[0], 0);
-                        if (TraceCFR)
+                        if (EvolutionSettings.TraceCFR)
                             TabbedText.TabUnindent();
                     }
                 }
@@ -433,7 +433,7 @@ namespace ACESim
 
         public override async Task<ReportCollection> RunAlgorithm(string optionSetName)
         {
-            //TraceCFR = true;
+            //EvolutionSettings.TraceCFR = true;
             //GameProgressLogger.LoggingOn = true;
             GameProgressLogger.OutputLogMessages = true;
             ReportCollection reportCollection = new ReportCollection();
@@ -464,9 +464,9 @@ namespace ACESim
                 Parallelizer.Go(EvolutionSettings.ParallelOptimization, startingIteration, stopBefore, iteration =>
                 {
                     //if (iteration == 125092)
-                    //    TraceCFR = true;
+                    //    EvolutionSettings.TraceCFR = true;
                     //else
-                    //    TraceCFR = false;
+                    //    EvolutionSettings.TraceCFR = false;
                     ModifiedGibsonProbingCFRIteration(iteration);
                 }
                 );

@@ -186,7 +186,7 @@ namespace ACESim
 
         #region Unrolled preparation
 
-            // We can achieve considerable improvements in performance by unrolling the algorithm. Instead of traversing the tree, we simply have a series of simple commands that can be processed on an array. The challenge is that we need to create this series of commands. This section prepares for the copying of data between information sets and the array. We can compare the outcomes of the regular algorithm and the unrolled version (which should always be equal) by using TraceCFR = true.
+            // We can achieve considerable improvements in performance by unrolling the algorithm. Instead of traversing the tree, we simply have a series of simple commands that can be processed on an array. The challenge is that we need to create this series of commands. This section prepares for the copying of data between information sets and the array. We can compare the outcomes of the regular algorithm and the unrolled version (which should always be equal) by using EvolutionSettings.TraceCFR = true.
 
         private ArraySlots Unroll_Slots;
         private ArrayCommandList Unroll_Commands;
@@ -263,7 +263,7 @@ namespace ACESim
                 }
                 else
                     SaveWeightedGameProgressesAfterEachReport = false;
-                if (TraceCFR)
+                if (EvolutionSettings.TraceCFR)
                 { // only trace through iteration
                     string resultWithReplacementOfArray = TraceCommandList(array);
                     TabbedText.WriteLine(resultWithReplacementOfArray);
@@ -359,7 +359,7 @@ namespace ACESim
                     Unroll_Commands.StartCommandChunk(false, null, "Optimizing player " + p.ToString());
                     if (EvolutionSettings.IncludeCommentsWhenUnrolling)
                         Unroll_Commands.InsertComment($"Player {p}: optimization block start");
-                    if (TraceCFR)
+                    if (EvolutionSettings.TraceCFR)
                         TabbedText.WriteLine($"Unrolling for Player {p}");
                     Unroll_GeneralizedVanillaCFR(in historyPoint, p, Unroll_InitialPiValuesIndices, Unroll_InitialAvgStratPiValuesIndices, Unroll_IterationResultForPlayersIndices[p], true, takeSymmetryShortcut || p == NumNonChancePlayers - 1);
 
@@ -368,7 +368,7 @@ namespace ACESim
                     Unroll_Commands.EndCommandChunk();
                 }
                 Unroll_Commands.EndCommandChunk();
-                if (TraceCFR)
+                if (EvolutionSettings.TraceCFR)
                 {
                     TraceCFRTemplate = TabbedText.AccumulatedText.ToString()[stuffToDeleteTracing..];
                 }
@@ -403,7 +403,7 @@ namespace ACESim
             try
             {
                 Unroll_CopyInformationSetsToArray(array, copyChanceAndFinalUtilities);
-                Unroll_CommandListRunner.Run(Unroll_Commands, array, copyBackToOriginalData: true, trace: TraceCFR);
+                Unroll_CommandListRunner.Run(Unroll_Commands, array, copyBackToOriginalData: true, trace: EvolutionSettings.TraceCFR);
                 Unroll_CopyArrayToInformationSets(array);
                 Unroll_DetermineIterationResultForEachPlayer(array);
             }
@@ -805,7 +805,7 @@ namespace ACESim
                 if (EvolutionSettings.UnrollTemplateRepeatedRanges && informationSet.Decision.EndRepeatedRange)
                     _repeatTpl.CloseAtBoundary();
 
-                if (TraceCFR)
+                if (EvolutionSettings.TraceCFR)
                 {
                     int probabilityOfActionCopy = Unroll_Commands.CopyToNew(probabilityOfAction, false);
                     TabbedText.WriteLine(
@@ -863,7 +863,7 @@ namespace ACESim
 
                 Unroll_AddProductToResult(expectedValue, toOriginal: false, probabilityOfAction, expectedValueOfAction[action - 1]);
 
-                if (TraceCFR)
+                if (EvolutionSettings.TraceCFR)
                 {
                     int expectedValueOfActionCopy = Unroll_Commands.CopyToNew(expectedValueOfAction[action - 1], false);
                     int bestResponseExpectedValueCopy = Unroll_Commands.CopyToNew(resultArray[Unroll_Result_BestResponseIndex], false);
@@ -908,7 +908,7 @@ namespace ACESim
 
                     Unroll_AddToResult(lastCumulativeStrategyIncrement, true, contributionToAverageStrategy);
 
-                    if (TraceCFR || Unroll_Commands.UseCheckpoints)
+                    if (EvolutionSettings.TraceCFR || Unroll_Commands.UseCheckpoints)
                     {
                         int piCopy = Unroll_Commands.CopyToNew(pi, false);
                         int piValuesZeroCopy = Unroll_Commands.CopyToNew(piValues[0], false);
@@ -918,7 +918,7 @@ namespace ACESim
                         int contributionToAverageStrategyCopy = Unroll_Commands.CopyToNew(contributionToAverageStrategy, false);
                         int cumulativeStrategyCopy = Unroll_Commands.CopyToNew(lastCumulativeStrategyIncrement, true);
 
-                        if (TraceCFR)
+                        if (EvolutionSettings.TraceCFR)
                         {
                             TabbedText.WriteLine($"PiValues ARRAY{piValuesZeroCopy} ARRAY{piValuesOneCopy} pi for optimized ARRAY{piCopy}");
                             TabbedText.WriteLine(
@@ -1090,7 +1090,7 @@ namespace ACESim
 
             HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, action, chanceNode.Decision, chanceNode.DecisionIndex);
 
-            if (TraceCFR)
+            if (EvolutionSettings.TraceCFR)
             {
                 int actionProbabilityCopy = Unroll_Commands.CopyToNew(actionProb.Index, false);
                 TabbedText.WriteLine(
@@ -1104,7 +1104,7 @@ namespace ACESim
             for (int k = 0; k < 3; k++)
                 Unroll_Slots.Mul(new VsSlot(resultArray[k]), actionProb);
 
-            if (TraceCFR)
+            if (EvolutionSettings.TraceCFR)
             {
                 int beforeMultipleCurrentCopy = Unroll_Commands.CopyToNew(resultArray[Unroll_Result_CurrentVsCurrentIndex], false);
                 int actionProbabilityCopy = Unroll_Commands.CopyToNew(actionProb.Index, false);
@@ -1439,7 +1439,7 @@ namespace ACESim
             for (int iteration = 1; iteration <= EvolutionSettings.TotalIterations && !targetMet; iteration++)
             {
                 long elapsedSeconds = s.ElapsedMilliseconds / 1000;
-                if (!TraceCFR && elapsedSeconds != lastElapsedSeconds)
+                if (!EvolutionSettings.TraceCFR && elapsedSeconds != lastElapsedSeconds)
                     TabbedText.SetConsoleProgressString($"Iteration {iteration} (elapsed seconds: {s.ElapsedMilliseconds / 1000})");
                 lastElapsedSeconds = elapsedSeconds;
                 if (iteration % 50 == 1 && EvolutionSettings.DynamicSetParallel)
@@ -1473,7 +1473,7 @@ namespace ACESim
             {
                 if (playerBeingOptimized == 1 && GameDefinition.GameIsSymmetric() && TakeShortcutInSymmetricGames && !VerifySymmetry)
                     continue;
-                if (TraceCFR)
+                if (EvolutionSettings.TraceCFR)
                     TabbedText.WriteLine($"Optimizing for player {playerBeingOptimized}");
                 GeneralizedVanillaCFRIteration_OptimizePlayer(iteration, results, playerBeingOptimized);
             }
@@ -1496,7 +1496,7 @@ namespace ACESim
             double[] initialAvgStratPiValues = new double[MaxNumMainPlayers];
             GetInitialPiValues(initialPiValues);
             GetInitialPiValues(initialAvgStratPiValues);
-            if (TraceCFR)
+            if (EvolutionSettings.TraceCFR)
                 TabbedText.WriteLine($"{GameDefinition.OptionSetName} Iteration {iteration} Player {playerBeingOptimized}");
             StrategiesDeveloperStopwatch.Start();
             HistoryPoint historyPoint = GetStartOfGameHistoryPoint();
@@ -1631,7 +1631,7 @@ namespace ACESim
                     double probabilityOfActionAvgStrat = informationSet.GetAverageStrategy(action);
                     GetNextPiValues(piValues, playerMakingDecision, probabilityOfAction, false, nextPiValues); // reduce probability associated with player being optimized, without changing probabilities for other players
                     GetNextPiValues(avgStratPiValues, playerMakingDecision, probabilityOfActionAvgStrat, false, nextAvgStratPiValues);
-                    if (TraceCFR)
+                    if (EvolutionSettings.TraceCFR)
                     {
                         TabbedText.WriteLine(
                             $"({informationSet.Decision.Name}) code {informationSet.DecisionByteCode} optimizing player {playerBeingOptimized}  {(playerMakingDecision == playerBeingOptimized ? "own decision" : "opp decision")} action {action} probability {probabilityOfAction} .");
@@ -1663,7 +1663,7 @@ namespace ACESim
                     }
                     expectedValue += probabilityOfAction * expectedValueOfAction[action - 1];
 
-                    if (TraceCFR)
+                    if (EvolutionSettings.TraceCFR)
                     {
                         TabbedText.TabUnindent();
                         TabbedText.WriteLine(
@@ -1697,7 +1697,7 @@ namespace ACESim
                         informationSet.IncrementLastRegret(action, regret * inversePi, inversePi);
                         informationSet.IncrementLastCumulativeStrategyIncrements(action, contributionToAverageStrategy);
                     }
-                    if (TraceCFR)
+                    if (EvolutionSettings.TraceCFR)
                     {
                         TabbedText.WriteLine($"PiValues {piValues[0]} {piValues[1]} pi for optimized {pi}");
                         //TabbedText.WriteLine($"Regrets: Action {action} regret {regret} prob-adjust {inversePi * regret} new regret {informationSet.GetCumulativeRegret(action)} strategy inc {pi * actionProbabilities[action - 1]} new cum strategy {informationSet.GetCumulativeStrategy(action)}");
@@ -1773,7 +1773,7 @@ namespace ACESim
                 nextHistoryPoint = historyPoint.SwitchToBranch(Navigation, action, chanceNode.Decision, chanceNode.DecisionIndex);
             else
                 nextHistoryPoint = historyPoint.GetBranch(Navigation, action, chanceNode.Decision, chanceNode.DecisionIndex);
-            if (TraceCFR)
+            if (EvolutionSettings.TraceCFR)
             {
                 TabbedText.WriteLine(
                     $"Chance code {chanceNode.DecisionByteCode} ({chanceNode.Decision.Name}) action {action} probability {actionProbability} ...");
@@ -1781,7 +1781,7 @@ namespace ACESim
             }
             GeneralizedVanillaUtilities result =
                 GeneralizedVanillaCFR(in nextHistoryPoint, playerBeingOptimized, nextPiValues, nextAvgStratPiValues);
-            if (TraceCFR)
+            if (EvolutionSettings.TraceCFR)
             {
                 TabbedText.TabUnindent();
                 TabbedText.WriteLine(

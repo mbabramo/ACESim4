@@ -26,6 +26,7 @@ namespace ACESimBase.GameSolvingSupport.Settings
         public bool ReuseUnrolledAlgorithm = true; // if the tree structure is the same, then it will be reused (but final utilities etc. will be updated)
         public bool SaveToAzureBlob = false;
         // Note: Many of the below are overridden by launcher.
+        public bool TraceCFR = false; // DEBUG
         public int TotalAvgStrategySamplingCFRIterations = 100000;
         public int TotalProbingCFRIterations = 100000;
         public int TotalIterations = 100000;

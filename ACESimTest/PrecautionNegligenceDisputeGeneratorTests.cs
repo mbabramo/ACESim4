@@ -29,10 +29,10 @@ namespace ACESimTest
         [DataRow(true, true)]
         public async Task CollapsingDecisionsGivesEquivalentUtilities(bool randomInformationSets, bool largerTree)
         {
-
             EvolutionSettings evolutionSettings = new EvolutionSettings();
             evolutionSettings.TotalIterations = 1;
             evolutionSettings.UnrollTemplateIdenticalRanges = false;
+            evolutionSettings.TraceCFR = false;
             evolutionSettings.Unroll_ChunkExecutorKind = ACESimBase.Util.ArrayProcessing.ChunkExecutors.ChunkExecutorKind.Interpreted;
 
             byte branching = largerTree ? (byte)5 : (byte)2; // signals, precaution powers, and precaution levels
