@@ -153,6 +153,7 @@ namespace ACESimBase.Util.ArrayProcessing.Templating
         private bool _inWindow;
         private bool _replaying;
         private string _windowName;
+        public bool IsOpen => _inWindow;
 
         public RepeatWindowTemplate(ArrayCommandList acl, RegionTemplateOptions options = null)
         {

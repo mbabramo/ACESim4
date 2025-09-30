@@ -70,6 +70,7 @@ namespace ACESimBase.Util.ArrayProcessing
         public int MaxCommandsPerSplittableChunk = 10_000;
         public bool ReuseScratchSlots { get; set; } = true;
         public bool RepeatIdenticalRanges => true;
+        public bool TemplateControlsRepetition { get; set; } = true;
 
         // ──────────────────────────────────────────────────────────────────────
         //  Chunk tree
@@ -206,7 +207,8 @@ namespace ACESimBase.Util.ArrayProcessing
             }
             else if (RepeatIdenticalRanges &&
                      RepeatingExistingCommandRange &&
-                     identicalStartCommandRange is null)
+                     identicalStartCommandRange is null &&
+                     !TemplateControlsRepetition) // ← gate implicit nested-repeat inference
             {
                 int candidate = Recorder.NextCommandIndex;
 
