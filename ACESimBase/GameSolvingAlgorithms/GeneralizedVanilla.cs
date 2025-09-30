@@ -1214,7 +1214,7 @@ namespace ACESim
                 _tplOpts = new RegionTemplateOptions
                 {
                     IncludeComments = EvolutionSettings.IncludeCommentsWhenUnrolling,
-                    ManageDepthScopes = false,
+                    ManageDepthScopes = true,
                     ChunkNamePrefix = null
                 };
 

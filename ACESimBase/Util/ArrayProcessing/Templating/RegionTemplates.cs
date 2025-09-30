@@ -14,7 +14,7 @@ namespace ACESimBase.Util.ArrayProcessing.Templating
     public sealed class RegionTemplateOptions
     {
         public bool IncludeComments { get; init; } = true;
-        public bool ManageDepthScopes { get; init; } = false;
+        public bool ManageDepthScopes { get; init; } = true; // DEBUG
         public string ChunkNamePrefix { get; init; } = null;
     }
 
