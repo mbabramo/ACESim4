@@ -284,9 +284,11 @@ namespace ACESimBase.Util.ArrayProcessing.Templating
             if (vsIndices.Length != _slots.Length)
                 throw new ArgumentException("Length mismatch.", nameof(vsIndices));
 
-            _acl.ZeroExisting(_slots);
-            _acl.IncrementArrayBy(_slots, targetOriginals: false, indicesOfIncrements: vsIndices.ToArray());
+            // Copy values directly; CopyToExisting is replay-aware.
+            for (int i = 0; i < _slots.Length; i++)
+                _acl.CopyToExisting(_slots[i], vsIndices[i]);
         }
+
 
         /// <summary>
         /// Overwrite the frame with values from original sources. Uses NextSource

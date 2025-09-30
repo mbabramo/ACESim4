@@ -701,7 +701,6 @@ namespace ACESim
             Unroll_Commands.DecrementDepth(completeCommandList);
         }
 
-
         private void Unroll_GeneralizedVanillaCFR_DecisionNode(
             in HistoryPoint historyPoint,
             byte playerBeingOptimized,
@@ -725,15 +724,31 @@ namespace ACESim
             {
                 using (_repeatTpl.Open(informationSetOuter.Decision.Name))
                 {
-                    Unroll_Decision_EmitBody(in historyPoint, playerBeingOptimized, piValues, avgStratPiValues, resultArray, algorithmIsLowestDepth);
+                    // NEW: Stage resultArray into stable VS slots for the repeated window
+                    var orig = resultArray;
+                    ParameterFrame frame = new ParameterFrame(Unroll_Commands, orig.Length);
+                    frame.SetFromVirtualStack(orig);
+
+                    // Copy frame slots (ReadOnlySpan<int>) into an int[] for downstream calls
+                    var slotsSpan = frame.Slots;
+                    int[] staged = new int[slotsSpan.Length];
+                    for (int i = 0; i < staged.Length; i++) staged[i] = slotsSpan[i];
+
+                    // Do the work against the staged, stable indices
+                    Unroll_Decision_EmitBody(in historyPoint, playerBeingOptimized,
+                                             piValues, avgStratPiValues, staged, algorithmIsLowestDepth);
+
+                    // Copy results back to the caller-visible VS indices
+                    Unroll_Commands.CopyToExisting(orig, staged);
                 }
             }
             else
             {
-                Unroll_Decision_EmitBody(in historyPoint, playerBeingOptimized, piValues, avgStratPiValues, resultArray, algorithmIsLowestDepth);
+                Unroll_Decision_EmitBody(in historyPoint, playerBeingOptimized,
+                                         piValues, avgStratPiValues, resultArray, algorithmIsLowestDepth);
             }
-
         }
+
 
         private void Unroll_Decision_EmitBody(
             in HistoryPoint historyPoint,
@@ -995,16 +1010,33 @@ namespace ACESim
             {
                 using (_repeatTpl.Open(chanceNode.Decision.Name))
                 {
-                    Unroll_Chance_EmitAllActions(in historyPoint, chanceNode, playerBeingOptimized, piValues, avgStratPiValues, resultArray, algorithmIsLowestDepth);
+                    // NEW: Stage resultArray into stable VS slots for the repeated window
+                    var orig = resultArray;
+                    ParameterFrame frame = new ParameterFrame(Unroll_Commands, orig.Length);
+                    frame.SetFromVirtualStack(orig);
+
+                    // Copy frame slots (ReadOnlySpan<int>) into an int[] for downstream calls
+                    var slotsSpan = frame.Slots;
+                    int[] staged = new int[slotsSpan.Length];
+                    for (int i = 0; i < staged.Length; i++) staged[i] = slotsSpan[i];
+
+                    // Do the work against the staged, stable indices
+                    Unroll_Chance_EmitAllActions(in historyPoint, chanceNode, playerBeingOptimized,
+                                                 piValues, avgStratPiValues, staged, algorithmIsLowestDepth);
+
+                    // Copy results back to the caller-visible VS indices
+                    Unroll_Commands.CopyToExisting(orig, staged);
                 }
             }
             else
             {
-                Unroll_Chance_EmitAllActions(in historyPoint, chanceNode, playerBeingOptimized, piValues, avgStratPiValues, resultArray, algorithmIsLowestDepth);
+                Unroll_Chance_EmitAllActions(in historyPoint, chanceNode, playerBeingOptimized,
+                                             piValues, avgStratPiValues, resultArray, algorithmIsLowestDepth);
             }
 
             Unroll_Commands.DecrementDepth();
         }
+
 
         private void Unroll_Chance_EmitAllActions(
             in HistoryPoint historyPoint,
