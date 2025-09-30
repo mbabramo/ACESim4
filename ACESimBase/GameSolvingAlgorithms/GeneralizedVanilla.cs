@@ -650,29 +650,57 @@ namespace ACESim
 
         #region Unrolled algorithm
 
-        public void Unroll_GeneralizedVanillaCFR(in HistoryPoint historyPoint, byte playerBeingOptimized, int[] piValues, int[] avgStratPiValues, int[] resultArray, bool algorithmIsLowestDepth, bool completeCommandList)
+        public void Unroll_GeneralizedVanillaCFR(
+            in HistoryPoint historyPoint,
+            byte playerBeingOptimized,
+            int[] piValues,
+            int[] avgStratPiValues,
+            int[] resultArray,
+            bool algorithmIsLowestDepth,
+            bool completeCommandList)
         {
             Unroll_Commands.IncrementDepth();
+
             IGameState gameStateForCurrentPlayer = GetGameState(in historyPoint);
             GameStateTypeEnum gameStateType = gameStateForCurrentPlayer.GetGameStateType();
+
             if (gameStateType == GameStateTypeEnum.FinalUtilities)
             {
+                _repeatTpl?.CloseAtBoundary();
+
                 FinalUtilitiesNode finalUtilities = (FinalUtilitiesNode)gameStateForCurrentPlayer;
-                // Note: An alternative approach would be to add the utility value found here to the unrolled commands, instead of looking it up in the array. But this approach makes it possible to change some game parameters and thus the final utilities without regenerating commands.
-                int finalUtilIndex = Unroll_Commands.CopyToNew(Unroll_GetFinalUtilitiesNodesIndex(finalUtilities.FinalUtilitiesNodeNumber, playerBeingOptimized), true);
-                // Note: We must copy this so that we don't change the final utilities themselves.
+                int finalUtilIndex = Unroll_Commands.CopyToNew(
+                    Unroll_GetFinalUtilitiesNodesIndex(finalUtilities.FinalUtilitiesNodeNumber, playerBeingOptimized),
+                    true);
+
                 Unroll_Commands.CopyToExisting(resultArray[0], finalUtilIndex);
                 Unroll_Commands.CopyToExisting(resultArray[1], finalUtilIndex);
                 Unroll_Commands.CopyToExisting(resultArray[2], finalUtilIndex);
             }
             else if (gameStateType == GameStateTypeEnum.Chance)
             {
-                Unroll_GeneralizedVanillaCFR_ChanceNode(in historyPoint, playerBeingOptimized, piValues, avgStratPiValues, resultArray, algorithmIsLowestDepth);
+                Unroll_GeneralizedVanillaCFR_ChanceNode(
+                    in historyPoint,
+                    playerBeingOptimized,
+                    piValues,
+                    avgStratPiValues,
+                    resultArray,
+                    algorithmIsLowestDepth);
             }
             else
-                Unroll_GeneralizedVanillaCFR_DecisionNode(in historyPoint, playerBeingOptimized, piValues, avgStratPiValues, resultArray, algorithmIsLowestDepth);
+            {
+                Unroll_GeneralizedVanillaCFR_DecisionNode(
+                    in historyPoint,
+                    playerBeingOptimized,
+                    piValues,
+                    avgStratPiValues,
+                    resultArray,
+                    algorithmIsLowestDepth);
+            }
+
             Unroll_Commands.DecrementDepth(completeCommandList);
         }
+
 
         private void Unroll_GeneralizedVanillaCFR_DecisionNode(
             in HistoryPoint historyPoint,
@@ -861,7 +889,7 @@ namespace ACESim
                                               probabilityOfActionAvgStrat, innerBuf[Unroll_Result_BestResponseIndex]);
                 }
 
-                Unroll_AddProductToResult(expectedValue, toOriginal: false, probabilityOfAction, expectedValueOfAction[action - 1]);
+                Unroll_AddProductToResult(expectedValue, canRouteToOriginal: false, probabilityOfAction, expectedValueOfAction[action - 1]);
 
                 if (EvolutionSettings.TraceCFR)
                 {
@@ -1023,7 +1051,7 @@ namespace ACESim
                                 suppressCommentsForRepeat: true);
 
                             for (int k = 0; k < 3; k++)
-                                Unroll_AddToResult(resultArray[k], toOriginal: routeToOrderedBase, probabilityAdjustedInnerResult[k]);
+                                Unroll_AddToResult(resultArray[k], canRouteToOriginal: routeToOrderedBase, probabilityAdjustedInnerResult[k]);
                         }
                     }
                 }
@@ -1050,7 +1078,7 @@ namespace ACESim
                         suppressCommentsForRepeat: false);
 
                     for (int k = 0; k < 3; k++)
-                        Unroll_AddToResult(resultArray[k], toOriginal: routeToOrderedBase, probabilityAdjustedInnerResult[k]);
+                        Unroll_AddToResult(resultArray[k], canRouteToOriginal: routeToOrderedBase, probabilityAdjustedInnerResult[k]);
                 }
             }
         }
@@ -1174,15 +1202,6 @@ namespace ACESim
         }
 
 
-
-
-        // Repeated-range state (BeginRepeatedRange/EndRepeatedRange)
-        private bool Unroll_InRepeatedRange = false;
-        private bool Unroll_ReplayingRepeatedRange = false;
-        private int  Unroll_RepeatRangeFirstStartIndex = -1;
-        private int  Unroll_RepeatNestingDepth = 0;
-        private Decision Unroll_RepeatOwnerDecision = null;
-
         // Templates (lazily created per unroll run)
         private RegionTemplateOptions _tplOpts;
         private IdenticalRangeTemplate _identicalTpl;
@@ -1221,30 +1240,48 @@ namespace ACESim
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static OdPort OD_(int originalIndex) => new OdPort(originalIndex);
+        private bool IsOriginalIndex(int index)
+        {
+            return index >= 0 && index < Unroll_Commands.SizeOfMainData;
+        }
+
 
         /// <summary>Add a VS value into either a VS cell or an ordered destination.</summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void Unroll_AddToResult(int resultIndex, bool toOriginal, int valueVsIndex)
+        private void Unroll_AddToResult(int resultIndex, bool canRouteToOriginal, int valueVsIndex)
         {
             Unroll_EnsureSlots();
-            if (toOriginal)
+
+            if (canRouteToOriginal && IsOriginalIndex(resultIndex))
+            {
                 Unroll_Slots.Accumulate(OD_(resultIndex), VS_(valueVsIndex));
+            }
             else
+            {
                 Unroll_Slots.Add(VS_(resultIndex), VS_(valueVsIndex));
+            }
         }
+
 
         /// <summary>Add (lhs * rhs) into either a VS cell or an ordered destination.</summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void Unroll_AddProductToResult(int resultIndex, bool toOriginal, int lhsVsIndex, int rhsVsIndex)
+        private void Unroll_AddProductToResult(int resultIndex, bool canRouteToOriginal, int lhsVsIndex, int rhsVsIndex)
         {
             Unroll_EnsureSlots();
-            var prod = Unroll_Slots.CopyToNew(VS_(lhsVsIndex));
-            Unroll_Slots.Mul(prod, VS_(rhsVsIndex));
-            if (toOriginal)
-                Unroll_Slots.Accumulate(OD_(resultIndex), prod);
+
+            var productValue = Unroll_Slots.CopyToNew(VS_(lhsVsIndex));
+            Unroll_Slots.Mul(productValue, VS_(rhsVsIndex));
+
+            if (canRouteToOriginal && IsOriginalIndex(resultIndex))
+            {
+                Unroll_Slots.Accumulate(OD_(resultIndex), productValue);
+            }
             else
-                Unroll_Slots.Add(VS_(resultIndex), prod);
+            {
+                Unroll_Slots.Add(VS_(resultIndex), productValue);
+            }
         }
+
 
         #endregion
 
