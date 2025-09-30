@@ -595,8 +595,13 @@ namespace ACESimBase.Util.ArrayProcessing
         #region Comments and blank commands
 
         public List<string> CommentTable = new List<string>();
+
         public void InsertComment(string text)
         {
+            // If we are not replaying and comments are not enabled, do not emit.
+            if (!_acl.RepeatingExistingCommandRange && !_acl.EmitComments)
+                return;
+
             // During replay, only emit the comment if the recorded stream expects one here.
             if (_acl.RepeatingExistingCommandRange)
             {
@@ -621,6 +626,7 @@ namespace ACESimBase.Util.ArrayProcessing
             CommentTable.Add(text);
             AddCommand(new ArrayCommand(ArrayCommandType.Comment, -1, id));
         }
+
 
 
 

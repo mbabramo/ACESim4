@@ -71,6 +71,7 @@ namespace ACESimBase.Util.ArrayProcessing
         public bool ReuseScratchSlots { get; set; } = true;
         public bool RepeatIdenticalRanges => true;
         public bool TemplateControlsRepetition { get; set; } = true;
+        public bool EmitComments { get; set; } = false;
 
         // ──────────────────────────────────────────────────────────────────────
         //  Chunk tree

@@ -32,6 +32,7 @@ namespace ACESimTest
             EvolutionSettings evolutionSettings = new EvolutionSettings();
             evolutionSettings.TotalIterations = 1;
             evolutionSettings.UnrollTemplateIdenticalRanges = false;
+            evolutionSettings.UnrollTemplateRepeatedRanges = false;
             evolutionSettings.TraceCFR = false;
             evolutionSettings.Unroll_ChunkExecutorKind = ACESimBase.Util.ArrayProcessing.ChunkExecutors.ChunkExecutorKind.Interpreted;
 
@@ -62,6 +63,7 @@ namespace ACESimTest
             EvolutionSettings evolutionSettings = new EvolutionSettings();
             evolutionSettings.TotalIterations = 1;
             evolutionSettings.UnrollTemplateIdenticalRanges = false;
+            evolutionSettings.UnrollTemplateRepeatedRanges = false;
 
             var regular = LitigGameOptionsGenerator.PrecautionNegligenceGame(false, false, branching, 1, branching, branching);
             List<(double probability, PrecautionNegligenceProgress progress)> regularResults = await GetConsistentProgressForEveryGamePathAsync(regular, randomInformationSets, evolutionSettings);

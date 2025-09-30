@@ -42,17 +42,66 @@ namespace ACESimTest
             evolutionSettings.Unroll_ChunkExecutorKind = ChunkExecutorKind.Interpreted;
             evolutionSettings.TraceCFR = false;
 
-            double[] notUnrolled = await DevelopStrategyAndGetUtilities(randomInformationSets, largerTree, evolutionSettings);
+            double[] notUnrolled = await DevelopStrategyAndGetUtilities(randomInformationSets, largerTree, evolutionSettings, 1);
 
             evolutionSettings.UnrollAlgorithm = true;
-            double[] unrolled = await DevelopStrategyAndGetUtilities(randomInformationSets, largerTree, evolutionSettings);
+            double[] unrolled = await DevelopStrategyAndGetUtilities(randomInformationSets, largerTree, evolutionSettings, 1);
 
             evolutionSettings.UnrollTemplateIdenticalRanges = true;
-            double[] unrolledWithRepeats = await DevelopStrategyAndGetUtilities(randomInformationSets, largerTree, evolutionSettings);
+            double[] unrolledWithRepeats = await DevelopStrategyAndGetUtilities(randomInformationSets, largerTree, evolutionSettings, 1);
 
             notUnrolled.SequenceEqual(unrolled).Should().BeTrue();
             unrolledWithRepeats.SequenceEqual(unrolled).Should().BeTrue();
         }
+
+        [TestMethod]
+        [DataRow(false, false)]
+        [DataRow(false, true)]
+        [DataRow(true,  false)]
+        [DataRow(true,  true)]
+        public async Task UnrolledTemplates_AllPermutations_Parity(bool randomInformationSets, bool largerTree)
+        {
+            // 1) Baseline: algorithm OFF, no template unrolling flags.
+            var evolutionSettings = new EvolutionSettings
+            {
+                TotalIterations = 100,
+                UnrollAlgorithm = false,
+                UnrollTemplateIdenticalRanges = false,
+                UnrollTemplateRepeatedRanges  = false,
+                Unroll_ChunkExecutorKind = ChunkExecutorKind.Interpreted,
+                TraceCFR = false
+            };
+
+            // 2) Turn algorithm ON and test all permutations of the two template flags.
+            var permutations = new (bool useIdentical, bool useRepeated)[]
+            {
+                (false, false),
+                (true,  false),
+                (false, true),
+                (true,  true),
+            };
+
+            double[] firstUnrolled = null;
+
+            foreach (var (useIdentical, useRepeated) in permutations)
+            {
+                evolutionSettings.UnrollAlgorithm = true;
+                evolutionSettings.UnrollTemplateIdenticalRanges = useIdentical;
+                evolutionSettings.UnrollTemplateRepeatedRanges  = useRepeated;
+                evolutionSettings.Unroll_ChunkExecutorKind = ChunkExecutorKind.Interpreted;
+                evolutionSettings.TraceCFR = false;
+
+                double[] result = await DevelopStrategyAndGetUtilities(randomInformationSets, largerTree, evolutionSettings, 2);
+
+                // And all permutations should match each other.
+                if (firstUnrolled is null)
+                    firstUnrolled = result;
+                else
+                    result.SequenceEqual(firstUnrolled).Should().BeTrue(
+                        $"Permutation mismatch: UnrollTemplateIdenticalRanges={useIdentical}, UnrollTemplateRepeatedRanges={useRepeated}");
+            }
+        }
+
 
         [TestMethod]
         [DataRow(false, false)]
@@ -64,8 +113,8 @@ namespace ACESimTest
             EvolutionSettings evolutionSettings = new EvolutionSettings();
             evolutionSettings.TotalIterations = 100;
             evolutionSettings.UnrollAlgorithm = true;
-            evolutionSettings.UnrollTemplateIdenticalRanges = true;
-            evolutionSettings.UnrollTemplateRepeatedRanges = true;
+            evolutionSettings.UnrollTemplateIdenticalRanges = false;
+            evolutionSettings.UnrollTemplateRepeatedRanges = false;
             evolutionSettings.TraceCFR = false;
             List<double[]> results = new();
 
@@ -74,7 +123,7 @@ namespace ACESimTest
                 Stopwatch s = new Stopwatch();
                 s.Start();
                 evolutionSettings.Unroll_ChunkExecutorKind = kind;
-                var developer = await Initialize(largerTree, evolutionSettings);
+                var developer = await Initialize(largerTree, evolutionSettings, 1);
                 s.Stop();
                 long initializationTime = s.ElapsedMilliseconds;
                 s.Restart();
@@ -87,9 +136,9 @@ namespace ACESimTest
             }
         }
 
-        private static async Task<double[]> DevelopStrategyAndGetUtilities(bool randomInformationSets, bool largerTree, EvolutionSettings evolutionSettings)
+        private static async Task<double[]> DevelopStrategyAndGetUtilities(bool randomInformationSets, bool largerTree, EvolutionSettings evolutionSettings, byte numPotentialBargainingRounds)
         {
-            GeneralizedVanilla developer = await Initialize(largerTree, evolutionSettings);
+            GeneralizedVanilla developer = await Initialize(largerTree, evolutionSettings, numPotentialBargainingRounds);
             double[] utilities = await RunAlgorithmAndGetUtilities(randomInformationSets, developer);
             return utilities;
         }
@@ -103,10 +152,10 @@ namespace ACESimTest
             return utilities;
         }
 
-        private static async Task<GeneralizedVanilla> Initialize(bool largerTree, EvolutionSettings evolutionSettings)
+        private static async Task<GeneralizedVanilla> Initialize(bool largerTree, EvolutionSettings evolutionSettings, byte numPotentialBargainingRounds)
         {
-            byte branching = largerTree ? (byte)5 : (byte)2; // signals, precaution powers, and precaution levels
-            var options = LitigGameOptionsGenerator.PrecautionNegligenceGame(largerTree, largerTree, branching, 1, branching, branching);
+            byte branching = largerTree ? (byte)4 : (byte)2; // signals, precaution powers, and precaution levels
+            var options = LitigGameOptionsGenerator.PrecautionNegligenceGame(largerTree, largerTree, branching, numPotentialBargainingRounds, branching, branching);
             GeneralizedVanilla.ClearCache();
             var developer = await GetGeneralizedVanilla(options, "TESTOPTIONS", evolutionSettings);
             return developer;

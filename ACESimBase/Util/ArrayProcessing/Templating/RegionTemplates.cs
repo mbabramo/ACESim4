@@ -30,10 +30,26 @@ namespace ACESimBase.Util.ArrayProcessing.Templating
         private readonly ArrayCommandList _acl;
         private readonly RegionTemplateOptions _opts;
 
-        private string _currentSetName;
-        private int? _firstChunkStart;
-        private int _actionCount;
-        private bool _inSet;
+        // Per-set context so multiple sets can be open (nested) at once.
+        private readonly struct SetCtx
+        {
+            public readonly string Name;
+            public readonly int? FirstStart;    // null until first action begins
+            public readonly int  ActionCount;   // number of actions begun so far
+
+            public SetCtx(string name, int? firstStart, int actionCount)
+            {
+                Name = name;
+                FirstStart = firstStart;
+                ActionCount = actionCount;
+            }
+
+            public SetCtx WithFirstStart(int s) => new SetCtx(Name, s, ActionCount);
+            public SetCtx IncrementActions()    => new SetCtx(Name, FirstStart, ActionCount + 1);
+        }
+
+        // LIFO stack of open sets
+        private System.Collections.Generic.Stack<SetCtx> _stack = new System.Collections.Generic.Stack<SetCtx>();
 
         public IdenticalRangeTemplate(ArrayCommandList acl, RegionTemplateOptions options = null)
         {
@@ -44,16 +60,11 @@ namespace ACESimBase.Util.ArrayProcessing.Templating
         /// <summary>Begin an identical set. Dispose to close the set.</summary>
         public IDisposable BeginSet(string setName)
         {
-            if (_inSet)
-                throw new InvalidOperationException("An identical set is already open.");
-
-            _currentSetName = setName ?? "IdenticalSet";
-            _firstChunkStart = null;
-            _actionCount = 0;
-            _inSet = true;
+            string name = setName ?? "IdenticalSet";
+            _stack.Push(new SetCtx(name, firstStart: null, actionCount: 0));
 
             if (_opts.IncludeComments)
-                _acl.InsertComment($"[IDENTICAL-BEGIN] set={_currentSetName}");
+                _acl.InsertComment($"[IDENTICAL-BEGIN] set={name}");
 
             return new SetScope(this);
         }
@@ -64,28 +75,38 @@ namespace ACESimBase.Util.ArrayProcessing.Templating
         /// </summary>
         public IDisposable BeginAction(string actionLabel)
         {
-            if (!_inSet)
+            if (_stack.Count == 0)
                 throw new InvalidOperationException("BeginSet must be called before BeginAction.");
 
-            bool isFirst = _actionCount == 0;
+            // Work with the current set context (top of stack)
+            var ctx = _stack.Pop();
+            bool isFirst = ctx.ActionCount == 0;
 
             string chunkName = string.IsNullOrEmpty(_opts.ChunkNamePrefix)
-                ? $"Identical:{_currentSetName}"
-                : $"{_opts.ChunkNamePrefix}:Identical:{_currentSetName}";
+                ? $"Identical:{ctx.Name}"
+                : $"{_opts.ChunkNamePrefix}:Identical:{ctx.Name}";
 
-            int? identicalStart = isFirst ? (int?)null : _firstChunkStart;
-            _acl.StartCommandChunk(runChildrenInParallel: false, identicalStartCommandRange: identicalStart, name: chunkName);
+            int? identicalStart = isFirst ? (int?)null : ctx.FirstStart;
+            _acl.StartCommandChunk(runChildrenInParallel: false,
+                                   identicalStartCommandRange: identicalStart,
+                                   name: chunkName);
 
-            if (isFirst && _firstChunkStart == null)
-                _firstChunkStart = _acl.NextCommandIndex;
+            if (isFirst && ctx.FirstStart == null)
+            {
+                // Record the command-index where this body's recording begins;
+                // replays will jump back to this start.
+                ctx = ctx.WithFirstStart(_acl.NextCommandIndex);
+            }
 
             if (_opts.IncludeComments)
-                _acl.InsertComment($"[IDENTICAL-ACTION] set={_currentSetName} action={actionLabel}");
+                _acl.InsertComment($"[IDENTICAL-ACTION] set={ctx.Name} action={actionLabel}");
 
             if (_opts.ManageDepthScopes)
                 _acl.Recorder.IncrementDepth();
 
-            _actionCount++;
+            // Push updated context back with incremented action count
+            _stack.Push(ctx.IncrementActions());
+
             return new ActionScope(this, isFirst);
         }
 
@@ -101,13 +122,12 @@ namespace ACESimBase.Util.ArrayProcessing.Templating
                 if (_disposed) return;
                 _disposed = true;
 
-                if (_t._opts.IncludeComments)
-                    _t._acl.InsertComment($"[IDENTICAL-END] set={_t._currentSetName}");
-
-                _t._inSet = false;
-                _t._currentSetName = null;
-                _t._firstChunkStart = null;
-                _t._actionCount = 0;
+                if (_t._stack.Count > 0)
+                {
+                    var ended = _t._stack.Pop();
+                    if (_t._opts.IncludeComments)
+                        _t._acl.InsertComment($"[IDENTICAL-END] set={ended.Name}");
+                }
             }
         }
 
@@ -135,6 +155,7 @@ namespace ACESimBase.Util.ArrayProcessing.Templating
             }
         }
     }
+
 
     // ========================================================================
     //  RepeatWindowTemplate

@@ -939,9 +939,6 @@ namespace ACESim
             Unroll_Commands.DecrementDepth();
         }
 
-
-        
-
         private void Unroll_GeneralizedVanillaCFR_ChanceNode(
             in HistoryPoint historyPoint,
             byte playerBeingOptimized,
@@ -1186,134 +1183,6 @@ namespace ACESim
         private int  Unroll_RepeatNestingDepth = 0;
         private Decision Unroll_RepeatOwnerDecision = null;
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void Unroll_BeginRepeatedRangeIfNeeded(Decision decision)
-        {
-            if (decision == null || !decision.BeginRepeatedRange || !EvolutionSettings.UnrollTemplateRepeatedRanges)
-                return;
-
-        #if DEBUG
-            if (Unroll_InRepeatedRange || Unroll_RepeatNestingDepth != 0)
-                throw new InvalidOperationException("Nested repeated ranges are not supported.");
-        #endif
-
-            if (Unroll_RepeatRangeFirstStartIndex < 0)
-            {
-                Unroll_Commands.StartCommandChunk(false, null, "RepeatedRound");
-                Unroll_RepeatRangeFirstStartIndex = Unroll_Commands.NextCommandIndex;
-                Unroll_ReplayingRepeatedRange = false;
-            }
-            else
-            {
-                Unroll_Commands.StartCommandChunk(false, Unroll_RepeatRangeFirstStartIndex, "RepeatedRound");
-                Unroll_ReplayingRepeatedRange = true;
-            }
-
-            Unroll_InRepeatedRange = true;
-            Unroll_RepeatNestingDepth = 1;
-            Unroll_RepeatOwnerDecision = decision;
-
-            Unroll_Commands.InsertComment(
-                $"[REPEAT-BEGIN] decision={decision.Name} replaying={Unroll_ReplayingRepeatedRange} firstStart={Unroll_RepeatRangeFirstStartIndex} nextCI={Unroll_Commands.NextCommandIndex}");
-        }
-
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void Unroll_EndRepeatedRangeBeforeDescendingIfNeeded(Decision decision)
-        {
-            if (decision == null || !decision.EndRepeatedRange || !EvolutionSettings.UnrollTemplateRepeatedRanges)
-                return;
-
-            if (Unroll_InRepeatedRange && Unroll_RepeatNestingDepth == 1)
-            {
-                Unroll_Commands.InsertComment(
-                    $"[REPEAT-END   ] decision={decision.Name} (pre-descend close) nextCI={Unroll_Commands.NextCommandIndex}");
-                Unroll_Commands.EndCommandChunk(endingRepeatedChunk: Unroll_ReplayingRepeatedRange);
-                Unroll_InRepeatedRange = false;
-                Unroll_ReplayingRepeatedRange = false;
-                Unroll_RepeatNestingDepth = 0;
-                Unroll_RepeatOwnerDecision = null;
-            }
-        }
-
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void Unroll_EndRepeatedRangeIfNeeded(Decision decision)
-        {
-            if (decision == null || !decision.EndRepeatedRange)
-                return;
-
-            if (Unroll_InRepeatedRange && Unroll_RepeatNestingDepth == 1)
-            {
-                Unroll_Commands.InsertComment(
-                    $"[REPEAT-END   ] decision={decision.Name} nextCI={Unroll_Commands.NextCommandIndex}");
-                Unroll_Commands.EndCommandChunk(endingRepeatedChunk: Unroll_ReplayingRepeatedRange);
-                Unroll_InRepeatedRange = false;
-                Unroll_ReplayingRepeatedRange = false;
-                Unroll_RepeatNestingDepth = 0;
-                Unroll_RepeatOwnerDecision = null;
-            }
-        }
-
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void Unroll_CloseRepeatedRangeAtScopeExitIfOwner(Decision decision)
-        {
-            if (Unroll_InRepeatedRange && Unroll_RepeatOwnerDecision == decision)
-            {
-                Unroll_Commands.InsertComment(
-                    $"[REPEAT-END   ] decision={decision.Name} (scope-exit fallback) nextCI={Unroll_Commands.NextCommandIndex}");
-                Unroll_Commands.EndCommandChunk(endingRepeatedChunk: Unroll_ReplayingRepeatedRange);
-                Unroll_InRepeatedRange = false;
-                Unroll_ReplayingRepeatedRange = false;
-                Unroll_RepeatNestingDepth = 0;
-                Unroll_RepeatOwnerDecision = null;
-            }
-        }
-
-
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void Unroll_MaybeStageParametersForRepeatedRange(Decision d,
-            ref int[] piValues,
-            ref int[] avgStratPiValues)
-        {
-            if (!(EvolutionSettings.UnrollTemplateRepeatedRanges && d != null && d.BeginRepeatedRange))
-                return;
-
-            if (EvolutionSettings.IncludeCommentsWhenUnrolling)
-            {
-                Unroll_Commands.InsertComment(
-                    $"[INVPI] staging-before: pi=[{string.Join(",", piValues)}] avgPi=[{string.Join(",", avgStratPiValues)}]");
-            }
-
-            int numPlayers = NumNonChancePlayers;
-
-            int[] tempPi = new int[numPlayers];
-            int[] tempAvg = new int[numPlayers];
-
-            for (int p = 0; p < numPlayers; p++)
-            {
-                tempPi[p]  = Unroll_Commands.CopyToNew(piValues[p],         fromOriginalSources: true);
-                tempAvg[p] = Unroll_Commands.CopyToNew(avgStratPiValues[p], fromOriginalSources: true);
-            }
-
-            Unroll_Commands.ZeroExisting(Unroll_RepeatedRoundParamPiIndices);
-            Unroll_Commands.ZeroExisting(Unroll_RepeatedRoundParamAvgStratPiIndices);
-
-            Unroll_Commands.IncrementArrayBy(Unroll_RepeatedRoundParamPiIndices,         targetOriginals: false, indicesOfIncrements: tempPi);
-            Unroll_Commands.IncrementArrayBy(Unroll_RepeatedRoundParamAvgStratPiIndices, targetOriginals: false, indicesOfIncrements: tempAvg);
-
-            piValues         = Unroll_RepeatedRoundParamPiIndices;
-            avgStratPiValues = Unroll_RepeatedRoundParamAvgStratPiIndices;
-
-            if (EvolutionSettings.IncludeCommentsWhenUnrolling)
-            {
-                Unroll_Commands.InsertComment(
-                    $"[INVPI] staging-after: pi=[{string.Join(",", piValues)}] avgPi=[{string.Join(",", avgStratPiValues)}]");
-            }
-        }
-
         // Templates (lazily created per unroll run)
         private RegionTemplateOptions _tplOpts;
         private IdenticalRangeTemplate _identicalTpl;
@@ -1336,11 +1205,6 @@ namespace ACESim
                 _repeatTpl    = new RepeatWindowTemplate(Unroll_Commands, _tplOpts);
             }
         }
-
-
-        #endregion
-
-        #region Slots integration helpers
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void Unroll_EnsureSlots()

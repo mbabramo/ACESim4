@@ -230,5 +230,202 @@ namespace ACESimTest.ArrayProcessingTests
             var vs = RunOnce(acl, new[] { 2.0, 9.0, 0.0 }, ChunkExecutorKind.Interpreted);
             Assert.AreEqual(11.0, vs[2], 1e-9);
         }
+
+        // Nested identical sets with a single IdenticalRangeTemplate instance.
+        // VS-only (no ordered IO) to focus on structural nesting and execution parity.
+        [TestMethod]
+        public void IdenticalRange_NestedSets_SingleTemplate_ReplaysAndRuns()
+        {
+            var acl = new ArrayCommandList(maxNumCommands: 1024, initialArrayIndex: 3);
+            var slots = new ArraySlots(acl);
+
+            acl.StartCommandChunk(false, null, "root");
+
+            var ident = new IdenticalRangeTemplate(
+                acl,
+                new RegionTemplateOptions
+                {
+                    IncludeComments = true,
+                    ManageDepthScopes = false,
+                    ChunkNamePrefix = "Decision"
+                });
+
+            // Outer set with 2 actions; inside each action, an inner set with 2 actions.
+            using (ident.BeginSet("Outer"))
+            {
+                for (int a = 0; a < 2; a++)
+                {
+                    using (ident.BeginAction($"outer={a + 1}"))
+                    using (ident.BeginSet("Inner"))
+                    {
+                        for (int b = 0; b < 2; b++)
+                        {
+                            using (ident.BeginAction($"inner={b + 1}"))
+                            {
+                                // Body: vs[2] += (vs[0] + vs[1])
+                                var v0 = new VsSlot(0);
+                                var v1 = new VsSlot(1);
+                                var sum = slots.CopyToNew(v0);
+                                slots.Add(sum, v1);
+                                slots.Add(new VsSlot(2), sum);
+                            }
+                        }
+                    }
+                }
+            }
+
+            acl.EndCommandChunk();
+            acl.CompleteCommandList();
+
+            // No ordered IO in this test
+            Assert.AreEqual(0, acl.OrderedSourceIndices.Count);
+            Assert.AreEqual(0, acl.OrderedDestinationIndices.Count);
+            Assert.AreEqual(0, Count(acl, ArrayCommandType.NextSource));
+            Assert.AreEqual(0, Count(acl, ArrayCommandType.NextDestination));
+
+            // Input: [2,3,0]; inner body adds 5 each time; 4 inner actions ⇒ vs[2] = 20
+            AssertBackendParity(acl, new double[] { 2.0, 3.0, 0.0 });
+            var vs = RunOnce(acl, new[] { 2.0, 3.0, 0.0 }, ChunkExecutorKind.Interpreted);
+            Assert.AreEqual(20.0, vs[2], 1e-9);
+        }
+
+
+        // Ordered IO inside nested identical actions.
+        // Verifies that ordered index lists reflect all actions while the command
+        // stream contains only one body's worth of NextSource/NextDestination per set recording.
+        [TestMethod]
+        public void IdenticalRange_NestedSets_OrderedIO_CountsAndParity()
+        {
+            var acl = new ArrayCommandList(maxNumCommands: 1024, initialArrayIndex: 3)
+            {
+                UseOrderedSourcesAndDestinations = true
+            };
+            var slots = new ArraySlots(acl);
+
+            acl.StartCommandChunk(false, null, "root");
+
+            var ident = new IdenticalRangeTemplate(
+                acl,
+                new RegionTemplateOptions
+                {
+                    IncludeComments = true,
+                    ManageDepthScopes = false,
+                    ChunkNamePrefix = "Decision"
+                });
+
+            using (ident.BeginSet("Outer"))
+            {
+                for (int a = 0; a < 2; a++)
+                {
+                    using (ident.BeginAction($"outer={a + 1}"))
+                    using (ident.BeginSet("Inner"))
+                    {
+                        for (int b = 0; b < 2; b++)
+                        {
+                            using (ident.BeginAction($"inner={b + 1}"))
+                            {
+                                // Body: accumulate (OS[0] + OS[1]) into OD[2]
+                                var v0 = slots.Read(new OsPort(0)); // OS
+                                var v1 = slots.Read(new OsPort(1)); // OS
+                                var sum = slots.CopyToNew(v0);
+                                slots.Add(sum, v1);
+                                slots.Accumulate(new OdPort(2), sum); // OD
+                            }
+                        }
+                    }
+                }
+            }
+
+            acl.EndCommandChunk();
+            acl.CompleteCommandList();
+
+            // There are 4 inner actions total → OS consumed 8 times (0,1,0,1,0,1,0,1)
+            var expectedOs = Enumerable.Repeat(new[] { 0, 1 }, 4).SelectMany(x => x).ToArray();
+            CollectionAssert.AreEqual(expectedOs, acl.OrderedSourceIndices.ToArray());
+
+            // Destinations queued once per inner action → four entries of index 2
+            CollectionAssert.AreEqual(new[] { 2, 2, 2, 2 }, acl.OrderedDestinationIndices.ToArray());
+
+            // Command stream contains one recording of the inner body (inside the first outer action).
+            Assert.AreEqual(2, Count(acl, ArrayCommandType.NextSource));
+            Assert.AreEqual(1, Count(acl, ArrayCommandType.NextDestination));
+
+            // Input: [2,3,0]; per inner action adds 5 → four inner actions ⇒ vs[2] = 20
+            AssertBackendParity(acl, new double[] { 2.0, 3.0, 0.0 });
+            var vs = RunOnce(acl, new[] { 2.0, 3.0, 0.0 }, ChunkExecutorKind.Interpreted);
+            Assert.AreEqual(20.0, vs[2], 1e-9);
+        }
+
+
+        // Hoist + templates: oversize IF body inside an identical set.
+        // Ensures hoisting runs and VerifyCorrectness2 (invoked during CompleteCommandList)
+        // validates ordered-source/destination metadata against the command slices.
+        [TestMethod]
+        public void IdenticalRange_Hoist_OversizeIfBody_MetadataAndParity()
+        {
+            var acl = new ArrayCommandList(maxNumCommands: 8192, initialArrayIndex: 3)
+            {
+                UseOrderedSourcesAndDestinations = true,
+                MaxCommandsPerSplittableChunk = 12 // force hoisting on an oversize IF body
+            };
+
+            acl.StartCommandChunk(false, null, "root");
+
+            var ident = new IdenticalRangeTemplate(
+                acl,
+                new RegionTemplateOptions
+                {
+                    IncludeComments = true,
+                    ManageDepthScopes = false,
+                    ChunkNamePrefix = "Hoist"
+                });
+
+            using (ident.BeginSet("HoistSet"))
+            {
+                for (int a = 0; a < 2; a++)
+                {
+                    using (ident.BeginAction($"action={a + 1}"))
+                    {
+                        var r = acl.Recorder;
+
+                        // IF (vs[tmp] == 0) { … oversize body … }
+                        int tmp = r.NewZero();
+                        r.InsertEqualsValueCommand(tmp, 0);
+                        r.InsertIf();
+
+                        // Make the IF body oversize to trigger hoisting
+                        for (int i = 0; i < 40; i++)
+                            r.Increment(tmp, targetOriginal: false, tmp);
+
+                        // Include ordered IO inside the IF to exercise pointer metadata
+                        int osVal = r.CopyToNew(0, fromOriginalSources: true);     // one NextSource in the recorded body
+                        r.Increment(2, targetOriginal: true, osVal);               // one NextDestination in the recorded body
+
+                        r.InsertEndIf();
+                    }
+                }
+            }
+
+            acl.EndCommandChunk();
+
+            // CompleteCommandList triggers hoisting and VerifyCorrectness2 checks.
+            // If metadata is inconsistent, this will throw.
+            acl.CompleteCommandList();
+
+            // Command-stream shape: recorded body appears once; the second identical action replays.
+            Assert.AreEqual(1, Count(acl, ArrayCommandType.NextSource));
+            Assert.AreEqual(1, Count(acl, ArrayCommandType.NextDestination));
+
+            // Ordered lists reflect both executed actions (two OS / two OD)
+            CollectionAssert.AreEqual(new[] { 0, 0 }, acl.OrderedSourceIndices.ToArray());
+            CollectionAssert.AreEqual(new[] { 2, 2 }, acl.OrderedDestinationIndices.ToArray());
+
+            // Execution parity and result check:
+            // Input [2,3,0] → inside IF we accumulate OS[0] (=2) once per action ⇒ vs[2] = 4
+            AssertBackendParity(acl, new double[] { 2.0, 3.0, 0.0 });
+            var vs = RunOnce(acl, new[] { 2.0, 3.0, 0.0 }, ChunkExecutorKind.Interpreted);
+            Assert.AreEqual(4.0, vs[2], 1e-9);
+        }
+
     }
 }
