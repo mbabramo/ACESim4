@@ -30,12 +30,18 @@ namespace ACESimBase.Util.ArrayProcessing
         private int _recentNewHead = 0;
         private int _recentNewCount = 0;
 
+        internal ArrayCommandList Acl => _acl;                     // expose to modes
+        public IEmissionMode Mode { get; set; } = RecordingMode.Instance;
+        internal OrderedIoRecorder IO { get; }                     // set in ctor
+
         public CommandRecorder(ArrayCommandList owner)
         {
             _acl = owner ?? throw new ArgumentNullException(nameof(owner));
             NextArrayIndex = 0;
             MaxArrayIndex = -1;
             NextCommandIndex = 0;
+
+            IO = new OrderedIoRecorder(_acl);
         }
 
         public CommandRecorder Clone(ArrayCommandList acl2) =>
@@ -292,89 +298,18 @@ namespace ACESimBase.Util.ArrayProcessing
 
         /// <summary>Copy value from <paramref name="sourceIdx"/> into a <em>new</em> scratch slot.</summary>
         public int CopyToNew(int sourceIdx, bool fromOriginalSources)
-        {
-            if (_acl.RepeatingExistingCommandRange)
-            {
-                var expected = _acl.UnderlyingCommands[NextCommandIndex];
-                bool expectNextSource = expected.CommandType == ArrayCommandType.NextSource;
-                bool expectCopyTo     = expected.CommandType == ArrayCommandType.CopyTo;
-
-                if (!expectNextSource && !expectCopyTo)
-                    throw new InvalidOperationException(
-                        $"Repeat-range mismatch at cmd {NextCommandIndex}: recorded {expected.CommandType} vs new {(fromOriginalSources && _acl.UseOrderedSourcesAndDestinations ? "NextSource" : "CopyTo")}.");
-
-                int target = expected.Index;
-                if (target + 1 > NextArrayIndex)
-                    NextArrayIndex = target + 1;
-
-                // During replay, emit the exact recorded command to stay byte-identical.
-                if (expectNextSource)
-                {
-                    // Maintain ordered-sources side-effect shape for the replayed NextSource.
-                    _acl.OrderedSourceIndices.Add(sourceIdx);
-                    AddCommand(expected);
-                }
-                else
-                {
-                    AddCommand(expected);
-                }
-
-                return target;
-            }
-
-            int fresh = NextArrayIndex++;
-            if (fromOriginalSources && _acl.UseOrderedSourcesAndDestinations)
-            {
-                _acl.OrderedSourceIndices.Add(sourceIdx);
-                AddCommand(new ArrayCommand(ArrayCommandType.NextSource, fresh, -1));
-            }
-            else
-            {
-                AddCommand(new ArrayCommand(ArrayCommandType.CopyTo, fresh, sourceIdx));
-            }
-            return fresh;
-        }
-
-
-        public void CopyToExisting(int index, int sourceIndex)
-        {
-            InsertComment($"[COPY/EXIST] idx={index} src={sourceIndex} replay={_acl.RepeatingExistingCommandRange}");
-
-            bool isCheckpoint = index == ArrayCommandList.CheckpointTrigger;
-
-            if (_acl.RepeatingExistingCommandRange)
-            {
-                var expected = _acl.UnderlyingCommands[NextCommandIndex];
-                var expectedKind = isCheckpoint ? ArrayCommandType.Checkpoint : ArrayCommandType.CopyTo;
-
-                if (expected.CommandType != expectedKind)
-                {
-                    // Keep strict mismatch for opcode/shape differences
-                    ThrowRepeatMismatch(new ArrayCommand(expectedKind, index, sourceIndex), expected);
-                }
-
-                // Reproduce the recorded command EXACTLY during replay (target + source).
-                int recordedTarget = expected.Index;
-                if (recordedTarget + 1 > NextArrayIndex)
-                    NextArrayIndex = recordedTarget + 1;
-
-                AddCommand(expected); // identical to recorded; advances NextCommandIndex
-                return;
-            }
-
-            if (isCheckpoint)
-                AddCommand(new ArrayCommand(ArrayCommandType.Checkpoint, ArrayCommandList.CheckpointTrigger, sourceIndex));
-            else
-                AddCommand(new ArrayCommand(ArrayCommandType.CopyTo, index, sourceIndex));
-        }
-
+            => Mode.EmitCopyToNew(sourceIdx, fromOriginalSources, this, IO);
 
 
         public int[] CopyToNew(int[] sourceIndices, bool fromOriginalSources) =>
             sourceIndices.Select(idx => CopyToNew(idx, fromOriginalSources)).ToArray();
 
-
-
+        public void CopyToExisting(int index, int sourceIndex)
+        {
+            InsertComment($"[COPY/EXIST] idx={index} src={sourceIndex} replay={_acl.RepeatingExistingCommandRange}");
+            bool isCheckpoint = index == ArrayCommandList.CheckpointTrigger;
+            Mode.EmitCopyToExisting(index, sourceIndex, isCheckpoint, this, IO);
+        }
 
         public void CopyToExisting(int[] indices, int[] sourceIndices)
         {
@@ -392,19 +327,8 @@ namespace ACESimBase.Util.ArrayProcessing
         public void Increment(int idx, bool targetOriginal, int incIdx)
         {
             InsertComment($"[ROUTE] Increment targetOriginal={targetOriginal} idx={idx} src={incIdx} inRepeat={_acl.RepeatingExistingCommandRange} useOSOD={_acl.UseOrderedSourcesAndDestinations}");
-
-            if (targetOriginal && _acl.UseOrderedSourcesAndDestinations)
-            {
-                _acl.OrderedDestinationIndices.Add(idx);
-                AddCommand(new ArrayCommand(ArrayCommandType.NextDestination, -1, incIdx));
-            }
-            else
-            {
-                AddCommand(new ArrayCommand(ArrayCommandType.IncrementBy, idx, incIdx));
-            }
+            Mode.EmitIncrement(idx, targetOriginal, incIdx, this, IO);
         }
-
-
 
         public void Decrement(int idx, int decIdx) =>
             AddCommand(new ArrayCommand(ArrayCommandType.DecrementBy, idx, decIdx));
@@ -412,25 +336,7 @@ namespace ACESimBase.Util.ArrayProcessing
 
         #region ZeroHelpers
         public void ZeroExisting(int index)
-        {
-            if (_acl.RepeatingExistingCommandRange)
-            {
-                // Mirror CopyToExisting replay behavior: align to recorded target.
-                var expected = _acl.UnderlyingCommands[NextCommandIndex];
-                if (expected.CommandType != ArrayCommandType.Zero)
-                {
-                    ThrowRepeatMismatch(new ArrayCommand(ArrayCommandType.Zero, index, -1), expected);
-                }
-
-                int recordedTarget = expected.Index;
-                AddCommand(new ArrayCommand(ArrayCommandType.Zero, recordedTarget, -1));
-                return;
-            }
-
-            // Normal recording path
-            AddCommand(new ArrayCommand(ArrayCommandType.Zero, index, -1));
-        }
-
+            => Mode.EmitZeroExisting(index, this);
 
         public void ZeroExisting(int[] indices)
         {
@@ -551,6 +457,24 @@ namespace ACESimBase.Util.ArrayProcessing
 
 
         #region DepthAndChunkFacade   // (internal – builder-only)
+
+        public readonly struct DepthScope : System.IDisposable
+        {
+            private readonly CommandRecorder _r;
+            private readonly bool _completeOnDispose;
+            public DepthScope(CommandRecorder r, bool completeOnDispose)
+            {
+                _r = r;
+                _completeOnDispose = completeOnDispose;
+                _r.IncrementDepth();
+            }
+            public void Dispose() => _r.DecrementDepth(_completeOnDispose);
+        }
+
+        /// <summary>RAII helper: <c>using (rec.OpenDepthScope()) { … }</c></summary>
+        public DepthScope OpenDepthScope(bool completeCommandListOnDispose = false)
+            => new DepthScope(this, completeCommandListOnDispose);
+
 
         internal void IncrementDepth()
         {

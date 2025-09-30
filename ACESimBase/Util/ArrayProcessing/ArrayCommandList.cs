@@ -233,6 +233,8 @@ namespace ACESimBase.Util.ArrayProcessing
                 }
             }
 
+            Recorder.Mode = childIsRepeat ? (IEmissionMode)ReplayMode.Instance : RecordingMode.Instance;
+
             var parent = CurrentNode;
             byte branch = (byte)(parent.StoredValue.LastChild + 1);
 
@@ -254,7 +256,6 @@ namespace ACESimBase.Util.ArrayProcessing
 
             _repeatChildIsRepeatedStack.Push(childIsRepeat);
         }
-
 
         public void EndCommandChunk(bool endingRepeatedChunk = false)
         {
@@ -307,7 +308,11 @@ namespace ACESimBase.Util.ArrayProcessing
                 finished.EndDestinationIndicesExclusive = finished.StartDestinationIndices + dstInRange;
 
                 if (_repeatRangeStack.Count == 0)
+                {
                     RepeatingExistingCommandRange = false;
+                    Recorder.Mode = RecordingMode.Instance;
+                }
+
             }
             else
             {
@@ -325,13 +330,6 @@ namespace ACESimBase.Util.ArrayProcessing
             parent.EndSourceIndicesExclusive = Math.Max(parent.EndSourceIndicesExclusive, finished.EndSourceIndicesExclusive);
             parent.EndDestinationIndicesExclusive = Math.Max(parent.EndDestinationIndicesExclusive, finished.EndDestinationIndicesExclusive);
         }
-
-
-
-
-
-
-
 
         public void KeepCommandsTogether() => _keepTogetherLevel++;
         public void EndKeepCommandsTogether() => _keepTogetherLevel--;
