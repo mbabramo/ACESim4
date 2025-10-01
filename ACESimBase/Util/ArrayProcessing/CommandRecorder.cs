@@ -280,18 +280,10 @@ namespace ACESimBase.Util.ArrayProcessing
         /// <summary>Multiply slot <paramref name="idx"/> by <paramref name="multIdx"/>.</summary>
         public void MultiplyBy(int idx, int multIdx)
         {
-            if (_acl.RepeatingExistingCommandRange)
-            {
-                var expected = _acl.UnderlyingCommands[NextCommandIndex];
-                // Keep VS high‑water mark aligned to recorded target slot
-                if (expected.Index >= 0 && expected.Index + 1 > NextArrayIndex)
-                    NextArrayIndex = expected.Index + 1;
-                // Re‑emit the recorded instruction verbatim; AddCommand will advance NextCommandIndex
-                AddCommand(expected);
-                return;
-            }
-            AddCommand(new ArrayCommand(ArrayCommandType.MultiplyBy, idx, multIdx));
+            // Previously aligned VS during replay; preserved via alignVsFromRecordedIndex = true.
+            _emitter.Emit(ArrayCommandType.MultiplyBy, idx, multIdx, alignVsFromRecordedIndex: true);
         }
+
 
 
         /// <summary>Increment or stage-increment slot <paramref name="idx"/> by value from <paramref name="incIdx"/>.</summary>
@@ -303,16 +295,10 @@ namespace ACESimBase.Util.ArrayProcessing
 
         public void Decrement(int idx, int decIdx)
         {
-            if (_acl.RepeatingExistingCommandRange)
-            {
-                var expected = _acl.UnderlyingCommands[NextCommandIndex];
-                if (expected.Index >= 0 && expected.Index + 1 > NextArrayIndex)
-                    NextArrayIndex = expected.Index + 1;
-                AddCommand(expected);
-                return;
-            }
-            AddCommand(new ArrayCommand(ArrayCommandType.DecrementBy, idx, decIdx));
+            // Previously aligned VS during replay; preserved via alignVsFromRecordedIndex = true.
+            _emitter.Emit(ArrayCommandType.DecrementBy, idx, decIdx, alignVsFromRecordedIndex: true);
         }
+
 
         #endregion
 
@@ -378,15 +364,20 @@ namespace ACESimBase.Util.ArrayProcessing
         }
 
         public int IncrementByProduct(int targetIdx, bool targetOriginal,
-                                       int factor1Idx, int factor2Idx,
-                                       bool reuseTmp = true)
+                                      int factor1Idx, int factor2Idx,
+                                      bool reuseTmp = true)
         {
-            int tmp = CopyToNew(factor1Idx, false);
+            using var scratch = OpenScratchScope(reclaimOnDispose: reuseTmp);
+
+            int tmp = CopyToNew(factor1Idx, fromOriginalSources: false);
             MultiplyBy(tmp, factor2Idx);
             Increment(targetIdx, targetOriginal, tmp);
-            if (reuseTmp && _acl.ReuseScratchSlots) NextArrayIndex--; // reclaim
-            return tmp; // solely for the purpose of determining how many virtual stack slots are needed
+
+            // Returning the temporary index preserves existing behavior and is used
+            // only for capacity determination elsewhere.
+            return tmp;
         }
+
 
         public void DecrementArrayBy(int[] targets, int decIdx)
         {
@@ -404,11 +395,13 @@ namespace ACESimBase.Util.ArrayProcessing
         public void DecrementByProduct(int targetIdx, int factor1Idx, int factor2Idx,
                                        bool reuseTmp = true)
         {
-            int tmp = CopyToNew(factor1Idx, false);
+            using var scratch = OpenScratchScope(reclaimOnDispose: reuseTmp);
+
+            int tmp = CopyToNew(factor1Idx, fromOriginalSources: false);
             MultiplyBy(tmp, factor2Idx);
             Decrement(targetIdx, tmp);
-            if (reuseTmp && _acl.ReuseScratchSlots) NextArrayIndex--; // reclaim
         }
+
         #endregion
 
         #region ComparisonFlowControl
@@ -417,117 +410,64 @@ namespace ACESimBase.Util.ArrayProcessing
 
         public void InsertIf()
         {
-            if (_acl.RepeatingExistingCommandRange)
-            {
-                var recorded = _acl.UnderlyingCommands[NextCommandIndex];
+            // Preserve prior behavior of setting IfCmdIndex to the command position being emitted.
+            int ifCmdIndex = NextCommandIndex;
 
-                // Only push a frame if the recorded stream actually has an If here.
-                if (recorded.CommandType == ArrayCommandType.If)
-                    _ifStack.Push(new IfFrame { IfCmdIndex = NextCommandIndex, NewNextSrc = 0, NewNextDst = 0 });
+            // When replaying, only push if the recorded stream truly has an If here.
+            bool shouldPush =
+                !_acl.RepeatingExistingCommandRange
+                || _acl.UnderlyingCommands[NextCommandIndex].CommandType == ArrayCommandType.If;
 
-                // Re-emit the recorded instruction verbatim; AddCommand will advance NextCommandIndex.
-                AddCommand(recorded);
-                return;
-            }
+            _emitter.Emit(ArrayCommandType.If, -1, -1, alignVsFromRecordedIndex: false);
 
-            _ifStack.Push(new IfFrame { IfCmdIndex = NextCommandIndex, NewNextSrc = 0, NewNextDst = 0 });
-            AddCommand(new ArrayCommand(ArrayCommandType.If, -1, -1));
+            if (shouldPush)
+                _ifStack.Push(new IfFrame { IfCmdIndex = ifCmdIndex, NewNextSrc = 0, NewNextDst = 0 });
         }
 
         public void InsertEndIf()
         {
-            if (_acl.RepeatingExistingCommandRange)
-            {
-                var recorded = _acl.UnderlyingCommands[NextCommandIndex];
+            // During replay, only pop if the recorded stream has EndIf here (preserves prior behavior).
+            bool popOnReplay =
+                _acl.RepeatingExistingCommandRange
+                ? _acl.UnderlyingCommands[NextCommandIndex].CommandType == ArrayCommandType.EndIf
+                : true;
 
-                bool pop = recorded.CommandType == ArrayCommandType.EndIf;
-                AddCommand(recorded);                 // advances NextCommandIndex
+            _emitter.Emit(ArrayCommandType.EndIf, -1, -1, alignVsFromRecordedIndex: false);
 
-                if (pop && _ifStack.Count > 0)
-                    _ifStack.Pop();
-                return;
-            }
-
-            AddCommand(new ArrayCommand(ArrayCommandType.EndIf, -1, -1));
-            if (_ifStack.Count > 0) _ifStack.Pop();
+            if (popOnReplay && _ifStack.Count > 0)
+                _ifStack.Pop();
         }
-
-
 
         public void InsertEqualsOtherArrayIndexCommand(int i1, int i2)
         {
-            if (_acl.RepeatingExistingCommandRange)
-            {
-                var expected = _acl.UnderlyingCommands[NextCommandIndex];
-                if (expected.Index >= 0 && expected.Index + 1 > NextArrayIndex)
-                    NextArrayIndex = expected.Index + 1;
-                AddCommand(expected);
-                return;
-            }
-            AddCommand(new ArrayCommand(ArrayCommandType.EqualsOtherArrayIndex, i1, i2));
+            _emitter.Emit(ArrayCommandType.EqualsOtherArrayIndex, i1, i2, alignVsFromRecordedIndex: true);
         }
 
         public void InsertNotEqualsOtherArrayIndexCommand(int i1, int i2)
         {
-            if (_acl.RepeatingExistingCommandRange)
-            {
-                var expected = _acl.UnderlyingCommands[NextCommandIndex];
-                if (expected.Index >= 0 && expected.Index + 1 > NextArrayIndex)
-                    NextArrayIndex = expected.Index + 1;
-                AddCommand(expected);
-                return;
-            }
-            AddCommand(new ArrayCommand(ArrayCommandType.NotEqualsOtherArrayIndex, i1, i2));
+            _emitter.Emit(ArrayCommandType.NotEqualsOtherArrayIndex, i1, i2, alignVsFromRecordedIndex: true);
         }
+
         public void InsertGreaterThanOtherArrayIndexCommand(int i1, int i2)
         {
-            if (_acl.RepeatingExistingCommandRange)
-            {
-                var expected = _acl.UnderlyingCommands[NextCommandIndex];
-                if (expected.Index >= 0 && expected.Index + 1 > NextArrayIndex)
-                    NextArrayIndex = expected.Index + 1;
-                AddCommand(expected);
-                return;
-            }
-            AddCommand(new ArrayCommand(ArrayCommandType.GreaterThanOtherArrayIndex, i1, i2));
+            _emitter.Emit(ArrayCommandType.GreaterThanOtherArrayIndex, i1, i2, alignVsFromRecordedIndex: true);
         }
+
         public void InsertLessThanOtherArrayIndexCommand(int i1, int i2)
         {
-            if (_acl.RepeatingExistingCommandRange)
-            {
-                var expected = _acl.UnderlyingCommands[NextCommandIndex];
-                if (expected.Index >= 0 && expected.Index + 1 > NextArrayIndex)
-                    NextArrayIndex = expected.Index + 1;
-                AddCommand(expected);
-                return;
-            }
-            AddCommand(new ArrayCommand(ArrayCommandType.LessThanOtherArrayIndex, i1, i2));
+            _emitter.Emit(ArrayCommandType.LessThanOtherArrayIndex, i1, i2, alignVsFromRecordedIndex: true);
         }
 
         public void InsertEqualsValueCommand(int idx, int v)
         {
-            if (_acl.RepeatingExistingCommandRange)
-            {
-                var expected = _acl.UnderlyingCommands[NextCommandIndex];
-                if (expected.Index >= 0 && expected.Index + 1 > NextArrayIndex)
-                    NextArrayIndex = expected.Index + 1;
-                AddCommand(expected);
-                return;
-            }
-            AddCommand(new ArrayCommand(ArrayCommandType.EqualsValue, idx, v));
+            _emitter.Emit(ArrayCommandType.EqualsValue, idx, v, alignVsFromRecordedIndex: true);
         }
+
         public void InsertNotEqualsValueCommand(int idx, int v)
         {
-            if (_acl.RepeatingExistingCommandRange)
-            {
-                var expected = _acl.UnderlyingCommands[NextCommandIndex];
-                if (expected.Index >= 0 && expected.Index + 1 > NextArrayIndex)
-                    NextArrayIndex = expected.Index + 1;
-                AddCommand(expected);
-                return;
-            }
-            AddCommand(new ArrayCommand(ArrayCommandType.NotEqualsValue, idx, v));
+            _emitter.Emit(ArrayCommandType.NotEqualsValue, idx, v, alignVsFromRecordedIndex: true);
         }
+
 
         #endregion
 
@@ -634,44 +574,31 @@ namespace ACESimBase.Util.ArrayProcessing
             AddCommand(new ArrayCommand(ArrayCommandType.Comment, -1, id));
         }
 
-
         /// <summary>
-        /// Insert a placeholder “Blank” command and return its position in the command buffer
-        /// (note: this is a *command* index, not an array index).
+        /// Insert a placeholder “Blank” command and return its position in the command buffer.
+        /// (This returns a command index, not an array index.)
         /// </summary>
         public int InsertBlankCommand()
         {
-            int cmdIndex = NextCommandIndex;                 // position before adding the blank
-            AddCommand(new ArrayCommand(ArrayCommandType.Blank, -1, -1));
+            int cmdIndex = NextCommandIndex;
+            _emitter.Emit(ArrayCommandType.Blank, -1, -1, alignVsFromRecordedIndex: false);
             return cmdIndex;
         }
 
         public int InsertIncrementDepthCommand()
         {
             int cmdIndex = NextCommandIndex;
-            if (_acl.RepeatingExistingCommandRange)
-            {
-                var recorded = _acl.UnderlyingCommands[NextCommandIndex];
-                AddCommand(recorded);
-                return cmdIndex;
-            }
-
-            AddCommand(new ArrayCommand(ArrayCommandType.IncrementDepth, -1, -1));
+            _emitter.Emit(ArrayCommandType.IncrementDepth, -1, -1, alignVsFromRecordedIndex: false);
             return cmdIndex;
         }
+
         public int InsertDecrementDepthCommand()
         {
             int cmdIndex = NextCommandIndex;
-            if (_acl.RepeatingExistingCommandRange)
-            {
-                var recorded = _acl.UnderlyingCommands[NextCommandIndex];
-                AddCommand(recorded);
-                return cmdIndex;
-            }
-
-            AddCommand(new ArrayCommand(ArrayCommandType.DecrementDepth, -1, -1));
+            _emitter.Emit(ArrayCommandType.DecrementDepth, -1, -1, alignVsFromRecordedIndex: false);
             return cmdIndex;
         }
+
 
 
         #endregion
@@ -704,7 +631,7 @@ namespace ACESimBase.Util.ArrayProcessing
 
         #endregion
 
-        #region Emitter
+        #region Helper types
 
         /// <summary>
         /// Centralized command emitter. This routes all writes and preserves existing behavior
@@ -717,6 +644,24 @@ namespace ACESimBase.Util.ArrayProcessing
             internal CommandEmitter(CommandRecorder recorder)
             {
                 _recorder = recorder;
+            }
+
+            /// <summary>
+            /// Emits a command of the given type and operands, with optional replay-time
+            /// alignment of the virtual stack based on the recorded command's target index.
+            /// </summary>
+            internal void Emit(ArrayCommandType type, int index, int source, bool alignVsFromRecordedIndex)
+            {
+                // If replaying and alignment is requested, align VS from the recorded command.
+                if (_recorder._acl.RepeatingExistingCommandRange && alignVsFromRecordedIndex)
+                {
+                    var expected = _recorder._acl.UnderlyingCommands[_recorder.NextCommandIndex];
+                    if (expected.Index >= 0)
+                        _recorder.VS.AlignToAtLeast(expected.Index + 1);
+                }
+
+                // Delegate to the canonical path (handles validation and writing).
+                Emit(new ArrayCommand(type, index, source));
             }
 
             internal void Emit(in ArrayCommand cmd)
@@ -768,7 +713,39 @@ namespace ACESimBase.Util.ArrayProcessing
                 // Maintain high-water mark via VirtualStack
                 _recorder.VS.TouchHighWater();
             }
+
+
         }
+
+        /// <summary>
+        /// Scope for temporary virtual-stack allocations. When reclamation is enabled,
+        /// disposal restores the virtual stack top to its saved value.
+        /// </summary>
+        public readonly struct ScratchScope : IDisposable
+        {
+            private readonly CommandRecorder _recorder;
+            private readonly int _savedNext;
+            private readonly bool _shouldReclaim;
+
+            public ScratchScope(CommandRecorder recorder, bool reclaimOnDispose)
+            {
+                _recorder = recorder;
+                _savedNext = recorder.NextArrayIndex;
+                _shouldReclaim = reclaimOnDispose && recorder._acl.ReuseScratchSlots;
+            }
+
+            public void Dispose()
+            {
+                if (_shouldReclaim)
+                    _recorder.NextArrayIndex = _savedNext;
+            }
+        }
+
+        /// <summary>
+        /// Opens a scope for temporary allocations. If <paramref name="reclaimOnDispose"/> is true
+        /// and scratch-slot reuse is enabled, the virtual stack top is restored on dispose.
+        /// </summary>
+        public ScratchScope OpenScratchScope(bool reclaimOnDispose = true) => new ScratchScope(this, reclaimOnDispose);
 
 
         #endregion
