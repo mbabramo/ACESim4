@@ -783,199 +783,225 @@ namespace ACESim
             byte numPossibleActions = NumPossibleActionsAtDecision(decisionNum);
             int[] actionProbabilities;
 
-            if (EvolutionSettings.IncludeCommentsWhenUnrolling)
-                Unroll_Commands.InsertComment($"Decision  {decisionNum} InfoSet {informationSet.InformationSetNodeNumber} player {playerMakingDecision}");
-
-            if (EvolutionSettings.CFRBR && playerMakingDecision != playerBeingOptimized)
-            {
-                actionProbabilities = Unroll_Commands.NewZeroArray(informationSet.NumPossibleActions);
-                for (byte action = 1; action <= informationSet.NumPossibleActions; action++)
-                {
-                    int lastBestResponseActionIndex = Unroll_Commands.CopyToNew(
-                        Unroll_GetInformationSetIndex_LastBestResponse(informationSet.InformationSetNodeNumber, (byte)informationSet.NumPossibleActions),
-                        true);
-
-                    Unroll_Commands.InsertEqualsValueCommand(lastBestResponseActionIndex, (int)action);
-                    Unroll_Commands.InsertIfCommand();
-                    int one = Unroll_Commands.CopyToNew(Unroll_OneIndex, true);
-                    Unroll_Commands.CopyToExisting(actionProbabilities[action - 1], one);
-                    Unroll_Commands.InsertEndIfCommand();
-                }
-            }
-            else
-            {
-                actionProbabilities = Unroll_Commands.CopyToNew(
-                    playerMakingDecision == playerBeingOptimized
-                        ? Unroll_GetInformationSetIndex_CurrentProbabilities_All(informationSet.InformationSetNodeNumber, numPossibleActions)
-                        : Unroll_GetInformationSetIndex_CurrentProbabilitiesOpponent_All(informationSet.InformationSetNodeNumber, numPossibleActions),
-                    true);
-            }
-
-            int[] expectedValueOfAction = Unroll_Commands.NewZeroArray(numPossibleActions);
-            int expectedValue = Unroll_Commands.NewZero();
-
-            int[] innerBuf = Unroll_Commands.NewZeroArray(3);
-
-            bool pruningPossible = (EvolutionSettings.PruneOnOpponentStrategy || EvolutionSettings.CFRBR) && playerBeingOptimized != playerMakingDecision;
-            int opponentPruningThresholdIndex = -1;
-            if (pruningPossible)
-                opponentPruningThresholdIndex = Unroll_Commands.CopyToNew(Unroll_SmallestValuePossibleIndex, true);
-
-            for (byte action = 1; action <= numPossibleActions; action++)
+            using (Unroll_Commands.Recorder.PushBreadcrumb(
+                $"IS={informationSet.InformationSetNodeNumber}; dec={decisionNum}; player={playerMakingDecision}"))
             {
                 if (EvolutionSettings.IncludeCommentsWhenUnrolling)
-                    Unroll_Commands.InsertComment($"Decision  {decisionNum} InfoSet {informationSet.InformationSetNodeNumber} player {playerMakingDecision} Action {action}");
+                    Unroll_Commands.InsertComment($"Decision  {decisionNum} InfoSet {informationSet.InformationSetNodeNumber} player {playerMakingDecision}");
 
-                int probabilityOfAction = actionProbabilities[action - 1];
-
-                if (pruningPossible)
+                if (EvolutionSettings.CFRBR && playerMakingDecision != playerBeingOptimized)
                 {
-                    Unroll_Commands.InsertGreaterThanOtherArrayIndexCommand(probabilityOfAction, opponentPruningThresholdIndex);
-                    Unroll_Commands.InsertIfCommand();
-                }
+                    actionProbabilities = Unroll_Commands.NewZeroArray(informationSet.NumPossibleActions);
+                    for (int i = 0; i < actionProbabilities.Length; i++)
+                        Unroll_Commands.Recorder.DebugLabelSlot(actionProbabilities[i], $"actionProb[{i}]");
 
-                int probabilityOfActionAvgStrat = Unroll_Commands.CopyToNew(
-                    Unroll_GetInformationSetIndex_AverageStrategy(informationSet.InformationSetNodeNumber, action), true);
+                    for (byte action = 1; action <= informationSet.NumPossibleActions; action++)
+                    {
+                        int lastBestResponseActionIndex = Unroll_Commands.CopyToNew(
+                            Unroll_GetInformationSetIndex_LastBestResponse(informationSet.InformationSetNodeNumber, (byte)informationSet.NumPossibleActions),
+                            true);
 
-                int[] nextPiValues = Unroll_Commands.NewZeroArray(NumNonChancePlayers);
-                Unroll_GetNextPiValues(piValues, playerMakingDecision, probabilityOfAction, false, nextPiValues);
-
-                int[] nextAvgStratPiValues = Unroll_Commands.NewZeroArray(NumNonChancePlayers);
-                Unroll_GetNextPiValues(avgStratPiValues, playerMakingDecision, probabilityOfActionAvgStrat, false, nextAvgStratPiValues);
-
-                // close recorded slice at boundary if required
-                if (EvolutionSettings.UnrollTemplateRepeatedRanges && informationSet.Decision.EndRepeatedRange)
-                    _repeatTpl.CloseAtBoundary();
-
-                if (EvolutionSettings.TraceCFR)
-                {
-                    int probabilityOfActionCopy = Unroll_Commands.CopyToNew(probabilityOfAction, false);
-                    TabbedText.WriteLine(
-                        $"({GameDefinition.DecisionsExecutionOrder.FirstOrDefault(x => x.DecisionByteCode == informationSet.DecisionByteCode)?.Name}) code {informationSet.DecisionByteCode} optimizing player {playerBeingOptimized}  {(playerMakingDecision == playerBeingOptimized ? "own decision" : "opp decision")} action {action} probability ARRAY{probabilityOfActionCopy} .");
-                    TabbedText.TabIndent();
-                }
-
-                HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, action, informationSet.Decision, informationSet.DecisionIndex);
-
-                Unroll_Commands.ZeroExisting(innerBuf);
-                Unroll_GeneralizedVanillaCFR(in nextHistoryPoint, playerBeingOptimized, nextPiValues, nextAvgStratPiValues, innerBuf, false, playerBeingOptimized == NumNonChancePlayers - 1);
-
-                Unroll_Commands.CopyToExisting(expectedValueOfAction[action - 1], innerBuf[Unroll_Result_CurrentVsCurrentIndex]);
-
-                bool toOriginal =
-                    algorithmIsLowestDepth
-                    || (_repeatTpl != null && _repeatTpl.IsOpen)
-                    || (EvolutionSettings.UnrollTemplateRepeatedRanges && informationSet.Decision.BeginRepeatedRange);
-
-                if (playerMakingDecision == playerBeingOptimized)
-                {
-                    int lastBestResponseActionIndex = Unroll_Commands.CopyToNew(
-                        Unroll_GetInformationSetIndex_LastBestResponse(informationSet.InformationSetNodeNumber, (byte)informationSet.NumPossibleActions), true);
-                    Unroll_Commands.InsertEqualsValueCommand(lastBestResponseActionIndex, (int)action);
-                    Unroll_Commands.InsertIfCommand();
-                    Unroll_AddToResult(resultArray[Unroll_Result_BestResponseIndex], toOriginal, innerBuf[Unroll_Result_BestResponseIndex]);
-                    Unroll_Commands.InsertEndIfCommand();
-
-                    int bestResponseNumerator = Unroll_GetInformationSetIndex_BestResponseNumerator(informationSet.InformationSetNodeNumber, action);
-                    int bestResponseDenominator = Unroll_GetInformationSetIndex_BestResponseDenominator(informationSet.InformationSetNodeNumber, action);
-
-                    if (EvolutionSettings.IncludeCommentsWhenUnrolling)
-                        Unroll_Commands.InsertComment($"Decision  {decisionNum} InfoSet {informationSet.InformationSetNodeNumber} player {playerMakingDecision} updating regrets");
-
-                    Unroll_AddProductToResult(bestResponseNumerator,  true, inversePiAvgStrat, innerBuf[Unroll_Result_BestResponseIndex]);
-                    Unroll_AddToResult       (bestResponseDenominator, true, inversePiAvgStrat);
-
-                    Unroll_AddProductToResult(resultArray[Unroll_Result_CurrentVsCurrentIndex], toOriginal,
-                                              probabilityOfAction, innerBuf[Unroll_Result_CurrentVsCurrentIndex]);
-
-                    Unroll_AddProductToResult(resultArray[Unroll_Result_AverageStrategyIndex],   toOriginal,
-                                              probabilityOfActionAvgStrat, innerBuf[Unroll_Result_AverageStrategyIndex]);
+                        Unroll_Commands.InsertEqualsValueCommand(lastBestResponseActionIndex, (int)action);
+                        Unroll_Commands.InsertIfCommand();
+                        int one = Unroll_Commands.CopyToNew(Unroll_OneIndex, true);
+                        Unroll_Commands.CopyToExisting(actionProbabilities[action - 1], one);
+                        Unroll_Commands.InsertEndIfCommand();
+                    }
                 }
                 else
                 {
-                    Unroll_AddProductToResult(resultArray[Unroll_Result_CurrentVsCurrentIndex], toOriginal,
-                                              probabilityOfAction, innerBuf[Unroll_Result_CurrentVsCurrentIndex]);
-
-                    Unroll_AddProductToResult(resultArray[Unroll_Result_AverageStrategyIndex],   toOriginal,
-                                              probabilityOfActionAvgStrat, innerBuf[Unroll_Result_AverageStrategyIndex]);
-
-                    Unroll_AddProductToResult(resultArray[Unroll_Result_BestResponseIndex],      toOriginal,
-                                              probabilityOfActionAvgStrat, innerBuf[Unroll_Result_BestResponseIndex]);
+                    actionProbabilities = Unroll_Commands.CopyToNew(
+                        playerMakingDecision == playerBeingOptimized
+                            ? Unroll_GetInformationSetIndex_CurrentProbabilities_All(informationSet.InformationSetNodeNumber, numPossibleActions)
+                            : Unroll_GetInformationSetIndex_CurrentProbabilitiesOpponent_All(informationSet.InformationSetNodeNumber, numPossibleActions),
+                        true);
+                    for (int i = 0; i < actionProbabilities.Length; i++)
+                        Unroll_Commands.Recorder.DebugLabelSlot(actionProbabilities[i], $"actionProb[{i}]");
                 }
 
-                Unroll_AddProductToResult(expectedValue, canRouteToOriginal: false, probabilityOfAction, expectedValueOfAction[action - 1]);
+                int[] expectedValueOfAction = Unroll_Commands.NewZeroArray(numPossibleActions);
+                int expectedValue = Unroll_Commands.NewZero();
 
-                if (EvolutionSettings.TraceCFR)
-                {
-                    int expectedValueOfActionCopy = Unroll_Commands.CopyToNew(expectedValueOfAction[action - 1], false);
-                    int bestResponseExpectedValueCopy = Unroll_Commands.CopyToNew(resultArray[Unroll_Result_BestResponseIndex], false);
-                    int cumExpectedValueCopy = Unroll_Commands.CopyToNew(expectedValue, false);
-                    TabbedText.TabUnindent();
-                    TabbedText.WriteLine(
-                        $"... action {action} expected value ARRAY{expectedValueOfActionCopy} best response expected value ARRAY{bestResponseExpectedValueCopy} cum expected value ARRAY{cumExpectedValueCopy}{(action == numPossibleActions && IncludeAsteriskForBestResponseInTrace ? "*" : "")}");
-                }
+                int[] innerBuf = Unroll_Commands.NewZeroArray(3);
+                Unroll_Commands.Recorder.DebugLabelSlot(innerBuf[0], "innerBuf[0]");
+                Unroll_Commands.Recorder.DebugLabelSlot(innerBuf[1], "innerBuf[1]");
+                Unroll_Commands.Recorder.DebugLabelSlot(innerBuf[2], "innerBuf[2]");
 
+                bool pruningPossible = (EvolutionSettings.PruneOnOpponentStrategy || EvolutionSettings.CFRBR) && playerBeingOptimized != playerMakingDecision;
+                int opponentPruningThresholdIndex = -1;
                 if (pruningPossible)
-                    Unroll_Commands.InsertEndIfCommand();
-            }
-
-            if (playerMakingDecision == playerBeingOptimized)
-            {
-                int smallestPossible = Unroll_Commands.CopyToNew(Unroll_SmallestProbabilityRepresentedIndex, true);
+                    opponentPruningThresholdIndex = Unroll_Commands.CopyToNew(Unroll_SmallestValuePossibleIndex, true);
 
                 for (byte action = 1; action <= numPossibleActions; action++)
                 {
-                    if (EvolutionSettings.IncludeCommentsWhenUnrolling)
-                        Unroll_Commands.InsertComment($"Decision  {decisionNum} InfoSet {informationSet.InformationSetNodeNumber} player {playerMakingDecision} Action {action} incrementing regrets");
-
-                    int pi = Unroll_Commands.CopyToNew(piValues[playerBeingOptimized], false);
-                    Unroll_Commands.CreateCheckpoint(pi);
-                    Unroll_Commands.InsertLessThanOtherArrayIndexCommand(pi, smallestPossible);
-                    Unroll_Commands.InsertIfCommand();
-                    Unroll_Commands.CopyToExisting(pi, smallestPossible);
-                    Unroll_Commands.InsertEndIfCommand();
-
-                    int regret = Unroll_Commands.CopyToNew(expectedValueOfAction[action - 1], false);
-                    Unroll_Commands.Decrement(regret, expectedValue);
-
-                    int lastRegretNumerator   = Unroll_GetInformationSetIndex_LastRegretNumerator(informationSet.InformationSetNodeNumber, action);
-                    int lastRegretDenominator = Unroll_GetInformationSetIndex_LastRegretDenominator(informationSet.InformationSetNodeNumber, action);
-
-                    Unroll_AddProductToResult(lastRegretNumerator,   true, regret,   inversePi);
-                    Unroll_AddToResult       (lastRegretDenominator, true, inversePi);
-
-                    // Stable alias avoids late reindexing across closed scopes
-                    int probabilityOfAction = actionProbabilities[action - 1];
-
-                    int contributionToAverageStrategy = Unroll_Commands.CopyToNew(pi, false);
-                    Unroll_Commands.MultiplyBy(contributionToAverageStrategy, probabilityOfAction);
-                    int lastCumulativeStrategyIncrement = Unroll_GetInformationSetIndex_LastCumulativeStrategyIncrement(informationSet.InformationSetNodeNumber, action);
-
-                    Unroll_AddToResult(lastCumulativeStrategyIncrement, true, contributionToAverageStrategy);
-
-                    if (EvolutionSettings.TraceCFR || Unroll_Commands.UseCheckpoints)
+                    using (Unroll_Commands.Recorder.PushBreadcrumb($"action={action} phase=EV"))
                     {
-                        int piCopy = Unroll_Commands.CopyToNew(pi, false);
-                        int piValuesZeroCopy = Unroll_Commands.CopyToNew(piValues[0], false);
-                        int piValuesOneCopy  = Unroll_Commands.CopyToNew(piValues[1], false);
-                        int regretCopy = Unroll_Commands.CopyToNew(regret, false);
-                        int inversePiCopy = Unroll_Commands.CopyToNew(inversePi, false);
-                        int contributionToAverageStrategyCopy = Unroll_Commands.CopyToNew(contributionToAverageStrategy, false);
-                        int cumulativeStrategyCopy = Unroll_Commands.CopyToNew(lastCumulativeStrategyIncrement, true);
+                        if (EvolutionSettings.IncludeCommentsWhenUnrolling)
+                            Unroll_Commands.InsertComment($"Decision  {decisionNum} InfoSet {informationSet.InformationSetNodeNumber} player {playerMakingDecision} Action {action}");
+
+                        int probabilityOfAction = actionProbabilities[action - 1];
+                        Unroll_Commands.Recorder.DebugLabelSlot(probabilityOfAction, $"prob[a={action}]");
+
+                        if (pruningPossible)
+                        {
+                            Unroll_Commands.InsertGreaterThanOtherArrayIndexCommand(probabilityOfAction, opponentPruningThresholdIndex);
+                            Unroll_Commands.InsertIfCommand();
+                        }
+
+                        int probabilityOfActionAvgStrat = Unroll_Commands.CopyToNew(
+                            Unroll_GetInformationSetIndex_AverageStrategy(informationSet.InformationSetNodeNumber, action), true);
+
+                        int[] nextPiValues = Unroll_Commands.NewZeroArray(NumNonChancePlayers);
+                        Unroll_GetNextPiValues(piValues, playerMakingDecision, probabilityOfAction, false, nextPiValues);
+
+                        int[] nextAvgStratPiValues = Unroll_Commands.NewZeroArray(NumNonChancePlayers);
+                        Unroll_GetNextPiValues(avgStratPiValues, playerMakingDecision, probabilityOfActionAvgStrat, false, nextAvgStratPiValues);
+
+                        // close recorded slice at boundary if required
+                        if (EvolutionSettings.UnrollTemplateRepeatedRanges && informationSet.Decision.EndRepeatedRange)
+                            _repeatTpl.CloseAtBoundary();
 
                         if (EvolutionSettings.TraceCFR)
                         {
-                            TabbedText.WriteLine($"PiValues ARRAY{piValuesZeroCopy} ARRAY{piValuesOneCopy} pi for optimized ARRAY{piCopy}");
+                            int probabilityOfActionCopy = Unroll_Commands.CopyToNew(probabilityOfAction, false);
                             TabbedText.WriteLine(
-                                $"Regrets ({informationSet.Decision.Name} {informationSet.InformationSetNodeNumber}): Action {action} probability ARRAY{probabilityOfAction} regret ARRAY{regretCopy} inversePi ARRAY{inversePiCopy} avg_strat_increment ARRAY{contributionToAverageStrategyCopy} cum_strategy ARRAY{cumulativeStrategyCopy}");
+                                $"({GameDefinition.DecisionsExecutionOrder.FirstOrDefault(x => x.DecisionByteCode == informationSet.DecisionByteCode)?.Name}) code {GameDefinition.DecisionsExecutionOrder.FirstOrDefault(x => x.DecisionByteCode == informationSet.DecisionByteCode)?.DecisionByteCode} optimizing player {playerBeingOptimized}  {(playerMakingDecision == playerBeingOptimized ? "own decision" : "opp decision")} action {action} probability ARRAY{probabilityOfActionCopy} .");
+                            TabbedText.TabIndent();
                         }
 
-                        if (Unroll_Commands.UseCheckpoints)
+                        HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, action, informationSet.Decision, informationSet.DecisionIndex);
+
+                        Unroll_Commands.ZeroExisting(innerBuf);
+                        Unroll_GeneralizedVanillaCFR(in nextHistoryPoint, playerBeingOptimized, nextPiValues, nextAvgStratPiValues, innerBuf, false, playerBeingOptimized == NumNonChancePlayers - 1);
+
+                        Unroll_Commands.CopyToExisting(expectedValueOfAction[action - 1], innerBuf[Unroll_Result_CurrentVsCurrentIndex]);
+
+                        bool toOriginal =
+                            algorithmIsLowestDepth
+                            || (_repeatTpl != null && _repeatTpl.IsOpen)
+                            || (EvolutionSettings.UnrollTemplateRepeatedRanges && informationSet.Decision.BeginRepeatedRange);
+
+                        if (playerMakingDecision == playerBeingOptimized)
                         {
-                            Unroll_Commands.CreateCheckpoint(probabilityOfAction);
-                            Unroll_Commands.CreateCheckpoint(regretCopy);
-                            Unroll_Commands.CreateCheckpoint(inversePiCopy);
-                            Unroll_Commands.CreateCheckpoint(piCopy);
+                            int lastBestResponseActionIndex = Unroll_Commands.CopyToNew(
+                                Unroll_GetInformationSetIndex_LastBestResponse(informationSet.InformationSetNodeNumber, (byte)informationSet.NumPossibleActions), true);
+                            Unroll_Commands.InsertEqualsValueCommand(lastBestResponseActionIndex, (int)action);
+                            Unroll_Commands.InsertIfCommand();
+                            Unroll_AddToResult(resultArray[Unroll_Result_BestResponseIndex], toOriginal, innerBuf[Unroll_Result_BestResponseIndex]);
+                            Unroll_Commands.InsertEndIfCommand();
+
+                            int bestResponseNumerator = Unroll_GetInformationSetIndex_BestResponseNumerator(informationSet.InformationSetNodeNumber, action);
+                            int bestResponseDenominator = Unroll_GetInformationSetIndex_BestResponseDenominator(informationSet.InformationSetNodeNumber, action);
+
+                            if (EvolutionSettings.IncludeCommentsWhenUnrolling)
+                                Unroll_Commands.InsertComment($"Decision  {decisionNum} InfoSet {informationSet.InformationSetNodeNumber} player {playerMakingDecision} updating regrets");
+
+                            Unroll_AddProductToResult(bestResponseNumerator,  true, inversePiAvgStrat, innerBuf[Unroll_Result_BestResponseIndex]);
+                            Unroll_AddToResult       (bestResponseDenominator, true, inversePiAvgStrat);
+
+                            Unroll_AddProductToResult(resultArray[Unroll_Result_CurrentVsCurrentIndex], toOriginal,
+                                                      probabilityOfAction, innerBuf[Unroll_Result_CurrentVsCurrentIndex]);
+
+                            Unroll_AddProductToResult(resultArray[Unroll_Result_AverageStrategyIndex],   toOriginal,
+                                                      probabilityOfActionAvgStrat, innerBuf[Unroll_Result_AverageStrategyIndex]);
+                        }
+                        else
+                        {
+                            Unroll_AddProductToResult(resultArray[Unroll_Result_CurrentVsCurrentIndex], toOriginal,
+                                                      probabilityOfAction, innerBuf[Unroll_Result_CurrentVsCurrentIndex]);
+
+                            Unroll_AddProductToResult(resultArray[Unroll_Result_AverageStrategyIndex],   toOriginal,
+                                                      probabilityOfActionAvgStrat, innerBuf[Unroll_Result_AverageStrategyIndex]);
+
+                            Unroll_AddProductToResult(resultArray[Unroll_Result_BestResponseIndex],      toOriginal,
+                                                      probabilityOfActionAvgStrat, innerBuf[Unroll_Result_BestResponseIndex]);
+                        }
+
+                        Unroll_AddProductToResult(expectedValue, canRouteToOriginal: false, probabilityOfAction, expectedValueOfAction[action - 1]);
+
+                        if (EvolutionSettings.TraceCFR)
+                        {
+                            int expectedValueOfActionCopy = Unroll_Commands.CopyToNew(expectedValueOfAction[action - 1], false);
+                            int bestResponseExpectedValueCopy = Unroll_Commands.CopyToNew(resultArray[Unroll_Result_BestResponseIndex], false);
+                            int cumExpectedValueCopy = Unroll_Commands.CopyToNew(expectedValue, false);
+                            TabbedText.TabUnindent();
+                            TabbedText.WriteLine(
+                                $"... action {action} expected value ARRAY{expectedValueOfActionCopy} best response expected value ARRAY{bestResponseExpectedValueCopy} cum expected value ARRAY{cumExpectedValueCopy}{(action == numPossibleActions && IncludeAsteriskForBestResponseInTrace ? "*" : "")}");
+                        }
+
+                        if (pruningPossible)
+                            Unroll_Commands.InsertEndIfCommand();
+                    }
+                }
+
+                if (playerMakingDecision == playerBeingOptimized)
+                {
+                    int smallestPossible = Unroll_Commands.CopyToNew(Unroll_SmallestProbabilityRepresentedIndex, true);
+
+                    for (byte action = 1; action <= numPossibleActions; action++)
+                    {
+                        using (Unroll_Commands.Recorder.PushBreadcrumb($"action={action} phase=regret"))
+                        {
+                            if (EvolutionSettings.IncludeCommentsWhenUnrolling)
+                                Unroll_Commands.InsertComment($"Decision  {decisionNum} InfoSet {informationSet.InformationSetNodeNumber} player {playerMakingDecision} Action {action} incrementing regrets");
+
+                            int pi = Unroll_Commands.CopyToNew(piValues[playerBeingOptimized], false);
+                            Unroll_Commands.Recorder.DebugLabelSlot(pi, "pi");
+
+                            Unroll_Commands.CreateCheckpoint(pi);
+                            Unroll_Commands.InsertLessThanOtherArrayIndexCommand(pi, smallestPossible);
+                            Unroll_Commands.InsertIfCommand();
+                            Unroll_Commands.CopyToExisting(pi, smallestPossible);
+                            Unroll_Commands.InsertEndIfCommand();
+
+                            int regret = Unroll_Commands.CopyToNew(expectedValueOfAction[action - 1], false);
+                            Unroll_Commands.Recorder.DebugLabelSlot(regret, "regret");
+
+                            Unroll_Commands.Decrement(regret, expectedValue);
+
+                            int lastRegretNumerator   = Unroll_GetInformationSetIndex_LastRegretNumerator(informationSet.InformationSetNodeNumber, action);
+                            int lastRegretDenominator = Unroll_GetInformationSetIndex_LastRegretDenominator(informationSet.InformationSetNodeNumber, action);
+
+                            Unroll_AddProductToResult(lastRegretNumerator,   true, regret,   inversePi);
+                            Unroll_AddToResult       (lastRegretDenominator, true, inversePi);
+
+                            // Stable alias avoids late reindexing across closed scopes
+                            int probabilityOfAction = actionProbabilities[action - 1];
+                            Unroll_Commands.Recorder.DebugLabelSlot(probabilityOfAction, $"prob[a={action}]");
+
+                            int contributionToAverageStrategy = Unroll_Commands.CopyToNew(pi, false);
+                            Unroll_Commands.Recorder.DebugLabelSlot(contributionToAverageStrategy, "avgStratΔ");
+
+                            Unroll_Commands.MultiplyBy(contributionToAverageStrategy, probabilityOfAction);
+                            int lastCumulativeStrategyIncrement = Unroll_GetInformationSetIndex_LastCumulativeStrategyIncrement(informationSet.InformationSetNodeNumber, action);
+
+                            Unroll_AddToResult(lastCumulativeStrategyIncrement, true, contributionToAverageStrategy);
+
+                            if (EvolutionSettings.TraceCFR || Unroll_Commands.UseCheckpoints)
+                            {
+                                int piCopy = Unroll_Commands.CopyToNew(pi, false);
+                                int piValuesZeroCopy = Unroll_Commands.CopyToNew(piValues[0], false);
+                                int piValuesOneCopy  = Unroll_Commands.CopyToNew(piValues[1], false);
+                                int regretCopy = Unroll_Commands.CopyToNew(regret, false);
+                                int inversePiCopy = Unroll_Commands.CopyToNew(inversePi, false);
+                                int contributionToAverageStrategyCopy = Unroll_Commands.CopyToNew(contributionToAverageStrategy, false);
+                                int cumulativeStrategyCopy = Unroll_Commands.CopyToNew(lastCumulativeStrategyIncrement, true);
+
+                                if (EvolutionSettings.TraceCFR)
+                                {
+                                    TabbedText.WriteLine($"PiValues ARRAY{piValuesZeroCopy} ARRAY{piValuesOneCopy} pi for optimized ARRAY{piCopy}");
+                                    TabbedText.WriteLine(
+                                        $"Regrets ({informationSet.Decision.Name} {informationSet.InformationSetNodeNumber}): Action {action} probability ARRAY{probabilityOfAction} regret ARRAY{regretCopy} inversePi ARRAY{inversePiCopy} avg_strat_increment ARRAY{contributionToAverageStrategyCopy} cum_strategy ARRAY{cumulativeStrategyCopy}");
+                                }
+
+                                if (Unroll_Commands.UseCheckpoints)
+                                {
+                                    Unroll_Commands.CreateCheckpoint(probabilityOfAction);
+                                    Unroll_Commands.CreateCheckpoint(regretCopy);
+                                    Unroll_Commands.CreateCheckpoint(inversePiCopy);
+                                    Unroll_Commands.CreateCheckpoint(piCopy);
+                                }
+                            }
                         }
                     }
                 }
