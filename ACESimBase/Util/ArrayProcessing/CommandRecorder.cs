@@ -1,4 +1,5 @@
-﻿using System;
+﻿using ACESimBase.Util.Collections;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.InteropServices;
@@ -16,9 +17,14 @@ namespace ACESimBase.Util.ArrayProcessing
     public sealed class CommandRecorder
     {
         private readonly ArrayCommandList _acl;
+        internal ArrayCommandList Acl => _acl; 
 
+        public IEmissionMode Mode { get; set; } = RecordingMode.Instance;
+        internal OrderedIoRecorder IO { get; }     
         public VirtualStack VS { get; }
         private readonly CommandEmitter _emitter;
+        private readonly DecorationEmitter _decoration;
+
 
 
         // Counters mirrored into the ACL for introspection / later execution
@@ -30,27 +36,22 @@ namespace ACESimBase.Util.ArrayProcessing
         private Stack<int> _depthStartSlots = new();
         private Stack<int> _repeatRangeStack = new();
 
-
         // Logging
         private const int _recentNewCapacity = 64;
         private (int attemptedCmdIndex, ArrayCommand cmd)[] _recentNewRing = new (int, ArrayCommand)[_recentNewCapacity];
-        private int _recentNewHead = 0;
-        private int _recentNewCount = 0;
-
-        internal ArrayCommandList Acl => _acl;                     // expose to modes
-        public IEmissionMode Mode { get; set; } = RecordingMode.Instance;
-        internal OrderedIoRecorder IO { get; }                     // set in ctor
+        private int _recentNewHead = 0; 
+        private int _recentNewCount = 0;            
 
         public CommandRecorder(ArrayCommandList owner)
         {
             VS = new VirtualStack(this);
             _emitter = new CommandEmitter(this);
+            _decoration = new DecorationEmitter(this);
             _acl = owner ?? throw new ArgumentNullException(nameof(owner));
+            IO = new OrderedIoRecorder(_acl);
             NextArrayIndex = 0;
             MaxArrayIndex = -1;
             NextCommandIndex = 0;
-
-            IO = new OrderedIoRecorder(_acl);
         }
 
         public CommandRecorder Clone(ArrayCommandList acl2) =>
@@ -63,12 +64,12 @@ namespace ACESimBase.Util.ArrayProcessing
                 _repeatRangeStack = new Stack<int>(_repeatRangeStack.Reverse())
             };
 
-        #region InternalHelpers
-
         public void AddCommand(ArrayCommand cmd)
         {
             _emitter.Emit(cmd);
         }
+
+        #region Diagnostics
 
         private void ThrowRepeatMismatch(in ArrayCommand newCmd, in ArrayCommand recorded)
         {
@@ -123,14 +124,10 @@ namespace ACESimBase.Util.ArrayProcessing
             throw new InvalidOperationException(sb.ToString());
         }
 
-
         private static string RenderCommand(in ArrayCommand c) =>
             $"{c.CommandType} (idx={c.Index}, src={c.SourceIndex})";
 
-        // ─────────────────────────────────────────────────────────────────────────────
-        // Provenance (opt-in, author-time only)
-        // ─────────────────────────────────────────────────────────────────────────────
-        private const bool TraceProvenance = true; // or wire to EvolutionSettings / build symbol
+        private const bool TraceProvenance = true; 
 
         private struct SlotMeta
         {
@@ -144,19 +141,11 @@ namespace ACESimBase.Util.ArrayProcessing
 
         private readonly Dictionary<int, SlotMeta> _slotMeta = new();
 
-        private static bool WritesToVS(ArrayCommandType t) =>
-            t == ArrayCommandType.Zero ||
-            t == ArrayCommandType.CopyTo ||
-            t == ArrayCommandType.MultiplyBy ||
-            t == ArrayCommandType.IncrementBy ||
-            t == ArrayCommandType.DecrementBy ||
-            t == ArrayCommandType.NextSource; // NextDestination writes to the ordered buffer, not VS
-
-        private void NoteWrite(int idx, ArrayCommandType op, int sourceIdx)
+        private void SlotMetaWrite(int idx, ArrayCommandType op, int sourceIdx)
         {
             if (!TraceProvenance || idx < 0) return;
 
-            ref var m = ref CollectionsMarshal.GetValueRefOrAddDefault(_slotMeta, idx, out bool existed);
+            ref SlotMeta m = ref CollectionsMarshal.GetValueRefOrAddDefault(_slotMeta, idx, out bool existed);
             if (!existed)
             {
                 m.FirstCmd = NextCommandIndex;
@@ -252,7 +241,42 @@ namespace ACESimBase.Util.ArrayProcessing
         #endregion
 
         #region CopyArithmeticPrimitives
-        /// <summary>Copy value from <paramref name="sourceIdx"/> into a <em>new</em> scratch slot.</summary>
+
+        // Copy/Move
+        public int CopyToNew(VsIndex source) => CopyToNew(source.Value, fromOriginalSources: false);
+        public int CopyToNew(OsIndex source) => CopyToNew(source.Value, fromOriginalSources: true);
+
+        public void CopyToExisting(VsIndex index, VsIndex source) => CopyToExisting(index.Value, source.Value);
+
+        // Arithmetic
+        public void MultiplyBy(VsIndex index, VsIndex multiplier) => MultiplyBy(index.Value, multiplier.Value);
+
+        public void Increment(VsIndex index, bool targetOriginal, VsIndex inc)
+            => Increment(index.Value, targetOriginal, inc.Value);
+
+        public void Decrement(VsIndex index, VsIndex dec)
+            => Decrement(index.Value, dec.Value);
+
+        // Comparisons (VS indices)
+        public void InsertEqualsOtherArrayIndexCommand(VsIndex i1, VsIndex i2)
+            => InsertEqualsOtherArrayIndexCommand(i1.Value, i2.Value);
+
+        public void InsertNotEqualsOtherArrayIndexCommand(VsIndex i1, VsIndex i2)
+            => InsertNotEqualsOtherArrayIndexCommand(i1.Value, i2.Value);
+
+        public void InsertGreaterThanOtherArrayIndexCommand(VsIndex i1, VsIndex i2)
+            => InsertGreaterThanOtherArrayIndexCommand(i1.Value, i2.Value);
+
+        public void InsertLessThanOtherArrayIndexCommand(VsIndex i1, VsIndex i2)
+            => InsertLessThanOtherArrayIndexCommand(i1.Value, i2.Value);
+
+        // Comparisons vs. immediate
+        public void InsertEqualsValueCommand(VsIndex idx, int value)
+            => InsertEqualsValueCommand(idx.Value, value);
+
+        public void InsertNotEqualsValueCommand(VsIndex idx, int value)
+            => InsertNotEqualsValueCommand(idx.Value, value);
+
 
         /// <summary>Copy value from <paramref name="sourceIdx"/> into a <em>new</em> scratch slot.</summary>
         public int CopyToNew(int sourceIdx, bool fromOriginalSources)
@@ -406,7 +430,7 @@ namespace ACESimBase.Util.ArrayProcessing
 
         #region ComparisonFlowControl
         private struct IfFrame { public int IfCmdIndex; public int NewNextSrc; public int NewNextDst; }
-        private readonly Stack<IfFrame> _ifStack = new();
+        private readonly RefStack<IfFrame> _ifStack = new();
 
         public void InsertIf()
         {
@@ -545,33 +569,7 @@ namespace ACESimBase.Util.ArrayProcessing
 
         public void InsertComment(string text)
         {
-            // If we are not replaying and comments are not enabled, do not emit.
-            if (!_acl.RepeatingExistingCommandRange && !_acl.EmitComments)
-                return;
-
-            // During replay, only emit the comment if the recorded stream expects one here.
-            if (_acl.RepeatingExistingCommandRange)
-            {
-                var expected = _acl.UnderlyingCommands[NextCommandIndex];
-
-                if (expected.CommandType == ArrayCommandType.Comment)
-                {
-                    int expectedId = expected.SourceIndex;
-
-                    // Ensure local table can resolve the recorded id for later diagnostics.
-                    EnsureCommentSlotWithText(expectedId, text);
-
-                    AddCommand(new ArrayCommand(ArrayCommandType.Comment, -1, expectedId));
-                }
-
-                // If the recorded stream does not expect a comment at this position,
-                // do not emit one; silently skip to keep replay byte-identical.
-                return;
-            }
-
-            int id = CommentTable.Count;
-            CommentTable.Add(text);
-            AddCommand(new ArrayCommand(ArrayCommandType.Comment, -1, id));
+            _decoration.EmitComment(text);
         }
 
         /// <summary>
@@ -598,8 +596,6 @@ namespace ACESimBase.Util.ArrayProcessing
             _emitter.Emit(ArrayCommandType.DecrementDepth, -1, -1, alignVsFromRecordedIndex: false);
             return cmdIndex;
         }
-
-
 
         #endregion
 
@@ -690,12 +686,10 @@ namespace ACESimBase.Util.ArrayProcessing
                     Array.Resize(ref _recorder._acl.UnderlyingCommands, _recorder._acl.UnderlyingCommands.Length * 2);
                 }
 
-                // IF-stack bookkeeping (preserves prior behavior)
+                // IF-stack bookkeeping
                 if (_recorder._ifStack.Count > 0)
                 {
-                    ref var top = ref _recorder._ifStack.TryPeek(out var tmp)
-                        ? ref _recorder._ifStack.ToArray()[0]
-                        : ref tmp;
+                    ref var top = ref _recorder._ifStack.PeekRef();
 
                     if (cmd.CommandType == ArrayCommandType.NextSource)
                         top.NewNextSrc++;
@@ -705,7 +699,7 @@ namespace ACESimBase.Util.ArrayProcessing
 
                 // Provenance for VS writes
                 if (WritesToVS(cmd.CommandType))
-                    _recorder.NoteWrite(cmd.Index, cmd.CommandType, cmd.SourceIndex);
+                    _recorder.SlotMetaWrite(cmd.Index, cmd.CommandType, cmd.SourceIndex);
 
                 // Write and advance
                 _recorder._acl.UnderlyingCommands[_recorder.NextCommandIndex++] = cmd;
@@ -714,7 +708,59 @@ namespace ACESimBase.Util.ArrayProcessing
                 _recorder.VS.TouchHighWater();
             }
 
+            private static bool WritesToVS(ArrayCommandType t) =>
+                t == ArrayCommandType.Zero ||
+                t == ArrayCommandType.CopyTo ||
+                t == ArrayCommandType.MultiplyBy ||
+                t == ArrayCommandType.IncrementBy ||
+                t == ArrayCommandType.DecrementBy ||
+                t == ArrayCommandType.NextSource; // NextDestination writes to the ordered buffer, not VS
+        }
 
+        /// <summary>
+        /// Centralizes emission of non-semantic decorations (e.g., comments)
+        /// and preserves existing replay-time gating and comment table behavior.
+        /// </summary>
+        private sealed class DecorationEmitter
+        {
+            private readonly CommandRecorder _recorder;
+
+            internal DecorationEmitter(CommandRecorder recorder)
+            {
+                _recorder = recorder;
+            }
+
+            internal void EmitComment(string text)
+            {
+                // If not replaying and comments are disabled, skip emission (preserves behavior).
+                if (!_recorder._acl.RepeatingExistingCommandRange && !_recorder._acl.EmitComments)
+                    return;
+
+                if (_recorder._acl.RepeatingExistingCommandRange)
+                {
+                    // During replay: only emit if the recorded stream expects a comment here.
+                    var expected = _recorder._acl.UnderlyingCommands[_recorder.NextCommandIndex];
+
+                    if (expected.CommandType == ArrayCommandType.Comment)
+                    {
+                        int expectedId = expected.SourceIndex;
+
+                        // Ensure local table can resolve the recorded id for diagnostics.
+                        _recorder.EnsureCommentSlotWithText(expectedId, text);
+
+                        // Emit the recorded comment id verbatim (validation happens in the emitter).
+                        _recorder._emitter.Emit(ArrayCommandType.Comment, -1, expectedId, alignVsFromRecordedIndex: false);
+                    }
+
+                    // If the recorded stream does not expect a comment here, do nothing.
+                    return;
+                }
+
+                // Recording: assign a new comment id and emit.
+                int id = _recorder.CommentTable.Count;
+                _recorder.CommentTable.Add(text);
+                _recorder._emitter.Emit(ArrayCommandType.Comment, -1, id, alignVsFromRecordedIndex: false);
+            }
         }
 
         /// <summary>
