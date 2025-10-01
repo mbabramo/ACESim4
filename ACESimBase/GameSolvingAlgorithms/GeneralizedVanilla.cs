@@ -1163,19 +1163,19 @@ namespace ACESim
             Unroll_Commands.IncrementDepth();
 
             int actionProbabilityIndex = Unroll_GetChanceNodeIndex_ProbabilityForAction(chanceNode.ChanceNodeNumber, action);
-            var actionProb = Unroll_Slots.Read(new OsPort(actionProbabilityIndex));
+            var actionProb = Unroll_Slots.Read(new OsPort(new OsIndex(actionProbabilityIndex)));
 
             int[] nextPiValues = new int[NumNonChancePlayers];
-            Unroll_GetNextPiValues(piValues, playerBeingOptimized, actionProb.Index, true, nextPiValues);
+            Unroll_GetNextPiValues(piValues, playerBeingOptimized, actionProb.Index.Val(), true, nextPiValues);
 
             int[] nextAvgStratPiValues = new int[NumNonChancePlayers];
-            Unroll_GetNextPiValues(avgStratPiValues, playerBeingOptimized, actionProb.Index, true, nextAvgStratPiValues);
+            Unroll_GetNextPiValues(avgStratPiValues, playerBeingOptimized, actionProb.Index.Val(), true, nextAvgStratPiValues);
 
             HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, action, chanceNode.Decision, chanceNode.DecisionIndex);
 
             if (EvolutionSettings.TraceCFR)
             {
-                int actionProbabilityCopy = Unroll_Commands.CopyToNew(actionProb.Index, false);
+                int actionProbabilityCopy = Unroll_Commands.CopyToNew(actionProb.Index.Val(), false);
                 TabbedText.WriteLine(
                     $"Chance code {chanceNode.DecisionByteCode} ({chanceNode.Decision.Name}) action {action} probability ARRAY{actionProbabilityCopy} ...");
                 TabbedText.TabIndent();
@@ -1185,12 +1185,12 @@ namespace ACESim
             Unroll_GeneralizedVanillaCFR(in nextHistoryPoint, playerBeingOptimized, nextPiValues, nextAvgStratPiValues, resultArray, false, playerBeingOptimized == NumNonChancePlayers - 1);
 
             for (int k = 0; k < 3; k++)
-                Unroll_Slots.Mul(new VsSlot(resultArray[k]), actionProb);
+                Unroll_Slots.Mul(new VsSlot(new VsIndex(resultArray[k])), actionProb);
 
             if (EvolutionSettings.TraceCFR)
             {
                 int beforeMultipleCurrentCopy = Unroll_Commands.CopyToNew(resultArray[Unroll_Result_CurrentVsCurrentIndex], false);
-                int actionProbabilityCopy = Unroll_Commands.CopyToNew(actionProb.Index, false);
+                int actionProbabilityCopy = Unroll_Commands.CopyToNew(actionProb.Index.Val(), false);
                 int resultCurrentCopy = Unroll_Commands.CopyToNew(resultArray[Unroll_Result_CurrentVsCurrentIndex], false);
                 TabbedText.TabUnindent();
                 TabbedText.WriteLine(
@@ -1211,7 +1211,7 @@ namespace ACESim
             for (byte p = 0; p < NumNonChancePlayers; p++)
             {
                 var copy = Unroll_Slots.CopyToNew(VS_(currentPiValues[p]));
-                resultArray[p] = copy.Index;
+                resultArray[p] = copy.Index.Val();
 
                 bool shouldScale =
                     (p == playerIndex && !changeOtherPlayers) ||
@@ -1291,13 +1291,13 @@ namespace ACESim
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static VsSlot VS_(int ix) => new VsSlot(ix);
+        private static VsSlot VS_(int ix) => new VsSlot(new VsIndex(ix));
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static OsPort OS_(int originalIndex) => new OsPort(originalIndex);
+        private static OsPort OS_(int originalIndex) => new OsPort(new OsIndex(originalIndex));
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static OdPort OD_(int originalIndex) => new OdPort(originalIndex);
+        private static OdPort OD_(int originalIndex) => new OdPort(new OdIndex(originalIndex));
         private bool IsOriginalIndex(int index)
         {
             return index >= 0 && index < Unroll_Commands.SizeOfMainData;

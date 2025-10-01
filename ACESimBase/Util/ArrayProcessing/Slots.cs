@@ -2,9 +2,18 @@
 
 namespace ACESimBase.Util.ArrayProcessing.Slots
 {
-    public readonly record struct VsSlot(VsIndex Index);
-    public readonly record struct OsPort(OsIndex OriginalIndex);
-    public readonly record struct OdPort(OdIndex OriginalIndex);
+    public readonly record struct OsPort(OsIndex OriginalIndex)
+    {
+        public OsPort(int index) : this(new OsIndex(index)) { }
+    }
+    public readonly record struct OdPort(OdIndex OriginalIndex)
+    {
+        public OdPort(int index) : this(new OdIndex(index)) { }
+    }
+    public readonly record struct VsSlot(VsIndex Index)
+    {
+        public VsSlot(int index) : this(new VsIndex(index)) { }
+    }
     public readonly record struct ParamSlot(VsIndex Index);
 
     public sealed class ArraySlots
@@ -24,7 +33,7 @@ namespace ACESimBase.Util.ArrayProcessing.Slots
 
         // Copies
         public VsSlot CopyToNew(VsSlot src)
-            => new(new VsIndex(_r.CopyToNew(src.Index, fromOriginalSources: false)));
+            => new(new VsIndex(_r.CopyToNew(src.Index.Val(), fromOriginalSources: false)));
 
         public void CopyTo(VsSlot dst, VsSlot src)
             => _r.CopyToExisting(dst.Index, src.Index);
@@ -33,26 +42,30 @@ namespace ACESimBase.Util.ArrayProcessing.Slots
         public void Add(VsSlot dst, VsSlot by) => _r.Increment(dst.Index, targetOriginal: false, by.Index);
         public void Sub(VsSlot dst, VsSlot by) => _r.Decrement(dst.Index, by.Index);
         public void Mul(VsSlot dst, VsSlot by) => _r.MultiplyBy(dst.Index, by.Index);
-        public void Zero(VsSlot dst)           => _r.ZeroExisting(dst.Index);
+        public void Zero(VsSlot dst)           => _r.ZeroExisting(dst.Index.Val());
 
         // Ordered IO
         public VsSlot Read(OsPort port)
-            => new(new VsIndex(_r.CopyToNew(port.OriginalIndex, fromOriginalSources: true)));
+            => new(new VsIndex(_r.CopyToNew(port.OriginalIndex.Value, fromOriginalSources: true)));
+
         public void Accumulate(OdPort port, VsSlot value)
-            => _r.Increment(port.OriginalIndex, targetOriginal: true, value.Index);
+            => _r.Increment(port.OriginalIndex.Value, targetOriginal: true, value.Index.Value);
 
         // Parameters
         public ParamSlot StageParam(VsSlot src)
-            => new(new VsIndex(_r.CopyToNew(src.Index, fromOriginalSources: false)));
+            => new(new VsIndex(_r.CopyToNew(src.Index.Value, fromOriginalSources: false)));
+
         public ParamSlot StageParam(OsPort port)
-            => new(new VsIndex(_r.CopyToNew(port.OriginalIndex, fromOriginalSources: true)));
+            => new(new VsIndex(_r.CopyToNew(port.OriginalIndex.Value, fromOriginalSources: true)));
+
         public VsSlot UseParam(ParamSlot p)
-            => new(new VsIndex(_r.CopyToNew(p.Index, fromOriginalSources: false)));
+            => new(new VsIndex(_r.CopyToNew(p.Index.Value, fromOriginalSources: false)));
+
 
         public void Checkpoint(VsSlot src)
         {
             if (_acl.UseCheckpoints)
-                _acl.CreateCheckpoint(src.Index);
+                _acl.CreateCheckpoint(src.Index.Val());
         }
 
         public VsSlot[] NewZeroArray(int count)

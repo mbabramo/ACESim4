@@ -36,7 +36,7 @@ namespace ACESimTest.ArrayProcessingTests
             cmds[0].Index.Should().Be(vs);
 
             // Ordered IO side-effect recorded
-            acl.OrderedSourceIndices.Should().Equal(5);
+            acl.OrderedSourceIndices.Should().Equal(5.Os());
         }
 
         /// <summary>
@@ -74,7 +74,7 @@ namespace ACESimTest.ArrayProcessingTests
             acl.CompleteCommandList(); // strong accounting: leaf metadata vs. ordered lists  :contentReference[oaicite:9]{index=9}
 
             // 1) We recorded 2 ordered-source indices (original=0, replay=1)
-            acl.OrderedSourceIndices.Should().Equal(0, 1);
+            acl.OrderedSourceIndices.Should().Equal(0.Os(), 1.Os());
 
             // 2) Only the original slice is physically present in the buffer;
             //    count NextSource in the concrete [0, end) command range.
@@ -124,7 +124,7 @@ namespace ACESimTest.ArrayProcessingTests
             acl.CompleteCommandList(); // ensures ordered-destination counts match leaf metadata  :contentReference[oaicite:13]{index=13}
 
             // Ordered destinations contain both indices (record + replay)
-            acl.OrderedDestinationIndices.Should().Equal(0, 1);
+            acl.OrderedDestinationIndices.Should().Equal(0.Od(), 1.Od());
 
             // Underlying buffer contains a single concrete NextDestination opcode (the recorded one)
             int end = acl.CommandTree.StoredValue.EndCommandRangeExclusive;

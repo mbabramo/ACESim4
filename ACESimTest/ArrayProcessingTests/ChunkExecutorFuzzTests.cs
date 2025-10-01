@@ -110,9 +110,9 @@ namespace ACESimTest.ArrayProcessingTests
                                .Select(i => _rnd.NextDouble() < 0.2 ? 0 : (_rnd.NextDouble() - 0.5) * 1000.0)
                                .ToArray();
             var orderedSourceIndices = aclOriginal.OrderedSourceIndices;
-            var orderedSources = orderedSourceIndices.Select(i => originalData[i]).ToArray();
+            var orderedSources = orderedSourceIndices.Select(i => originalData[i.Val()]).ToArray();
             var orderedDestinationIndices = aclOriginal.OrderedDestinationIndices;
-            var orderedDestinations = orderedDestinationIndices.Select(i => originalData[i]).ToArray();
+            var orderedDestinations = orderedDestinationIndices.Select(i => originalData[i.Val()]).ToArray();
 
             var baseline = Run(
                 new InterpreterChunkExecutor(cmds, 0, cmds.Length, false, null),
