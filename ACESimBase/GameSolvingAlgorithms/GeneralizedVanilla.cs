@@ -1305,31 +1305,20 @@ namespace ACESim
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void Unroll_EnsureTemplates()
         {
-            // Keep existing options object for identical bodies (retains depth management there).
             if (_tplOpts == null)
                 _tplOpts = new RegionTemplateOptions
                 {
-                    IncludeComments   = EvolutionSettings.IncludeCommentsWhenUnrolling,
-                    ManageDepthScopes = true,   // identical bodies keep template-managed depth
-                    ChunkNamePrefix   = null
+                    IncludeComments = EvolutionSettings.IncludeCommentsWhenUnrolling,
+                    ManageDepthScopes = true,
+                    ChunkNamePrefix = null
                 };
 
-            if (_identicalTpl == null)
-                _identicalTpl = new IdenticalRangeTemplate(Unroll_Commands, _tplOpts);
-
-            if (_repeatTpl == null)
+            if (_identicalTpl == null || _repeatTpl == null)
             {
-                // Make repeated windows structurally transparent: no template-managed depth.
-                var repeatOpts = new RegionTemplateOptions
-                {
-                    IncludeComments   = _tplOpts.IncludeComments,
-                    ManageDepthScopes = false, 
-                    ChunkNamePrefix   = _tplOpts.ChunkNamePrefix
-                };
-                _repeatTpl = new RepeatWindowTemplate(Unroll_Commands, repeatOpts);
+                _identicalTpl = new IdenticalRangeTemplate(Unroll_Commands, _tplOpts);
+                _repeatTpl    = new RepeatWindowTemplate(Unroll_Commands, _tplOpts);
             }
         }
-
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void Unroll_EnsureSlots()

@@ -5,14 +5,13 @@
 //  "chunk" tree that execution‑time components traverse.  No run‑time execution
 //  happens in this class.
 // -----------------------------------------------------------------------------
-using ACESimBase.Util.Debugging;
-using ACESimBase.Util.NWayTreeStorage;
+using System.ComponentModel; // for [EditorBrowsable]
 using System;
 using System.Collections.Generic;
-using System.ComponentModel; // for [EditorBrowsable]
 using System.Linq;
-using System.Runtime.CompilerServices;
 using System.Text;
+using ACESimBase.Util.Debugging;
+using ACESimBase.Util.NWayTreeStorage;
 
 namespace ACESimBase.Util.ArrayProcessing
 {
@@ -640,6 +639,13 @@ namespace ACESimBase.Util.ArrayProcessing
             }
             internal set { _recorder = value; }
         }
+
+        // ───────────────────────────────────────────────────────────────────────────
+        // Typed-first authoring API (VsIndex / OsIndex / OdIndex)
+        // These simply forward to the recorder (which remains int-based).
+        // ───────────────────────────────────────────────────────────────────────────
+
+        // Allocate VS temporaries
         public VsIndex NewZeroVs()                => new VsIndex(Recorder.NewZero());
         public VsIndex[] NewZeroArrayVs(int n)    => Array.ConvertAll(Recorder.NewZeroArray(n), i => new VsIndex(i));
         public VsIndex NewUninitializedVs()       => new VsIndex(Recorder.NewUninitialized());
@@ -754,6 +760,11 @@ namespace ACESimBase.Util.ArrayProcessing
                 CopyToExisting(new VsIndex(CheckpointTrigger), src);
         }
 
+        // ───────────────────────────────────────────────────────────────────────────
+        // Legacy int-based API — mark as obsolete & hide in IntelliSense.
+        // Remove after migrating remaining call sites.
+        // ───────────────────────────────────────────────────────────────────────────
+
         public int NewZero() => Recorder.NewZero();
 
         public int[] NewZeroArray(int size) => Recorder.NewZeroArray(size);
@@ -811,30 +822,6 @@ namespace ACESimBase.Util.ArrayProcessing
         
         public void InsertComment(string comment) => Recorder.InsertComment(comment);
         public void InsertBlankCommand() => Recorder.InsertBlankCommand();
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal void FlushPendingRepeatedRangeTail()
-        {
-            // Only relevant if we’re in a replaying repeated range and we know the original end.
-            if (!RepeatIdenticalRanges || !RepeatingExistingCommandRange)
-                return;
-
-            if (_repeatRangeStack.Count == 0)
-                return;
-
-            int repeatStart = _repeatRangeStack.Peek();
-
-            if (!_originalRangeEnds.TryGetValue(repeatStart, out int repeatEnd))
-                return; // No recorded end yet (shouldn’t happen once first window finished).
-
-            // Fast‑forward by validating and emitting the recorded commands up to the recorded end.
-            // This uses the standard replay path (Recorder.AddCommand) so invariants are preserved.
-            while (NextCommandIndex < repeatEnd)
-            {
-                var expected = UnderlyingCommands[NextCommandIndex];
-                Recorder.AddCommand(expected); // advances NextCommandIndex after validation
-            }
-        }
 
         #endregion
 
