@@ -1,5 +1,4 @@
-﻿// OrderedIoRecorder.cs
-using System.Runtime.CompilerServices;
+﻿using System.Runtime.CompilerServices;
 
 namespace ACESimBase.Util.ArrayProcessing
 {
@@ -9,9 +8,9 @@ namespace ACESimBase.Util.ArrayProcessing
         public OrderedIoRecorder(ArrayCommandList acl) => _acl = acl;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void RecordSourceIndex(int originalIndex) => _acl.OrderedSourceIndices.Add(originalIndex);
+        public void RecordSourceIndex(OsIndex originalIndex) => _acl.OrderedSourceIndices.Add(originalIndex);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void RecordDestinationIndex(int originalIndex) => _acl.OrderedDestinationIndices.Add(originalIndex);
+        public void RecordDestinationIndex(OdIndex originalIndex) => _acl.OrderedDestinationIndices.Add(originalIndex);
     }
 }

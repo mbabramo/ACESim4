@@ -24,7 +24,7 @@ namespace ACESimBase.Util.ArrayProcessing
             int fresh = r.NextArrayIndex++;
             if (fromOriginalSources && r.Acl.UseOrderedSourcesAndDestinations)
             {
-                io.RecordSourceIndex(sourceIndex);
+                io.RecordSourceIndex(new OsIndex(sourceIndex));
                 r.AddCommand(new ArrayCommand(ArrayCommandType.NextSource, fresh, -1));
             }
             else
@@ -50,7 +50,7 @@ namespace ACESimBase.Util.ArrayProcessing
             // Route to NextDestination + record destinations when OS/OD is enabled; else IncrementBy. :contentReference[oaicite:2]{index=2}
             if (targetOriginal && r.Acl.UseOrderedSourcesAndDestinations)
             {
-                io.RecordDestinationIndex(idx);
+                io.RecordDestinationIndex(new OdIndex(idx));
                 r.AddCommand(new ArrayCommand(ArrayCommandType.NextDestination, -1, incIdx));
             }
             else
@@ -88,7 +88,7 @@ namespace ACESimBase.Util.ArrayProcessing
             if (target + 1 > r.NextArrayIndex) r.NextArrayIndex = target + 1;  // keep VS high-water mark aligned
 
             if (ns && r.Acl.UseOrderedSourcesAndDestinations)
-                io.RecordSourceIndex(sourceIndex);
+                io.RecordSourceIndex(new OsIndex(sourceIndex));
 
             // Re-emit the *recorded* opcode to remain byte-identical. :contentReference[oaicite:4]{index=4}
             r.AddCommand(expected);
@@ -120,7 +120,7 @@ namespace ACESimBase.Util.ArrayProcessing
             // if it is NextDestination, mirror the ordered-destinations side-effect. :contentReference[oaicite:7]{index=7}
             var expected = r.Acl.UnderlyingCommands[r.NextCommandIndex];
             if (expected.CommandType == ArrayCommandType.NextDestination && r.Acl.UseOrderedSourcesAndDestinations)
-                io.RecordDestinationIndex(idx);
+                io.RecordDestinationIndex(new OdIndex(idx));
 
             r.AddCommand(expected); // lets AddCommand verify the opcode matches
         }

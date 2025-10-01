@@ -15,6 +15,11 @@ namespace ACESimBase.Util.ArrayProcessing
             _recorder = recorder ?? throw new ArgumentNullException(nameof(recorder));
         }
 
+        public VsIndex NextVs => new VsIndex(_recorder.NextArrayIndex);
+        public VsIndex HighVs => new VsIndex(_recorder.MaxArrayIndex);
+        public void AlignToAtLeast(VsIndex nextRequired) => AlignToAtLeast(nextRequired.Value);
+
+
         /// <summary>Gets the current top of the virtual stack.</summary>
         public int Next => _recorder.NextArrayIndex;
 

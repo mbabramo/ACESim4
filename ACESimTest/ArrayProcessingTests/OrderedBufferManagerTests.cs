@@ -26,7 +26,7 @@ namespace ACESimTest.ArrayProcessingTests
         {
             // Arrange
             var obm = new OrderedBufferManager();
-            obm.SourceIndices.AddRange(new[] { 2, 4 });
+            obm.SourceIndices.AddRange(new OsIndex[] { 2, 4 });
 
             double[] data = MakeSequentialArray();
 

@@ -2,10 +2,10 @@
 
 namespace ACESimBase.Util.ArrayProcessing.Slots
 {
-    public readonly record struct VsSlot(int Index);
-    public readonly record struct OsPort(int OriginalIndex);
-    public readonly record struct OdPort(int OriginalIndex);
-    public readonly record struct ParamSlot(int Index);
+    public readonly record struct VsSlot(VsIndex Index);
+    public readonly record struct OsPort(OsIndex OriginalIndex);
+    public readonly record struct OdPort(OdIndex OriginalIndex);
+    public readonly record struct ParamSlot(VsIndex Index);
 
     public sealed class ArraySlots
     {
@@ -19,12 +19,12 @@ namespace ACESimBase.Util.ArrayProcessing.Slots
         }
 
         // VS creation
-        public VsSlot NewZero()           => new VsSlot(_r.NewZero());
-        public VsSlot NewUninitialized()  => new VsSlot(_r.NewUninitialized());
+        public VsSlot NewZero()          => new(new VsIndex(_r.NewZero()));
+        public VsSlot NewUninitialized() => new(new VsIndex(_r.NewUninitialized()));
 
         // Copies
         public VsSlot CopyToNew(VsSlot src)
-            => new VsSlot(_r.CopyToNew(src.Index, fromOriginalSources: false));
+            => new(new VsIndex(_r.CopyToNew(src.Index, fromOriginalSources: false)));
 
         public void CopyTo(VsSlot dst, VsSlot src)
             => _r.CopyToExisting(dst.Index, src.Index);
@@ -37,27 +37,22 @@ namespace ACESimBase.Util.ArrayProcessing.Slots
 
         // Ordered IO
         public VsSlot Read(OsPort port)
-            => new VsSlot(_r.CopyToNew(port.OriginalIndex, fromOriginalSources: true));
-            // recorder appends to OrderedSourceIndices and emits NextSource when ordered mode is active
-
+            => new(new VsIndex(_r.CopyToNew(port.OriginalIndex, fromOriginalSources: true)));
         public void Accumulate(OdPort port, VsSlot value)
             => _r.Increment(port.OriginalIndex, targetOriginal: true, value.Index);
-            // recorder appends to OrderedDestinationIndices and emits NextDestination when ordered mode is active
 
         // Parameters
         public ParamSlot StageParam(VsSlot src)
-            => new ParamSlot(_r.CopyToNew(src.Index, fromOriginalSources: false));
-
+            => new(new VsIndex(_r.CopyToNew(src.Index, fromOriginalSources: false)));
         public ParamSlot StageParam(OsPort port)
-            => new ParamSlot(_r.CopyToNew(port.OriginalIndex, fromOriginalSources: true));
-
+            => new(new VsIndex(_r.CopyToNew(port.OriginalIndex, fromOriginalSources: true)));
         public VsSlot UseParam(ParamSlot p)
-            => new VsSlot(_r.CopyToNew(p.Index, fromOriginalSources: false));
+            => new(new VsIndex(_r.CopyToNew(p.Index, fromOriginalSources: false)));
 
         public void Checkpoint(VsSlot src)
         {
             if (_acl.UseCheckpoints)
-                _acl.CreateCheckpoint(src.Index); 
+                _acl.CreateCheckpoint(src.Index);
         }
 
         public VsSlot[] NewZeroArray(int count)

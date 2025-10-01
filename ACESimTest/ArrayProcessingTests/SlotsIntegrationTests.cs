@@ -92,26 +92,26 @@ namespace ACESimTest.ArrayProcessingTests
             acl.StartCommandChunk(runChildrenInParallel: false, identicalStartCommandRange: null, name: "root");
 
             // Stage a parameter from ordered source index 0 (one OS consumption)
-            var p = slots.StageParam(new OsPort(0));
+            var p = slots.StageParam(new OsPort(new OsIndex(0)));
 
             // Use the parameter twice (no additional OS consumption)
             var v1 = slots.UseParam(p);
             var v2 = slots.UseParam(p);
 
             // Accumulate to destination 1 (once with param, once with a fresh OS read of 1)
-            slots.Accumulate(new OdPort(1), v1);
-            var os1 = slots.Read(new OsPort(1));        // second OS consumption
-            slots.Accumulate(new OdPort(1), os1);
+            slots.Accumulate(new OdPort(new OdIndex(1)), v1);
+            var os1 = slots.Read(new OsPort(new OsIndex(1)));   // second OS consumption
+            slots.Accumulate(new OdPort(new OdIndex(1)), os1);
 
             // Accumulate to destination 2 (param again)
-            slots.Accumulate(new OdPort(2), v2);
+            slots.Accumulate(new OdPort(new OdIndex(2)), v2);
 
             acl.EndCommandChunk();
             acl.CompleteCommandList();
 
-            // Author-time invariants
-            CollectionAssert.AreEqual(new[] { 0, 1 }, acl.OrderedSourceIndices.ToArray());
-            CollectionAssert.AreEqual(new[] { 1, 1, 2 }, acl.OrderedDestinationIndices.ToArray());
+            // Author-time invariants (project typed indices to raw ints)
+            CollectionAssert.AreEqual(new[] { 0, 1 }, acl.OrderedSourceIndices.Select(x => x.Value).ToArray());
+            CollectionAssert.AreEqual(new[] { 1, 1, 2 }, acl.OrderedDestinationIndices.Select(x => x.Value).ToArray());
 
             int nextSourceCmds = acl.UnderlyingCommands
                                      .Take(acl.MaxCommandIndex)
@@ -147,6 +147,7 @@ namespace ACESimTest.ArrayProcessingTests
             Assert.AreEqual(12.0, baseline[1], 1e-9);
             Assert.AreEqual(12.0, baseline[2], 1e-9);
         }
+
 
     }
 }

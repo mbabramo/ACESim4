@@ -37,18 +37,14 @@ namespace ACESimBase.Util.ArrayProcessing
         {
             get
             {
-                // Recorder.MaxArrayIndex tracks scratch growth, but repeated/routed commands
-                // can reference explicit original indices that are not reflected there.
                 int maxExplicit = -1;
-
-                if (OrderedSourceIndices != null && OrderedSourceIndices.Count > 0)
-                    maxExplicit = Math.Max(maxExplicit, OrderedSourceIndices.Max());
-
-                if (OrderedDestinationIndices != null && OrderedDestinationIndices.Count > 0)
-                    maxExplicit = Math.Max(maxExplicit, OrderedDestinationIndices.Max());
-
+                if (OrderedSourceIndices is { Count: > 0 })
+                    maxExplicit = Math.Max(maxExplicit, OrderedSourceIndices.Max(os => os.Value));
+                if (OrderedDestinationIndices is { Count: > 0 })
+                    maxExplicit = Math.Max(maxExplicit, OrderedDestinationIndices.Max(od => od.Value));
                 int maxIndex = Math.Max(Recorder.MaxArrayIndex, maxExplicit);
                 return maxIndex + 1;
+
             }
         }
 
@@ -56,8 +52,9 @@ namespace ACESimBase.Util.ArrayProcessing
         //  Ordered‑buffer index lists (filled at author‑time only)
         // ──────────────────────────────────────────────────────────────────────
         public bool UseOrderedSourcesAndDestinations = false;
-        public List<int> OrderedSourceIndices = new();        
-        public List<int> OrderedDestinationIndices = new();
+        public List<OsIndex> OrderedSourceIndices = new();
+        public List<OdIndex> OrderedDestinationIndices = new();
+
         private readonly Dictionary<int, int> _originalRangeScratchStarts = new(); // DEBUG?
         private readonly Dictionary<int, int> _originalRangeStartScratchIndex = new();
 
@@ -144,8 +141,8 @@ namespace ACESimBase.Util.ArrayProcessing
 
                 // Ensure both ordered lists are cloned — destination was previously omitted.
                 UseOrderedSourcesAndDestinations = UseOrderedSourcesAndDestinations,
-                OrderedSourceIndices = new List<int>(OrderedSourceIndices),
-                OrderedDestinationIndices = new List<int>(OrderedDestinationIndices),
+                OrderedSourceIndices = new List<OsIndex>(OrderedSourceIndices),
+                OrderedDestinationIndices = new List<OdIndex>(OrderedDestinationIndices),
 
                 Parallelize = Parallelize,
                 MaxCommandsPerSplittableChunk = MaxCommandsPerSplittableChunk,

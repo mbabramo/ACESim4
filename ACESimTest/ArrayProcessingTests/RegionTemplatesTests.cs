@@ -74,11 +74,11 @@ namespace ACESimTest.ArrayProcessingTests
                     using (ident.BeginAction($"action={a + 1}"))
                     {
                         // Body: (OS[0] + OS[1]) -> accumulate to OD[2]
-                        var v0 = slots.Read(new OsPort(0));
-                        var v1 = slots.Read(new OsPort(1));
+                        var v0 = slots.Read(new OsPort(new OsIndex(0)));
+                        var v1 = slots.Read(new OsPort(new OsIndex(1)));
                         var sum = slots.CopyToNew(v0);
                         slots.Add(sum, v1);
-                        slots.Accumulate(new OdPort(2), sum);
+                        slots.Accumulate(new OdPort(new OdIndex(2)), sum);
                     }
                 }
             }
@@ -87,8 +87,8 @@ namespace ACESimTest.ArrayProcessingTests
             acl.CompleteCommandList();
 
             // Ordered lists include both actions
-            CollectionAssert.AreEqual(new[] { 0, 1, 0, 1 }, acl.OrderedSourceIndices.ToArray());
-            CollectionAssert.AreEqual(new[] { 2, 2 }, acl.OrderedDestinationIndices.ToArray());
+            CollectionAssert.AreEqual(new[] { 0, 1, 0, 1 }, acl.OrderedSourceIndices.Select(x => x.Value).ToArray());
+            CollectionAssert.AreEqual(new[] { 2, 2 }, acl.OrderedDestinationIndices.Select(x => x.Value).ToArray());
 
             // Stream contains only one body's worth of NextSource/NextDestination
             Assert.AreEqual(2, Count(acl, ArrayCommandType.NextSource), "Expected one body's OS reads recorded once.");
@@ -133,11 +133,11 @@ namespace ACESimTest.ArrayProcessingTests
             {
                 using (repeat.Open("Window"))
                 {
-                    var a = new VsSlot(0);
-                    var b = new VsSlot(1);
+                    var a = new VsSlot(new VsIndex(0));
+                    var b = new VsSlot(new VsIndex(1));
                     var tmp = slots.CopyToNew(a);
                     slots.Add(tmp, b);
-                    slots.Add(new VsSlot(2), tmp);
+                    slots.Add(new VsSlot(new VsIndex(2)), tmp);
                 }
             }
 
@@ -222,7 +222,7 @@ namespace ACESimTest.ArrayProcessingTests
             acl.CompleteCommandList();
 
             // Ordered sources were consumed
-            CollectionAssert.AreEqual(new[] { 0, 1 }, acl.OrderedSourceIndices.ToArray());
+            CollectionAssert.AreEqual(new[] { 0, 1 }, acl.OrderedSourceIndices.Select(x => x.Value).ToArray());
             Assert.AreEqual(2, Count(acl, ArrayCommandType.NextSource));
 
             // Input: [2,9,0] → vs[2] = 11
@@ -263,11 +263,11 @@ namespace ACESimTest.ArrayProcessingTests
                             using (ident.BeginAction($"inner={b + 1}"))
                             {
                                 // Body: vs[2] += (vs[0] + vs[1])
-                                var v0 = new VsSlot(0);
-                                var v1 = new VsSlot(1);
+                                var v0 = new VsSlot(new VsIndex(0));
+                                var v1 = new VsSlot(new VsIndex(1));
                                 var sum = slots.CopyToNew(v0);
                                 slots.Add(sum, v1);
-                                slots.Add(new VsSlot(2), sum);
+                                slots.Add(new VsSlot(new VsIndex(2)), sum);
                             }
                         }
                     }
@@ -288,7 +288,6 @@ namespace ACESimTest.ArrayProcessingTests
             var vs = RunOnce(acl, new[] { 2.0, 3.0, 0.0 }, ChunkExecutorKind.Interpreted);
             Assert.AreEqual(20.0, vs[2], 1e-9);
         }
-
 
         // Ordered IO inside nested identical actions.
         // Verifies that ordered index lists reflect all actions while the command
@@ -325,11 +324,11 @@ namespace ACESimTest.ArrayProcessingTests
                             using (ident.BeginAction($"inner={b + 1}"))
                             {
                                 // Body: accumulate (OS[0] + OS[1]) into OD[2]
-                                var v0 = slots.Read(new OsPort(0)); // OS
-                                var v1 = slots.Read(new OsPort(1)); // OS
+                                var v0 = slots.Read(new OsPort(new OsIndex(0))); // OS
+                                var v1 = slots.Read(new OsPort(new OsIndex(1))); // OS
                                 var sum = slots.CopyToNew(v0);
                                 slots.Add(sum, v1);
-                                slots.Accumulate(new OdPort(2), sum); // OD
+                                slots.Accumulate(new OdPort(new OdIndex(2)), sum); // OD
                             }
                         }
                     }
@@ -341,10 +340,10 @@ namespace ACESimTest.ArrayProcessingTests
 
             // There are 4 inner actions total → OS consumed 8 times (0,1,0,1,0,1,0,1)
             var expectedOs = Enumerable.Repeat(new[] { 0, 1 }, 4).SelectMany(x => x).ToArray();
-            CollectionAssert.AreEqual(expectedOs, acl.OrderedSourceIndices.ToArray());
+            CollectionAssert.AreEqual(expectedOs, acl.OrderedSourceIndices.Select(x => x.Value).ToArray());
 
             // Destinations queued once per inner action → four entries of index 2
-            CollectionAssert.AreEqual(new[] { 2, 2, 2, 2 }, acl.OrderedDestinationIndices.ToArray());
+            CollectionAssert.AreEqual(new[] { 2, 2, 2, 2 }, acl.OrderedDestinationIndices.Select(x => x.Value).ToArray());
 
             // Command stream contains one recording of the inner body (inside the first outer action).
             Assert.AreEqual(2, Count(acl, ArrayCommandType.NextSource));
@@ -355,7 +354,6 @@ namespace ACESimTest.ArrayProcessingTests
             var vs = RunOnce(acl, new[] { 2.0, 3.0, 0.0 }, ChunkExecutorKind.Interpreted);
             Assert.AreEqual(20.0, vs[2], 1e-9);
         }
-
 
         // Hoist + templates: oversize IF body inside an identical set.
         // Ensures hoisting runs and VerifyCorrectness2 (invoked during CompleteCommandList)
@@ -417,8 +415,8 @@ namespace ACESimTest.ArrayProcessingTests
             Assert.AreEqual(1, Count(acl, ArrayCommandType.NextDestination));
 
             // Ordered lists reflect both executed actions (two OS / two OD)
-            CollectionAssert.AreEqual(new[] { 0, 0 }, acl.OrderedSourceIndices.ToArray());
-            CollectionAssert.AreEqual(new[] { 2, 2 }, acl.OrderedDestinationIndices.ToArray());
+            CollectionAssert.AreEqual(new[] { 0, 0 }, acl.OrderedSourceIndices.Select(x => x.Value).ToArray());
+            CollectionAssert.AreEqual(new[] { 2, 2 }, acl.OrderedDestinationIndices.Select(x => x.Value).ToArray());
 
             // Execution parity and result check:
             // Input [2,3,0] → inside IF we accumulate OS[0] (=2) once per action ⇒ vs[2] = 4
@@ -426,6 +424,5 @@ namespace ACESimTest.ArrayProcessingTests
             var vs = RunOnce(acl, new[] { 2.0, 3.0, 0.0 }, ChunkExecutorKind.Interpreted);
             Assert.AreEqual(4.0, vs[2], 1e-9);
         }
-
     }
 }
