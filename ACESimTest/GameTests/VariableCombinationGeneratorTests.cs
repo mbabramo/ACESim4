@@ -5,7 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace ACESimTest.Util.Combinatorics
+namespace ACESimTest.GameTests
 {
     /// <summary>
     /// Unit-test suite for the <see cref="VariableCombinationGenerator"/> after its rewrite that

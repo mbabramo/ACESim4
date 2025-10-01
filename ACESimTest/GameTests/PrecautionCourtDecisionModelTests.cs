@@ -5,7 +5,7 @@ using System;
 using System.Linq;
 using System.Reflection;
 
-namespace ACESimTest
+namespace ACESimTest.GameTests
 {
     [TestClass]
     public sealed class PrecautionCourtDecisionModelTests

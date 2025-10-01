@@ -11,7 +11,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace ACESimTest
+namespace ACESimTest.StrategiesTests
 {
     public class StrategiesDeveloperTestsBase
     {
@@ -109,14 +109,14 @@ namespace ACESimTest
                 var numPossibleActions = informationSet.NumPossibleActions;
                 // the goal here is to make sure that we randomize information sets the same, whether dealing with the regular decision or the collapsed decision. But with the collapsed game, the information set items come in a different order (with p's signal sometimes coming at end, when reconstructing the game). So, we use a hash code of a string that presents the decision labels alphabetically.
                 string id = $"P{informationSet.PlayerIndex},D{informationSet.DecisionByteCode}:{informationSet.InformationSetWithAlphabeticalLabels(developer.GameDefinition)}";
-                int hashCode = (id).GetHashCode();
+                int hashCode = id.GetHashCode();
                 double[] probabilities = CreateNormalizedRandomDistribution(numPossibleActions, hashCode);
                 informationSet.SetCurrentProbabilities(probabilities);
                 informationSetProbabilities[id] = probabilities;
             }
 
-            var map = informationSetProbabilities.Select(x => (x.Key, String.Join(",", x.Value))).OrderBy(x => x).ToList();
-            var combined = String.Join("\n", map);
+            var map = informationSetProbabilities.Select(x => (x.Key, string.Join(",", x.Value))).OrderBy(x => x).ToList();
+            var combined = string.Join("\n", map);
 
             return informationSetProbabilities;
         }

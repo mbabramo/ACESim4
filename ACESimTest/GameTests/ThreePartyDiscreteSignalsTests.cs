@@ -5,7 +5,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.Linq;
 
-namespace ACESimTest
+namespace ACESimTest.GameTests
 {
     /// <summary>
     /// Thorough MSTest + FluentAssertions tests for <see cref="ThreePartyDiscreteSignals"/>.

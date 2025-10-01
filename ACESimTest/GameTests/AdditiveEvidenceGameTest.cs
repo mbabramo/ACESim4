@@ -11,7 +11,7 @@ using ACESimBase.Util.Statistical;
 using FluentAssertions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
-namespace ACESimTest
+namespace ACESimTest.GameTests
 {
     [TestClass]
     public class AdditiveEvidenceGameTest
@@ -156,12 +156,12 @@ namespace ACESimTest
             gameOptions.FeeShiftingIsBasedOnMarginOfVictory = false;
             gameOptions.FeeShiftingThreshold = 0.25;
 
-            byte chancePlaintiffQuality = (byte)2;
-            byte chanceDefendantQuality = (byte)2;
-            byte chanceNeitherQuality = (byte)1;
-            byte chancePlaintiffBias = (byte)1;
-            byte chanceDefendantBias = (byte)1;
-            byte chanceNeitherBias = (byte)2;
+            byte chancePlaintiffQuality = 2;
+            byte chanceDefendantQuality = 2;
+            byte chanceNeitherQuality = 1;
+            byte chancePlaintiffBias = 1;
+            byte chanceDefendantBias = 1;
+            byte chanceNeitherBias = 2;
             AdditiveEvidence_TrialValue_Helper(gameOptions, chancePlaintiffQuality, chanceDefendantQuality, chanceNeitherQuality, chancePlaintiffBias, chanceDefendantBias, chanceNeitherBias, gameOptions.FeeShifting, gameOptions.FeeShiftingIsBasedOnMarginOfVictory, gameOptions.FeeShiftingThreshold);
 
         }
@@ -422,7 +422,7 @@ namespace ACESimTest
                     acc_results.Add(accuracy);
                 }
             }
-            string result = String.Join(",", acc_results.Select(x => $"{Math.Round(x, 3)}"));
+            string result = string.Join(",", acc_results.Select(x => $"{Math.Round(x, 3)}"));
             return result;
         }
 
@@ -442,8 +442,8 @@ namespace ACESimTest
                 DMSCalc dmsCalc = optionsGenerator.Current;
 
                 var correctStrategyPretruncation = dmsCalc.GetCorrectStrategiesPretruncation();
-                bool overlap = !((correctStrategyPretruncation.p.MaxVal() < correctStrategyPretruncation.d.MinVal() && correctStrategyPretruncation.p.MinVal() < correctStrategyPretruncation.d.MinVal()) ||
-                (correctStrategyPretruncation.d.MaxVal() < correctStrategyPretruncation.p.MinVal() && correctStrategyPretruncation.d.MinVal() < correctStrategyPretruncation.p.MinVal()));
+                bool overlap = !(correctStrategyPretruncation.p.MaxVal() < correctStrategyPretruncation.d.MinVal() && correctStrategyPretruncation.p.MinVal() < correctStrategyPretruncation.d.MinVal() ||
+                correctStrategyPretruncation.d.MaxVal() < correctStrategyPretruncation.p.MinVal() && correctStrategyPretruncation.d.MinVal() < correctStrategyPretruncation.p.MinVal());
                 if (!overlap)
                     continue;
                 var analytical = new DMSCalc.DMSStrategiesPair(correctStrategyPretruncation.p, correctStrategyPretruncation.d, dmsCalc, true);
@@ -568,19 +568,19 @@ namespace ACESimTest
 
             if (gameOptions.Alpha_Quality > 0)
             {
-                gameProgress.QualitySum.Should().BeApproximately(dOr0((gameOptions.Alpha_Both_Quality * gameOptions.Evidence_Both_Quality + gameOptions.Alpha_Plaintiff_Quality * chancePQualityDouble + gameOptions.Alpha_Defendant_Quality * chanceDQualityDouble + gameOptions.Alpha_Neither_Quality * chanceNQualityDouble), (gameOptions.Alpha_Both_Quality + gameOptions.Alpha_Plaintiff_Quality + gameOptions.Alpha_Defendant_Quality + gameOptions.Alpha_Neither_Quality)), 1E-10);
-                gameProgress.QualitySum_PInfoOnly.Should().BeApproximately(dOr0((gameOptions.Alpha_Both_Quality * gameOptions.Evidence_Both_Quality + gameOptions.Alpha_Plaintiff_Quality * chancePQualityDouble), (gameOptions.Alpha_Both_Quality + gameOptions.Alpha_Plaintiff_Quality)), 1E-10);
-                gameProgress.QualitySum_DInfoOnly.Should().BeApproximately(dOr0((gameOptions.Alpha_Both_Quality * gameOptions.Evidence_Both_Quality + gameOptions.Alpha_Defendant_Quality * chanceDQualityDouble), (gameOptions.Alpha_Both_Quality + gameOptions.Alpha_Defendant_Quality)), 1E-10);
+                gameProgress.QualitySum.Should().BeApproximately(dOr0(gameOptions.Alpha_Both_Quality * gameOptions.Evidence_Both_Quality + gameOptions.Alpha_Plaintiff_Quality * chancePQualityDouble + gameOptions.Alpha_Defendant_Quality * chanceDQualityDouble + gameOptions.Alpha_Neither_Quality * chanceNQualityDouble, gameOptions.Alpha_Both_Quality + gameOptions.Alpha_Plaintiff_Quality + gameOptions.Alpha_Defendant_Quality + gameOptions.Alpha_Neither_Quality), 1E-10);
+                gameProgress.QualitySum_PInfoOnly.Should().BeApproximately(dOr0(gameOptions.Alpha_Both_Quality * gameOptions.Evidence_Both_Quality + gameOptions.Alpha_Plaintiff_Quality * chancePQualityDouble, gameOptions.Alpha_Both_Quality + gameOptions.Alpha_Plaintiff_Quality), 1E-10);
+                gameProgress.QualitySum_DInfoOnly.Should().BeApproximately(dOr0(gameOptions.Alpha_Both_Quality * gameOptions.Evidence_Both_Quality + gameOptions.Alpha_Defendant_Quality * chanceDQualityDouble, gameOptions.Alpha_Both_Quality + gameOptions.Alpha_Defendant_Quality), 1E-10);
             }
 
             if (gameOptions.Alpha_Bias > 0)
             {
-                gameProgress.BiasSum.Should().BeApproximately(dOr0((gameOptions.Alpha_Both_Bias * gameOptions.Evidence_Both_Bias + gameOptions.Alpha_Plaintiff_Bias * chancePBiasDouble + gameOptions.Alpha_Defendant_Bias * chanceDBiasDouble + gameOptions.Alpha_Neither_Bias * chanceNBiasDouble), (gameOptions.Alpha_Both_Bias + gameOptions.Alpha_Plaintiff_Bias + gameOptions.Alpha_Defendant_Bias + gameOptions.Alpha_Neither_Bias)), 1E-10);
-                gameProgress.BiasSum_PInfoOnly.Should().BeApproximately(dOr0((gameOptions.Alpha_Both_Bias * gameOptions.Evidence_Both_Bias + gameOptions.Alpha_Plaintiff_Bias * chancePBiasDouble), (gameOptions.Alpha_Both_Bias + gameOptions.Alpha_Plaintiff_Bias)), 1E-10);
-                gameProgress.BiasSum_DInfoOnly.Should().BeApproximately(dOr0((gameOptions.Alpha_Both_Bias * gameOptions.Evidence_Both_Bias + gameOptions.Alpha_Defendant_Bias * chanceDBiasDouble), (gameOptions.Alpha_Both_Bias + gameOptions.Alpha_Defendant_Bias)), 1E-10);
+                gameProgress.BiasSum.Should().BeApproximately(dOr0(gameOptions.Alpha_Both_Bias * gameOptions.Evidence_Both_Bias + gameOptions.Alpha_Plaintiff_Bias * chancePBiasDouble + gameOptions.Alpha_Defendant_Bias * chanceDBiasDouble + gameOptions.Alpha_Neither_Bias * chanceNBiasDouble, gameOptions.Alpha_Both_Bias + gameOptions.Alpha_Plaintiff_Bias + gameOptions.Alpha_Defendant_Bias + gameOptions.Alpha_Neither_Bias), 1E-10);
+                gameProgress.BiasSum_PInfoOnly.Should().BeApproximately(dOr0(gameOptions.Alpha_Both_Bias * gameOptions.Evidence_Both_Bias + gameOptions.Alpha_Plaintiff_Bias * chancePBiasDouble, gameOptions.Alpha_Both_Bias + gameOptions.Alpha_Plaintiff_Bias), 1E-10);
+                gameProgress.BiasSum_DInfoOnly.Should().BeApproximately(dOr0(gameOptions.Alpha_Both_Bias * gameOptions.Evidence_Both_Bias + gameOptions.Alpha_Defendant_Bias * chanceDBiasDouble, gameOptions.Alpha_Both_Bias + gameOptions.Alpha_Defendant_Bias), 1E-10);
             }
 
-            double trialValue = (gameOptions.Alpha_Quality * gameProgress.QualitySum + gameOptions.Alpha_Bias * gameProgress.BiasSum);
+            double trialValue = gameOptions.Alpha_Quality * gameProgress.QualitySum + gameOptions.Alpha_Bias * gameProgress.BiasSum;
             gameProgress.TrialValuePreShiftingIfOccurs.Should().BeApproximately(trialValue, 1E-10);
             gameProgress.ResolutionValue.Should().BeApproximately(trialValue, 1E-10);
 
@@ -704,9 +704,9 @@ namespace ACESimTest
                     rInfo.Add(chanceNeitherBias);
             }
 
-            string expectedPString = String.Join(",", pInfo.ToArray());
-            string expectedDString = String.Join(",", dInfo.ToArray());
-            string expectedRString = String.Join(",", rInfo.ToArray());
+            string expectedPString = string.Join(",", pInfo.ToArray());
+            string expectedDString = string.Join(",", dInfo.ToArray());
+            string expectedRString = string.Join(",", rInfo.ToArray());
             GetInformationSetStrings(gameProgress, out string pInformationSet, out string dInformationSet, out string resolutionSet);
             pInformationSet.Should().Be(expectedPString);
             dInformationSet.Should().Be(expectedDString);

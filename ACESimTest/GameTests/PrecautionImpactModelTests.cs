@@ -3,7 +3,7 @@ using FluentAssertions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 
-namespace ACESimTest
+namespace ACESimTest.GameTests
 {
     /// <summary>
     /// Sanity checks for <see cref="PrecautionImpactModel"/> under the new

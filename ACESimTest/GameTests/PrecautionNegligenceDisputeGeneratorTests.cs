@@ -6,6 +6,7 @@ using ACESimBase.GameSolvingSupport.Settings;
 using ACESimBase.Util.Collections;
 using ACESimBase.Util.Debugging;
 using ACESimBase.Util.Statistical;
+using ACESimTest.StrategiesTests;
 using FluentAssertions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
@@ -16,7 +17,7 @@ using System.Reflection;
 using System.Threading.Tasks;
 using static Microsoft.CodeAnalysis.CSharp.SyntaxTokenParser;
 
-namespace ACESimTest
+namespace ACESimTest.GameTests
 {
     [TestClass]
     public class PrecautionNegligenceDisputeGeneratorTests : StrategiesDeveloperTestsBase

@@ -6,7 +6,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-namespace ACESimTest
+namespace ACESimTest.GameTests
 {
     [TestClass]
     public class LeducTests
@@ -229,7 +229,7 @@ namespace ACESimTest
                 permutation++;
                 HashSet<byte> decisionsAlreadyPlayed = new HashSet<byte>();
                 int countDecisions = 0;
-                var myGameProgress = (new LeducGameLauncher()).PlayLeducGameOnce(options, (decision, gameProgress) =>
+                var myGameProgress = new LeducGameLauncher().PlayLeducGameOnce(options, (decision, gameProgress) =>
                 {
                     countDecisions++;
                     DecisionRecord item;

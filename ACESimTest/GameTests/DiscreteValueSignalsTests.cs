@@ -12,7 +12,7 @@ using JetBrains.Annotations;
 using MathNet.Numerics;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
-namespace ACESimTest
+namespace ACESimTest.GameTests
 {
     [TestClass]
     public class DiscreteValueSignalsTests
@@ -67,7 +67,7 @@ namespace ACESimTest
                 Math.Abs(probabilitiesSignal_HigherTrueValue.Sum() - 1.0).Should().BeLessThan(0.0001);
                 double[] probabilitiesSignal_LowerTrueValue = DiscreteValueSignal.GetProbabilitiesOfDiscreteSignals(1, dvsParams);
                 Math.Abs(probabilitiesSignal_LowerTrueValue.Sum() - 1.0).Should().BeLessThan(0.0001);
-                double[] probabilityHigherTrueValue_signalStrength = probabilitiesSignal_HigherTrueValue.Zip(probabilitiesSignal_LowerTrueValue, (tl, tnl) => (tl == 0 && tnl == 0) ? 1 : tl / (tl + tnl)).ToArray();
+                double[] probabilityHigherTrueValue_signalStrength = probabilitiesSignal_HigherTrueValue.Zip(probabilitiesSignal_LowerTrueValue, (tl, tnl) => tl == 0 && tnl == 0 ? 1 : tl / (tl + tnl)).ToArray();
                 return probabilityHigherTrueValue_signalStrength;
             }
         }

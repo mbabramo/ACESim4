@@ -7,7 +7,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-namespace ACESimTest
+namespace ACESimTest.StrategiesTests
 {
     [TestClass]
     public class EFGFileTests
