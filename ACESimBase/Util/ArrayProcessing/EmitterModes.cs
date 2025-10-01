@@ -98,16 +98,20 @@ namespace ACESimBase.Util.ArrayProcessing
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void EmitCopyToExisting(int index, int sourceIndex, bool isCheckpoint, CommandRecorder r, OrderedIoRecorder io)
         {
+            // Look at the recorded instruction we are about to replay.
             var expected = r.Acl.UnderlyingCommands[r.NextCommandIndex];
-            var expectedKind = isCheckpoint ? ArrayCommandType.Checkpoint : ArrayCommandType.CopyTo;
 
-            // Align VS pointer to recorded target like your current replay path. :contentReference[oaicite:5]{index=5}
+            // Keep the recorder’s VS high‑water mark aligned to the recorded target.
+            // This mirrors the behavior already present today and avoids drifting NextArrayIndex.
             int recordedTarget = expected.Index;
-            if (recordedTarget + 1 > r.NextArrayIndex) r.NextArrayIndex = recordedTarget + 1;
+            if (recordedTarget + 1 > r.NextArrayIndex)
+                r.NextArrayIndex = recordedTarget + 1;
 
-            // Again, let AddCommand do strict shape verification & diagnostics. :contentReference[oaicite:6]{index=6}
-            r.AddCommand(new ArrayCommand(expectedKind, isCheckpoint ? ArrayCommandList.CheckpointTrigger : index, sourceIndex));
+            // Re‑emit the *recorded* instruction verbatim so the stream remains byte‑identical.
+            // (Do not substitute the caller’s sourceIndex here; the recorded SourceIndex is authoritative.)
+            r.AddCommand(expected);
         }
+
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void EmitIncrement(int idx, bool targetOriginal, int incIdx, CommandRecorder r, OrderedIoRecorder io)

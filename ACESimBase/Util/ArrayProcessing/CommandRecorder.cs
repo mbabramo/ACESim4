@@ -306,8 +306,21 @@ namespace ACESimBase.Util.ArrayProcessing
         }
 
         /// <summary>Multiply slot <paramref name="idx"/> by <paramref name="multIdx"/>.</summary>
-        public void MultiplyBy(int idx, int multIdx) =>
+        public void MultiplyBy(int idx, int multIdx)
+        {
+            if (_acl.RepeatingExistingCommandRange)
+            {
+                var expected = _acl.UnderlyingCommands[NextCommandIndex];
+                // Keep VS high‑water mark aligned to recorded target slot
+                if (expected.Index >= 0 && expected.Index + 1 > NextArrayIndex)
+                    NextArrayIndex = expected.Index + 1;
+                // Re‑emit the recorded instruction verbatim; AddCommand will advance NextCommandIndex
+                AddCommand(expected);
+                return;
+            }
             AddCommand(new ArrayCommand(ArrayCommandType.MultiplyBy, idx, multIdx));
+        }
+
 
         /// <summary>Increment or stage-increment slot <paramref name="idx"/> by value from <paramref name="incIdx"/>.</summary>
         public void Increment(int idx, bool targetOriginal, int incIdx)
@@ -316,8 +329,19 @@ namespace ACESimBase.Util.ArrayProcessing
             Mode.EmitIncrement(idx, targetOriginal, incIdx, this, IO);
         }
 
-        public void Decrement(int idx, int decIdx) =>
+        public void Decrement(int idx, int decIdx)
+        {
+            if (_acl.RepeatingExistingCommandRange)
+            {
+                var expected = _acl.UnderlyingCommands[NextCommandIndex];
+                if (expected.Index >= 0 && expected.Index + 1 > NextArrayIndex)
+                    NextArrayIndex = expected.Index + 1;
+                AddCommand(expected);
+                return;
+            }
             AddCommand(new ArrayCommand(ArrayCommandType.DecrementBy, idx, decIdx));
+        }
+
         #endregion
 
         #region ZeroHelpers
@@ -433,25 +457,82 @@ namespace ACESimBase.Util.ArrayProcessing
         }
 
 
-        public void InsertEqualsOtherArrayIndexCommand(int i1, int i2) =>
+        public void InsertEqualsOtherArrayIndexCommand(int i1, int i2)
+        {
+            if (_acl.RepeatingExistingCommandRange)
+            {
+                var expected = _acl.UnderlyingCommands[NextCommandIndex];
+                if (expected.Index >= 0 && expected.Index + 1 > NextArrayIndex)
+                    NextArrayIndex = expected.Index + 1;
+                AddCommand(expected);
+                return;
+            }
             AddCommand(new ArrayCommand(ArrayCommandType.EqualsOtherArrayIndex, i1, i2));
+        }
 
-        public void InsertNotEqualsOtherArrayIndexCommand(int i1, int i2) =>
+        public void InsertNotEqualsOtherArrayIndexCommand(int i1, int i2)
+        {
+            if (_acl.RepeatingExistingCommandRange)
+            {
+                var expected = _acl.UnderlyingCommands[NextCommandIndex];
+                if (expected.Index >= 0 && expected.Index + 1 > NextArrayIndex)
+                    NextArrayIndex = expected.Index + 1;
+                AddCommand(expected);
+                return;
+            }
             AddCommand(new ArrayCommand(ArrayCommandType.NotEqualsOtherArrayIndex, i1, i2));
-
-        public void InsertGreaterThanOtherArrayIndexCommand(int i1, int i2) =>
+        }
+        public void InsertGreaterThanOtherArrayIndexCommand(int i1, int i2)
+        {
+            if (_acl.RepeatingExistingCommandRange)
+            {
+                var expected = _acl.UnderlyingCommands[NextCommandIndex];
+                if (expected.Index >= 0 && expected.Index + 1 > NextArrayIndex)
+                    NextArrayIndex = expected.Index + 1;
+                AddCommand(expected);
+                return;
+            }
             AddCommand(new ArrayCommand(ArrayCommandType.GreaterThanOtherArrayIndex, i1, i2));
-
-        public void InsertLessThanOtherArrayIndexCommand(int i1, int i2) =>
+        }
+        public void InsertLessThanOtherArrayIndexCommand(int i1, int i2)
+        {
+            if (_acl.RepeatingExistingCommandRange)
+            {
+                var expected = _acl.UnderlyingCommands[NextCommandIndex];
+                if (expected.Index >= 0 && expected.Index + 1 > NextArrayIndex)
+                    NextArrayIndex = expected.Index + 1;
+                AddCommand(expected);
+                return;
+            }
             AddCommand(new ArrayCommand(ArrayCommandType.LessThanOtherArrayIndex, i1, i2));
+        }
 
-        public void InsertEqualsValueCommand(int idx, int v) =>
+        public void InsertEqualsValueCommand(int idx, int v)
+        {
+            if (_acl.RepeatingExistingCommandRange)
+            {
+                var expected = _acl.UnderlyingCommands[NextCommandIndex];
+                if (expected.Index >= 0 && expected.Index + 1 > NextArrayIndex)
+                    NextArrayIndex = expected.Index + 1;
+                AddCommand(expected);
+                return;
+            }
             AddCommand(new ArrayCommand(ArrayCommandType.EqualsValue, idx, v));
-
-        public void InsertNotEqualsValueCommand(int idx, int v) =>
+        }
+        public void InsertNotEqualsValueCommand(int idx, int v)
+        {
+            if (_acl.RepeatingExistingCommandRange)
+            {
+                var expected = _acl.UnderlyingCommands[NextCommandIndex];
+                if (expected.Index >= 0 && expected.Index + 1 > NextArrayIndex)
+                    NextArrayIndex = expected.Index + 1;
+                AddCommand(expected);
+                return;
+            }
             AddCommand(new ArrayCommand(ArrayCommandType.NotEqualsValue, idx, v));
-        #endregion  // ComparisonFlowControl
+        }
 
+        #endregion
 
         #region DepthAndChunkFacade   // (internal – builder-only)
 
@@ -555,9 +636,6 @@ namespace ACESimBase.Util.ArrayProcessing
             CommentTable.Add(text);
             AddCommand(new ArrayCommand(ArrayCommandType.Comment, -1, id));
         }
-
-
-
 
 
         /// <summary>
