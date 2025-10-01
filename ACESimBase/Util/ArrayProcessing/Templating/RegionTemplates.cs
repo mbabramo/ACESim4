@@ -257,54 +257,49 @@ namespace ACESimBase.Util.ArrayProcessing.Templating
     public sealed class ParameterFrame
     {
         private readonly ArrayCommandList _acl;
-        private readonly CommandRecorder _r;
-        private readonly int[] _slots;
+        public VsIndex[] Slots { get; }
 
         public ParameterFrame(ArrayCommandList acl, int count)
         {
-            if (count < 0) throw new ArgumentOutOfRangeException(nameof(count));
             _acl = acl ?? throw new ArgumentNullException(nameof(acl));
-            _r = _acl.Recorder ?? throw new InvalidOperationException("ACL recorder not initialized.");
-
-            _slots = new int[count];
-            for (int i = 0; i < count; i++)
-                _slots[i] = _r.NewZero();
+            if (count < 0) throw new ArgumentOutOfRangeException(nameof(count));
+            Slots = new VsIndex[count];
         }
 
-        /// <summary>Number of parameter slots.</summary>
-        public int Count => _slots.Length;
-
-        /// <summary>VS indices of the parameter slots.</summary>
-        public ReadOnlySpan<int> Slots => _slots;
-
-        /// <summary>Overwrite the frame with values from VS indices.</summary>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void SetFromVirtualStack(ReadOnlySpan<int> vsIndices)
+        // Author from VS indices
+        public void SetFromVirtualStack(ReadOnlySpan<VsIndex> vs)
         {
-            if (vsIndices.Length != _slots.Length)
-                throw new ArgumentException("Length mismatch.", nameof(vsIndices));
-
-            // Copy values directly; CopyToExisting is replay-aware.
-            for (int i = 0; i < _slots.Length; i++)
-                _acl.CopyToExisting(_slots[i], vsIndices[i]);
+            if (vs.Length != Slots.Length)
+                throw new ArgumentException("Length mismatch.", nameof(vs));
+            for (int i = 0; i < Slots.Length; i++)
+                Slots[i] = _acl.CopyToNew(vs[i]); // new VS temp seeded from existing VS
         }
 
-
-        /// <summary>
-        /// Overwrite the frame with values from original sources. Uses NextSource
-        /// semantics when ordered mode is enabled; otherwise falls back to CopyTo.
-        /// </summary>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void SetFromOriginalSources(ReadOnlySpan<int> originalIndices)
+        // Author from original sources (ordered)
+        public void SetFromOriginalSources(ReadOnlySpan<OsIndex> os)
         {
-            if (originalIndices.Length != _slots.Length)
-                throw new ArgumentException("Length mismatch.", nameof(originalIndices));
+            if (os.Length != Slots.Length)
+                throw new ArgumentException("Length mismatch.", nameof(os));
+            for (int i = 0; i < Slots.Length; i++)
+                Slots[i] = _acl.CopyToNew(os[i]); // new VS temp seeded from OS
+        }
 
-            for (int i = 0; i < _slots.Length; i++)
-            {
-                int tmp = _r.CopyToNew(originalIndices[i], fromOriginalSources: true);
-                _r.CopyToExisting(_slots[i], tmp);
-            }
+        // --- Optional bridging shims: keep only while you migrate tests ---
+        [Obsolete("Use SetFromVirtualStack(ReadOnlySpan<VsIndex>)")]
+        public void SetFromVirtualStack(int[] vs)
+        {
+            var tmp = new VsIndex[vs.Length];
+            for (int i = 0; i < vs.Length; i++) tmp[i] = new VsIndex(vs[i]);
+            SetFromVirtualStack(tmp);
+        }
+
+        [Obsolete("Use SetFromOriginalSources(ReadOnlySpan<OsIndex>)")]
+        public void SetFromOriginalSources(int[] os)
+        {
+            var tmp = new OsIndex[os.Length];
+            for (int i = 0; i < os.Length; i++) tmp[i] = new OsIndex(os[i]);
+            SetFromOriginalSources(tmp);
         }
     }
+
 }

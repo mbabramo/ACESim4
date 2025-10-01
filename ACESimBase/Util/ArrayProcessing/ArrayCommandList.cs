@@ -5,7 +5,7 @@
 //  "chunk" tree that execution‑time components traverse.  No run‑time execution
 //  happens in this class.
 // -----------------------------------------------------------------------------
-
+using System.ComponentModel; // for [EditorBrowsable]
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -48,6 +48,17 @@ namespace ACESimBase.Util.ArrayProcessing
             }
         }
 
+        public VsIndex NextVsIndex => new VsIndex(Recorder.NextArrayIndex);
+        public VsIndex MaxVsIndex  => new VsIndex(Recorder.MaxArrayIndex);
+
+        // Optional typed indexer for the virtual stack
+        public double this[VsIndex i]
+        {
+            get => VirtualStack[i.Value];
+            set => VirtualStack[i.Value] = value;
+        }
+
+
         // ──────────────────────────────────────────────────────────────────────
         //  Ordered‑buffer index lists (filled at author‑time only)
         // ──────────────────────────────────────────────────────────────────────
@@ -55,7 +66,6 @@ namespace ACESimBase.Util.ArrayProcessing
         public List<OsIndex> OrderedSourceIndices = new();
         public List<OdIndex> OrderedDestinationIndices = new();
 
-        private readonly Dictionary<int, int> _originalRangeScratchStarts = new(); // DEBUG?
         private readonly Dictionary<int, int> _originalRangeStartScratchIndex = new();
 
 
@@ -240,8 +250,8 @@ namespace ACESimBase.Util.ArrayProcessing
             {
                 Name = name,
                 StartCommandRange = NextCommandIndex,
-                StartSourceIndices = OrderedSourceIndices.Count(),
-                StartDestinationIndices = OrderedDestinationIndices.Count(),
+                StartSourceIndices = OrderedSourceIndices.Count,
+                StartDestinationIndices = OrderedDestinationIndices.Count,
             };
 
             parent.SetBranch(branch, child);
@@ -611,12 +621,14 @@ namespace ACESimBase.Util.ArrayProcessing
             HoistMutator.MutateUntilAsBalancedAsPossible(this);
         }
 
-
         #region Command recorder
 
-        // TODO: Eliminate the methods here, and then have the callers call the methods through the recorder.
-
+        // Public entry points should be typed. Keep the underlying recorder accessible but
+        // not front-and-center in IntelliSense.
+        [EditorBrowsable(EditorBrowsableState.Never)]
         private CommandRecorder _recorder;
+
+        [EditorBrowsable(EditorBrowsableState.Never)]
         public CommandRecorder Recorder
         {
             get
@@ -625,100 +637,217 @@ namespace ACESimBase.Util.ArrayProcessing
                     _recorder = new CommandRecorder(this);
                 return _recorder;
             }
-            set
-            {
-                _recorder = value;
-            }
+            internal set { _recorder = value; }
         }
 
-        // Reads / copies
-        public int CopyToNew(VsIndex src)                        => CopyToNew(src.Value, fromOriginalSources: false);
-        public int CopyToNew(OsIndex src)                        => CopyToNew(src.Value, fromOriginalSources: true);
+        // ───────────────────────────────────────────────────────────────────────────
+        // Typed-first authoring API (VsIndex / OsIndex / OdIndex)
+        // These simply forward to the recorder (which remains int-based).
+        // ───────────────────────────────────────────────────────────────────────────
 
-        // Writes / arithmetic
-        public void CopyToExisting(VsIndex dst, VsIndex src)     => CopyToExisting(dst.Value, src.Value);
-        public void ZeroExisting(VsIndex dst)                    => ZeroExisting(dst.Value);
+        // Allocate VS temporaries
+        public VsIndex NewZeroVs()                => new VsIndex(Recorder.NewZero());
+        public VsIndex[] NewZeroArrayVs(int n)    => Array.ConvertAll(Recorder.NewZeroArray(n), i => new VsIndex(i));
+        public VsIndex NewUninitializedVs()       => new VsIndex(Recorder.NewUninitialized());
+        public VsIndex[] NewUninitializedArrayVs(int n) => Array.ConvertAll(Recorder.NewUninitializedArray(n), i => new VsIndex(i));
 
-        // Accumulate to destinations (ordered or VS)
-        public void Increment(VsIndex dst, VsIndex by)           => Increment(dst.Value, targetOriginal: false, by.Value);
-        public void Increment(OdIndex dst, VsIndex by)           => Increment(dst.Value, targetOriginal: true,  by.Value);
+        // Copies: source domain is encoded in the type
+        public VsIndex CopyToNew(VsIndex src)     => new VsIndex(Recorder.CopyToNew(src.Value, fromOriginalSources: false));
+        public VsIndex CopyToNew(OsIndex src)     => new VsIndex(Recorder.CopyToNew(src.Value, fromOriginalSources: true));
 
-        public void Decrement(VsIndex dst, VsIndex by)           => Decrement(dst.Value, by.Value);
-        public void MultiplyBy(VsIndex dst, VsIndex by)          => MultiplyBy(dst.Value, by.Value);
+        public void CopyToExisting(VsIndex dst, VsIndex src) => Recorder.CopyToExisting(dst.Value, src.Value);
+        public void ZeroExisting(VsIndex dst)                 => Recorder.ZeroExisting(dst.Value);
 
-        // Checkpoints / accounting
-        public void CreateCheckpoint(VsIndex src)                => CreateCheckpoint(src.Value);
+        // Arithmetic on the virtual stack
+        public void MultiplyBy(VsIndex dst, VsIndex by) => Recorder.MultiplyBy(dst.Value, by.Value);
+        public void Decrement(VsIndex dst, VsIndex by)  => Recorder.Decrement(dst.Value, by.Value);
+        public void Increment(VsIndex dst, VsIndex by)  => Recorder.Increment(dst.Value, targetOriginal: false, by.Value);
 
+        // Ordered accumulation (destination domain encoded by type)
+        public void Increment(OdIndex dst, VsIndex by)  => Recorder.Increment(dst.Value, targetOriginal: true, by.Value);
+
+        // Bulk helpers (typed) — simple loops are fine at author-time
+        public void MultiplyArrayBy(ReadOnlySpan<VsIndex> targets, VsIndex multiplier)
+        {
+            for (int i = 0; i < targets.Length; i++)
+                Recorder.MultiplyBy(targets[i].Value, multiplier.Value);
+        }
+        public void MultiplyArrayBy(ReadOnlySpan<VsIndex> targets, ReadOnlySpan<VsIndex> multipliers)
+        {
+            if (targets.Length != multipliers.Length)
+                throw new ArgumentException("targets and multipliers must have same length.");
+            for (int i = 0; i < targets.Length; i++)
+                Recorder.MultiplyBy(targets[i].Value, multipliers[i].Value);
+        }
+
+        public void IncrementArrayBy(ReadOnlySpan<VsIndex> targets, VsIndex inc)
+        {
+            for (int i = 0; i < targets.Length; i++)
+                Recorder.Increment(targets[i].Value, targetOriginal: false, inc.Value);
+        }
+        public void IncrementArrayBy(ReadOnlySpan<OdIndex> targets, VsIndex inc)
+        {
+            for (int i = 0; i < targets.Length; i++)
+                Recorder.Increment(targets[i].Value, targetOriginal: true, inc.Value);
+        }
+        public void IncrementArrayBy(ReadOnlySpan<VsIndex> targets, ReadOnlySpan<VsIndex> incs)
+        {
+            if (targets.Length != incs.Length)
+                throw new ArgumentException("targets and increments must have same length.");
+            for (int i = 0; i < targets.Length; i++)
+                Recorder.Increment(targets[i].Value, targetOriginal: false, incs[i].Value);
+        }
+        public void IncrementArrayBy(ReadOnlySpan<OdIndex> targets, ReadOnlySpan<VsIndex> incs)
+        {
+            if (targets.Length != incs.Length)
+                throw new ArgumentException("targets and increments must have same length.");
+            for (int i = 0; i < targets.Length; i++)
+                Recorder.Increment(targets[i].Value, targetOriginal: true, incs[i].Value);
+        }
+
+        public void DecrementArrayBy(ReadOnlySpan<VsIndex> targets, VsIndex dec)
+        {
+            for (int i = 0; i < targets.Length; i++)
+                Recorder.Decrement(targets[i].Value, dec.Value);
+        }
+        public void DecrementArrayBy(ReadOnlySpan<VsIndex> targets, ReadOnlySpan<VsIndex> decs)
+        {
+            if (targets.Length != decs.Length)
+                throw new ArgumentException("targets and decrements must have same length.");
+            for (int i = 0; i < targets.Length; i++)
+                Recorder.Decrement(targets[i].Value, decs[i].Value);
+        }
+
+        // Products returning a new VS temp
+        public VsIndex AddToNew(VsIndex a, VsIndex b) =>
+            new VsIndex(Recorder.AddToNew(a.Value, fromOriginalSources: false, b.Value));
+        public VsIndex AddToNew(OsIndex a, VsIndex b) =>
+            new VsIndex(Recorder.AddToNew(a.Value, fromOriginalSources: true,  b.Value));
+
+        public VsIndex MultiplyToNew(VsIndex a, VsIndex b) =>
+            new VsIndex(Recorder.MultiplyToNew(a.Value, fromOriginalSources: false, b.Value));
+        public VsIndex MultiplyToNew(OsIndex a, VsIndex b) =>
+            new VsIndex(Recorder.MultiplyToNew(a.Value, fromOriginalSources: true,  b.Value));
+
+        public VsIndex IncrementByProduct(VsIndex dst, VsIndex f1, VsIndex f2, bool reuseTmp = true) =>
+            new VsIndex(Recorder.IncrementByProduct(dst.Value, targetOriginal: false, f1.Value, f2.Value, reuseTmp));
+        public VsIndex DecrementByProduct(VsIndex dst, VsIndex f1, VsIndex f2, bool reuseTmp = true) =>
+            new VsIndex(Recorder.DecrementByProduct(dst.Value, f1.Value, f2.Value, reuseTmp));
+
+        // Comparisons (index-vs-index) and (index-vs-immediate)
+        public void InsertEqualsOtherArrayIndex(VsIndex i1, VsIndex i2) =>
+            Recorder.InsertEqualsOtherArrayIndexCommand(i1.Value, i2.Value);
+        public void InsertNotEqualsOtherArrayIndex(VsIndex i1, VsIndex i2) =>
+            Recorder.InsertNotEqualsOtherArrayIndexCommand(i1.Value, i2.Value);
+        public void InsertGreaterThanOtherArrayIndex(VsIndex i1, VsIndex i2) =>
+            Recorder.InsertGreaterThanOtherArrayIndexCommand(i1.Value, i2.Value);
+        public void InsertLessThanOtherArrayIndex(VsIndex i1, VsIndex i2) =>
+            Recorder.InsertLessThanOtherArrayIndexCommand(i1.Value, i2.Value);
+
+        public void InsertEqualsValue(VsIndex idx, int v)     => Recorder.InsertEqualsValueCommand(idx.Value, v);
+        public void InsertNotEqualsValue(VsIndex idx, int v)  => Recorder.InsertNotEqualsValueCommand(idx.Value, v);
+
+        // Flow/control
+        public void InsertIf()                  => Recorder.InsertIf();
+        public void InsertEndIf()               => Recorder.InsertEndIf();
+        public void IncrementDepth()            => Recorder.IncrementDepth();
+        public void DecrementDepth(bool completeCommandList = false)
+            => Recorder.DecrementDepth(completeCommandList);
+
+        // Checkpoints / accounting (typed)
+        public void CreateCheckpoint(VsIndex src)
+        {
+            if (UseCheckpoints)
+                CopyToExisting(new VsIndex(CheckpointTrigger), src);
+        }
+
+        // ───────────────────────────────────────────────────────────────────────────
+        // Legacy int-based API — mark as obsolete & hide in IntelliSense.
+        // Remove after migrating remaining call sites.
+        // ───────────────────────────────────────────────────────────────────────────
+
+        [Obsolete("Use typed NewZeroVs()", false), EditorBrowsable(EditorBrowsableState.Never)]
         public int NewZero() => Recorder.NewZero();
+
+        [Obsolete("Use typed NewZeroArrayVs()", false), EditorBrowsable(EditorBrowsableState.Never)]
         public int[] NewZeroArray(int size) => Recorder.NewZeroArray(size);
+
+        [Obsolete("Use typed NewUninitializedVs()", false), EditorBrowsable(EditorBrowsableState.Never)]
         public int NewUninitialized() => Recorder.NewUninitialized();
+
+        [Obsolete("Use typed NewUninitializedArrayVs()", false), EditorBrowsable(EditorBrowsableState.Never)]
         public int[] NewUninitializedArray(int size) => Recorder.NewUninitializedArray(size);
 
+        [Obsolete("Use CopyToNew(VsIndex) or CopyToNew(OsIndex)", false), EditorBrowsable(EditorBrowsableState.Never)]
         public int CopyToNew(int sourceIdx, bool fromOriginalSources) =>
             Recorder.CopyToNew(sourceIdx, fromOriginalSources);
-        public int[] CopyToNew(int[] sourceIndices, bool fromOriginalSources) =>
-            Recorder.CopyToNew(sourceIndices, fromOriginalSources);
 
+        [Obsolete("Use typed CopyToExisting(VsIndex, VsIndex)", false), EditorBrowsable(EditorBrowsableState.Never)]
         public void CopyToExisting(int index, int sourceIndex) => Recorder.CopyToExisting(index, sourceIndex);
-        public void CopyToExisting(int[] indices, int[] sourceIndices) => Recorder.CopyToExisting(indices, sourceIndices);
 
+        [Obsolete("Use typed AddToNew(VsIndex,VsIndex) or AddToNew(OsIndex,VsIndex)", false), EditorBrowsable(EditorBrowsableState.Never)]
         public int AddToNew(int idx1, bool fromOriginalSources, int idx2) =>
             Recorder.AddToNew(idx1, fromOriginalSources, idx2);
+
+        [Obsolete("Use typed MultiplyToNew(VsIndex,VsIndex) or MultiplyToNew(OsIndex,VsIndex)", false), EditorBrowsable(EditorBrowsableState.Never)]
         public int MultiplyToNew(int idx1, bool fromOriginalSources, int idx2) =>
             Recorder.MultiplyToNew(idx1, fromOriginalSources, idx2);
 
+        [Obsolete("Use typed ZeroExisting(VsIndex)", false), EditorBrowsable(EditorBrowsableState.Never)]
         public void ZeroExisting(int index) => Recorder.ZeroExisting(index);
-        public void ZeroExisting(int[] indices) => Recorder.ZeroExisting(indices);
 
+        [Obsolete("Use typed MultiplyBy(VsIndex,VsIndex)", false), EditorBrowsable(EditorBrowsableState.Never)]
         public void MultiplyBy(int idx, int multIdx) => Recorder.MultiplyBy(idx, multIdx);
-        public void MultiplyArrayBy(int[] targets, int multiplierIdx) =>
-            Recorder.MultiplyArrayBy(targets, multiplierIdx);
-        public void MultiplyArrayBy(int[] targets, int[] multipliers) =>
-            Recorder.MultiplyArrayBy(targets, multipliers);
 
+        [Obsolete("Use typed MultiplyArrayBy(ReadOnlySpan<VsIndex>,VsIndex) or (..., ReadOnlySpan<VsIndex>)", false), EditorBrowsable(EditorBrowsableState.Never)]
+        public void MultiplyArrayBy(int[] targets, int multiplierIdx) => Recorder.MultiplyArrayBy(targets, multiplierIdx);
+        [Obsolete("Use typed MultiplyArrayBy(ReadOnlySpan<VsIndex>, ReadOnlySpan<VsIndex>)", false), EditorBrowsable(EditorBrowsableState.Never)]
+        public void MultiplyArrayBy(int[] targets, int[] multipliers) => Recorder.MultiplyArrayBy(targets, multipliers);
+
+        [Obsolete("Use typed Increment(...) overloads", false), EditorBrowsable(EditorBrowsableState.Never)]
         public void Increment(int idx, bool targetOriginal, int indexOfIncrement) =>
             Recorder.Increment(idx, targetOriginal, indexOfIncrement);
+
+        [Obsolete("Use typed IncrementArrayBy(...) overloads", false), EditorBrowsable(EditorBrowsableState.Never)]
         public void IncrementArrayBy(int[] targets, bool targetOriginals, int indexOfIncrement) =>
             Recorder.IncrementArrayBy(targets, targetOriginals, indexOfIncrement);
+        [Obsolete("Use typed IncrementArrayBy(...) overloads", false), EditorBrowsable(EditorBrowsableState.Never)]
         public void IncrementArrayBy(int[] targets, bool targetOriginals, int[] indicesOfIncrements) =>
             Recorder.IncrementArrayBy(targets, targetOriginals, indicesOfIncrements);
-        public int IncrementByProduct(int targetIdx, bool targetOriginal,
-                                       int factor1Idx, int factor2Idx, bool reuseTmp = true) =>
+
+        [Obsolete("Use typed IncrementByProduct(VsIndex,...)", false), EditorBrowsable(EditorBrowsableState.Never)]
+        public int IncrementByProduct(int targetIdx, bool targetOriginal, int factor1Idx, int factor2Idx, bool reuseTmp = true) =>
             Recorder.IncrementByProduct(targetIdx, targetOriginal, factor1Idx, factor2Idx, reuseTmp);
 
+        [Obsolete("Use typed Decrement(VsIndex,VsIndex)", false), EditorBrowsable(EditorBrowsableState.Never)]
         public void Decrement(int idx, int decIdx) => Recorder.Decrement(idx, decIdx);
-        public void DecrementArrayBy(int[] targets, int decIdx) =>
-            Recorder.DecrementArrayBy(targets, decIdx);
-        public void DecrementArrayBy(int[] targets, int[] decIdxs) =>
-            Recorder.DecrementArrayBy(targets, decIdxs);
-        public void DecrementByProduct(int targetIdx, int factor1Idx, int factor2Idx, bool reuseTmp = true) =>
-            Recorder.DecrementByProduct(targetIdx, factor1Idx, factor2Idx, reuseTmp);
 
+        [Obsolete("Use typed DecrementArrayBy(...) overloads", false), EditorBrowsable(EditorBrowsableState.Never)]
+        public void DecrementArrayBy(int[] targets, int decIdx) => Recorder.DecrementArrayBy(targets, decIdx);
+        [Obsolete("Use typed DecrementArrayBy(...) overloads", false), EditorBrowsable(EditorBrowsableState.Never)]
+        public void DecrementArrayBy(int[] targets, int[] decIdxs) => Recorder.DecrementArrayBy(targets, decIdxs);
+
+        [Obsolete("Use typed InsertIf()", false), EditorBrowsable(EditorBrowsableState.Never)]
         public void InsertIfCommand() => Recorder.InsertIf();
+        [Obsolete("Use typed InsertEndIf()", false), EditorBrowsable(EditorBrowsableState.Never)]
         public void InsertEndIfCommand() => Recorder.InsertEndIf();
 
-        public void InsertEqualsOtherArrayIndexCommand(int i1, int i2) =>
-            Recorder.InsertEqualsOtherArrayIndexCommand(i1, i2);
-        public void InsertNotEqualsOtherArrayIndexCommand(int i1, int i2) =>
-            Recorder.InsertNotEqualsOtherArrayIndexCommand(i1, i2);
-        public void InsertGreaterThanOtherArrayIndexCommand(int i1, int i2) =>
-            Recorder.InsertGreaterThanOtherArrayIndexCommand(i1, i2);
-        public void InsertLessThanOtherArrayIndexCommand(int i1, int i2) =>
-            Recorder.InsertLessThanOtherArrayIndexCommand(i1, i2);
+        [Obsolete("Use typed InsertEqualsOtherArrayIndex(VsIndex,VsIndex)", false), EditorBrowsable(EditorBrowsableState.Never)]
+        public void InsertEqualsOtherArrayIndexCommand(int i1, int i2) => Recorder.InsertEqualsOtherArrayIndexCommand(i1, i2);
+        [Obsolete("Use typed InsertNotEqualsOtherArrayIndex(VsIndex,VsIndex)", false), EditorBrowsable(EditorBrowsableState.Never)]
+        public void InsertNotEqualsOtherArrayIndexCommand(int i1, int i2) => Recorder.InsertNotEqualsOtherArrayIndexCommand(i1, i2);
+        [Obsolete("Use typed InsertGreaterThanOtherArrayIndex(VsIndex,VsIndex)", false), EditorBrowsable(EditorBrowsableState.Never)]
+        public void InsertGreaterThanOtherArrayIndexCommand(int i1, int i2) => Recorder.InsertGreaterThanOtherArrayIndexCommand(i1, i2);
+        [Obsolete("Use typed InsertLessThanOtherArrayIndex(VsIndex,VsIndex)", false), EditorBrowsable(EditorBrowsableState.Never)]
+        public void InsertLessThanOtherArrayIndexCommand(int i1, int i2) => Recorder.InsertLessThanOtherArrayIndexCommand(i1, i2);
 
-        public void InsertEqualsValueCommand(int idx, int v) =>
-            Recorder.InsertEqualsValueCommand(idx, v);
-        public void InsertNotEqualsValueCommand(int idx, int v) =>
-            Recorder.InsertNotEqualsValueCommand(idx, v);
-
-        public void InsertComment(string comment) => Recorder.InsertComment(comment);
-        public void InsertBlankCommand() => Recorder.InsertBlankCommand();
-
-        public void IncrementDepth() => Recorder.IncrementDepth();
-
-        public void DecrementDepth(bool completeCommandList = false) => Recorder.DecrementDepth(completeCommandList);
+        [Obsolete("Use typed InsertEqualsValue(VsIndex,int) / InsertNotEqualsValue(VsIndex,int)", false), EditorBrowsable(EditorBrowsableState.Never)]
+        public void InsertEqualsValueCommand(int idx, int v) => Recorder.InsertEqualsValueCommand(idx, v);
+        [Obsolete("Use typed InsertNotEqualsValue(VsIndex,int)", false), EditorBrowsable(EditorBrowsableState.Never)]
+        public void InsertNotEqualsValueCommand(int idx, int v) => Recorder.InsertNotEqualsValueCommand(idx, v);
 
         #endregion
+
 
         #region Checkpoints
 

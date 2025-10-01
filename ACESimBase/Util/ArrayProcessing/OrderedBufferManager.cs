@@ -58,4 +58,17 @@ public sealed class OrderedBufferManager
                 data[targetIdx] += increment;
         });
     }
-}
+
+    public void SetSources(ReadOnlySpan<OsIndex> indices)
+    {
+        SourceIndices.Clear();
+        for (int i = 0; i < indices.Length; i++) SourceIndices.Add(indices[i]);
+    }
+
+    public void SetDestinations(ReadOnlySpan<OdIndex> indices)
+    {
+        DestinationIndices.Clear();
+        for (int i = 0; i < indices.Length; i++) DestinationIndices.Add(indices[i]);
+    }
+
+    }
