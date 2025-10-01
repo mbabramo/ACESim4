@@ -285,7 +285,6 @@ namespace ACESimBase.Util.ArrayProcessing.Templating
         }
 
         // --- Optional bridging shims: keep only while you migrate tests ---
-        [Obsolete("Use SetFromVirtualStack(ReadOnlySpan<VsIndex>)")]
         public void SetFromVirtualStack(int[] vs)
         {
             var tmp = new VsIndex[vs.Length];
@@ -293,7 +292,6 @@ namespace ACESimBase.Util.ArrayProcessing.Templating
             SetFromVirtualStack(tmp);
         }
 
-        [Obsolete("Use SetFromOriginalSources(ReadOnlySpan<OsIndex>)")]
         public void SetFromOriginalSources(int[] os)
         {
             var tmp = new OsIndex[os.Length];
