@@ -10,6 +10,20 @@ namespace ACESimBase.Util.ArrayProcessing
         void EmitCopyToExisting(int index, int sourceIndex, bool isCheckpoint, CommandRecorder r, OrderedIoRecorder io);
         void EmitIncrement(int idx, bool targetOriginal, int incIdx, CommandRecorder r, OrderedIoRecorder io);
         void EmitZeroExisting(int index, CommandRecorder r);
+
+        // VS -> VS operations (replay-aware)
+        void EmitMultiplyBy(int index, int multIndex, CommandRecorder r);
+        void EmitDecrement(int index, int decIndex, CommandRecorder r);
+
+        // VS -> VS comparisons (replay-aware)
+        void EmitEqualsOtherArrayIndex(int i1, int i2, CommandRecorder r);
+        void EmitNotEqualsOtherArrayIndex(int i1, int i2, CommandRecorder r);
+        void EmitGreaterThanOtherArrayIndex(int i1, int i2, CommandRecorder r);
+        void EmitLessThanOtherArrayIndex(int i1, int i2, CommandRecorder r);
+
+        // VS -> immediate comparisons (replay-aware)
+        void EmitEqualsValue(int index, int value, CommandRecorder r);
+        void EmitNotEqualsValue(int index, int value, CommandRecorder r);
     }
 
     internal sealed class RecordingMode : IEmissionMode
@@ -19,8 +33,6 @@ namespace ACESimBase.Util.ArrayProcessing
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public int EmitCopyToNew(int sourceIndex, bool fromOriginalSources, CommandRecorder r, OrderedIoRecorder io)
         {
-            // Same behavior as your current recording path: emit NextSource + record sources
-            // when OS/OD is enabled; otherwise emit CopyTo. :contentReference[oaicite:0]{index=0}
             int fresh = r.NextArrayIndex++;
             if (fromOriginalSources && r.Acl.UseOrderedSourcesAndDestinations)
             {
@@ -37,7 +49,6 @@ namespace ACESimBase.Util.ArrayProcessing
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void EmitCopyToExisting(int index, int sourceIndex, bool isCheckpoint, CommandRecorder r, OrderedIoRecorder io)
         {
-            // Same behavior as your current *recording* branch for CopyToExisting. :contentReference[oaicite:1]{index=1}
             if (isCheckpoint)
                 r.AddCommand(new ArrayCommand(ArrayCommandType.Checkpoint, ArrayCommandList.CheckpointTrigger, sourceIndex));
             else
@@ -47,7 +58,6 @@ namespace ACESimBase.Util.ArrayProcessing
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void EmitIncrement(int idx, bool targetOriginal, int incIdx, CommandRecorder r, OrderedIoRecorder io)
         {
-            // Route to NextDestination + record destinations when OS/OD is enabled; else IncrementBy. :contentReference[oaicite:2]{index=2}
             if (targetOriginal && r.Acl.UseOrderedSourcesAndDestinations)
             {
                 io.RecordDestinationIndex(new OdIndex(idx));
@@ -62,6 +72,38 @@ namespace ACESimBase.Util.ArrayProcessing
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void EmitZeroExisting(int index, CommandRecorder r)
             => r.AddCommand(new ArrayCommand(ArrayCommandType.Zero, index, -1));
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void EmitMultiplyBy(int index, int multIndex, CommandRecorder r)
+            => r.AddCommand(new ArrayCommand(ArrayCommandType.MultiplyBy, index, multIndex));
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void EmitDecrement(int index, int decIndex, CommandRecorder r)
+            => r.AddCommand(new ArrayCommand(ArrayCommandType.DecrementBy, index, decIndex));
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void EmitEqualsOtherArrayIndex(int i1, int i2, CommandRecorder r)
+            => r.AddCommand(new ArrayCommand(ArrayCommandType.EqualsOtherArrayIndex, i1, i2));
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void EmitNotEqualsOtherArrayIndex(int i1, int i2, CommandRecorder r)
+            => r.AddCommand(new ArrayCommand(ArrayCommandType.NotEqualsOtherArrayIndex, i1, i2));
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void EmitGreaterThanOtherArrayIndex(int i1, int i2, CommandRecorder r)
+            => r.AddCommand(new ArrayCommand(ArrayCommandType.GreaterThanOtherArrayIndex, i1, i2));
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void EmitLessThanOtherArrayIndex(int i1, int i2, CommandRecorder r)
+            => r.AddCommand(new ArrayCommand(ArrayCommandType.LessThanOtherArrayIndex, i1, i2));
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void EmitEqualsValue(int index, int value, CommandRecorder r)
+            => r.AddCommand(new ArrayCommand(ArrayCommandType.EqualsValue, index, value));
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void EmitNotEqualsValue(int index, int value, CommandRecorder r)
+            => r.AddCommand(new ArrayCommand(ArrayCommandType.NotEqualsValue, index, value));
     }
 
     internal sealed class ReplayMode : IEmissionMode
@@ -71,26 +113,22 @@ namespace ACESimBase.Util.ArrayProcessing
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public int EmitCopyToNew(int sourceIndex, bool fromOriginalSources, CommandRecorder r, OrderedIoRecorder io)
         {
-            // Accept recorded NextSource *or* CopyTo (your current replay logic). :contentReference[oaicite:3]{index=3}
             var expected = r.Acl.UnderlyingCommands[r.NextCommandIndex];
             bool ns = expected.CommandType == ArrayCommandType.NextSource;
             bool ct = expected.CommandType == ArrayCommandType.CopyTo;
             if (!ns && !ct)
             {
-                // Let AddCommand produce the mismatch diagnostics.
                 r.AddCommand(new ArrayCommand(
                     (fromOriginalSources && r.Acl.UseOrderedSourcesAndDestinations) ? ArrayCommandType.NextSource : ArrayCommandType.CopyTo,
                     expected.Index, ns ? -1 : sourceIndex));
-                // The call above throws on mismatch via AddCommand.
             }
 
             int target = expected.Index;
-            if (target + 1 > r.NextArrayIndex) r.NextArrayIndex = target + 1;  // keep VS high-water mark aligned
+            if (target + 1 > r.NextArrayIndex) r.NextArrayIndex = target + 1;
 
             if (ns && r.Acl.UseOrderedSourcesAndDestinations)
                 io.RecordSourceIndex(new OsIndex(sourceIndex));
 
-            // Re-emit the *recorded* opcode to remain byte-identical. :contentReference[oaicite:4]{index=4}
             r.AddCommand(expected);
             return target;
         }
@@ -98,39 +136,101 @@ namespace ACESimBase.Util.ArrayProcessing
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void EmitCopyToExisting(int index, int sourceIndex, bool isCheckpoint, CommandRecorder r, OrderedIoRecorder io)
         {
-            // Look at the recorded instruction we are about to replay.
             var expected = r.Acl.UnderlyingCommands[r.NextCommandIndex];
-
-            // Keep the recorder’s VS high‑water mark aligned to the recorded target.
-            // This mirrors the behavior already present today and avoids drifting NextArrayIndex.
             int recordedTarget = expected.Index;
             if (recordedTarget + 1 > r.NextArrayIndex)
                 r.NextArrayIndex = recordedTarget + 1;
 
-            // Re‑emit the *recorded* instruction verbatim so the stream remains byte‑identical.
-            // (Do not substitute the caller’s sourceIndex here; the recorded SourceIndex is authoritative.)
             r.AddCommand(expected);
         }
-
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void EmitIncrement(int idx, bool targetOriginal, int incIdx, CommandRecorder r, OrderedIoRecorder io)
         {
-            // During replay, recorded shape may be NextDestination or IncrementBy;
-            // if it is NextDestination, mirror the ordered-destinations side-effect. :contentReference[oaicite:7]{index=7}
             var expected = r.Acl.UnderlyingCommands[r.NextCommandIndex];
             if (expected.CommandType == ArrayCommandType.NextDestination && r.Acl.UseOrderedSourcesAndDestinations)
                 io.RecordDestinationIndex(new OdIndex(idx));
 
-            r.AddCommand(expected); // lets AddCommand verify the opcode matches
+            r.AddCommand(expected);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void EmitZeroExisting(int index, CommandRecorder r)
         {
-            // Your current replay branch for ZeroExisting reproduces the recorded target. :contentReference[oaicite:8]{index=8}
             var expected = r.Acl.UnderlyingCommands[r.NextCommandIndex];
             r.AddCommand(new ArrayCommand(ArrayCommandType.Zero, expected.Index, -1));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void EmitMultiplyBy(int index, int multIndex, CommandRecorder r)
+        {
+            var expected = r.Acl.UnderlyingCommands[r.NextCommandIndex];
+            if (expected.Index >= 0)
+                r.VS.AlignToAtLeast(expected.Index + 1);
+            r.AddCommand(expected);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void EmitDecrement(int index, int decIndex, CommandRecorder r)
+        {
+            var expected = r.Acl.UnderlyingCommands[r.NextCommandIndex];
+            if (expected.Index >= 0)
+                r.VS.AlignToAtLeast(expected.Index + 1);
+            r.AddCommand(expected);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void EmitEqualsOtherArrayIndex(int i1, int i2, CommandRecorder r)
+        {
+            var expected = r.Acl.UnderlyingCommands[r.NextCommandIndex];
+            if (expected.Index >= 0)
+                r.VS.AlignToAtLeast(expected.Index + 1);
+            r.AddCommand(expected);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void EmitNotEqualsOtherArrayIndex(int i1, int i2, CommandRecorder r)
+        {
+            var expected = r.Acl.UnderlyingCommands[r.NextCommandIndex];
+            if (expected.Index >= 0)
+                r.VS.AlignToAtLeast(expected.Index + 1);
+            r.AddCommand(expected);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void EmitGreaterThanOtherArrayIndex(int i1, int i2, CommandRecorder r)
+        {
+            var expected = r.Acl.UnderlyingCommands[r.NextCommandIndex];
+            if (expected.Index >= 0)
+                r.VS.AlignToAtLeast(expected.Index + 1);
+            r.AddCommand(expected);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void EmitLessThanOtherArrayIndex(int i1, int i2, CommandRecorder r)
+        {
+            var expected = r.Acl.UnderlyingCommands[r.NextCommandIndex];
+            if (expected.Index >= 0)
+                r.VS.AlignToAtLeast(expected.Index + 1);
+            r.AddCommand(expected);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void EmitEqualsValue(int index, int value, CommandRecorder r)
+        {
+            var expected = r.Acl.UnderlyingCommands[r.NextCommandIndex];
+            if (expected.Index >= 0)
+                r.VS.AlignToAtLeast(expected.Index + 1);
+            r.AddCommand(expected);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void EmitNotEqualsValue(int index, int value, CommandRecorder r)
+        {
+            var expected = r.Acl.UnderlyingCommands[r.NextCommandIndex];
+            if (expected.Index >= 0)
+                r.VS.AlignToAtLeast(expected.Index + 1);
+            r.AddCommand(expected);
         }
     }
 }

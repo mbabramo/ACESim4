@@ -304,8 +304,7 @@ namespace ACESimBase.Util.ArrayProcessing
         /// <summary>Multiply slot <paramref name="idx"/> by <paramref name="multIdx"/>.</summary>
         public void MultiplyBy(int idx, int multIdx)
         {
-            // Previously aligned VS during replay; preserved via alignVsFromRecordedIndex = true.
-            _emitter.Emit(ArrayCommandType.MultiplyBy, idx, multIdx, alignVsFromRecordedIndex: true);
+            Mode.EmitMultiplyBy(idx, multIdx, this);
         }
 
 
@@ -319,8 +318,7 @@ namespace ACESimBase.Util.ArrayProcessing
 
         public void Decrement(int idx, int decIdx)
         {
-            // Previously aligned VS during replay; preserved via alignVsFromRecordedIndex = true.
-            _emitter.Emit(ArrayCommandType.DecrementBy, idx, decIdx, alignVsFromRecordedIndex: true);
+            Mode.EmitDecrement(idx, decIdx, this);
         }
 
 
@@ -472,34 +470,33 @@ namespace ACESimBase.Util.ArrayProcessing
 
         public void InsertEqualsOtherArrayIndexCommand(int i1, int i2)
         {
-            _emitter.Emit(ArrayCommandType.EqualsOtherArrayIndex, i1, i2, alignVsFromRecordedIndex: true);
+            Mode.EmitEqualsOtherArrayIndex(i1, i2, this);
         }
 
         public void InsertNotEqualsOtherArrayIndexCommand(int i1, int i2)
         {
-            _emitter.Emit(ArrayCommandType.NotEqualsOtherArrayIndex, i1, i2, alignVsFromRecordedIndex: true);
+            Mode.EmitNotEqualsOtherArrayIndex(i1, i2, this);
         }
 
         public void InsertGreaterThanOtherArrayIndexCommand(int i1, int i2)
         {
-            _emitter.Emit(ArrayCommandType.GreaterThanOtherArrayIndex, i1, i2, alignVsFromRecordedIndex: true);
+            Mode.EmitGreaterThanOtherArrayIndex(i1, i2, this);
         }
 
         public void InsertLessThanOtherArrayIndexCommand(int i1, int i2)
         {
-            _emitter.Emit(ArrayCommandType.LessThanOtherArrayIndex, i1, i2, alignVsFromRecordedIndex: true);
+            Mode.EmitLessThanOtherArrayIndex(i1, i2, this);
         }
 
         public void InsertEqualsValueCommand(int idx, int v)
         {
-            _emitter.Emit(ArrayCommandType.EqualsValue, idx, v, alignVsFromRecordedIndex: true);
+            Mode.EmitEqualsValue(idx, v, this);
         }
 
         public void InsertNotEqualsValueCommand(int idx, int v)
         {
-            _emitter.Emit(ArrayCommandType.NotEqualsValue, idx, v, alignVsFromRecordedIndex: true);
+            Mode.EmitNotEqualsValue(idx, v, this);
         }
-
 
         #endregion
 

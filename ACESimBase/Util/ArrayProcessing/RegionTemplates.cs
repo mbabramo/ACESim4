@@ -8,7 +8,7 @@
 using System;
 using System.Runtime.CompilerServices;
 
-namespace ACESimBase.Util.ArrayProcessing.Templating
+namespace ACESimBase.Util.ArrayProcessing
 {
     /// <summary>Configuration for templating helpers.</summary>
     public sealed class RegionTemplateOptions

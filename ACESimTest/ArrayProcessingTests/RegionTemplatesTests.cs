@@ -3,7 +3,6 @@ using System.Linq;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using ACESimBase.Util.ArrayProcessing;
 using ACESimBase.Util.ArrayProcessing.Slots;
-using ACESimBase.Util.ArrayProcessing.Templating;
 using ACESimBase.Util.ArrayProcessing.ChunkExecutors;
 
 namespace ACESimTest.ArrayProcessingTests

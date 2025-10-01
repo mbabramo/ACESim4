@@ -7,7 +7,6 @@ using ACESimBase.Util.ArrayProcessing;
 using ACESimBase.Util.Debugging;
 using ACESimBase.Util.Parallelization;
 using ACESimBase.Util.ArrayProcessing.Slots;
-using ACESimBase.Util.ArrayProcessing.Templating;
 
 using JetBrains.Annotations;
 using System;
