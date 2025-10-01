@@ -440,6 +440,9 @@ namespace ACESimBase.Util.ArrayProcessing
 
         public void InsertIf()
         {
+            // Ensure any pending repeated-range tail is fully consumed before emitting control flow.
+            _acl.FlushPendingRepeatedRangeTail();
+
             // Preserve prior behavior of setting IfCmdIndex to the command position being emitted.
             int ifCmdIndex = NextCommandIndex;
 
@@ -456,6 +459,9 @@ namespace ACESimBase.Util.ArrayProcessing
 
         public void InsertEndIf()
         {
+            // Close any residual repeated-range tail before the EndIf as well, to keep control structure aligned.
+            _acl.FlushPendingRepeatedRangeTail();
+
             // During replay, only pop if the recorded stream has EndIf here (preserves prior behavior).
             bool popOnReplay =
                 _acl.RepeatingExistingCommandRange

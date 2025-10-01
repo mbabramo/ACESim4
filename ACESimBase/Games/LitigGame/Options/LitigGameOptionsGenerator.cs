@@ -190,7 +190,7 @@ namespace ACESim
                 settings = new PrecautionNegligenceOptionsGeneratorSettings();
 
             var gameOptions = settings.UseSimplifiedPrecautionNegligenceGame ?
-                PrecautionNegligenceGame(settings.CollapseDecisionsInSimplifiedPrecautionNegligenceGame, allowQuitting: true, numSignalsAndOffers: settings.ParameterForMultipleOptions_Simplified, numPotentialBargainingRounds: settings.NumPotentialBargainingRounds, numPrecautionPowerLevels: settings.ParameterForMultipleOptions_Simplified, precautionLevels: settings.ParameterForMultipleOptions_Simplified)
+                PrecautionNegligenceGame(settings.CollapseDecisionsInSimplifiedPrecautionNegligenceGame, allowQuitting: false /* DEBUG */, numSignalsAndOffers: settings.ParameterForMultipleOptions_Simplified, numPotentialBargainingRounds: settings.NumPotentialBargainingRounds, numPrecautionPowerLevels: settings.ParameterForMultipleOptions_Simplified, precautionLevels: settings.ParameterForMultipleOptions_Simplified)
                 :
                 PrecautionNegligenceGame(true, true, settings.ParameterForMultipleOptions, settings.NumPotentialBargainingRounds, settings.ParameterForMultipleOptions, settings.ParameterForMultipleOptions);
             gameOptions.PredeterminedAbandonAndDefaults = settings.PredeterminedAbandonAndDefaults;
