@@ -778,6 +778,8 @@ namespace ACESim
             IGameState gameStateForCurrentPlayer = GetGameState(in historyPoint);
             var informationSet = (InformationSetNode)gameStateForCurrentPlayer;
 
+            Unroll_CloseRepeatedWindowIfBoundaryHere(informationSet);
+
             byte decisionNum = informationSet.DecisionIndex;
             byte playerMakingDecision = informationSet.PlayerIndex;
             byte numPossibleActions = NumPossibleActionsAtDecision(decisionNum);
@@ -856,10 +858,6 @@ namespace ACESim
 
                         int[] nextAvgStratPiValues = Unroll_Commands.NewZeroArray(NumNonChancePlayers);
                         Unroll_GetNextPiValues(avgStratPiValues, playerMakingDecision, probabilityOfActionAvgStrat, false, nextAvgStratPiValues);
-
-                        // close recorded slice at boundary if required
-                        if (EvolutionSettings.UnrollTemplateRepeatedRanges && informationSet.Decision.EndRepeatedRange)
-                            _repeatTpl.CloseAtBoundary();
 
                         if (EvolutionSettings.TraceCFR)
                         {
@@ -1022,6 +1020,8 @@ namespace ACESim
             IGameState gameStateForCurrentPlayer = GetGameState(in historyPoint);
             ChanceNode chanceNode = (ChanceNode)gameStateForCurrentPlayer;
 
+            Unroll_CloseRepeatedWindowIfBoundaryHere(chanceNode);
+
             Unroll_EnsureTemplates();
 
             if (algorithmIsLowestDepth)
@@ -1171,9 +1171,6 @@ namespace ACESim
             int[] nextAvgStratPiValues = new int[NumNonChancePlayers];
             Unroll_GetNextPiValues(avgStratPiValues, playerBeingOptimized, actionProb.Index, true, nextAvgStratPiValues);
 
-            if (EvolutionSettings.UnrollTemplateRepeatedRanges && chanceNode.Decision.EndRepeatedRange)
-                _repeatTpl.CloseAtBoundary();
-
             HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, action, chanceNode.Decision, chanceNode.DecisionIndex);
 
             if (EvolutionSettings.TraceCFR)
@@ -1304,6 +1301,23 @@ namespace ACESim
         private bool IsOriginalIndex(int index)
         {
             return index >= 0 && index < Unroll_Commands.SizeOfMainData;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void Unroll_CloseRepeatedWindowIfBoundaryHere(IGameState gameState)
+        {
+            if (!EvolutionSettings.UnrollTemplateRepeatedRanges || _repeatTpl == null || !_repeatTpl.IsOpen)
+                return;
+
+            bool endHere = gameState switch
+            {
+                InformationSetNode iset => iset.Decision.EndRepeatedRange,
+                ChanceNode       cnode => cnode.Decision.EndRepeatedRange,
+                _ => false
+            };
+
+            if (endHere)
+                _repeatTpl.CloseAtBoundary();
         }
 
 

@@ -17,6 +17,10 @@ namespace ACESimBase.Util.ArrayProcessing
     {
         private readonly ArrayCommandList _acl;
 
+        public VirtualStack VS { get; }
+        private readonly CommandEmitter _emitter;
+
+
         // Counters mirrored into the ACL for introspection / later execution
         public int NextArrayIndex;
         public int MaxArrayIndex;
@@ -39,6 +43,8 @@ namespace ACESimBase.Util.ArrayProcessing
 
         public CommandRecorder(ArrayCommandList owner)
         {
+            VS = new VirtualStack(this);
+            _emitter = new CommandEmitter(this);
             _acl = owner ?? throw new ArgumentNullException(nameof(owner));
             NextArrayIndex = 0;
             MaxArrayIndex = -1;
@@ -61,41 +67,7 @@ namespace ACESimBase.Util.ArrayProcessing
 
         public void AddCommand(ArrayCommand cmd)
         {
-            // Always remember what we were about to emit (for debug on mismatch)
-            RememberNewCandidate(cmd);
-
-            if (_acl.RepeatingExistingCommandRange)
-            {
-                var expected = _acl.UnderlyingCommands[NextCommandIndex];
-                if (!cmd.Equals(expected))
-                    ThrowRepeatMismatch(cmd, expected);
-
-                NextCommandIndex++;
-                return;
-            }
-
-            const int HARD_LIMIT = 1_000_000_000; // 1B safety cap
-            if (NextCommandIndex >= _acl.UnderlyingCommands.Length)
-            {
-                if (_acl.UnderlyingCommands.Length >= HARD_LIMIT)
-                    throw new InvalidOperationException("Command buffer exceeded hard limit.");
-                Array.Resize(ref _acl.UnderlyingCommands, _acl.UnderlyingCommands.Length * 2);
-            }
-
-            if (_ifStack.Count > 0)
-            {
-                ref var top = ref _ifStack.TryPeek(out var tmp)
-                    ? ref _ifStack.ToArray()[0] // Stack<T>.TryPeek returns a copy; use a small helper or replace Stack<T> with custom for real by-ref
-                    : ref tmp;                   // For brevity in this snippet; in production, switch to a small custom stack to allow by-ref.
-                if (cmd.CommandType == ArrayCommandType.NextSource)      top.NewNextSrc++;
-                else if (cmd.CommandType == ArrayCommandType.NextDestination) top.NewNextDst++;
-            }
-
-            // Provenance capture for writes to VS
-            if (WritesToVS(cmd.CommandType))
-                NoteWrite(cmd.Index, cmd.CommandType, cmd.SourceIndex);
-            _acl.UnderlyingCommands[NextCommandIndex++] = cmd;
-            if (NextArrayIndex > MaxArrayIndex) MaxArrayIndex = NextArrayIndex;
+            _emitter.Emit(cmd);
         }
 
         private void ThrowRepeatMismatch(in ArrayCommand newCmd, in ArrayCommand recorded)
@@ -443,18 +415,43 @@ namespace ACESimBase.Util.ArrayProcessing
         private struct IfFrame { public int IfCmdIndex; public int NewNextSrc; public int NewNextDst; }
         private readonly Stack<IfFrame> _ifStack = new();
 
-        // augment existing methods
         public void InsertIf()
         {
+            if (_acl.RepeatingExistingCommandRange)
+            {
+                var recorded = _acl.UnderlyingCommands[NextCommandIndex];
+
+                // Only push a frame if the recorded stream actually has an If here.
+                if (recorded.CommandType == ArrayCommandType.If)
+                    _ifStack.Push(new IfFrame { IfCmdIndex = NextCommandIndex, NewNextSrc = 0, NewNextDst = 0 });
+
+                // Re-emit the recorded instruction verbatim; AddCommand will advance NextCommandIndex.
+                AddCommand(recorded);
+                return;
+            }
+
             _ifStack.Push(new IfFrame { IfCmdIndex = NextCommandIndex, NewNextSrc = 0, NewNextDst = 0 });
             AddCommand(new ArrayCommand(ArrayCommandType.If, -1, -1));
         }
 
         public void InsertEndIf()
         {
+            if (_acl.RepeatingExistingCommandRange)
+            {
+                var recorded = _acl.UnderlyingCommands[NextCommandIndex];
+
+                bool pop = recorded.CommandType == ArrayCommandType.EndIf;
+                AddCommand(recorded);                 // advances NextCommandIndex
+
+                if (pop && _ifStack.Count > 0)
+                    _ifStack.Pop();
+                return;
+            }
+
             AddCommand(new ArrayCommand(ArrayCommandType.EndIf, -1, -1));
             if (_ifStack.Count > 0) _ifStack.Pop();
         }
+
 
 
         public void InsertEqualsOtherArrayIndexCommand(int i1, int i2)
@@ -649,21 +646,33 @@ namespace ACESimBase.Util.ArrayProcessing
             return cmdIndex;
         }
 
-
         public int InsertIncrementDepthCommand()
         {
-            int cmdIndex = NextCommandIndex;                 // position before adding the blank
+            int cmdIndex = NextCommandIndex;
+            if (_acl.RepeatingExistingCommandRange)
+            {
+                var recorded = _acl.UnderlyingCommands[NextCommandIndex];
+                AddCommand(recorded);
+                return cmdIndex;
+            }
+
             AddCommand(new ArrayCommand(ArrayCommandType.IncrementDepth, -1, -1));
             return cmdIndex;
         }
-
-
         public int InsertDecrementDepthCommand()
         {
-            int cmdIndex = NextCommandIndex;                 // position before adding the blank
+            int cmdIndex = NextCommandIndex;
+            if (_acl.RepeatingExistingCommandRange)
+            {
+                var recorded = _acl.UnderlyingCommands[NextCommandIndex];
+                AddCommand(recorded);
+                return cmdIndex;
+            }
+
             AddCommand(new ArrayCommand(ArrayCommandType.DecrementDepth, -1, -1));
             return cmdIndex;
         }
+
 
         #endregion
 
@@ -692,6 +701,75 @@ namespace ACESimBase.Util.ArrayProcessing
             if (CommentTable[id] == null && text != null)
                 CommentTable[id] = text;
         }
+
+        #endregion
+
+        #region Emitter
+
+        /// <summary>
+        /// Centralized command emitter. This routes all writes and preserves existing behavior
+        /// for both recording and replay.
+        /// </summary>
+        private sealed class CommandEmitter
+        {
+            private readonly CommandRecorder _recorder;
+
+            internal CommandEmitter(CommandRecorder recorder)
+            {
+                _recorder = recorder;
+            }
+
+            internal void Emit(in ArrayCommand cmd)
+            {
+                // Preserve existing debug capture
+                _recorder.RememberNewCandidate(cmd);
+
+                // Replay path (validate and advance)
+                if (_recorder._acl.RepeatingExistingCommandRange)
+                {
+                    var expected = _recorder._acl.UnderlyingCommands[_recorder.NextCommandIndex];
+                    if (!cmd.Equals(expected))
+                        _recorder.ThrowRepeatMismatch(cmd, expected);
+
+                    _recorder.NextCommandIndex++;
+                    return;
+                }
+
+                // Capacity management
+                const int HardLimit = 1_000_000_000;
+                if (_recorder.NextCommandIndex >= _recorder._acl.UnderlyingCommands.Length)
+                {
+                    if (_recorder._acl.UnderlyingCommands.Length >= HardLimit)
+                        throw new InvalidOperationException("Command buffer exceeded hard limit.");
+
+                    Array.Resize(ref _recorder._acl.UnderlyingCommands, _recorder._acl.UnderlyingCommands.Length * 2);
+                }
+
+                // IF-stack bookkeeping (preserves prior behavior)
+                if (_recorder._ifStack.Count > 0)
+                {
+                    ref var top = ref _recorder._ifStack.TryPeek(out var tmp)
+                        ? ref _recorder._ifStack.ToArray()[0]
+                        : ref tmp;
+
+                    if (cmd.CommandType == ArrayCommandType.NextSource)
+                        top.NewNextSrc++;
+                    else if (cmd.CommandType == ArrayCommandType.NextDestination)
+                        top.NewNextDst++;
+                }
+
+                // Provenance for VS writes
+                if (WritesToVS(cmd.CommandType))
+                    _recorder.NoteWrite(cmd.Index, cmd.CommandType, cmd.SourceIndex);
+
+                // Write and advance
+                _recorder._acl.UnderlyingCommands[_recorder.NextCommandIndex++] = cmd;
+
+                // Maintain high-water mark via VirtualStack
+                _recorder.VS.TouchHighWater();
+            }
+        }
+
 
         #endregion
     }
