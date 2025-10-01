@@ -631,6 +631,24 @@ namespace ACESimBase.Util.ArrayProcessing
             }
         }
 
+        // Reads / copies
+        public int CopyToNew(VsIndex src)                        => CopyToNew(src.Value, fromOriginalSources: false);
+        public int CopyToNew(OsIndex src)                        => CopyToNew(src.Value, fromOriginalSources: true);
+
+        // Writes / arithmetic
+        public void CopyToExisting(VsIndex dst, VsIndex src)     => CopyToExisting(dst.Value, src.Value);
+        public void ZeroExisting(VsIndex dst)                    => ZeroExisting(dst.Value);
+
+        // Accumulate to destinations (ordered or VS)
+        public void Increment(VsIndex dst, VsIndex by)           => Increment(dst.Value, targetOriginal: false, by.Value);
+        public void Increment(OdIndex dst, VsIndex by)           => Increment(dst.Value, targetOriginal: true,  by.Value);
+
+        public void Decrement(VsIndex dst, VsIndex by)           => Decrement(dst.Value, by.Value);
+        public void MultiplyBy(VsIndex dst, VsIndex by)          => MultiplyBy(dst.Value, by.Value);
+
+        // Checkpoints / accounting
+        public void CreateCheckpoint(VsIndex src)                => CreateCheckpoint(src.Value);
+
         public int NewZero() => Recorder.NewZero();
         public int[] NewZeroArray(int size) => Recorder.NewZeroArray(size);
         public int NewUninitialized() => Recorder.NewUninitialized();
