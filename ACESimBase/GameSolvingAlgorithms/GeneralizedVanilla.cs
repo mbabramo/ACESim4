@@ -749,7 +749,6 @@ namespace ACESim
             }
         }
 
-
         private void Unroll_Decision_EmitBody(
             in HistoryPoint historyPoint,
             byte playerBeingOptimized,
@@ -945,8 +944,11 @@ namespace ACESim
                     Unroll_AddProductToResult(lastRegretNumerator,   true, regret,   inversePi);
                     Unroll_AddToResult       (lastRegretDenominator, true, inversePi);
 
+                    // Stable alias avoids late reindexing across closed scopes
+                    int probabilityOfAction = actionProbabilities[action - 1];
+
                     int contributionToAverageStrategy = Unroll_Commands.CopyToNew(pi, false);
-                    Unroll_Commands.MultiplyBy(contributionToAverageStrategy, actionProbabilities[action - 1]);
+                    Unroll_Commands.MultiplyBy(contributionToAverageStrategy, probabilityOfAction);
                     int lastCumulativeStrategyIncrement = Unroll_GetInformationSetIndex_LastCumulativeStrategyIncrement(informationSet.InformationSetNodeNumber, action);
 
                     Unroll_AddToResult(lastCumulativeStrategyIncrement, true, contributionToAverageStrategy);
@@ -965,12 +967,12 @@ namespace ACESim
                         {
                             TabbedText.WriteLine($"PiValues ARRAY{piValuesZeroCopy} ARRAY{piValuesOneCopy} pi for optimized ARRAY{piCopy}");
                             TabbedText.WriteLine(
-                                $"Regrets ({informationSet.Decision.Name} {informationSet.InformationSetNodeNumber}): Action {action} probability ARRAY{actionProbabilities[action - 1]} regret ARRAY{regretCopy} inversePi ARRAY{inversePiCopy} avg_strat_increment ARRAY{contributionToAverageStrategyCopy} cum_strategy ARRAY{cumulativeStrategyCopy}");
+                                $"Regrets ({informationSet.Decision.Name} {informationSet.InformationSetNodeNumber}): Action {action} probability ARRAY{probabilityOfAction} regret ARRAY{regretCopy} inversePi ARRAY{inversePiCopy} avg_strat_increment ARRAY{contributionToAverageStrategyCopy} cum_strategy ARRAY{cumulativeStrategyCopy}");
                         }
 
                         if (Unroll_Commands.UseCheckpoints)
                         {
-                            Unroll_Commands.CreateCheckpoint(actionProbabilities[action - 1]);
+                            Unroll_Commands.CreateCheckpoint(probabilityOfAction);
                             Unroll_Commands.CreateCheckpoint(regretCopy);
                             Unroll_Commands.CreateCheckpoint(inversePiCopy);
                             Unroll_Commands.CreateCheckpoint(piCopy);
@@ -981,6 +983,7 @@ namespace ACESim
 
             Unroll_Commands.DecrementDepth();
         }
+
 
         private void Unroll_GeneralizedVanillaCFR_ChanceNode(
             in HistoryPoint historyPoint,
