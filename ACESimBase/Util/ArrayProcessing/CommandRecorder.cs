@@ -416,14 +416,22 @@ namespace ACESimBase.Util.ArrayProcessing
                 Decrement(targets[i], decIdxs[i]);
         }
 
-        public void DecrementByProduct(int targetIdx, int factor1Idx, int factor2Idx,
-                                       bool reuseTmp = true)
+        public int DecrementByProduct(int targetIdx, bool targetOriginal,
+                                      int factor1Idx, int factor2Idx,
+                                      bool reuseTmp = true)
         {
             using var scratch = OpenScratchScope(reclaimOnDispose: reuseTmp);
 
             int tmp = CopyToNew(factor1Idx, fromOriginalSources: false);
             MultiplyBy(tmp, factor2Idx);
+
+            if (targetOriginal)
+                throw new NotSupportedException(
+                    "Ordered-destination decrement is not supported. " +
+                    "If you truly need OD subtraction, use Increment(targetOriginal: true, <negated value>).");
+
             Decrement(targetIdx, tmp);
+            return tmp;
         }
 
         #endregion

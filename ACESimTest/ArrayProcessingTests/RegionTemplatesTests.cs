@@ -175,8 +175,8 @@ namespace ACESimTest.ArrayProcessingTests
             pf.SetFromVirtualStack(new[] { 0, 1 });
 
             // Compute vs[2] = param[0] + param[1]
-            int p0 = pf.Slots[0];
-            int p1 = pf.Slots[1];
+            int p0 = pf.Slots[0].Val();
+            int p1 = pf.Slots[1].Val();
             int tmp = acl.CopyToNew(p0, fromOriginalSources: false);
             acl.Increment(tmp, targetOriginal: false, p1);
             acl.CopyToExisting(2, tmp);
@@ -212,8 +212,8 @@ namespace ACESimTest.ArrayProcessingTests
             pf.SetFromOriginalSources(new[] { 0, 1 });
 
             // vs[2] = param[0] + param[1]
-            int p0 = pf.Slots[0];
-            int p1 = pf.Slots[1];
+            int p0 = pf.Slots[0].Val();
+            int p1 = pf.Slots[1].Val();
             int tmp = acl.CopyToNew(p0, fromOriginalSources: false);
             acl.Increment(tmp, targetOriginal: false, p1);
             acl.CopyToExisting(2, tmp);

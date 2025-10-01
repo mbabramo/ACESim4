@@ -718,7 +718,6 @@ namespace ACESimBase.Util.ArrayProcessing
                 Recorder.Decrement(targets[i].Value, decs[i].Value);
         }
 
-        // Products returning a new VS temp
         public VsIndex AddToNew(VsIndex a, VsIndex b) =>
             new VsIndex(Recorder.AddToNew(a.Value, fromOriginalSources: false, b.Value));
         public VsIndex AddToNew(OsIndex a, VsIndex b) =>
@@ -732,7 +731,7 @@ namespace ACESimBase.Util.ArrayProcessing
         public VsIndex IncrementByProduct(VsIndex dst, VsIndex f1, VsIndex f2, bool reuseTmp = true) =>
             new VsIndex(Recorder.IncrementByProduct(dst.Value, targetOriginal: false, f1.Value, f2.Value, reuseTmp));
         public VsIndex DecrementByProduct(VsIndex dst, VsIndex f1, VsIndex f2, bool reuseTmp = true) =>
-            new VsIndex(Recorder.DecrementByProduct(dst.Value, f1.Value, f2.Value, reuseTmp));
+            new VsIndex(Recorder.DecrementByProduct(dst.Value, targetOriginal: false, f1.Value, f2.Value, reuseTmp));
 
         // Comparisons (index-vs-index) and (index-vs-immediate)
         public void InsertEqualsOtherArrayIndex(VsIndex i1, VsIndex i2) =>
@@ -766,85 +765,63 @@ namespace ACESimBase.Util.ArrayProcessing
         // Remove after migrating remaining call sites.
         // ───────────────────────────────────────────────────────────────────────────
 
-        [Obsolete("Use typed NewZeroVs()", false), EditorBrowsable(EditorBrowsableState.Never)]
         public int NewZero() => Recorder.NewZero();
 
-        [Obsolete("Use typed NewZeroArrayVs()", false), EditorBrowsable(EditorBrowsableState.Never)]
         public int[] NewZeroArray(int size) => Recorder.NewZeroArray(size);
 
-        [Obsolete("Use typed NewUninitializedVs()", false), EditorBrowsable(EditorBrowsableState.Never)]
         public int NewUninitialized() => Recorder.NewUninitialized();
 
-        [Obsolete("Use typed NewUninitializedArrayVs()", false), EditorBrowsable(EditorBrowsableState.Never)]
         public int[] NewUninitializedArray(int size) => Recorder.NewUninitializedArray(size);
 
-        [Obsolete("Use CopyToNew(VsIndex) or CopyToNew(OsIndex)", false), EditorBrowsable(EditorBrowsableState.Never)]
         public int CopyToNew(int sourceIdx, bool fromOriginalSources) =>
             Recorder.CopyToNew(sourceIdx, fromOriginalSources);
 
-        [Obsolete("Use typed CopyToExisting(VsIndex, VsIndex)", false), EditorBrowsable(EditorBrowsableState.Never)]
         public void CopyToExisting(int index, int sourceIndex) => Recorder.CopyToExisting(index, sourceIndex);
 
-        [Obsolete("Use typed AddToNew(VsIndex,VsIndex) or AddToNew(OsIndex,VsIndex)", false), EditorBrowsable(EditorBrowsableState.Never)]
         public int AddToNew(int idx1, bool fromOriginalSources, int idx2) =>
             Recorder.AddToNew(idx1, fromOriginalSources, idx2);
 
-        [Obsolete("Use typed MultiplyToNew(VsIndex,VsIndex) or MultiplyToNew(OsIndex,VsIndex)", false), EditorBrowsable(EditorBrowsableState.Never)]
         public int MultiplyToNew(int idx1, bool fromOriginalSources, int idx2) =>
             Recorder.MultiplyToNew(idx1, fromOriginalSources, idx2);
 
-        [Obsolete("Use typed ZeroExisting(VsIndex)", false), EditorBrowsable(EditorBrowsableState.Never)]
         public void ZeroExisting(int index) => Recorder.ZeroExisting(index);
 
-        [Obsolete("Use typed MultiplyBy(VsIndex,VsIndex)", false), EditorBrowsable(EditorBrowsableState.Never)]
         public void MultiplyBy(int idx, int multIdx) => Recorder.MultiplyBy(idx, multIdx);
 
-        [Obsolete("Use typed MultiplyArrayBy(ReadOnlySpan<VsIndex>,VsIndex) or (..., ReadOnlySpan<VsIndex>)", false), EditorBrowsable(EditorBrowsableState.Never)]
         public void MultiplyArrayBy(int[] targets, int multiplierIdx) => Recorder.MultiplyArrayBy(targets, multiplierIdx);
-        [Obsolete("Use typed MultiplyArrayBy(ReadOnlySpan<VsIndex>, ReadOnlySpan<VsIndex>)", false), EditorBrowsable(EditorBrowsableState.Never)]
+        
         public void MultiplyArrayBy(int[] targets, int[] multipliers) => Recorder.MultiplyArrayBy(targets, multipliers);
 
-        [Obsolete("Use typed Increment(...) overloads", false), EditorBrowsable(EditorBrowsableState.Never)]
         public void Increment(int idx, bool targetOriginal, int indexOfIncrement) =>
             Recorder.Increment(idx, targetOriginal, indexOfIncrement);
 
-        [Obsolete("Use typed IncrementArrayBy(...) overloads", false), EditorBrowsable(EditorBrowsableState.Never)]
         public void IncrementArrayBy(int[] targets, bool targetOriginals, int indexOfIncrement) =>
             Recorder.IncrementArrayBy(targets, targetOriginals, indexOfIncrement);
-        [Obsolete("Use typed IncrementArrayBy(...) overloads", false), EditorBrowsable(EditorBrowsableState.Never)]
+
         public void IncrementArrayBy(int[] targets, bool targetOriginals, int[] indicesOfIncrements) =>
             Recorder.IncrementArrayBy(targets, targetOriginals, indicesOfIncrements);
 
-        [Obsolete("Use typed IncrementByProduct(VsIndex,...)", false), EditorBrowsable(EditorBrowsableState.Never)]
         public int IncrementByProduct(int targetIdx, bool targetOriginal, int factor1Idx, int factor2Idx, bool reuseTmp = true) =>
             Recorder.IncrementByProduct(targetIdx, targetOriginal, factor1Idx, factor2Idx, reuseTmp);
 
-        [Obsolete("Use typed Decrement(VsIndex,VsIndex)", false), EditorBrowsable(EditorBrowsableState.Never)]
         public void Decrement(int idx, int decIdx) => Recorder.Decrement(idx, decIdx);
 
-        [Obsolete("Use typed DecrementArrayBy(...) overloads", false), EditorBrowsable(EditorBrowsableState.Never)]
         public void DecrementArrayBy(int[] targets, int decIdx) => Recorder.DecrementArrayBy(targets, decIdx);
-        [Obsolete("Use typed DecrementArrayBy(...) overloads", false), EditorBrowsable(EditorBrowsableState.Never)]
+
         public void DecrementArrayBy(int[] targets, int[] decIdxs) => Recorder.DecrementArrayBy(targets, decIdxs);
 
-        [Obsolete("Use typed InsertIf()", false), EditorBrowsable(EditorBrowsableState.Never)]
         public void InsertIfCommand() => Recorder.InsertIf();
-        [Obsolete("Use typed InsertEndIf()", false), EditorBrowsable(EditorBrowsableState.Never)]
         public void InsertEndIfCommand() => Recorder.InsertEndIf();
 
-        [Obsolete("Use typed InsertEqualsOtherArrayIndex(VsIndex,VsIndex)", false), EditorBrowsable(EditorBrowsableState.Never)]
         public void InsertEqualsOtherArrayIndexCommand(int i1, int i2) => Recorder.InsertEqualsOtherArrayIndexCommand(i1, i2);
-        [Obsolete("Use typed InsertNotEqualsOtherArrayIndex(VsIndex,VsIndex)", false), EditorBrowsable(EditorBrowsableState.Never)]
         public void InsertNotEqualsOtherArrayIndexCommand(int i1, int i2) => Recorder.InsertNotEqualsOtherArrayIndexCommand(i1, i2);
-        [Obsolete("Use typed InsertGreaterThanOtherArrayIndex(VsIndex,VsIndex)", false), EditorBrowsable(EditorBrowsableState.Never)]
         public void InsertGreaterThanOtherArrayIndexCommand(int i1, int i2) => Recorder.InsertGreaterThanOtherArrayIndexCommand(i1, i2);
-        [Obsolete("Use typed InsertLessThanOtherArrayIndex(VsIndex,VsIndex)", false), EditorBrowsable(EditorBrowsableState.Never)]
         public void InsertLessThanOtherArrayIndexCommand(int i1, int i2) => Recorder.InsertLessThanOtherArrayIndexCommand(i1, i2);
-
-        [Obsolete("Use typed InsertEqualsValue(VsIndex,int) / InsertNotEqualsValue(VsIndex,int)", false), EditorBrowsable(EditorBrowsableState.Never)]
         public void InsertEqualsValueCommand(int idx, int v) => Recorder.InsertEqualsValueCommand(idx, v);
-        [Obsolete("Use typed InsertNotEqualsValue(VsIndex,int)", false), EditorBrowsable(EditorBrowsableState.Never)]
         public void InsertNotEqualsValueCommand(int idx, int v) => Recorder.InsertNotEqualsValueCommand(idx, v);
+        
+        public void InsertComment(string comment) => Recorder.InsertComment(comment);
+        public void InsertBlankCommand() => Recorder.InsertBlankCommand();
 
         #endregion
 
