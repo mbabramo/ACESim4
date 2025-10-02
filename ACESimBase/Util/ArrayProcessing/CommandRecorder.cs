@@ -42,6 +42,10 @@ namespace ACESimBase.Util.ArrayProcessing
         private int _recentNewHead = 0; 
         private int _recentNewCount = 0;            
 
+        public Action<int, ArrayCommand, bool> OnEmit;           // (cmdIndex, cmd, isReplay)
+        public Func<int, ArrayCommand, bool> BreakOnPredicate;   // return true → Debugger.Break()
+
+
         public CommandRecorder(ArrayCommandList owner)
         {
             VS = new VirtualStack(this);
@@ -90,16 +94,11 @@ namespace ACESimBase.Util.ArrayProcessing
             sb.AppendLine($"  Depth frames                    : {_depthStartSlots.Count}");
             sb.AppendLine();
 
-            // Context breadcrumbs (author-supplied)
+            // Context breadcrumbs you already push in hot paths.
             sb.AppendLine($"Breadcrumbs: {RenderBreadcrumbs()}");
             sb.AppendLine();
 
-            // Recorded-side stats near mismatch (existing logic preserved) …
-            // [keep your existing envelope/nearest-comment/IF-depth/pointer-skip scan here]
-
-            // ──────────────────────────────────────────────────────────────────
-            // New-side live counters from innermost IF (what *we* just emitted)
-            // ──────────────────────────────────────────────────────────────────
+            // New-side counters since innermost IF (you already maintain these).
             if (_ifStack.Count > 0)
             {
                 var top = _ifStack.Peek();
@@ -108,9 +107,10 @@ namespace ACESimBase.Util.ArrayProcessing
                 sb.AppendLine();
             }
 
-            // ──────────────────────────────────────────────────────────────────
-            // Slot provenance for the participants of the mismatch
-            // ──────────────────────────────────────────────────────────────────
+            // Recorded-side counters since the corresponding IF.
+            AppendRecordedCountersSinceIf(sb);
+
+            // Provenance for involved VS slots (you already capture SlotMeta).
             sb.AppendLine("Provenance:");
             sb.AppendLine($"  Target index (recorded/new): {RenderSlot(recorded.Index)}");
             if (recorded.Index != newCmd.Index)
@@ -119,10 +119,108 @@ namespace ACESimBase.Util.ArrayProcessing
             sb.AppendLine($"  Source index (new):          {RenderSlot(newCmd.SourceIndex)}");
             sb.AppendLine();
 
-            // Ordered tails + recent attempts (keep your existing sections) …
+            // Full alias lineage (walk AliasedFrom chain) for quick ancestry diffs.
+            sb.AppendLine("Lineage:");
+            sb.AppendLine($"  Target:  {RenderLineageChain(recorded.Index)}");
+            sb.AppendLine($"  Src(rec):{RenderLineageChain(recorded.SourceIndex)}");
+            sb.AppendLine($"  Src(new):{RenderLineageChain(newCmd.SourceIndex)}");
+            sb.AppendLine();
+
+            // Recorded window: show surrounding recorded commands.
+            DumpRecordedWindow(sb, windowRadius: 8);
+
+            // Recent “new” attempts right before the mismatch (from your ring buffer).
+            DumpRecentNewAttempts(sb, maxEntries: 16);
 
             throw new InvalidOperationException(sb.ToString());
         }
+
+        private void AppendRecordedCountersSinceIf(System.Text.StringBuilder sb)
+        {
+            // Find the innermost IF that surrounds the current recorded position, if any.
+            int ifStart = -1;
+            for (int i = NextCommandIndex - 1, depth = 0; i >= 0; i--)
+            {
+                var t = _acl.UnderlyingCommands[i].CommandType;
+                if (t == ArrayCommandType.EndIf) depth++;
+                else if (t == ArrayCommandType.If)
+                {
+                    if (depth == 0) { ifStart = i; break; }
+                    depth--;
+                }
+            }
+            int start = ifStart >= 0 ? ifStart : 0;
+            int ns = 0, nd = 0;
+            for (int i = start; i < NextCommandIndex; i++)
+            {
+                var t = _acl.UnderlyingCommands[i].CommandType;
+                if (t == ArrayCommandType.NextSource) ns++;
+                else if (t == ArrayCommandType.NextDestination) nd++;
+            }
+            sb.AppendLine("Recorded-side (since innermost IF):");
+            sb.AppendLine($"  Rec NextSource: {ns}, Rec NextDestination: {nd}");
+            sb.AppendLine();
+        }
+
+        private string RenderLineageChain(int idx)
+        {
+            if (idx < 0) return "(n/a)";
+            var chain = new System.Collections.Generic.List<string>();
+            int guard = 0;
+            int cur = idx;
+            while (cur >= 0 && guard++ < 16)
+            {
+                if (!_slotMeta.TryGetValue(cur, out var m))
+                {
+                    chain.Add($"slot {cur}");
+                    break;
+                }
+                string tag = string.IsNullOrEmpty(m.Tag) ? "" : $" tag=\"{m.Tag}\"";
+                chain.Add($"slot {cur} (first@{m.FirstCmd} {m.FirstOp}, last@{m.LastCmd} {m.LastOp}{tag})");
+                cur = m.AliasedFrom;
+                if (cur < 0) break;
+            }
+            return string.Join("  <=  ", chain);
+        }
+
+        private void DumpRecordedWindow(System.Text.StringBuilder sb, int windowRadius)
+        {
+            int s = System.Math.Max(0, NextCommandIndex - windowRadius);
+            int e = System.Math.Min(_acl.MaxCommandIndex, NextCommandIndex + windowRadius);
+
+            sb.AppendLine($"Recorded window [{s},{e}):");
+            int depth = 0;
+            for (int i = 0; i < e; i++)
+            {
+                var c = _acl.UnderlyingCommands[i];
+                if (i == s) sb.AppendLine("  ─────────────────────────────────────");
+                string mark = i == NextCommandIndex ? ">>" : "  ";
+
+                // maintain a simple running “depth” on decorations
+                if (c.CommandType == ArrayCommandType.DecrementDepth) depth = System.Math.Max(0, depth - 1);
+
+                sb.AppendLine($"{mark} {i,6}: {c.CommandType,-16} idx={c.Index,5} src={c.SourceIndex,5} depth~{depth}");
+
+                if (c.CommandType == ArrayCommandType.IncrementDepth) depth++;
+                if (i == e - 1) sb.AppendLine("  ─────────────────────────────────────");
+            }
+            sb.AppendLine();
+        }
+
+        private void DumpRecentNewAttempts(System.Text.StringBuilder sb, int maxEntries)
+        {
+            sb.AppendLine("Recent new attempts (ring buffer):");
+            int count = System.Math.Min(_recentNewCount, maxEntries);
+            for (int k = count - 1; k >= 0; k--)
+            {
+                int pos = (_recentNewHead - 1 - k) % _recentNewRing.Length;
+                if (pos < 0) pos += _recentNewRing.Length;
+                var (attemptedIndex, cmd) = _recentNewRing[pos];
+                sb.AppendLine($"  new@{attemptedIndex}: {RenderCommand(cmd)}");
+            }
+            sb.AppendLine();
+        }
+
 
         private static string RenderCommand(in ArrayCommand c) =>
             $"{c.CommandType} (idx={c.Index}, src={c.SourceIndex})";
@@ -669,6 +767,10 @@ namespace ACESimBase.Util.ArrayProcessing
             {
                 // Preserve existing debug capture
                 _recorder.RememberNewCandidate(cmd);
+                // Optional debug hook/breakpoint (no-op unless set by caller)
+                if (_recorder.BreakOnPredicate != null && _recorder.BreakOnPredicate(_recorder.NextCommandIndex, cmd))
+                    System.Diagnostics.Debugger.Break();
+                _recorder.OnEmit?.Invoke(_recorder.NextCommandIndex, cmd, _recorder._acl.RepeatingExistingCommandRange);
 
                 // Replay path (validate and advance)
                 if (_recorder._acl.RepeatingExistingCommandRange)

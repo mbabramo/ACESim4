@@ -154,6 +154,7 @@ namespace ACESimBase.Util.ArrayProcessing
         private int _cosi = 0;
         private int _codi = 0;
         private bool _condition = true;
+        public HashSet<int> DebugBreakOnCommandIndices { get; set; }
 
         public ArrayCommandListRunner(IEnumerable<ArrayCommandChunk> leafChunks,
                                       IChunkExecutor compiledExecutor = null)
@@ -235,6 +236,9 @@ namespace ACESimBase.Util.ArrayProcessing
                 _codi += node.StoredValue.EndDestinationIndicesExclusive - node.StoredValue.StartDestinationIndices;
                 return;
             }
+            if (node.IsLeaf() && LeafContainsAnyBreakpoint(node.StoredValue))
+                System.Diagnostics.Debugger.Break();
+
 
             if (!node.IsLeaf())
                 return;
@@ -250,6 +254,14 @@ namespace ACESimBase.Util.ArrayProcessing
                               ref _cosi,
                               ref _codi,
                               ref _condition);
+        }
+
+        private bool LeafContainsAnyBreakpoint(ArrayCommandChunk c)
+        {
+            if (DebugBreakOnCommandIndices == null || DebugBreakOnCommandIndices.Count == 0) return false;
+            foreach (var b in DebugBreakOnCommandIndices)
+                if (b >= c.StartCommandRange && b < c.EndCommandRangeExclusive) return true;
+            return false;
         }
 
     }

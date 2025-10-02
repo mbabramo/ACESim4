@@ -4,16 +4,16 @@ using ACESimBase.GameSolvingSupport.PostIterationUpdater;
 using ACESimBase.GameSolvingSupport.Settings;
 using ACESimBase.GameSolvingSupport.SolverSpecificSupport;
 using ACESimBase.Util.ArrayProcessing;
+using ACESimBase.Util.ArrayProcessing.Slots;
 using ACESimBase.Util.Debugging;
 using ACESimBase.Util.Parallelization;
-using ACESimBase.Util.ArrayProcessing.Slots;
-
 using JetBrains.Annotations;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
@@ -340,6 +340,15 @@ namespace ACESim
                 TabbedText.WriteLine($"Unrolling commands...");
                 Unroll_Commands = new ArrayCommandList(max_num_commands, Unroll_InitialArrayIndex);
                 Unroll_Commands.UseOrderedSourcesAndDestinations = EvolutionSettings.UnrollTemplateIdenticalRanges || EvolutionSettings.UnrollTemplateRepeatedRanges;
+                Unroll_Commands.Recorder.OnEmit = null;
+                //    (ci, cmd, isReplay) =>
+                //{
+                //    if (ci == 1257 || ci == 1297)
+                //        ACESimBase.Util.Debugging.TabbedText.WriteLine(
+                //            $"[EMIT] ci={ci} {cmd.CommandType} idx={cmd.Index} src={cmd.SourceIndex} replay={isReplay}");
+                //};
+                Unroll_Commands.Recorder.BreakOnPredicate = null; //  (ci, cmd) => ci == 1257; // breakpoint on authoring
+
 
                 ActionStrategy = ActionStrategies.CurrentProbability;
                 HistoryPoint historyPoint = GetStartOfGameHistoryPoint();
@@ -373,6 +382,7 @@ namespace ACESim
                 }
                 Unroll_SizeOfArray = Unroll_Commands.VirtualStackSize;
                 Unroll_CommandListRunner = Unroll_Commands.GetCompiledRunner(kind: EvolutionSettings.Unroll_ChunkExecutorKind, null);
+                Unroll_CommandListRunner.DebugBreakOnCommandIndices = null; // new HashSet<int> { 1257, 1297 };
                 if (EvolutionSettings.ReuseUnrolledAlgorithm)
                 {
                     Unroll_Commands_Cached = Unroll_Commands;
