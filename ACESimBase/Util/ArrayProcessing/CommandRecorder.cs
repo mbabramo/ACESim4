@@ -92,25 +92,25 @@ namespace ACESimBase.Util.ArrayProcessing
             sb.AppendLine($"  ReuseScratchSlots               : {_acl.ReuseScratchSlots}");
             sb.AppendLine($"  NextArrayIndex / MaxArrayIndex  : {NextArrayIndex} / {_acl.MaxArrayIndex}");
             sb.AppendLine($"  Depth frames                    : {_depthStartSlots.Count}");
+            sb.AppendLine($"  Repeat-range frames             : {_repeatRangeStack.Count} (topStart={(_repeatRangeStack.Count > 0 ? _repeatRangeStack.Peek() : -1)})");
             sb.AppendLine();
 
-            // Context breadcrumbs you already push in hot paths.
             sb.AppendLine($"Breadcrumbs: {RenderBreadcrumbs()}");
             sb.AppendLine();
 
-            // New-side counters since innermost IF (you already maintain these).
+            // New-side counters since innermost IF (from the live IF frame if present)
             if (_ifStack.Count > 0)
             {
-                var top = _ifStack.Peek();
+                ref var top = ref _ifStack.PeekRef();
                 sb.AppendLine("New-side (since innermost IF):");
                 sb.AppendLine($"  New NextSource: {top.NewNextSrc}, New NextDestination: {top.NewNextDst}");
                 sb.AppendLine();
             }
 
-            // Recorded-side counters since the corresponding IF.
+            // Recorded-side counters since the corresponding IF (scans recorded stream)
             AppendRecordedCountersSinceIf(sb);
 
-            // Provenance for involved VS slots (you already capture SlotMeta).
+            // Provenance and lineage snapshots
             sb.AppendLine("Provenance:");
             sb.AppendLine($"  Target index (recorded/new): {RenderSlot(recorded.Index)}");
             if (recorded.Index != newCmd.Index)
@@ -119,21 +119,21 @@ namespace ACESimBase.Util.ArrayProcessing
             sb.AppendLine($"  Source index (new):          {RenderSlot(newCmd.SourceIndex)}");
             sb.AppendLine();
 
-            // Full alias lineage (walk AliasedFrom chain) for quick ancestry diffs.
             sb.AppendLine("Lineage:");
             sb.AppendLine($"  Target:  {RenderLineageChain(recorded.Index)}");
             sb.AppendLine($"  Src(rec):{RenderLineageChain(recorded.SourceIndex)}");
             sb.AppendLine($"  Src(new):{RenderLineageChain(newCmd.SourceIndex)}");
             sb.AppendLine();
 
-            // Recorded window: show surrounding recorded commands.
-            DumpRecordedWindow(sb, windowRadius: 8);
+            // Recorded stream window around the mismatch
+            DumpRecordedWindow(sb, windowRadius: 16);
 
-            // Recent “new” attempts right before the mismatch (from your ring buffer).
-            DumpRecentNewAttempts(sb, maxEntries: 16);
+            // Most recent attempted emissions on the "new" side
+            DumpRecentNewAttempts(sb, maxEntries: 24);
 
             throw new InvalidOperationException(sb.ToString());
         }
+
 
         private void AppendRecordedCountersSinceIf(System.Text.StringBuilder sb)
         {
@@ -186,24 +186,25 @@ namespace ACESimBase.Util.ArrayProcessing
         private void DumpRecordedWindow(System.Text.StringBuilder sb, int windowRadius)
         {
             int s = System.Math.Max(0, NextCommandIndex - windowRadius);
-            int e = System.Math.Min(_acl.MaxCommandIndex, NextCommandIndex + windowRadius);
+            int eExclusive = System.Math.Min(_acl.MaxCommandIndex + 1, NextCommandIndex + windowRadius + 1);
 
-            sb.AppendLine($"Recorded window [{s},{e}):");
+            sb.AppendLine($"Recorded window [{s},{eExclusive}):");
             int depth = 0;
-            for (int i = 0; i < e; i++)
+
+            for (int i = s; i < eExclusive; i++)
             {
                 var c = _acl.UnderlyingCommands[i];
-                if (i == s) sb.AppendLine("  ─────────────────────────────────────");
+
+                if (c.CommandType == ArrayCommandType.DecrementDepth)
+                    depth = System.Math.Max(0, depth - 1);
+
                 string mark = i == NextCommandIndex ? ">>" : "  ";
-
-                // maintain a simple running “depth” on decorations
-                if (c.CommandType == ArrayCommandType.DecrementDepth) depth = System.Math.Max(0, depth - 1);
-
                 sb.AppendLine($"{mark} {i,6}: {c.CommandType,-16} idx={c.Index,5} src={c.SourceIndex,5} depth~{depth}");
 
-                if (c.CommandType == ArrayCommandType.IncrementDepth) depth++;
-                if (i == e - 1) sb.AppendLine("  ─────────────────────────────────────");
+                if (c.CommandType == ArrayCommandType.IncrementDepth)
+                    depth++;
             }
+
             sb.AppendLine();
         }
 
@@ -221,6 +222,66 @@ namespace ACESimBase.Util.ArrayProcessing
             sb.AppendLine();
         }
 
+        // Enables conditional per-command logging via the existing OnEmit hook.
+        // By default logs only structural and ordered I/O commands.
+        // Use extraPredicate to further filter (e.g., by command index).
+        public void EnableConditionalEmitLogging(
+            Func<ArrayCommandType, bool> includeCommandType = null,
+            Func<int, ArrayCommand, bool> extraPredicate = null,
+            bool includeReplayFlag = true,
+            int logEveryNth = 1)
+        {
+            if (logEveryNth <= 0) logEveryNth = 1;
+
+            OnEmit = (ci, cmd, isReplay) =>
+            {
+                if ((++_emitLogCounter % logEveryNth) != 0)
+                    return;
+
+                bool include = (includeCommandType ?? DefaultEmitFilter).Invoke(cmd.CommandType);
+                if (!include)
+                    return;
+
+                if (extraPredicate != null && !extraPredicate(ci, cmd))
+                    return;
+
+                string replayText = includeReplayFlag ? (isReplay ? "replay " : "record ") : string.Empty;
+
+                string originText = "";
+                if (cmd.CommandType == ArrayCommandType.IncrementDepth)
+                {
+                    string openMark = _openDepthMarks.Count > 0 ? _openDepthMarks.Peek() : "Unmarked";
+                    originText = $" openMark={openMark}";
+                }
+                else if (cmd.CommandType == ArrayCommandType.DecrementDepth)
+                {
+                    string closeMark = _lastClosedDepthMark ?? "Unmarked";
+                    originText = $" closeMark={closeMark}";
+                }
+
+                ACESimBase.Util.Debugging.TabbedText.WriteLine(
+                    $"[EMIT] ci={ci} {replayText}{cmd.CommandType} idx={cmd.Index} src={cmd.SourceIndex} " +
+                    $"depthFrames={_depthStartSlots.Count} repeatFrames={_repeatRangeStack.Count} ifFrames={_ifStack.Count}{originText}");
+            };
+        }
+
+
+        // Resets the conditional logger.
+        public void DisableEmitLogging() => OnEmit = null;
+
+        // Default filter: structural and ordered I/O are often sufficient for tracing structure.
+        private static bool DefaultEmitFilter(ArrayCommandType t) =>
+            t == ArrayCommandType.If ||
+            t == ArrayCommandType.EndIf ||
+            t == ArrayCommandType.IncrementDepth ||
+            t == ArrayCommandType.DecrementDepth ||
+            t == ArrayCommandType.NextSource ||
+            t == ArrayCommandType.NextDestination ||
+            t == ArrayCommandType.Checkpoint ||
+            t == ArrayCommandType.Comment;
+
+        // Internal counter for throttling logs (logEveryNth).
+        private int _emitLogCounter;
 
         private static string RenderCommand(in ArrayCommand c) =>
             $"{c.CommandType} (idx={c.Index}, src={c.SourceIndex})";
@@ -302,6 +363,20 @@ namespace ACESimBase.Util.ArrayProcessing
 
         private string RenderBreadcrumbs()
             => _breadcrumbs.Count == 0 ? "(none)" : string.Join(" > ", _breadcrumbs);
+
+        // Depth-origin tagging (for logging only; no effect on emitted commands)
+        private string _pendingDepthMark;
+        private readonly Stack<string> _openDepthMarks = new();
+        private string _lastClosedDepthMark;
+
+        /// <summary>
+        /// Tag the next IncrementDepth with a human-readable origin (e.g., "DecisionEVBody").
+        /// The tag is consumed by the next call to IncrementDepth.
+        /// </summary>
+        public void MarkNextDepth(string label)
+        {
+            _pendingDepthMark = string.IsNullOrWhiteSpace(label) ? "Unmarked" : label;
+        }
 
         #endregion
 
@@ -617,17 +692,24 @@ namespace ACESimBase.Util.ArrayProcessing
         public DepthScope OpenDepthScope(bool completeCommandListOnDispose = false)
             => new DepthScope(this, completeCommandListOnDispose);
 
-
         internal void IncrementDepth()
         {
+            // Capture and consume caller-provided origin mark for this frame
+            string mark = _pendingDepthMark ?? "Unmarked";
+            _pendingDepthMark = null;
+            _openDepthMarks.Push(mark);
+
             _depthStartSlots.Push(NextArrayIndex);
             InsertIncrementDepthCommand();
-            InsertComment($"[DEPTH] op=INC nextAI={NextArrayIndex} frames={_depthStartSlots.Count} nextCI={NextCommandIndex}");
+            InsertComment($"[DEPTH] op=INC mark={mark} nextAI={NextArrayIndex} frames={_depthStartSlots.Count} nextCI={NextCommandIndex}"); // DEBUG
         }
 
 
         internal void DecrementDepth(bool completeCommandList = false)
         {
+            // Pop the origin mark *before* we emit, so the logger can include it for this DecrementDepth
+            _lastClosedDepthMark = _openDepthMarks.Count > 0 ? _openDepthMarks.Pop() : "Unmarked";
+
             InsertDecrementDepthCommand();
 
             int rewind = _depthStartSlots.Pop();
@@ -636,11 +718,12 @@ namespace ACESimBase.Util.ArrayProcessing
             if (_acl.RepeatIdenticalRanges && _acl.ReuseScratchSlots)
                 NextArrayIndex = rewind;
 
-            InsertComment($"[DEPTH] op=DEC after nextAI={NextArrayIndex} rewind={rewind} before={before} frames={_depthStartSlots.Count} nextCI={NextCommandIndex}");
+            InsertComment($"[DEPTH] op=DEC closeMark={_lastClosedDepthMark} after nextAI={NextArrayIndex} rewind={rewind} before={before} frames={_depthStartSlots.Count} nextCI={NextCommandIndex}");
 
             if (_depthStartSlots.Count == 0 && completeCommandList)
                 _acl.CompleteCommandList();
         }
+
 
         internal void StartCommandChunk(bool runChildrenParallel,
                                         int? identicalStartCmdRange,

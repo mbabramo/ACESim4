@@ -348,6 +348,16 @@ namespace ACESim
                 //            $"[EMIT] ci={ci} {cmd.CommandType} idx={cmd.Index} src={cmd.SourceIndex} replay={isReplay}");
                 //};
                 Unroll_Commands.Recorder.BreakOnPredicate = null; //  (ci, cmd) => ci == 1257; // breakpoint on authoring
+                Unroll_Commands.Recorder.EnableConditionalEmitLogging(
+                    includeCommandType: t =>
+                        t == ArrayCommandType.IncrementDepth ||
+                        t == ArrayCommandType.DecrementDepth ||
+                        t == ArrayCommandType.If ||
+                        t == ArrayCommandType.EndIf,
+                    extraPredicate: null,           // or narrow by command index
+                    includeReplayFlag: true,
+                    logEveryNth: 1
+                ); // DEBUG
 
 
                 ActionStrategy = ActionStrategies.CurrentProbability;
@@ -668,6 +678,8 @@ namespace ACESim
         bool algorithmIsLowestDepth,
         bool completeCommandList)
     {
+        Unroll_Commands.InsertComment("[DEPTH_OPEN] Top:Unroll_GeneralizedVanillaCFR"); // DEBUG
+        Unroll_Commands.Recorder.MarkNextDepth("Top:Unroll_GeneralizedVanillaCFR"); // DEBUG
         Unroll_Commands.IncrementDepth();
 
         IGameState gameStateForCurrentPlayer = GetGameState(in historyPoint);
@@ -707,7 +719,9 @@ namespace ACESim
                 algorithmIsLowestDepth);
         }
 
+        Unroll_Commands.InsertComment("[DEPTH_CLOSE] Top:Unroll_GeneralizedVanillaCFR");
         Unroll_Commands.DecrementDepth(completeCommandList);
+
     }
 
         private void Unroll_GeneralizedVanillaCFR_ChanceNode(
@@ -738,6 +752,8 @@ namespace ACESim
                 avgStratPiValues = tmp;
             }
 
+            Unroll_Commands.InsertComment("[DEPTH_OPEN] ChanceNode"); // DEBUG
+            Unroll_Commands.Recorder.MarkNextDepth("ChanceNode"); // DEBUG
             Unroll_Commands.IncrementDepth();
 
             if (EvolutionSettings.IncludeCommentsWhenUnrolling)
@@ -770,6 +786,7 @@ namespace ACESim
                                              piValues, avgStratPiValues, resultArray, algorithmIsLowestDepth);
             }
 
+            Unroll_Commands.InsertComment("[DEPTH_CLOSE] ChanceNode");
             Unroll_Commands.DecrementDepth();
         }
 
@@ -801,6 +818,8 @@ namespace ACESim
                 {
                     for (byte action = 1; action <= numPossibleActions; action++)
                     {
+                        Unroll_Commands.Recorder.MarkNextDepth("IdenticalAction");
+
                         using (_identicalTpl.BeginAction($"a={action}"))
                         {
                             int[] probabilityAdjustedInnerResult = Unroll_Commands.NewZeroArray(3);
@@ -866,6 +885,8 @@ namespace ACESim
                 Unroll_Commands.InsertComment($"Chance node {chanceNode.Decision.Name} (node {chanceNode.ChanceNodeNumber}) action {action} -> next action");
 
             Unroll_EnsureSlots();
+            Unroll_Commands.InsertComment("[DEPTH_OPEN] ChanceAction"); // DEBUG
+            Unroll_Commands.Recorder.MarkNextDepth("ChanceAction"); // DEBUG
             Unroll_Commands.IncrementDepth();
 
             int actionProbabilityIndex = Unroll_GetChanceNodeIndex_ProbabilityForAction(chanceNode.ChanceNodeNumber, action);
@@ -911,7 +932,7 @@ namespace ACESim
                 TabbedText.WriteLine(
                     $". action {action} value ARRAY{beforeMultipleCurrentCopy} probability ARRAY{actionProbabilityCopy} expected value contribution ARRAY{resultCurrentCopy}");
             }
-
+            Unroll_Commands.InsertComment("[DEPTH_CLOSE] ChanceAction"); // DEBUG
             Unroll_Commands.DecrementDepth();
         }
 
@@ -947,6 +968,7 @@ namespace ACESim
             // Repeated-range window: stage resultArray into stable VS slots and copy back on exit.
             if (EvolutionSettings.UnrollTemplateRepeatedRanges && informationSetOuter.Decision.BeginRepeatedRange)
             {
+                Unroll_Commands.Recorder.MarkNextDepth("RepeatWindow"); // DEBUG
                 using (_repeatTpl.Open(informationSetOuter.Decision.Name))
                 {
                     var orig = resultArray;
@@ -999,6 +1021,8 @@ namespace ACESim
                 avgStratPiValues = tmp;
             }
 
+            Unroll_Commands.InsertComment("[DEPTH_OPEN] DecisionEVBody"); // DEBUG
+            Unroll_Commands.Recorder.MarkNextDepth("DecisionEVBody"); // DEBUG
             Unroll_Commands.IncrementDepth();
 
             int inversePi = Unroll_Commands.NewZero();
@@ -1244,7 +1268,7 @@ namespace ACESim
                     }
                 }
             }
-
+            Unroll_Commands.InsertComment("[DEPTH_CLOSE] DecisionEVBody"); // DEBUG
             Unroll_Commands.DecrementDepth();
         }
 

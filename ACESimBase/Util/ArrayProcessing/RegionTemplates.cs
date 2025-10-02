@@ -78,7 +78,6 @@ namespace ACESimBase.Util.ArrayProcessing
             if (_stack.Count == 0)
                 throw new InvalidOperationException("BeginSet must be called before BeginAction.");
 
-            // Work with the current set context (top of stack)
             var ctx = _stack.Pop();
             bool isFirst = ctx.ActionCount == 0;
 
@@ -92,23 +91,21 @@ namespace ACESimBase.Util.ArrayProcessing
                                    name: chunkName);
 
             if (isFirst && ctx.FirstStart == null)
-            {
-                // Record the command-index where this body's recording begins;
-                // replays will jump back to this start.
                 ctx = ctx.WithFirstStart(_acl.NextCommandIndex);
-            }
 
             if (_opts.IncludeComments)
-                _acl.InsertComment($"[IDENTICAL-ACTION] set={ctx.Name} action={actionLabel}");
+                _acl.InsertComment($"[IDENTICAL_ACTION] set={ctx.Name} action={actionLabel} replay={!isFirst}");
 
             if (_opts.ManageDepthScopes)
+            {
+                _acl.InsertComment("[DEPTH_OPEN] IdenticalAction");
                 _acl.Recorder.IncrementDepth();
+            }
 
-            // Push updated context back with incremented action count
             _stack.Push(ctx.IncrementActions());
-
             return new ActionScope(this, isFirst);
         }
+
 
         private sealed class SetScope : IDisposable
         {
@@ -149,10 +146,14 @@ namespace ACESimBase.Util.ArrayProcessing
                 _disposed = true;
 
                 if (_t._opts.ManageDepthScopes)
+                {
+                    _t._acl.InsertComment("[DEPTH_CLOSE] IdenticalAction");
                     _t._acl.Recorder.DecrementDepth();
+                }
 
                 _t._acl.EndCommandChunk(endingRepeatedChunk: !_isFirst);
             }
+
         }
     }
 
@@ -208,26 +209,31 @@ namespace ACESimBase.Util.ArrayProcessing
             }
 
             if (_opts.IncludeComments)
-                _acl.InsertComment($"[REPEAT-BEGIN] name={_windowName} replaying={_replaying} firstStart={_firstWindowStart} nextCI={_acl.NextCommandIndex}");
+                _acl.InsertComment($"[REPEAT_BEGIN] name={_windowName} replay={_replaying} firstStart={_firstWindowStart}");
 
             if (_opts.ManageDepthScopes)
+            {
+                _r.Acl.InsertComment("[DEPTH_OPEN] RepeatWindow");
                 _r.IncrementDepth();
+            }
 
             _inWindow = true;
             return new WindowScope(this);
         }
 
-        /// <summary>Close the window at a boundary. Safe to call multiple times.</summary>
         public void CloseAtBoundary()
         {
             if (!_inWindow)
                 return;
 
             if (_opts.IncludeComments)
-                _acl.InsertComment($"[REPEAT-END   ] name={_windowName} nextCI={_acl.NextCommandIndex}");
+                _acl.InsertComment($"[REPEAT_END] name={_windowName}");
 
             if (_opts.ManageDepthScopes)
+            {
+                _r.Acl.InsertComment("[DEPTH_CLOSE] RepeatWindow");
                 _r.DecrementDepth();
+            }
 
             _acl.EndCommandChunk(endingRepeatedChunk: _replaying);
 
@@ -235,6 +241,7 @@ namespace ACESimBase.Util.ArrayProcessing
             _replaying = false;
             _windowName = null;
         }
+
 
         internal void CloseIfOpen() => CloseAtBoundary();
 
