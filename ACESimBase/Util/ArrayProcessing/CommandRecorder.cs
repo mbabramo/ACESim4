@@ -616,7 +616,20 @@ namespace ACESimBase.Util.ArrayProcessing
             // Preserve prior behavior of setting IfCmdIndex to the command position being emitted.
             int ifCmdIndex = NextCommandIndex;
 
-            // When replaying, only push if the recorded stream truly has an If here.
+            // When replaying a recorded range, the next recorded commands might include one or more
+            // DecrementDepth closers that must be emitted *before* the next If. Ensure those are
+            // consumed so the replay stream stays aligned with what was recorded.
+            if (_acl.RepeatingExistingCommandRange && NextCommandIndex < _acl.UnderlyingCommands.Length)
+            {
+                while (_acl.UnderlyingCommands[NextCommandIndex].CommandType == ArrayCommandType.DecrementDepth)
+                {
+                    DecrementDepth();
+                    if (NextCommandIndex >= _acl.UnderlyingCommands.Length)
+                        break;
+                }
+            }
+
+            // During replay, only push if the recorded stream truly has an If here.
             bool shouldPush =
                 !_acl.RepeatingExistingCommandRange
                 || _acl.UnderlyingCommands[NextCommandIndex].CommandType == ArrayCommandType.If;
@@ -626,6 +639,7 @@ namespace ACESimBase.Util.ArrayProcessing
             if (shouldPush)
                 _ifStack.Push(new IfFrame { IfCmdIndex = ifCmdIndex, NewNextSrc = 0, NewNextDst = 0 });
         }
+
 
         public void InsertEndIf()
         {
