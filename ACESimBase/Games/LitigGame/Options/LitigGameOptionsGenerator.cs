@@ -24,7 +24,7 @@ namespace ACESim
         }
 
         // This choice has an effect only when in ACESimConsole mode (playing a single game). 
-        static LitigGameOptionSetChoices LitigGameChoice => LitigGameOptionSetChoices.PrecautionNegligenceGame;
+        static LitigGameOptionSetChoices LitigGameChoice => LitigGameOptionSetChoices.PrecautionNegligenceGame; // DEBUG
 
         public static LitigGameOptions GetLitigGameOptions()
         {
@@ -126,7 +126,11 @@ namespace ACESim
             var options = BaseBeforeApplyingEndogenousGenerator();
             options.CollapseAlternativeEndings = true; // can't do this where we're really using endogenous disputes
             options.CollapseChanceDecisions = true;
-            options.NumLiabilitySignals = options.NumLiabilityStrengthPoints = options.NumOffers = smallerTree ? (byte) 5 : (byte) 10;
+            options.NumLiabilitySignals = options.NumLiabilityStrengthPoints = options.NumOffers = 2; // DEBUG smallerTree ? (byte) 5 : (byte) 10;
+            options.SkipFileAndAnswerDecisions = true; // DEBUG
+            options.AllowAbandonAndDefaults = false; // DEBUG
+            options.NumPotentialBargainingRounds = 2; // DEBUG
+            options.CollapseChanceDecisions = false; // DEBUG
             return options;
         }
 
@@ -190,9 +194,10 @@ namespace ACESim
                 settings = new PrecautionNegligenceOptionsGeneratorSettings();
 
             var gameOptions = settings.UseSimplifiedPrecautionNegligenceGame ?
-                PrecautionNegligenceGame(settings.CollapseDecisionsInSimplifiedPrecautionNegligenceGame, allowQuitting: true, numSignalsAndOffers: settings.ParameterForMultipleOptions_Simplified, numPotentialBargainingRounds: settings.NumPotentialBargainingRounds, numPrecautionPowerLevels: settings.ParameterForMultipleOptions_Simplified, precautionLevels: settings.ParameterForMultipleOptions_Simplified)
+                PrecautionNegligenceGame(settings.CollapseDecisionsInSimplifiedPrecautionNegligenceGame, settings.AllowQuitting, numSignalsAndOffers: settings.ParameterForMultipleOptions_Simplified, numPotentialBargainingRounds: settings.NumPotentialBargainingRounds, numPrecautionPowerLevels: settings.ParameterForMultipleOptions_Simplified, precautionLevels: settings.ParameterForMultipleOptions_Simplified)
                 :
-                PrecautionNegligenceGame(true, true, settings.ParameterForMultipleOptions, settings.NumPotentialBargainingRounds, settings.ParameterForMultipleOptions, settings.ParameterForMultipleOptions);
+                PrecautionNegligenceGame(true, settings.AllowQuitting, settings.ParameterForMultipleOptions, settings.NumPotentialBargainingRounds, settings.ParameterForMultipleOptions, settings.ParameterForMultipleOptions);
+            gameOptions.SkipFileAndAnswerDecisions = true; // DEBUG
             gameOptions.PredeterminedAbandonAndDefaults = settings.PredeterminedAbandonAndDefaults;
             if (settings.PerfectAdjudication)
             {
