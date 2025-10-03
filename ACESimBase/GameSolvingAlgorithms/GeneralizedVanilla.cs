@@ -359,6 +359,18 @@ namespace ACESim
                     logEveryNth: 1
                 ); // DEBUG
 
+                // Following is DEBUG
+                // EXPERIMENT A (prove/disprove hypothesis #1): turn on tracing only, keep behavior the same
+                Unroll_Commands.Recorder.StructuralReplayTracing = true;
+                Unroll_Commands.Recorder.StructuralPolicy = CommandRecorder.ReplayStructuralPolicy.Legacy;
+
+                // EXPERIMENT B (potential fix trial): guard structural ops to recorded stream during replay
+                // (comment the next line out to return to legacy behavior)
+                // Unroll_Commands.Recorder.StructuralPolicy = CommandRecorder.ReplayStructuralPolicy.GuardStructuralOps;
+
+                // Alternative EXPERIMENT C (hard proof): assert/fail immediately if recorded next != expected
+                // Unroll_Commands.Recorder.StructuralPolicy = CommandRecorder.ReplayStructuralPolicy.AssertStructuralOpsMatch;
+
 
                 ActionStrategy = ActionStrategies.CurrentProbability;
                 HistoryPoint historyPoint = GetStartOfGameHistoryPoint();

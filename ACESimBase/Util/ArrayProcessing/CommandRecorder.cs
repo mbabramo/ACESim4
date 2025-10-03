@@ -378,6 +378,29 @@ namespace ACESimBase.Util.ArrayProcessing
             _pendingDepthMark = string.IsNullOrWhiteSpace(label) ? "Unmarked" : label;
         }
 
+        // Add this small policy to control replay-time structural emissions.
+        public enum ReplayStructuralPolicy
+        {
+            Legacy,                    // current behavior (unchanged)
+            GuardStructuralOps,        // during replay, emit structural ops only if the recorded stream expects them
+            AssertStructuralOpsMatch   // during replay, throw immediately if the recorded stream differs
+        }
+
+        // Opt-in; default preserves current behavior.
+        public ReplayStructuralPolicy StructuralPolicy { get; set; } = ReplayStructuralPolicy.Legacy;
+
+        // Lightweight, in-memory tracing (does NOT touch the command stream).
+        public bool StructuralReplayTracing { get; set; } = false;
+        public readonly System.Collections.Generic.List<string> StructuralLog = new();
+        public string StructuralLogContents => String.Join("\n", StructuralLog);
+
+        private void TraceStructural(string message)
+        {
+            if (StructuralReplayTracing)
+                StructuralLog.Add($"ci={NextCommandIndex} depth={_depthStartSlots.Count} :: {message}");
+        }
+
+
         #endregion
 
         #region ScratchAllocation
@@ -616,20 +639,38 @@ namespace ACESimBase.Util.ArrayProcessing
             // Preserve prior behavior of setting IfCmdIndex to the command position being emitted.
             int ifCmdIndex = NextCommandIndex;
 
-            // When replaying a recorded range, the next recorded commands might include one or more
-            // DecrementDepth closers that must be emitted *before* the next If. Ensure those are
-            // consumed so the replay stream stays aligned with what was recorded.
-            if (_acl.RepeatingExistingCommandRange && NextCommandIndex < _acl.UnderlyingCommands.Length)
+            if (_acl.RepeatingExistingCommandRange)
             {
-                while (_acl.UnderlyingCommands[NextCommandIndex].CommandType == ArrayCommandType.DecrementDepth)
+                // Current behavior: if the recorded stream has one or more DecrementDepth closers here,
+                // consume them *before* the next If to keep replay aligned with what was recorded.
+                while (NextCommandIndex < _acl.UnderlyingCommands.Length &&
+                       _acl.UnderlyingCommands[NextCommandIndex].CommandType == ArrayCommandType.DecrementDepth)
                 {
+                    TraceStructural("InsertIf(): auto-consuming recorded DecrementDepth prior to If");
                     DecrementDepth();
-                    if (NextCommandIndex >= _acl.UnderlyingCommands.Length)
-                        break;
+                }
+
+                // Decide based on the recorded next command whether we should emit an If at all.
+                var expected = _acl.UnderlyingCommands[NextCommandIndex];
+                TraceStructural($"InsertIf(): expected next recorded={expected.CommandType}");
+
+                if (StructuralPolicy == ReplayStructuralPolicy.GuardStructuralOps &&
+                    expected.CommandType != ArrayCommandType.If)
+                {
+                    // Hypothesis #1 guard: do NOT emit If if recorded does not have If here.
+                    TraceStructural("InsertIf(): GUARD suppressed If (recorded is not If)");
+                    return; // no push either; we mirror recorded structure
+                }
+
+                if (StructuralPolicy == ReplayStructuralPolicy.AssertStructuralOpsMatch &&
+                    expected.CommandType != ArrayCommandType.If)
+                {
+                    // Prove mismatch immediately and clearly.
+                    ThrowRepeatMismatch(new ArrayCommand(ArrayCommandType.If, -1, -1), expected);
                 }
             }
 
-            // During replay, only push if the recorded stream truly has an If here.
+            // During replay, only push if the recorded stream truly has an If here (existing behavior).
             bool shouldPush =
                 !_acl.RepeatingExistingCommandRange
                 || _acl.UnderlyingCommands[NextCommandIndex].CommandType == ArrayCommandType.If;
@@ -638,12 +679,32 @@ namespace ACESimBase.Util.ArrayProcessing
 
             if (shouldPush)
                 _ifStack.Push(new IfFrame { IfCmdIndex = ifCmdIndex, NewNextSrc = 0, NewNextDst = 0 });
-        }
 
+            TraceStructural($"InsertIf(): EMIT If; pushed={shouldPush}");
+        }
 
         public void InsertEndIf()
         {
-            // During replay, only pop if the recorded stream has EndIf here (preserves prior behavior).
+            if (_acl.RepeatingExistingCommandRange)
+            {
+                var expected = _acl.UnderlyingCommands[NextCommandIndex];
+                TraceStructural($"InsertEndIf(): expected next recorded={expected.CommandType}");
+
+                if (StructuralPolicy == ReplayStructuralPolicy.GuardStructuralOps &&
+                    expected.CommandType != ArrayCommandType.EndIf)
+                {
+                    TraceStructural("InsertEndIf(): GUARD suppressed EndIf (recorded is not EndIf)");
+                    return; // mirror recorded structure; do not pop the stack
+                }
+
+                if (StructuralPolicy == ReplayStructuralPolicy.AssertStructuralOpsMatch &&
+                    expected.CommandType != ArrayCommandType.EndIf)
+                {
+                    ThrowRepeatMismatch(new ArrayCommand(ArrayCommandType.EndIf, -1, -1), expected);
+                }
+            }
+
+            // During replay, only pop if the recorded stream has EndIf here (existing behavior).
             bool popOnReplay =
                 _acl.RepeatingExistingCommandRange
                 ? _acl.UnderlyingCommands[NextCommandIndex].CommandType == ArrayCommandType.EndIf
@@ -653,7 +714,10 @@ namespace ACESimBase.Util.ArrayProcessing
 
             if (popOnReplay && _ifStack.Count > 0)
                 _ifStack.Pop();
+
+            TraceStructural($"InsertEndIf(): EMIT EndIf; popped={popOnReplay}");
         }
+
 
         public void InsertEqualsOtherArrayIndexCommand(int i1, int i2)
         {
