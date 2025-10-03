@@ -24,7 +24,7 @@ namespace ACESim
         }
 
         // This choice has an effect only when in ACESimConsole mode (playing a single game). 
-        static LitigGameOptionSetChoices LitigGameChoice => LitigGameOptionSetChoices.PrecautionNegligenceGame; // DEBUG
+        static LitigGameOptionSetChoices LitigGameChoice => LitigGameOptionSetChoices.PrecautionNegligenceGame; 
 
         public static LitigGameOptions GetLitigGameOptions()
         {
@@ -126,11 +126,7 @@ namespace ACESim
             var options = BaseBeforeApplyingEndogenousGenerator();
             options.CollapseAlternativeEndings = true; // can't do this where we're really using endogenous disputes
             options.CollapseChanceDecisions = true;
-            options.NumLiabilitySignals = options.NumLiabilityStrengthPoints = options.NumOffers = 2; // DEBUG smallerTree ? (byte) 5 : (byte) 10;
-            options.SkipFileAndAnswerDecisions = true; // DEBUG
-            options.AllowAbandonAndDefaults = false; // DEBUG
-            options.NumPotentialBargainingRounds = 2; // DEBUG
-            options.CollapseChanceDecisions = false; // DEBUG
+            options.NumLiabilitySignals = options.NumLiabilityStrengthPoints = options.NumOffers = smallerTree ? (byte) 5 : (byte) 10;
             return options;
         }
 
