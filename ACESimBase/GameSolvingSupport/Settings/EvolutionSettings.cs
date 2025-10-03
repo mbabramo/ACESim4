@@ -17,7 +17,7 @@ namespace ACESimBase.GameSolvingSupport.Settings
     [Serializable]
     public class EvolutionSettings
     {
-        public bool UnrollAlgorithm = true; // DEBUG
+        public bool UnrollAlgorithm = false; // DEBUG
         public bool IncludeCommentsWhenUnrolling = false;
         public bool UseCheckpointsWhenNotUnrolling = false; // for when unrolling, look at ArrayCommandList.UseCheckpoints
         public bool UnrollTemplateIdenticalRanges = true; // identical range here means when we have a chance node where the game structure is same for every chance value
