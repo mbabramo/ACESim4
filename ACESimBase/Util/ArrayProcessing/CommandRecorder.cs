@@ -259,9 +259,9 @@ namespace ACESimBase.Util.ArrayProcessing
                     originText = $" closeMark={closeMark}";
                 }
 
-                ACESimBase.Util.Debugging.TabbedText.WriteLine(
-                    $"[EMIT] ci={ci} {replayText}{cmd.CommandType} idx={cmd.Index} src={cmd.SourceIndex} " +
-                    $"depthFrames={_depthStartSlots.Count} repeatFrames={_repeatRangeStack.Count} ifFrames={_ifStack.Count}{originText}");
+                // TabbedText.WriteLine(
+                //    $"[EMIT] ci={ci} {replayText}{cmd.CommandType} idx={cmd.Index} src={cmd.SourceIndex} " +
+                //    $"depthFrames={_depthStartSlots.Count} repeatFrames={_repeatRangeStack.Count} ifFrames={_ifStack.Count}{originText}");
             };
         }
 
@@ -715,7 +715,7 @@ namespace ACESimBase.Util.ArrayProcessing
 
             _depthStartSlots.Push(NextArrayIndex);
             InsertIncrementDepthCommand();
-            InsertComment($"[DEPTH] op=INC mark={mark} nextAI={NextArrayIndex} frames={_depthStartSlots.Count} nextCI={NextCommandIndex}"); // DEBUG
+            // InsertComment($"[DEPTH] op=INC mark={mark} nextAI={NextArrayIndex} frames={_depthStartSlots.Count} nextCI={NextCommandIndex}");
         }
 
 
