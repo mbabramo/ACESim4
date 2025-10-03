@@ -409,60 +409,59 @@ namespace ACESimBase.Util.ArrayProcessing
         #region ScratchAllocation
 
         /// <summary>Create one scratch slot initialised to 0.</summary>
-        /// <summary>Create one scratch slot initialised to 0.</summary>
         public int NewZero()
         {
-            // Forced-replay override: if we're replaying and inside a suppressed-If body,
-            // consume the recorded command verbatim (whatever it is), align VS, and advance.
-            if (_acl.RepeatingExistingCommandRange && _forcedReplayDepth > 0)
-            {
-                var expected = _acl.UnderlyingCommands[NextCommandIndex];
+            bool isReplay = _acl.RepeatingExistingCommandRange;
 
-                // If the recorded cmd writes to VS, ensure our VS/next pointer is aligned so
-                // subsequent allocations are consistent with the recorded stream.
-                if (expected.Index >= 0)
+            if (isReplay)
+            {
+                var recorded = _acl.UnderlyingCommands[NextCommandIndex];
+
+                // Fast path: recorded also has Zero here — follow strictly.
+                if (recorded.CommandType == ArrayCommandType.Zero)
                 {
-                    if (expected.Index + 1 > NextArrayIndex)
-                        NextArrayIndex = expected.Index + 1;
-                    if (NextArrayIndex > MaxArrayIndex)
-                        MaxArrayIndex = NextArrayIndex;
+                    // Ensure our NextArrayIndex keeps up with the recorded target.
+                    if (recorded.Index >= 0 && recorded.Index + 1 > NextArrayIndex)
+                        NextArrayIndex = recorded.Index + 1;
+
+                    // Consume via emitter so replay depth/stack mirroring remains centralized.
+                    _emitter.Emit(recorded);
+                    return recorded.Index;
                 }
 
-                // Record provenance for diagnostics when appropriate.
-                if (expected.Index >= 0)
-                    SlotMetaWrite(expected.Index, expected.CommandType, expected.SourceIndex);
+                // Guarded tolerance: if policy is GuardStructuralOps, map a non-struct mismatch too.
+                // This is necessary when replaying after a suppressed If where the generator attempts
+                // to "allocate a zero" but the recorded stream proceeds with a data op instead.
+                if (StructuralPolicy == ReplayStructuralPolicy.GuardStructuralOps)
+                {
+                    // If the recorded command writes to VS, align our high-water to its target.
+                    if (recorded.Index >= 0 && recorded.Index + 1 > NextArrayIndex)
+                        NextArrayIndex = recorded.Index + 1;
 
-                // Emit the recorded command verbatim (advances NextCommandIndex via AddCommand).
-                AddCommand(expected);
+                    // Optional provenance (diagnostic).
+                    if (recorded.Index >= 0)
+                        SlotMetaWrite(recorded.Index, recorded.CommandType, recorded.SourceIndex);
 
-                // Return the recorded target index so callers see a consistent VS index.
-                return expected.Index;
-            }
+                    // Consume the recorded command verbatim so streams stay aligned.
+                    _emitter.Emit(recorded);
 
-            // Legacy replay path (strict): require Zero in the recorded stream here.
-            if (_acl.RepeatingExistingCommandRange)
-            {
-                var expected = _acl.UnderlyingCommands[NextCommandIndex];
-                if (expected.CommandType != ArrayCommandType.Zero)
-                    throw new InvalidOperationException(
-                        $"Repeat-range mismatch at cmd {NextCommandIndex}: recorded {expected.CommandType} vs new Zero.");
-                int slot = expected.Index;
+                    // Structural trace is optional; enable via StructuralReplayTracing.
+                    TraceStructural($"NEWZERO-GUARD: mapped new Zero \u2192 recorded {recorded.CommandType}");
 
-                // Ensure our scratch pointer never lags behind the recorded slot.
-                if (slot + 1 > NextArrayIndex)
-                    NextArrayIndex = slot + 1;
+                    // Return the recorded target index so callers use the same slot the recorded stream used.
+                    return recorded.Index;
+                }
 
-                AddCommand(new ArrayCommand(ArrayCommandType.Zero, slot, -1)); // advances NextCommandIndex
-                return slot;
+                // Strict/Assert policies: enforce exact type equality.
+                throw new InvalidOperationException(
+                    $"Repeat-range mismatch at cmd {NextCommandIndex}: recorded {recorded.CommandType} vs new Zero.");
             }
 
             // Recording path (unchanged).
             int fresh = NextArrayIndex++;
-            AddCommand(new ArrayCommand(ArrayCommandType.Zero, fresh, -1));
+            _emitter.Emit(new ArrayCommand(ArrayCommandType.Zero, fresh, -1));
             return fresh;
         }
-
-
 
         /// <summary>Create <paramref name="size"/> consecutive scratch slots initialised to 0.</summary>
         public int[] NewZeroArray(int size) => Enumerable.Range(0, size).Select(_ => NewZero()).ToArray();
@@ -833,7 +832,15 @@ namespace ACESimBase.Util.ArrayProcessing
 
         internal void IncrementDepth()
         {
-            // Capture and consume caller-provided origin mark for this frame
+            // During replay (including forced-replay), do not mutate depth stacks/marks.
+            // Simply consume the recorded stream via the emitter to keep alignment.
+            if (_acl.RepeatingExistingCommandRange)
+            {
+                _emitter.Emit(ArrayCommandType.IncrementDepth, -1, -1, alignVsFromRecordedIndex: false);
+                return;
+            }
+
+            // Recording path (unchanged).
             string mark = _pendingDepthMark ?? "Unmarked";
             _pendingDepthMark = null;
             _openDepthMarks.Push(mark);
@@ -843,25 +850,35 @@ namespace ACESimBase.Util.ArrayProcessing
             // InsertComment($"[DEPTH] op=INC mark={mark} nextAI={NextArrayIndex} frames={_depthStartSlots.Count} nextCI={NextCommandIndex}");
         }
 
-
         internal void DecrementDepth(bool completeCommandList = false)
         {
-            // Pop the origin mark *before* we emit, so the logger can include it for this DecrementDepth
+            // During replay (including forced-replay), do not mutate depth stacks/marks,
+            // do not rewind, and do not write comments. Just consume the recorded stream.
+            if (_acl.RepeatingExistingCommandRange)
+            {
+                _emitter.Emit(ArrayCommandType.DecrementDepth, -1, -1, alignVsFromRecordedIndex: false);
+                return;
+            }
+
+            // Recording path (unchanged).
             _lastClosedDepthMark = _openDepthMarks.Count > 0 ? _openDepthMarks.Pop() : "Unmarked";
 
             InsertDecrementDepthCommand();
 
-            int rewind = _depthStartSlots.Pop();
+            int rewind = _depthStartSlots.Pop(); // balanced in recording mode
             int before = NextArrayIndex;
 
             if (_acl.RepeatIdenticalRanges && _acl.ReuseScratchSlots)
                 NextArrayIndex = rewind;
 
-            InsertComment($"[DEPTH] op=DEC closeMark={_lastClosedDepthMark} after nextAI={NextArrayIndex} rewind={rewind} before={before} frames={_depthStartSlots.Count} nextCI={NextCommandIndex}");
+            InsertComment($"[DEPTH] op=DEC closeMark={_lastClosedDepthMark} after nextAI={NextArrayIndex} " +
+                          $"rewind={rewind} before={before} frames={_depthStartSlots.Count} nextCI={NextCommandIndex}");
 
             if (_depthStartSlots.Count == 0 && completeCommandList)
                 _acl.CompleteCommandList();
         }
+
+
 
 
         internal void StartCommandChunk(bool runChildrenParallel,
@@ -987,58 +1004,70 @@ namespace ACESimBase.Util.ArrayProcessing
 
             internal void Emit(in ArrayCommand cmd)
             {
-                // Capture most-recent attempted emission (existing behavior).
+                // Remember attempted emission (existing behavior).
                 _recorder.RememberNewCandidate(cmd);
 
-                // Optional debug hook/breakpoint; no side effects if unset.
+                // Optional breakpoint hook.
                 if (_recorder.BreakOnPredicate != null && _recorder.BreakOnPredicate(_recorder.NextCommandIndex, cmd))
                     System.Diagnostics.Debugger.Break();
 
-                // Optional per-command callback for diagnostics/telemetry.
+                // Optional callback.
                 _recorder.OnEmit?.Invoke(_recorder.NextCommandIndex, cmd, _recorder._acl.RepeatingExistingCommandRange);
 
-                // ---------------------------------------------------------------------
-                // Forced-replay mapping: active only when (a) replaying and (b) inside a
-                // suppressed-If region. In this mode, we consume and emit the recorded
-                // command verbatim at the current position, aligning VS and provenance.
-                // ---------------------------------------------------------------------
-                if (_recorder._acl.RepeatingExistingCommandRange && _recorder._forcedReplayDepth > 0)
+                bool isReplay = _recorder._acl.RepeatingExistingCommandRange;
+
+                // ─────────────────────────────────────────────────────────────────────
+                // REPLAY: forced-mapping active (e.g., suppressed If region).
+                // Always map to the recorded command and mirror depth effects.
+                // ─────────────────────────────────────────────────────────────────────
+                if (isReplay && _recorder._forcedReplayDepth > 0)
                 {
-                    var expected = _recorder._acl.UnderlyingCommands[_recorder.NextCommandIndex];
+                    var recorded = _recorder._acl.UnderlyingCommands[_recorder.NextCommandIndex];
+                    MirrorWriteAlignment(recorded);
+                    MirrorDepthEffectsFromRecorded(recorded); // <— balances depth stacks + rewind when recorded is depth
+                    MirrorProvenance(recorded);
 
-                    // Align VS high-water for recorded VS writes.
-                    if (WritesToVS(expected.CommandType) && expected.Index >= 0)
-                        _recorder.VS.AlignToAtLeast(expected.Index + 1);
-
-                    // Track provenance for recorded VS writes (diagnostic only).
-                    if (WritesToVS(expected.CommandType))
-                        _recorder.SlotMetaWrite(expected.Index, expected.CommandType, expected.SourceIndex);
-
-                    // Advance to next recorded command; equality check intentionally bypassed.
                     _recorder.NextCommandIndex++;
-
-                    // Lightweight structural trace (no-op unless enabled).
-                    _recorder.TraceStructural($"FORCED-REPLAY: mapped new={cmd.CommandType} → recorded={expected.CommandType}");
-
+                    _recorder.TraceStructural($"FORCED-REPLAY: mapped new={cmd.CommandType} \u2192 recorded={recorded.CommandType}");
                     return;
                 }
 
-                // ---------------------------------------------------------------------
-                // Replay path (validation). Require exact equality with recorded stream.
-                // ---------------------------------------------------------------------
-                if (_recorder._acl.RepeatingExistingCommandRange)
+                // ─────────────────────────────────────────────────────────────────────
+                // REPLAY: normal path — validate equality; but if structural mismatch
+                // and policy == GuardStructuralOps, soft-map to recorded and mirror depth.
+                // ─────────────────────────────────────────────────────────────────────
+                if (isReplay)
                 {
-                    var expected = _recorder._acl.UnderlyingCommands[_recorder.NextCommandIndex];
-                    if (!cmd.Equals(expected))
-                        _recorder.ThrowRepeatMismatch(cmd, expected);
+                    var recorded = _recorder._acl.UnderlyingCommands[_recorder.NextCommandIndex];
 
+                    if (!cmd.Equals(recorded))
+                    {
+                        // Soft-map ANY structural mismatch (either side structural) under Guard policy.
+                        if (_recorder.StructuralPolicy == CommandRecorder.ReplayStructuralPolicy.GuardStructuralOps
+                            && (IsStructural(cmd.CommandType) || IsStructural(recorded.CommandType)))
+                        {
+                            MirrorWriteAlignment(recorded);
+                            MirrorDepthEffectsFromRecorded(recorded); // keep stacks/rewinds consistent
+                            MirrorProvenance(recorded);
+
+                            _recorder.NextCommandIndex++;
+                            _recorder.TraceStructural($"REPLAY-MAP: new={cmd.CommandType} \u2192 recorded={recorded.CommandType}");
+                            return;
+                        }
+
+                        // Otherwise, strict mismatch.
+                        _recorder.ThrowRepeatMismatch(cmd, recorded);
+                    }
+
+                    // Equal -> still mirror depth effects so stacks/rewinds match recorded.
+                    MirrorDepthEffectsFromRecorded(recorded);
                     _recorder.NextCommandIndex++;
                     return;
                 }
 
-                // ---------------------------------------------------------------------
-                // Recording path (capacity management, bookkeeping, write & advance).
-                // ---------------------------------------------------------------------
+                // ─────────────────────────────────────────────────────────────────────
+                // RECORDING: unchanged — capacity, IF-stack counters, provenance, write.
+                // ─────────────────────────────────────────────────────────────────────
                 const int HardLimit = 1_000_000_000;
                 if (_recorder.NextCommandIndex >= _recorder._acl.UnderlyingCommands.Length)
                 {
@@ -1049,7 +1078,7 @@ namespace ACESimBase.Util.ArrayProcessing
                                  _recorder._acl.UnderlyingCommands.Length * 2);
                 }
 
-                // IF-stack bookkeeping for ordered I/O counters.
+                // IF-frame ordered I/O counters (existing behavior).
                 if (_recorder._ifStack.Count > 0)
                 {
                     ref var top = ref _recorder._ifStack.PeekRef();
@@ -1063,11 +1092,81 @@ namespace ACESimBase.Util.ArrayProcessing
                 if (WritesToVS(cmd.CommandType))
                     _recorder.SlotMetaWrite(cmd.Index, cmd.CommandType, cmd.SourceIndex);
 
-                // Write the command and advance.
+                // Write and advance.
                 _recorder._acl.UnderlyingCommands[_recorder.NextCommandIndex++] = cmd;
 
                 // Maintain VS high-water mark.
                 _recorder.VS.TouchHighWater();
+            }
+
+            // ─────────────────────────────────────────────────────────────────────────
+            // Helpers (kept private to CommandEmitter for encapsulation).
+            // ─────────────────────────────────────────────────────────────────────────
+
+            private static bool IsStructural(ArrayCommandType t)
+            {
+                return t == ArrayCommandType.If
+                    || t == ArrayCommandType.EndIf
+                    || t == ArrayCommandType.IncrementDepth
+                    || t == ArrayCommandType.DecrementDepth;
+            }
+
+            private void MirrorWriteAlignment(in ArrayCommand recorded)
+            {
+                if (WritesToVS(recorded.CommandType) && recorded.Index >= 0)
+                    _recorder.VS.AlignToAtLeast(recorded.Index + 1);
+            }
+
+            private void MirrorProvenance(in ArrayCommand recorded)
+            {
+                if (WritesToVS(recorded.CommandType))
+                    _recorder.SlotMetaWrite(recorded.Index, recorded.CommandType, recorded.SourceIndex);
+            }
+
+            private void MirrorDepthEffectsFromRecorded(in ArrayCommand recorded)
+            {
+                // We mirror depth frames so the recorder's stacks/rewinds remain balanced
+                // even when we soft-map structural mismatches.
+                switch (recorded.CommandType)
+                {
+                    case ArrayCommandType.IncrementDepth:
+                    {
+                        // Use any pending mark if a caller set one; otherwise a neutral placeholder.
+                        string mark = _recorder._pendingDepthMark ?? "replay";
+                        _recorder._pendingDepthMark = null;
+
+                        _recorder._openDepthMarks.Push(mark);
+                        _recorder._depthStartSlots.Push(_recorder.NextArrayIndex);
+                        break;
+                    }
+
+                    case ArrayCommandType.DecrementDepth:
+                    {
+                        // Pop mark if present to mirror recording path’s comment bookkeeping.
+                        _recorder._lastClosedDepthMark = _recorder._openDepthMarks.Count > 0
+                            ? _recorder._openDepthMarks.Pop()
+                            : "replay";
+
+                        if (_recorder._depthStartSlots.Count > 0)
+                        {
+                            int rewind = _recorder._depthStartSlots.Pop();
+                            if (_recorder._acl.RepeatIdenticalRanges && _recorder._acl.ReuseScratchSlots)
+                                _recorder.NextArrayIndex = rewind;
+                        }
+                        else
+                        {
+                            // Defensive only: don't throw; just trace the anomaly once.
+                            _recorder.TraceStructural("MirrorDepthEffectsFromRecorded(): underflow on _depthStartSlots during replay; ignored.");
+                        }
+                        break;
+                    }
+
+                    // Structural IF/EndIF are intentionally *not* mirrored into _ifStack here.
+                    // _ifStack is managed by InsertIf/InsertEndIf when the recorded stream actually has IF/EndIF.
+                    // That keeps ordered I/O counters aligned without double-accounting.
+                    default:
+                        break;
+                }
             }
 
 
