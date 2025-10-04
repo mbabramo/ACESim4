@@ -65,10 +65,19 @@ namespace ACESimBase.GameSolvingSupport.GameTree
 
         public HistoryPointStorable ToStorable()
         {
+            // When using the game-tree-only lookup, HistoryToPoint may be the default (uninitialized)
+            // GameHistory. In that case, deep copying it will attempt to copy from a zero-length buffer.
+            GameHistoryStorable historyToPointStorable;
+
+            if (HistoryToPoint.Initialized && HistoryToPoint.Buffer != null && HistoryToPoint.Buffer.Length > 0)
+                historyToPointStorable = HistoryToPoint.DeepCopyToStorable();
+            else
+                historyToPointStorable = GameHistoryStorable.NewInitialized();
+
             return new HistoryPointStorable()
             {
                 TreePoint = TreePoint,
-                HistoryToPointStorable = HistoryToPoint.DeepCopyToStorable(),
+                HistoryToPointStorable = historyToPointStorable,
                 GameProgress = GameProgress,
                 GameState = GameState
             };
@@ -230,24 +239,30 @@ namespace ACESimBase.GameSolvingSupport.GameTree
         public HistoryPoint SwitchToBranch(HistoryNavigationInfo navigation, byte actionChosen, Decision nextDecision, byte nextDecisionIndex)
         {
             HistoryPoint toReturn = this;
+            NWayTreeStorage<IGameState> nextTreePoint = null;
+            IGameState nextState = null;
+
             if (navigation.LookupApproach == InformationSetLookupApproach.CachedGameHistoryOnly || navigation.LookupApproach == InformationSetLookupApproach.CachedBothMethods)
             {
                 GameHistory historyToPointCopy = HistoryToPoint;
                 Game.UpdateGameHistory(ref historyToPointCopy, navigation.GameDefinition, nextDecision, nextDecisionIndex, actionChosen, GameProgress);
                 if (nextDecision.CanTerminateGame && navigation.GameDefinition.ShouldMarkGameHistoryComplete(nextDecision, in historyToPointCopy, actionChosen))
-                {
                     historyToPointCopy.MarkComplete();
-                }
                 toReturn = toReturn.WithHistoryToPoint(historyToPointCopy);
             }
+
             if (navigation.LookupApproach == InformationSetLookupApproach.CachedGameTreeOnly || navigation.LookupApproach == InformationSetLookupApproach.CachedBothMethods)
             {
-                NWayTreeStorage<IGameState> branch = TreePoint.GetBranch(actionChosen);
+                var branch = TreePoint.GetBranch(actionChosen);
                 if (branch == null)
                     lock (TreePoint)
                         branch = ((NWayTreeStorageInternal<IGameState>)TreePoint).AddBranch(actionChosen, true);
-                toReturn = toReturn.WithTreePoint(branch);
+
+                nextTreePoint = branch;
+                nextState = branch.StoredValue;
+                toReturn = toReturn.WithTreePoint(nextTreePoint);
             }
+
             if (navigation.LookupApproach == InformationSetLookupApproach.PlayGameDirectly)
             {
                 IGameFactory gameFactory = navigation.GameDefinition.GameFactory;
@@ -255,9 +270,10 @@ namespace ACESimBase.GameSolvingSupport.GameTree
                 player.ContinuePathWithAction(actionChosen, GameProgress);
                 toReturn = toReturn.WithGameProgress(GameProgress);
             }
-            toReturn = toReturn.WithGameState(null);
-            return toReturn;
+
+            return toReturn.WithGameState(nextState);
         }
+
 
         public byte GetNextPlayer(HistoryNavigationInfo navigation)
         {

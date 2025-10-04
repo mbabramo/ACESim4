@@ -33,26 +33,35 @@ namespace ACESim
 
         public GameHistoryStorable(in GameHistory gameHistory)
         {
-            Complete = gameHistory.Complete;
-            NextIndexInHistoryActionsOnly = gameHistory.NextActionsAndDecisionsHistoryIndex;
-            HighestCacheIndex = gameHistory.HighestCacheIndex;
-            Initialized = gameHistory.Initialized;
-            PreviousNotificationDeferred = gameHistory.PreviousNotificationDeferred;
-            DeferredAction = gameHistory.DeferredAction;
-            DeferredPlayerNumber = gameHistory.DeferredPlayerNumber;
-            DeferredPlayersToInform = gameHistory.DeferredPlayersToInform;
-            LastDecisionIndexAdded = gameHistory.LastDecisionIndexAdded;
+            // If the incoming GameHistory isn't initialized (e.g., default struct with zero-length buffer),
+            // initialize a temporary one to copy from so we always have a valid source buffer.
+            var source = gameHistory;
+            if (!source.Initialized || source.Buffer.Length == 0)
+            {
+                source = new GameHistory();
+                source.Initialize();
+            }
+
+            Complete = source.Complete;
+            NextIndexInHistoryActionsOnly = source.NextActionsAndDecisionsHistoryIndex;
+            HighestCacheIndex = source.HighestCacheIndex;
+            Initialized = source.Initialized;
+            PreviousNotificationDeferred = source.PreviousNotificationDeferred;
+            DeferredAction = source.DeferredAction;
+            DeferredPlayerNumber = source.DeferredPlayerNumber;
+            DeferredPlayersToInform = source.DeferredPlayersToInform; // defined by GameDefinition; safe to reuse
+            LastDecisionIndexAdded = source.LastDecisionIndexAdded;
+
             Buffer = ArrayPool<byte>.Shared.Rent(GameHistory.TotalBufferSize);
-#if SAFETYCHECKS
-            // it doesn't matter what the CreatingThreadID is on this GameHistory; now that we've 
-            // duplicated the entire object, this can be used on whatever the current thread is
-            // (and then on some other thread if there is another deep copy).
+        #if SAFETYCHECKS
             CreatingThreadID = System.Threading.Thread.CurrentThread.ManagedThreadId;
-#endif
+        #endif
             for (int i = 0; i < GameHistory.TotalBufferSize; i++)
-                Buffer[i] = gameHistory.Buffer[i];
+                Buffer[i] = source.Buffer[i];
+
             _disposed = false;
         }
+
 
         public static GameHistoryStorable NewInitialized()
         {
