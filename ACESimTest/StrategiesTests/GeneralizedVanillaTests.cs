@@ -2,6 +2,7 @@
 using ACESim.Util;
 using ACESim.Util.DiscreteProbabilities;
 using ACESimBase.Games.LitigGame.Options;
+using ACESimBase.GameSolvingSupport.FastCFR;
 using ACESimBase.GameSolvingSupport.Settings;
 using ACESimBase.Util;
 using ACESimBase.Util.ArrayProcessing.ChunkExecutors;
@@ -32,11 +33,11 @@ namespace ACESimTest.StrategiesTests
         [DataRow(false, true)]
         [DataRow(true, false)]
         [DataRow(true, true)]
-        public async Task SameResultsRollingAndUnrolling(bool randomInformationSets, bool largerTree)
+        public async Task SameResultsRegularAndUnrolling(bool randomInformationSets, bool largerTree)
         {
             EvolutionSettings evolutionSettings = new EvolutionSettings();
             evolutionSettings.TotalIterations = 100;
-            evolutionSettings.UnrollAlgorithm = false;
+            evolutionSettings.GeneralizedVanillaFlavor = GeneralizedVanillaFlavor.Regular;
             evolutionSettings.UnrollTemplateIdenticalRanges = false;
             evolutionSettings.UnrollTemplateRepeatedRanges = false;
             evolutionSettings.Unroll_ChunkExecutorKind = ChunkExecutorKind.Interpreted;
@@ -44,7 +45,7 @@ namespace ACESimTest.StrategiesTests
 
             double[] notUnrolled = await DevelopStrategyAndGetUtilities(randomInformationSets, largerTree, evolutionSettings, 1);
 
-            evolutionSettings.UnrollAlgorithm = true;
+            evolutionSettings.GeneralizedVanillaFlavor = GeneralizedVanillaFlavor.Unrolled;
             double[] unrolled = await DevelopStrategyAndGetUtilities(randomInformationSets, largerTree, evolutionSettings, 1);
 
             evolutionSettings.UnrollTemplateIdenticalRanges = true;
@@ -52,6 +53,29 @@ namespace ACESimTest.StrategiesTests
 
             notUnrolled.SequenceEqual(unrolled).Should().BeTrue();
             unrolledWithRepeats.SequenceEqual(unrolled).Should().BeTrue();
+        }
+
+        [TestMethod]
+        [DataRow(false, false)]
+        [DataRow(false, true)]
+        [DataRow(true, false)]
+        [DataRow(true, true)]
+        public async Task SameResultsRegularAndFastCFR(bool randomInformationSets, bool largerTree)
+        {
+            EvolutionSettings evolutionSettings = new EvolutionSettings();
+            evolutionSettings.TotalIterations = 100;
+            evolutionSettings.GeneralizedVanillaFlavor = GeneralizedVanillaFlavor.Regular;
+            evolutionSettings.UnrollTemplateIdenticalRanges = false;
+            evolutionSettings.UnrollTemplateRepeatedRanges = false;
+            evolutionSettings.Unroll_ChunkExecutorKind = ChunkExecutorKind.Interpreted;
+            evolutionSettings.TraceCFR = false;
+
+            double[] regular = await DevelopStrategyAndGetUtilities(randomInformationSets, largerTree, evolutionSettings, 1);
+
+            evolutionSettings.GeneralizedVanillaFlavor = GeneralizedVanillaFlavor.Fast;
+            double[] fast = await DevelopStrategyAndGetUtilities(randomInformationSets, largerTree, evolutionSettings, 1);
+
+            regular.SequenceEqual(fast).Should().BeTrue();
         }
 
         [TestMethod]
@@ -65,7 +89,7 @@ namespace ACESimTest.StrategiesTests
             var evolutionSettings = new EvolutionSettings
             {
                 TotalIterations = 100,
-                UnrollAlgorithm = false,
+                GeneralizedVanillaFlavor = GeneralizedVanillaFlavor.Regular,
                 UnrollTemplateIdenticalRanges = false,
                 UnrollTemplateRepeatedRanges  = false,
                 Unroll_ChunkExecutorKind = ChunkExecutorKind.Interpreted,
@@ -85,7 +109,7 @@ namespace ACESimTest.StrategiesTests
 
             foreach (var (useIdentical, useRepeated) in permutations)
             {
-                evolutionSettings.UnrollAlgorithm = true;
+                evolutionSettings.GeneralizedVanillaFlavor = GeneralizedVanillaFlavor.Unrolled;
                 evolutionSettings.UnrollTemplateIdenticalRanges = useIdentical;
                 evolutionSettings.UnrollTemplateRepeatedRanges  = useRepeated;
                 evolutionSettings.Unroll_ChunkExecutorKind = ChunkExecutorKind.Interpreted;
@@ -112,7 +136,7 @@ namespace ACESimTest.StrategiesTests
         {
             EvolutionSettings evolutionSettings = new EvolutionSettings();
             evolutionSettings.TotalIterations = 100;
-            evolutionSettings.UnrollAlgorithm = true;
+            evolutionSettings.GeneralizedVanillaFlavor = GeneralizedVanillaFlavor.Unrolled;
             evolutionSettings.UnrollTemplateIdenticalRanges = false;
             evolutionSettings.UnrollTemplateRepeatedRanges = false;
             evolutionSettings.TraceCFR = false;

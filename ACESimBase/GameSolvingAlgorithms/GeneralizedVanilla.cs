@@ -1,4 +1,5 @@
 ﻿using ACESimBase.GameSolvingSupport;
+using ACESimBase.GameSolvingSupport.FastCFR;
 using ACESimBase.GameSolvingSupport.GameTree;
 using ACESimBase.GameSolvingSupport.PostIterationUpdater;
 using ACESimBase.GameSolvingSupport.Settings;
@@ -182,10 +183,117 @@ namespace ACESim
 
         #endregion
 
+        #region FastCFR
+
+        // FastCFR integration
+        private ACESimBase.GameSolvingSupport.FastCFR.FastCFRBuilder Fast_Builder;
+
+        private void Fast_EnsureBuilder()
+        {
+            if (Fast_Builder != null)
+                return;
+
+            if (EvolutionSettings.CFRBR)
+                throw new NotSupportedException("FastCFR does not support CFRBR. Disable EvolutionSettings.CFRBR to use FastCFR.");
+
+            var options = new ACESimBase.GameSolvingSupport.FastCFR.FastCFRBuilderOptions
+            {
+                // Keep defaults; change here if you later add EvolutionSettings toggles for FastCFR.
+                UseDynamicChanceProbabilities = true
+            };
+
+            Fast_Builder = new ACESimBase.GameSolvingSupport.FastCFR.FastCFRBuilder(
+                navigation: Navigation,
+                rootFactory: () => GetStartOfGameHistoryPoint(),
+                options: options);
+        }
+
+        private async Task<ReportCollection> Fast_SolveGeneralizedVanillaCFR()
+        {
+            ReportCollection reportCollection = new ReportCollection();
+            bool targetMet = false;
+            Stopwatch s = new Stopwatch();
+            s.Start();
+            long lastElapsedSeconds = -1;
+
+            for (int iteration = 1; iteration <= EvolutionSettings.TotalIterations && !targetMet; iteration++)
+            {
+                long elapsedSeconds = s.ElapsedMilliseconds / 1000;
+                if (!EvolutionSettings.TraceCFR && elapsedSeconds != lastElapsedSeconds)
+                    TabbedText.SetConsoleProgressString($"Iteration {iteration} (elapsed seconds: {s.ElapsedMilliseconds / 1000})");
+                lastElapsedSeconds = elapsedSeconds;
+
+                if (iteration % 50 == 1 && EvolutionSettings.DynamicSetParallel)
+                    DynamicallySetParallel();
+
+                Status.IterationNumDouble = iteration;
+                Status.IterationNum = iteration;
+                CalculateDiscountingAdjustments();
+
+                StrategiesDeveloperStopwatch.Start();
+
+                GeneralizedVanillaUtilities[] results = new GeneralizedVanillaUtilities[NumNonChancePlayers];
+
+                for (byte playerBeingOptimized = 0; playerBeingOptimized < NumNonChancePlayers; playerBeingOptimized++)
+                {
+                    if (playerBeingOptimized == 1 && GameDefinition.GameIsSymmetric() && TakeShortcutInSymmetricGames && !VerifySymmetry)
+                        continue;
+
+                    // Reset visit-counters and freeze policies for THIS player's sweep.
+                    var ctx = Fast_Builder.InitializeIteration(
+                        optimizedPlayerIndex: playerBeingOptimized,
+                        scenarioIndex: GameDefinition.CurrentOverallScenarioIndex,
+                        rand01ForDecision: null);
+
+                    ctx.IterationNumber = iteration;
+                    ctx.ReachSelf = 1.0;
+                    ctx.ReachOpp = 1.0;
+                    ctx.ReachChance = 1.0;
+                    ctx.SamplingCorrection = 1.0;
+                    ctx.SuppressMath = false;
+
+                    var nodeResult = Fast_Builder.Root.Go(ref ctx);
+
+                    results[playerBeingOptimized] = new GeneralizedVanillaUtilities
+                    {
+                        CurrentVsCurrent = nodeResult.Utilities[playerBeingOptimized],
+                        AverageStrategyVsAverageStrategy = nodeResult.Utilities[playerBeingOptimized],
+                        BestResponseToAverageStrategy = 0.0 // CFRBR disabled for FastCFR
+                    };
+
+                    // IMPORTANT: flush this sweep’s tallies BEFORE starting the next sweep,
+                    // because InitializeIteration() will zero them for the next player.
+                    Fast_Builder.CopyTalliesIntoBackingNodes();
+                }
+
+                StrategiesDeveloperStopwatch.Stop();
+
+                // Now apply the post-iteration updates once, using both players’ flushed tallies.
+                UpdateInformationSets(iteration);
+                await PostIterationWorkForPrincipalComponentsAnalysis(iteration, reportCollection);
+                SimulatedAnnealing(iteration);
+                MiniReport(iteration, results);
+
+                var result = await ConsiderGeneratingReports(iteration,
+                    () => $"{GameDefinition.OptionSetName} Iteration {iteration} Overall milliseconds per iteration {(StrategiesDeveloperStopwatch.ElapsedMilliseconds / (double)iteration)}");
+                reportCollection.Add(result);
+
+                targetMet = Status.BestResponseTargetMet(EvolutionSettings.BestResponseTarget);
+                if (EvolutionSettings.PruneOnOpponentStrategy && EvolutionSettings.PredeterminePrunabilityBasedOnRelativeContributions)
+                    CalculateReachProbabilitiesAndPrunability(EvolutionSettings.ParallelOptimization);
+                ReinitializeInformationSetsIfNecessary(iteration);
+            }
+
+            TabbedText.SetConsoleProgressString(null);
+            return reportCollection;
+        }
+
+
+        #endregion
 
         #region Unrolled preparation
 
-            // We can achieve considerable improvements in performance by unrolling the algorithm. Instead of traversing the tree, we simply have a series of simple commands that can be processed on an array. The challenge is that we need to create this series of commands. This section prepares for the copying of data between information sets and the array. We can compare the outcomes of the regular algorithm and the unrolled version (which should always be equal) by using EvolutionSettings.TraceCFR = true.
+        // We can achieve considerable improvements in performance by unrolling the algorithm. Instead of traversing the tree, we simply have a series of simple commands that can be processed on an array. The challenge is that we need to create this series of commands. This section prepares for the copying of data between information sets and the array. We can compare the outcomes of the regular algorithm and the unrolled version (which should always be equal) by using EvolutionSettings.TraceCFR = true.
 
         private ArraySlots Unroll_Slots;
         private ArrayCommandList Unroll_Commands;
@@ -1456,16 +1564,22 @@ namespace ACESim
 
         public override async Task Initialize()
         {
-            if (EvolutionSettings.UnrollAlgorithm && Navigation.LookupApproach == InformationSetLookupApproach.PlayGameDirectly)
+            if (EvolutionSettings.GeneralizedVanillaFlavor == GeneralizedVanillaFlavor.Unrolled && Navigation.LookupApproach == InformationSetLookupApproach.PlayGameDirectly)
             { // override -- combination is not currently supported
                 LookupApproach = InformationSetLookupApproach.CachedGameHistoryOnly;
                 Navigation = Navigation.WithLookupApproach(LookupApproach);
             }
             await base.Initialize();
             InitializeInformationSets();
-            if (EvolutionSettings.UnrollAlgorithm && (!EvolutionSettings.UseExistingEquilibriaIfAvailable || !EquilibriaFileAlreadyExists()))
+            if (EvolutionSettings.GeneralizedVanillaFlavor == GeneralizedVanillaFlavor.Unrolled && (!EvolutionSettings.UseExistingEquilibriaIfAvailable || !EquilibriaFileAlreadyExists()))
             {
                 Unroll_CreateUnrolledCommandList();
+            }
+            if (EvolutionSettings.GeneralizedVanillaFlavor == GeneralizedVanillaFlavor.Fast)
+            {
+                if (EvolutionSettings.CFRBR)
+                    throw new NotSupportedException("FastCFR does not support CFRBR. Disable EvolutionSettings.CFRBR to use FastCFR.");
+                Fast_EnsureBuilder();
             }
         }
 
@@ -1482,10 +1596,18 @@ namespace ACESim
             }
             else
             {
-                if (EvolutionSettings.UnrollAlgorithm)
-                    reportCollection = await Unroll_SolveGeneralizedVanillaCFR();
-                else
-                    reportCollection = await SolveGeneralizedVanillaCFR();
+                switch (EvolutionSettings.GeneralizedVanillaFlavor)
+                {
+                    case GeneralizedVanillaFlavor.Unrolled:
+                        reportCollection = await Unroll_SolveGeneralizedVanillaCFR();
+                        break;
+                    case GeneralizedVanillaFlavor.Regular:
+                        reportCollection = await SolveGeneralizedVanillaCFR();
+                        break;
+                    case GeneralizedVanillaFlavor.Fast:
+                        reportCollection = await Fast_SolveGeneralizedVanillaCFR();
+                        break;
+                }
 
                 double[] equilibrium = GetInformationSetValues();
                 string equFile = CreateEquilibriaFile(new List<double[]> { equilibrium });
@@ -1495,6 +1617,7 @@ namespace ACESim
 
             return reportCollection;
         }
+
 
         private async Task<ReportCollection> SolveGeneralizedVanillaCFR()
         {

@@ -1,5 +1,6 @@
 ﻿using ACESim;
 using ACESimBase.GameSolvingSupport.DeepCFRSupport;
+using ACESimBase.GameSolvingSupport.FastCFR;
 using ACESimBase.GameSolvingSupport.GameTree;
 using ACESimBase.Util.ArrayProcessing.ChunkExecutors;
 using ACESimBase.Util.Mathematics;
@@ -17,7 +18,7 @@ namespace ACESimBase.GameSolvingSupport.Settings
     [Serializable]
     public class EvolutionSettings
     {
-        public bool UnrollAlgorithm = false; // DEBUG
+        public GeneralizedVanillaFlavor GeneralizedVanillaFlavor = GeneralizedVanillaFlavor.Unrolled; // DEBUG
         public bool IncludeCommentsWhenUnrolling = false;
         public bool UseCheckpointsWhenNotUnrolling = false; // for when unrolling, look at ArrayCommandList.UseCheckpoints
         public bool UnrollTemplateIdenticalRanges = true; // identical range here means when we have a chance node where the game structure is same for every chance value
