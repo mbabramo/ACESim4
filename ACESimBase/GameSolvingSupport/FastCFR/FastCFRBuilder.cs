@@ -47,7 +47,7 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
             int scenarioIndex,
             Func<byte, double> rand01ForDecision)
         {
-            // Freeze policies into fast nodes and local arrays.
+            // Freeze policies into fast nodes and into local arrays used by reach-updating delegates.
             foreach (var entry in _infoEntries)
             {
                 var isn = entry.Original;
@@ -56,26 +56,15 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
                 var owner = new double[isn.NumPossibleActions];
                 var opp   = new double[isn.NumPossibleActions];
 
-                // Owner's current policy
+                // Owner's current policy (currentProbabilityDimension)
                 {
                     Span<double> buf = owner;
                     isn.GetCurrentProbabilities(buf, opponentProbabilities: false);
                 }
-                // Opponent traversal policy
+                // Opponent traversal policy (currentProbabilityForOpponentDimension)
                 {
                     Span<double> buf = opp;
                     isn.GetCurrentProbabilities(buf, opponentProbabilities: true);
-                }
-
-                // Normalize exact zeros consistently (avoid -0.0 and fencepost artifacts)
-                // This matches the > 0.0 guard used in traversal and reporting.
-                for (int a = 0; a < owner.Length; a++)
-                {
-                    if (owner[a] == 0.0) owner[a] = 0.0;
-                }
-                for (int a = 0; a < opp.Length; a++)
-                {
-                    if (opp[a] == 0.0) opp[a] = 0.0;
                 }
 
                 node.InitializeIteration(owner, opp);
@@ -102,7 +91,6 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
                 Rand01ForDecision = rand01ForDecision ?? (_ => 0.0)
             };
         }
-
 
         /// <summary>
         /// Bulk-copy per-iteration tallies from FastCFRInformationSet nodes into the backing InformationSetNode instances.

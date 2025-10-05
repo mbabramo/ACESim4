@@ -191,11 +191,9 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
             }
 
             var p = ownerIsOptimized ? _pSelf : _pOpp;
-
             var expectedU = _workUtilities;
             for (int i = 0; i < expectedU.Length; i++) expectedU[i] = 0.0;
             FloatSet expectedCustom = default;
-
             Span<double> Qa = ownerIsOptimized ? stackalloc double[NumActions] : Span<double>.Empty;
 
             for (int i = 0; i < children.Length; i++)
@@ -203,17 +201,13 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
                 ref readonly var step = ref visit.Steps[i];
                 int ai = step.ActionIndex;
                 double w = p[ai];
-
-                // Opponent node: mirror the strict-positive traversal used elsewhere.
-                // Only recurse if w > 0.0. Otherwise walk structure with math suppressed.
-                if (!ownerIsOptimized && w <= 0.0)
+                if (!ownerIsOptimized && w == 0.0)
                 {
                     bool prior = ctx.SuppressMath; ctx.SuppressMath = true;
                     children[i].Go(ref ctx);
                     ctx.SuppressMath = prior;
                     continue;
                 }
-
                 FastCFRNodeResult child;
                 if (ownerIsOptimized)
                 {
@@ -230,8 +224,7 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
                     child = children[i].Go(ref ctx);
                     ctx.ReachOpp = oldOpp;
                 }
-
-                if (w > 0.0)
+                if (w != 0.0)
                 {
                     if (_numPlayers == 2)
                     {
@@ -248,18 +241,13 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
                     expectedCustom = expectedCustom.Plus(child.Custom.Times((float)w));
                 }
             }
-
             if (ownerIsOptimized)
             {
                 double V = 0.0;
                 for (int a = 0; a < NumActions; a++) V += _pSelf[a] * Qa[a];
-
-                double inversePi = ctx.ReachOpp;
+                double inversePi = ctx.ReachOpp; // other players (chance already folded)
                 double piSelf = ctx.ReachSelf;
-                double piAdj = piSelf < InformationSetNode.SmallestProbabilityRepresented
-                    ? InformationSetNode.SmallestProbabilityRepresented
-                    : piSelf;
-
+                double piAdj = piSelf < InformationSetNode.SmallestProbabilityRepresented ? InformationSetNode.SmallestProbabilityRepresented : piSelf;
                 for (int a = 0; a < NumActions; a++)
                 {
                     double regret = Qa[a] - V;
@@ -268,10 +256,8 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
                     _lastCumulativeStrategyInc[a] += piAdj * _pSelf[a];
                 }
             }
-
             return new FastCFRNodeResult(expectedU, expectedCustom);
         }
-
 
         public ReadOnlySpan<double> SumRegretTimesInversePi => _sumRegretTimesInversePi;
         public ReadOnlySpan<double> SumInversePi => _sumInversePi;
@@ -323,27 +309,33 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
             var visitIndex = _visitCounter++;
             var visit = _visits[visitIndex];
             var children = _childrenByVisit[visitIndex];
-
             if (ctx.SuppressMath)
             {
                 for (int k = 0; k < children.Length; k++)
                     children[k].Go(ref ctx);
                 return new FastCFRNodeResult(_zeroUtilities, default);
             }
-
             var expectedU = _workUtilities;
             for (int i = 0; i < expectedU.Length; i++) expectedU[i] = 0.0;
             FloatSet expectedCustom = default;
-
-            // Unrolled semantics: recurse with unmodified reach; weight only on aggregation.
             for (int k = 0; k < visit.Steps.Length; k++)
             {
                 ref readonly var step = ref visit.Steps[k];
                 double p = step.GetProbability(ref ctx);
-
-                // Always recurse; do not modify ctx.ReachOpp/ctx.ReachChance here.
+                if (p == 0.0)
+                {
+                    bool prior = ctx.SuppressMath; ctx.SuppressMath = true;
+                    children[k].Go(ref ctx);
+                    ctx.SuppressMath = prior;
+                    continue;
+                }
+                double oldOpp = ctx.ReachOpp;
+                double oldChance = ctx.ReachChance;
+                ctx.ReachOpp = oldOpp * p;
+                ctx.ReachChance = oldChance * p;
                 var child = children[k].Go(ref ctx);
-
+                ctx.ReachOpp = oldOpp;
+                ctx.ReachChance = oldChance;
                 if (_numPlayers == 2)
                 {
                     expectedU[0] += p * child.Utilities[0];
@@ -356,11 +348,8 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
                 }
                 expectedCustom = expectedCustom.Plus(child.Custom.Times((float)p));
             }
-
             return new FastCFRNodeResult(expectedU, expectedCustom);
         }
-
-
     }
 
     // Final node -------------------------------------------------------------

@@ -1564,7 +1564,7 @@ namespace ACESim
 
         public override async Task Initialize()
         {
-            if (EvolutionSettings.GeneralizedVanillaFlavor is GeneralizedVanillaFlavor.Unrolled or GeneralizedVanillaFlavor.Fast && Navigation.LookupApproach == InformationSetLookupApproach.PlayGameDirectly)
+            if (EvolutionSettings.GeneralizedVanillaFlavor == GeneralizedVanillaFlavor.Unrolled && Navigation.LookupApproach == InformationSetLookupApproach.PlayGameDirectly)
             { // override -- combination is not currently supported
                 LookupApproach = InformationSetLookupApproach.CachedGameHistoryOnly;
                 Navigation = Navigation.WithLookupApproach(LookupApproach);
