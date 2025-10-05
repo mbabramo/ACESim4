@@ -160,30 +160,10 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
                 var childHP = hp.GetBranch(_nav, a, decision, decisionIndex);
                 var childAccessor = Compile(childHP);
 
-                // Capture ids for reach-opponent update using frozen traversal policy each iteration.
-                int parentId = entry.Id;
-                int actionIndexZeroBased = a - 1;
-
-                FastCFRCall call =
-                    (ref FastCFRIterationContext ctx) =>
-                    {
-                        // If this infoset belongs to an opponent (relative to the optimized player), multiply Opp reach by traversal prob.
-                        bool ownerIsOptimized = isn.PlayerIndex == ctx.OptimizedPlayerIndex;
-
-                        double savedOpp = ctx.ReachOpp;
-                        if (!ownerIsOptimized)
-                        {
-                            double p = _frozenOppPolicies[parentId][actionIndexZeroBased];
-                            ctx.ReachOpp = savedOpp * p;
-                        }
-
-                        var result = childAccessor().Go(ref ctx);
-
-                        ctx.ReachOpp = savedOpp;
-                        return result;
-                    };
-
-                steps.Add(new FastCFRVisitStep(FastCFRVisitStepKind.ChildForAction, (byte)(a - 1), call));
+                steps.Add(new FastCFRVisitStep(
+                    FastCFRVisitStepKind.ChildForAction,
+                    (byte)(a - 1),
+                    childAccessor));
             }
 
             var program = new FastCFRVisitProgram(steps.ToArray(), _numNonChancePlayers);
@@ -205,7 +185,6 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
                 var childHP = hp.GetBranch(_nav, a, decision, decisionIndex);
                 var childAccessor = Compile(childHP);
 
-                // Probability source (static or provider).
                 FastCFRProbProvider provider = null;
                 double staticP = 0.0;
 
@@ -220,23 +199,9 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
                     staticP = 1.0 / numOutcomes;
                 }
 
-                // Delegate that also multiplies ctx.ReachChance by p during recursion.
-                FastCFRCall call =
-                    (ref FastCFRIterationContext ctx) =>
-                    {
-                        double p = provider is null ? staticP : provider(ref ctx);
-                        double saved = ctx.ReachChance;
-                        ctx.ReachChance = saved * p;
-
-                        var r = childAccessor().Go(ref ctx);
-
-                        ctx.ReachChance = saved;
-                        return r;
-                    };
-
                 steps.Add(provider is null
-                    ? new FastCFRChanceStep(call, staticP)
-                    : new FastCFRChanceStep(call, provider));
+                    ? new FastCFRChanceStep(childAccessor, staticP)
+                    : new FastCFRChanceStep(childAccessor, provider));
             }
 
             var program = new FastCFRChanceVisitProgram(steps.ToArray(), _numNonChancePlayers);
@@ -280,7 +245,13 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
                 e.NodeBacking = node;
             }
 
-            // Final objects for finals (already created)
+            // Bind children (must happen after all NodeBacking references are populated)
+            foreach (var e in _infoEntries)
+                e.NodeBacking.BindChildrenAfterFinalize();
+            foreach (var e in _chanceEntries)
+                e.NodeBacking.BindChildrenAfterFinalize();
+
+            // Finals already created in GetOrCreateFinalEntry
         }
 
         private void AllocatePolicyBuffers()
