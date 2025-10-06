@@ -1558,6 +1558,20 @@ namespace ACESimBase.GameSolvingSupport.GameTree
             NodeInformation[cumulativeStrategyDimension, a - 1] = average;
         }
 
+        public void SetCurrentAndAverageProbabilities(double[] probabilities)
+        {
+            for (int a = 1; a <= NumPossibleActions; a++)
+            {
+                double p = probabilities[a - 1];
+                if (double.IsNaN(p))
+                    throw new Exception();
+                NodeInformation[currentProbabilityDimension, a - 1] = p;
+                NodeInformation[currentProbabilityForOpponentDimension, a - 1] = p;
+                NodeInformation[averageStrategyProbabilityDimension, a - 1] = p;
+                NodeInformation[cumulativeStrategyDimension, a - 1] = p;
+            }
+        }
+
         public void SetToPureStrategy(byte action, bool setAverageAndCumulativeStrategy)
         {
             for (byte a = 1; a <= NumPossibleActions; a++)

@@ -111,7 +111,7 @@ namespace ACESimTest.StrategiesTests
                 string id = $"P{informationSet.PlayerIndex},D{informationSet.DecisionByteCode}:{informationSet.InformationSetWithAlphabeticalLabels(developer.GameDefinition)}";
                 int hashCode = id.GetHashCode();
                 double[] probabilities = CreateNormalizedRandomDistribution(numPossibleActions, hashCode);
-                informationSet.SetCurrentProbabilities(probabilities);
+                informationSet.SetCurrentAndAverageProbabilities(probabilities);
                 informationSetProbabilities[id] = probabilities;
             }
 

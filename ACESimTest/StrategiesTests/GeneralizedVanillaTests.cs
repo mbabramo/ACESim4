@@ -71,7 +71,7 @@ namespace ACESimTest.StrategiesTests
             evolutionSettings.UnrollTemplateIdenticalRanges = false;
             var unrolledDev = await Initialize(largerTree, evolutionSettings, 1);
             if (randomInformationSets)
-                unrolledDev.SetInformationSetValues(seed);
+                RandomizeInformationSetProbabilities(unrolledDev);
 
             await unrolledDev.RunAlgorithm("TESTOPTIONS");
             var unrolled = new EvaluationResult(GetUtilities(unrolledDev), unrolledDev.GetInformationSetValues());
@@ -80,7 +80,7 @@ namespace ACESimTest.StrategiesTests
             evolutionSettings.UnrollTemplateIdenticalRanges = true;
             var unrolledWithRepeatsDev = await Initialize(largerTree, evolutionSettings, 1);
             if (randomInformationSets)
-                unrolledWithRepeatsDev.SetInformationSetValues(seed);
+                RandomizeInformationSetProbabilities(unrolledWithRepeatsDev);
 
             await unrolledWithRepeatsDev.RunAlgorithm("TESTOPTIONS");
             var unrolledWithRepeats = new EvaluationResult(GetUtilities(unrolledWithRepeatsDev), unrolledWithRepeatsDev.GetInformationSetValues());
@@ -124,7 +124,7 @@ namespace ACESimTest.StrategiesTests
             evolutionSettings.GeneralizedVanillaFlavor = GeneralizedVanillaFlavor.Fast;
             var fastDev = await Initialize(largerTree, evolutionSettings, 1);
             if (randomInformationSets)
-                fastDev.SetInformationSetValues(seed);
+                RandomizeInformationSetProbabilities(fastDev);
 
             await fastDev.RunAlgorithm("TESTOPTIONS");
             var fast = new EvaluationResult(GetUtilities(fastDev), fastDev.GetInformationSetValues());
@@ -186,6 +186,69 @@ namespace ACESimTest.StrategiesTests
                 }
             }
         }
+
+        [TestMethod]
+        [DataRow(false, false)]
+        [DataRow(false, true)]
+        [DataRow(true,  false)]
+        [DataRow(true,  true)]
+        public async Task SameResultsUnrolledAndFastCFR(bool randomInformationSets, bool largerTree)
+        {
+            var evolutionSettings = new EvolutionSettings
+            {
+                TotalIterations = 1, // DEBUG -- set back to 100
+                GeneralizedVanillaFlavor = GeneralizedVanillaFlavor.Unrolled,
+                UnrollTemplateIdenticalRanges = false,
+                UnrollTemplateRepeatedRanges = false,
+                Unroll_ChunkExecutorKind = ChunkExecutorKind.Interpreted,
+                TraceCFR = false,
+                ParallelOptimization = false // deterministic for bitwise-equality tests
+            };
+
+            // Unrolled from a seeded initial state
+            var unrolledDev = await Initialize(largerTree, evolutionSettings, 1);
+            if (randomInformationSets)
+                RandomizeInformationSetProbabilities(unrolledDev);
+            var seed = unrolledDev.GetInformationSetValues();
+
+            await unrolledDev.RunAlgorithm("TESTOPTIONS");
+            var unrolled = new EvaluationResult(GetUtilities(unrolledDev), unrolledDev.GetInformationSetValues());
+
+            // FastCFR from the *same* initial state
+            evolutionSettings.GeneralizedVanillaFlavor = GeneralizedVanillaFlavor.Fast;
+            var fastDev = await Initialize(largerTree, evolutionSettings, 1);
+            if (randomInformationSets)
+                RandomizeInformationSetProbabilities(fastDev);
+
+            await fastDev.RunAlgorithm("TESTOPTIONS");
+            var fast = new EvaluationResult(GetUtilities(fastDev), fastDev.GetInformationSetValues());
+
+            // Direct equality checks
+            unrolled.Utilities.SequenceEqual(fast.Utilities)
+                .Should().BeTrue("utilities must match between Unrolled and Fast");
+            unrolled.InformationSetValues.SequenceEqual(fast.InformationSetValues)
+                .Should().BeTrue("information set values must match between Unrolled and Fast");
+
+            // Also verify unrolled template permutations against FastCFR from the same seed
+            evolutionSettings.GeneralizedVanillaFlavor = GeneralizedVanillaFlavor.Unrolled;
+            evolutionSettings.UnrollTemplateIdenticalRanges = true;
+            evolutionSettings.UnrollTemplateRepeatedRanges = false; // keep false unless/until repeats are enabled for your tree
+
+            var unrolledWithIdenticalRangesDev = await Initialize(largerTree, evolutionSettings, 1);
+            if (randomInformationSets)
+                RandomizeInformationSetProbabilities(unrolledWithIdenticalRangesDev);
+
+            await unrolledWithIdenticalRangesDev.RunAlgorithm("TESTOPTIONS");
+            var unrolledWithIdenticalRanges = new EvaluationResult(
+                GetUtilities(unrolledWithIdenticalRangesDev),
+                unrolledWithIdenticalRangesDev.GetInformationSetValues());
+
+            unrolledWithIdenticalRanges.Utilities.SequenceEqual(fast.Utilities)
+                .Should().BeTrue("utilities must match between Unrolled(identical ranges) and Fast");
+            unrolledWithIdenticalRanges.InformationSetValues.SequenceEqual(fast.InformationSetValues)
+                .Should().BeTrue("information set values must match between Unrolled(identical ranges) and Fast");
+        }
+
 
         [TestMethod]
         [DataRow(false, false)]

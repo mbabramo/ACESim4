@@ -201,13 +201,15 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
                 ref readonly var step = ref visit.Steps[i];
                 int ai = step.ActionIndex;
                 double w = p[ai];
-                if (!ownerIsOptimized && w == 0.0)
+
+                if (!ownerIsOptimized && w <= double.Epsilon)
                 {
                     bool prior = ctx.SuppressMath; ctx.SuppressMath = true;
                     children[i].Go(ref ctx);
                     ctx.SuppressMath = prior;
                     continue;
                 }
+
                 FastCFRNodeResult child;
                 if (ownerIsOptimized)
                 {
@@ -224,7 +226,8 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
                     child = children[i].Go(ref ctx);
                     ctx.ReachOpp = oldOpp;
                 }
-                if (w != 0.0)
+
+                if (ownerIsOptimized || w > double.Epsilon)
                 {
                     if (_numPlayers == 2)
                     {
@@ -241,11 +244,12 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
                     expectedCustom = expectedCustom.Plus(child.Custom.Times((float)w));
                 }
             }
+
             if (ownerIsOptimized)
             {
                 double V = 0.0;
                 for (int a = 0; a < NumActions; a++) V += _pSelf[a] * Qa[a];
-                double inversePi = ctx.ReachOpp; // other players (chance already folded)
+                double inversePi = ctx.ReachOpp;
                 double piSelf = ctx.ReachSelf;
                 double piAdj = piSelf < InformationSetNode.SmallestProbabilityRepresented ? InformationSetNode.SmallestProbabilityRepresented : piSelf;
                 for (int a = 0; a < NumActions; a++)
@@ -258,6 +262,7 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
             }
             return new FastCFRNodeResult(expectedU, expectedCustom);
         }
+
 
         public ReadOnlySpan<double> SumRegretTimesInversePi => _sumRegretTimesInversePi;
         public ReadOnlySpan<double> SumInversePi => _sumInversePi;
