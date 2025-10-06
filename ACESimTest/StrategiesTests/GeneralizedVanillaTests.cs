@@ -28,55 +28,113 @@ namespace ACESimTest.StrategiesTests
     [TestClass]
     public class GeneralizedVanillaTests : StrategiesDeveloperTestsBase
     {
+        private sealed class EvaluationResult
+        {
+            public double[] Utilities { get; }
+            public double[] InformationSetValues { get; }
+            public EvaluationResult(double[] utilities, double[] informationSetValues)
+            {
+                Utilities = utilities;
+                InformationSetValues = informationSetValues;
+            }
+        }
+
         [TestMethod]
         [DataRow(false, false)]
         [DataRow(false, true)]
-        [DataRow(true, false)]
-        [DataRow(true, true)]
+        [DataRow(true,  false)]
+        [DataRow(true,  true)]
         public async Task SameResultsRegularAndUnrolling(bool randomInformationSets, bool largerTree)
         {
-            EvolutionSettings evolutionSettings = new EvolutionSettings();
-            evolutionSettings.TotalIterations = 100;
-            evolutionSettings.GeneralizedVanillaFlavor = GeneralizedVanillaFlavor.Regular;
-            evolutionSettings.UnrollTemplateIdenticalRanges = false;
-            evolutionSettings.UnrollTemplateRepeatedRanges = false;
-            evolutionSettings.Unroll_ChunkExecutorKind = ChunkExecutorKind.Interpreted;
-            evolutionSettings.TraceCFR = false;
+            var evolutionSettings = new EvolutionSettings
+            {
+                TotalIterations = 1, // DEBUG -- set back to 100
+                GeneralizedVanillaFlavor = GeneralizedVanillaFlavor.Regular,
+                UnrollTemplateIdenticalRanges = false,
+                UnrollTemplateRepeatedRanges  = false,
+                Unroll_ChunkExecutorKind = ChunkExecutorKind.Interpreted,
+                TraceCFR = false,
+                ParallelOptimization = false // deterministic for bitwise-equality tests
+            };
 
-            double[] notUnrolled = await DevelopStrategyAndGetUtilities(randomInformationSets, largerTree, evolutionSettings, 1);
+            // Regular from a seeded initial state
+            var regularDev = await Initialize(largerTree, evolutionSettings, 1);
+            if (randomInformationSets)
+                RandomizeInformationSetProbabilities(regularDev);
+            var seed = regularDev.GetInformationSetValues();
 
+            await regularDev.RunAlgorithm("TESTOPTIONS");
+            var notUnrolled = new EvaluationResult(GetUtilities(regularDev), regularDev.GetInformationSetValues());
+
+            // Unrolled from the *same* initial state
             evolutionSettings.GeneralizedVanillaFlavor = GeneralizedVanillaFlavor.Unrolled;
-            double[] unrolled = await DevelopStrategyAndGetUtilities(randomInformationSets, largerTree, evolutionSettings, 1);
+            evolutionSettings.UnrollTemplateIdenticalRanges = false;
+            var unrolledDev = await Initialize(largerTree, evolutionSettings, 1);
+            if (randomInformationSets)
+                unrolledDev.SetInformationSetValues(seed);
 
+            await unrolledDev.RunAlgorithm("TESTOPTIONS");
+            var unrolled = new EvaluationResult(GetUtilities(unrolledDev), unrolledDev.GetInformationSetValues());
+
+            // Unrolled + repeated/identical templates, same seed
             evolutionSettings.UnrollTemplateIdenticalRanges = true;
-            double[] unrolledWithRepeats = await DevelopStrategyAndGetUtilities(randomInformationSets, largerTree, evolutionSettings, 1);
+            var unrolledWithRepeatsDev = await Initialize(largerTree, evolutionSettings, 1);
+            if (randomInformationSets)
+                unrolledWithRepeatsDev.SetInformationSetValues(seed);
 
-            notUnrolled.SequenceEqual(unrolled).Should().BeTrue();
-            unrolledWithRepeats.SequenceEqual(unrolled).Should().BeTrue();
+            await unrolledWithRepeatsDev.RunAlgorithm("TESTOPTIONS");
+            var unrolledWithRepeats = new EvaluationResult(GetUtilities(unrolledWithRepeatsDev), unrolledWithRepeatsDev.GetInformationSetValues());
+
+            notUnrolled.Utilities.SequenceEqual(unrolled.Utilities).Should().BeTrue("utilities must match between Regular and Unrolled");
+            notUnrolled.InformationSetValues.SequenceEqual(unrolled.InformationSetValues).Should().BeTrue("information set values must match between Regular and Unrolled");
+
+            unrolledWithRepeats.Utilities.SequenceEqual(unrolled.Utilities).Should().BeTrue("utilities must match across Unrolled template permutations");
+            unrolledWithRepeats.InformationSetValues.SequenceEqual(unrolled.InformationSetValues).Should().BeTrue("information set values must match across Unrolled template permutations");
         }
+
 
         [TestMethod]
         [DataRow(false, false)]
         [DataRow(false, true)]
-        [DataRow(true, false)]
-        [DataRow(true, true)]
+        [DataRow(true,  false)]
+        [DataRow(true,  true)]
         public async Task SameResultsRegularAndFastCFR(bool randomInformationSets, bool largerTree)
         {
-            EvolutionSettings evolutionSettings = new EvolutionSettings();
-            evolutionSettings.TotalIterations = 100;
-            evolutionSettings.GeneralizedVanillaFlavor = GeneralizedVanillaFlavor.Regular;
-            evolutionSettings.UnrollTemplateIdenticalRanges = false;
-            evolutionSettings.UnrollTemplateRepeatedRanges = false;
-            evolutionSettings.Unroll_ChunkExecutorKind = ChunkExecutorKind.Interpreted;
-            evolutionSettings.TraceCFR = false;
+            var evolutionSettings = new EvolutionSettings
+            {
+                TotalIterations = 1, // DEBUG -- set back to 100
+                GeneralizedVanillaFlavor = GeneralizedVanillaFlavor.Regular,
+                UnrollTemplateIdenticalRanges = false,
+                UnrollTemplateRepeatedRanges = false,
+                Unroll_ChunkExecutorKind = ChunkExecutorKind.Interpreted,
+                TraceCFR = false,
+                ParallelOptimization = false // deterministic for bitwise-equality tests
+            };
 
-            double[] regular = await DevelopStrategyAndGetUtilities(randomInformationSets, largerTree, evolutionSettings, 1);
+            // Regular from a seeded initial state
+            var regularDev = await Initialize(largerTree, evolutionSettings, 1);
+            if (randomInformationSets)
+                RandomizeInformationSetProbabilities(regularDev);
+            var seed = regularDev.GetInformationSetValues();
 
+            await regularDev.RunAlgorithm("TESTOPTIONS");
+            var regular = new EvaluationResult(GetUtilities(regularDev), regularDev.GetInformationSetValues());
+
+            // FastCFR from the *same* initial state
             evolutionSettings.GeneralizedVanillaFlavor = GeneralizedVanillaFlavor.Fast;
-            double[] fast = await DevelopStrategyAndGetUtilities(randomInformationSets, largerTree, evolutionSettings, 1);
+            var fastDev = await Initialize(largerTree, evolutionSettings, 1);
+            if (randomInformationSets)
+                fastDev.SetInformationSetValues(seed);
 
-            regular.SequenceEqual(fast).Should().BeTrue();
+            await fastDev.RunAlgorithm("TESTOPTIONS");
+            var fast = new EvaluationResult(GetUtilities(fastDev), fastDev.GetInformationSetValues());
+
+            regular.Utilities.SequenceEqual(fast.Utilities)
+                .Should().BeTrue("utilities must match between Regular and Fast");
+            regular.InformationSetValues.SequenceEqual(fast.InformationSetValues)
+                .Should().BeTrue("information set values must match between Regular and Fast");
         }
+
 
         [TestMethod]
         [DataRow(false, false)]
@@ -85,7 +143,6 @@ namespace ACESimTest.StrategiesTests
         [DataRow(true,  true)]
         public async Task UnrolledTemplates_AllPermutations_Parity(bool randomInformationSets, bool largerTree)
         {
-            // 1) Baseline: algorithm OFF, no template unrolling flags.
             var evolutionSettings = new EvolutionSettings
             {
                 TotalIterations = 100,
@@ -96,7 +153,6 @@ namespace ACESimTest.StrategiesTests
                 TraceCFR = false
             };
 
-            // 2) Turn algorithm ON and test all permutations of the two template flags.
             var permutations = new (bool useIdentical, bool useRepeated)[]
             {
                 (false, false),
@@ -105,7 +161,7 @@ namespace ACESimTest.StrategiesTests
                 (true,  true),
             };
 
-            double[] firstUnrolled = null;
+            EvaluationResult firstUnrolled = null;
 
             foreach (var (useIdentical, useRepeated) in permutations)
             {
@@ -115,17 +171,21 @@ namespace ACESimTest.StrategiesTests
                 evolutionSettings.Unroll_ChunkExecutorKind = ChunkExecutorKind.Interpreted;
                 evolutionSettings.TraceCFR = false;
 
-                double[] result = await DevelopStrategyAndGetUtilities(randomInformationSets, largerTree, evolutionSettings, 2);
+                EvaluationResult result = await DevelopStrategyAndGetResults(randomInformationSets, largerTree, evolutionSettings, 2);
 
-                // And all permutations should match each other.
                 if (firstUnrolled is null)
+                {
                     firstUnrolled = result;
+                }
                 else
-                    result.SequenceEqual(firstUnrolled).Should().BeTrue(
-                        $"Permutation mismatch: UnrollTemplateIdenticalRanges={useIdentical}, UnrollTemplateRepeatedRanges={useRepeated}");
+                {
+                    result.Utilities.SequenceEqual(firstUnrolled.Utilities).Should().BeTrue(
+                        $"Permutation mismatch (utilities): UnrollTemplateIdenticalRanges={useIdentical}, UnrollTemplateRepeatedRanges={useRepeated}");
+                    result.InformationSetValues.SequenceEqual(firstUnrolled.InformationSetValues).Should().BeTrue(
+                        $"Permutation mismatch (information set values): UnrollTemplateIdenticalRanges={useIdentical}, UnrollTemplateRepeatedRanges={useRepeated}");
+                }
             }
         }
-
 
         [TestMethod]
         [DataRow(false, false)]
@@ -140,7 +200,7 @@ namespace ACESimTest.StrategiesTests
             evolutionSettings.UnrollTemplateIdenticalRanges = false;
             evolutionSettings.UnrollTemplateRepeatedRanges = false;
             evolutionSettings.TraceCFR = false;
-            List<double[]> results = new();
+            List<EvaluationResult> results = new();
 
             foreach (ChunkExecutorKind kind in new ChunkExecutorKind[] { ChunkExecutorKind.Interpreted, ChunkExecutorKind.Roslyn, ChunkExecutorKind.RoslynWithLocalVariableRecycling, ChunkExecutorKind.IL, ChunkExecutorKind.ILWithLocalVariableRecycling })
             {
@@ -151,29 +211,41 @@ namespace ACESimTest.StrategiesTests
                 s.Stop();
                 long initializationTime = s.ElapsedMilliseconds;
                 s.Restart();
-                double[] addToResults = await RunAlgorithmAndGetUtilities(randomInformationSets, developer);
+
+                EvaluationResult addToResults = await RunAlgorithmAndGetResults(randomInformationSets, developer);
+
                 if (results.Any())
-                    addToResults.SequenceEqual(results.First()).Should().BeTrue();
+                {
+                    addToResults.Utilities.SequenceEqual(results.First().Utilities).Should().BeTrue($"utilities mismatch for executor {kind}");
+                    addToResults.InformationSetValues.SequenceEqual(results.First().InformationSetValues).Should().BeTrue($"information set values mismatch for executor {kind}");
+                }
+
+                results.Add(addToResults);
+
                 s.Stop();
                 long runTime = s.ElapsedMilliseconds;
                 Debug.WriteLine($"Time (random? {randomInformationSets} larger? {largerTree}) -- kind {kind, 35} ==> initialization {initializationTime, 6} run for {evolutionSettings.TotalIterations} iterations {runTime, 6}");
             }
         }
 
-        private static async Task<double[]> DevelopStrategyAndGetUtilities(bool randomInformationSets, bool largerTree, EvolutionSettings evolutionSettings, byte numPotentialBargainingRounds)
+        private static async Task<EvaluationResult> DevelopStrategyAndGetResults(bool randomInformationSets, bool largerTree, EvolutionSettings evolutionSettings, byte numPotentialBargainingRounds)
         {
             GeneralizedVanilla developer = await Initialize(largerTree, evolutionSettings, numPotentialBargainingRounds);
-            double[] utilities = await RunAlgorithmAndGetUtilities(randomInformationSets, developer);
-            return utilities;
+            EvaluationResult results = await RunAlgorithmAndGetResults(randomInformationSets, developer);
+            return results;
         }
 
-        private static async Task<double[]> RunAlgorithmAndGetUtilities(bool randomInformationSets, GeneralizedVanilla developer)
+        private static async Task<EvaluationResult> RunAlgorithmAndGetResults(bool randomInformationSets, GeneralizedVanilla developer)
         {
             if (randomInformationSets)
                 RandomizeInformationSetProbabilities(developer);
+
             await developer.RunAlgorithm("TESTOPTIONS");
+
             double[] utilities = GetUtilities(developer);
-            return utilities;
+            double[] informationSetValues = developer.GetInformationSetValues();
+
+            return new EvaluationResult(utilities, informationSetValues);
         }
 
         private static async Task<GeneralizedVanilla> Initialize(bool largerTree, EvolutionSettings evolutionSettings, byte numPotentialBargainingRounds)

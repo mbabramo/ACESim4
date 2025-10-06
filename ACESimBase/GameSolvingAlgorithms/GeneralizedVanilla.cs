@@ -12,6 +12,7 @@ using JetBrains.Annotations;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
@@ -1788,8 +1789,6 @@ namespace ACESim
             double inversePiAvgStrat = GetInversePiValue(avgStratPiValues, playerBeingOptimized);
             Span<double> nextPiValues = stackalloc double[MaxNumMainPlayers];
             Span<double> nextAvgStratPiValues = stackalloc double[MaxNumMainPlayers];
-            //var actionsToHere = historyPoint.GetActionsToHere(Navigation);
-            //var historyPointString = historyPoint.ToString();
 
             IGameState gameStateForCurrentPlayer = GetGameState(in historyPoint);
             var informationSet = (InformationSetNode)gameStateForCurrentPlayer;
@@ -1815,11 +1814,15 @@ namespace ACESim
             for (byte action = 1; action <= numPossibleActions; action++)
             {
                 double probabilityOfAction = actionProbabilities[action - 1];
-                bool prune = playerBeingOptimized != playerMakingDecision && probabilityOfAction == 0;
+
+                bool prune = (EvolutionSettings.PruneOnOpponentStrategy || EvolutionSettings.CFRBR)
+                             && playerBeingOptimized != playerMakingDecision
+                             && probabilityOfAction == 0;
+
                 if (!prune)
                 {
                     double probabilityOfActionAvgStrat = informationSet.GetAverageStrategy(action);
-                    GetNextPiValues(piValues, playerMakingDecision, probabilityOfAction, false, nextPiValues); // reduce probability associated with player being optimized, without changing probabilities for other players
+                    GetNextPiValues(piValues, playerMakingDecision, probabilityOfAction, false, nextPiValues);
                     GetNextPiValues(avgStratPiValues, playerMakingDecision, probabilityOfActionAvgStrat, false, nextAvgStratPiValues);
                     if (EvolutionSettings.TraceCFR)
                     {
@@ -1839,16 +1842,14 @@ namespace ACESim
                     {
                         if (informationSet.BestResponseAction == action)
                             result.BestResponseToAverageStrategy = innerResult.BestResponseToAverageStrategy;
-                        // Meanwhile, we need to determine the best response action in the next iteration. To do this, we need to figure out which action, when weighted by the probability we play to this information set, produces the highest best response on average. Note that we may get different inner results for the same action, because the next information set will differ depending on the other player's information set.
+
                         informationSet.IncrementBestResponse(action, inversePiAvgStrat, innerResult.BestResponseToAverageStrategy);
-                        // The other result utilities are just the probability adjusted utilities. 
 
                         result.CurrentVsCurrent += probabilityOfAction * innerResult.CurrentVsCurrent;
                         result.AverageStrategyVsAverageStrategy += probabilityOfActionAvgStrat * innerResult.AverageStrategyVsAverageStrategy;
                     }
                     else
                     {
-                        // This isn't the decision being optimized, so we essentially just need to pass through the player being optimized's utilities, weighting by the probability for each action (which will depend on whether we are using average strategy or current to calculate the utilities).
                         result.IncrementBasedOnNotYetProbabilityAdjusted(ref innerResult, probabilityOfActionAvgStrat, probabilityOfAction);
                     }
                     expectedValue += probabilityOfAction * expectedValueOfAction[action - 1];
@@ -1872,7 +1873,6 @@ namespace ACESim
                 {
                     double pi = piValues[playerBeingOptimized];
                     var regret = (expectedValueOfAction[action - 1] - expectedValue);
-                    // NOTE: With multiplicative weights, we do NOT discount regrets, because we're normalizing regrets at the end of each iteration.
                     double piAdj = pi;
                     if (pi < InformationSetNode.SmallestProbabilityRepresented)
                         piAdj = InformationSetNode.SmallestProbabilityRepresented;
@@ -1890,12 +1890,10 @@ namespace ACESim
                     if (EvolutionSettings.TraceCFR)
                     {
                         TabbedText.WriteLine($"PiValues {piValues[0]} {piValues[1]} pi for optimized {pi}");
-                        //TabbedText.WriteLine($"Regrets: Action {action} regret {regret} prob-adjust {inversePi * regret} new regret {informationSet.GetCumulativeRegret(action)} strategy inc {pi * actionProbabilities[action - 1]} new cum strategy {informationSet.GetCumulativeStrategy(action)}");
                         TabbedText.WriteLine(
                             $"Regrets ({informationSet.Decision.Name} {informationSet.InformationSetNodeNumber}): Action {action} probability {actionProbabilities[action - 1]} regret {regret} inversePi {inversePi} avg_strat_increment {contributionToAverageStrategy} cum_strategy {informationSet.GetLastCumulativeStrategyIncrement(action)}");
                     }
 
-                    //  Checkpoints
                     if (EvolutionSettings.UseCheckpointsWhenNotUnrolling)
                     {
                         RecordCheckpoint($"prob_action_{decisionNum}_{action}", actionProbabilities[action - 1]);
@@ -1903,11 +1901,11 @@ namespace ACESim
                         RecordCheckpoint($"inversePi_{decisionNum}", inversePi);
                         RecordCheckpoint($"pi_{decisionNum}", pi);
                     }
-                    // ──────────────────────────────────────────────────────────
                 }
             }
             return result;
         }
+
 
         private GeneralizedVanillaUtilities GeneralizedVanillaCFR_ChanceNode(in HistoryPoint historyPoint, byte playerBeingOptimized,
             Span<double> piValues, Span<double> avgStratPiValues)
