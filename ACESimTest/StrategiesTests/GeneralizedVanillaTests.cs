@@ -48,7 +48,7 @@ namespace ACESimTest.StrategiesTests
         {
             var evolutionSettings = new EvolutionSettings
             {
-                TotalIterations = 1, // DEBUG -- set back to 100
+                TotalIterations = 1000, 
                 GeneralizedVanillaFlavor = GeneralizedVanillaFlavor.Regular,
                 UnrollTemplateIdenticalRanges = false,
                 UnrollTemplateRepeatedRanges  = false,
@@ -102,7 +102,7 @@ namespace ACESimTest.StrategiesTests
         {
             var evolutionSettings = new EvolutionSettings
             {
-                TotalIterations = 1, // DEBUG -- set back to 100
+                TotalIterations = 1000,
                 GeneralizedVanillaFlavor = GeneralizedVanillaFlavor.Regular,
                 UnrollTemplateIdenticalRanges = false,
                 UnrollTemplateRepeatedRanges = false,
@@ -145,7 +145,7 @@ namespace ACESimTest.StrategiesTests
         {
             var evolutionSettings = new EvolutionSettings
             {
-                TotalIterations = 100,
+                TotalIterations = 1000,
                 GeneralizedVanillaFlavor = GeneralizedVanillaFlavor.Regular,
                 UnrollTemplateIdenticalRanges = false,
                 UnrollTemplateRepeatedRanges  = false,
@@ -196,7 +196,7 @@ namespace ACESimTest.StrategiesTests
         {
             var evolutionSettings = new EvolutionSettings
             {
-                TotalIterations = 1, // DEBUG -- set back to 100
+                TotalIterations = 1000, 
                 GeneralizedVanillaFlavor = GeneralizedVanillaFlavor.Unrolled,
                 UnrollTemplateIdenticalRanges = false,
                 UnrollTemplateRepeatedRanges = false,
@@ -258,7 +258,7 @@ namespace ACESimTest.StrategiesTests
         public async Task EachExecutorProducesSameResults(bool randomInformationSets, bool largerTree)
         {
             EvolutionSettings evolutionSettings = new EvolutionSettings();
-            evolutionSettings.TotalIterations = 100;
+            evolutionSettings.TotalIterations = 1000;
             evolutionSettings.GeneralizedVanillaFlavor = GeneralizedVanillaFlavor.Unrolled;
             evolutionSettings.UnrollTemplateIdenticalRanges = false;
             evolutionSettings.UnrollTemplateRepeatedRanges = false;
