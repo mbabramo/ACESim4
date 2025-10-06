@@ -251,13 +251,12 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
                 for (int a = 0; a < NumActions; a++) V += _pSelf[a] * Qa[a];
                 double inversePi = ctx.ReachOpp;
                 double piSelf = ctx.ReachSelf;
-                double piAdj = piSelf < InformationSetNode.SmallestProbabilityRepresented ? InformationSetNode.SmallestProbabilityRepresented : piSelf;
                 for (int a = 0; a < NumActions; a++)
                 {
                     double regret = Qa[a] - V;
                     _sumRegretTimesInversePi[a] += regret * inversePi;
                     _sumInversePi[a] += inversePi;
-                    _lastCumulativeStrategyInc[a] += piAdj * _pSelf[a];
+                    _lastCumulativeStrategyInc[a] += piSelf * _pSelf[a];
                 }
             }
             return new FastCFRNodeResult(expectedU, expectedCustom);

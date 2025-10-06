@@ -132,6 +132,7 @@ namespace ACESim
                 }
             }
         }
+
         public override void CompleteReinitializeForScenario(bool warmupVersion, int previousScenarioIndex, double previousWeightOnOpponentP0, double previousWeightOnOpponentOtherPlayers, int updatedScenarioIndex, bool alwaysReinitialize)
         {
             if (warmupVersion || !GameDefinition.UseDifferentWarmup || alwaysReinitialize)
@@ -152,7 +153,6 @@ namespace ACESim
             if (GameDefinition.CurrentWeightOnOpponentP0 > 0 && !EvolutionSettings.UseContinuousRegretsDiscounting)
                 throw new Exception("Using current weight on opponent for warmup has been shown to work only with continuous regrets discounting.");
         }
-
 
         public double[] GetInformationSetValues()
         {

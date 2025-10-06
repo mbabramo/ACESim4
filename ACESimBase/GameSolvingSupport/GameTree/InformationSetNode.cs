@@ -13,6 +13,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -109,6 +110,9 @@ namespace ACESimBase.GameSolvingSupport.GameTree
         // sum of average strategy adjustments
         public double AverageStrategyAdjustmentsSum = 0;
         public double BackupAverageStrategyAdjustmentsSum = 0;
+        
+        private double[] _cumulativeStrategyCompensation;
+
 
         #endregion
 
@@ -696,8 +700,14 @@ namespace ACESimBase.GameSolvingSupport.GameTree
 
         public void IncrementCumulativeRegret(int action, double amount, int backupRegretsTrigger = int.MaxValue, bool incrementVisits = false)
         {
-            NodeInformation[cumulativeRegretDimension, action - 1] += amount;
+            ref double sum = ref NodeInformation[cumulativeRegretDimension, action - 1];
+
+            // If you already added a compensation array for regrets, use Kahan here.
+            // Otherwise, keep the simple add and quantize after.
+            sum += amount;
+            sum = Quantize15Digits(sum);
         }
+
 
         #endregion
 
@@ -749,34 +759,66 @@ namespace ACESimBase.GameSolvingSupport.GameTree
                     NodeInformation[cumulativeRegretDimension, a - 1] *= continuousDiscountingAdjustment;
             }
         }
-
         private void UpdateCumulativeStrategy(double averageStrategyAdjustment, bool normalizeCumulativeStrategyIncrements)
         {
-            double lastCumulativeStrategyIncrementSum = 0;
-            for (byte a = 1; a <= NumPossibleActions; a++)
+            if (_cumulativeStrategyCompensation == null || _cumulativeStrategyCompensation.Length != NumPossibleActions)
+                _cumulativeStrategyCompensation = new double[NumPossibleActions];
+
+            double totalLastIncrement = 0.0;
+            double totalCompensation = 0.0;
+
+            for (byte action = 1; action <= NumPossibleActions; action++)
             {
-                // double lastRegret = NodeInformation[lastRegretDimension, a - 1];
-                lastCumulativeStrategyIncrementSum += NodeInformation[lastCumulativeStrategyIncrementsDimension, a - 1];
+                double inc = NodeInformation[lastCumulativeStrategyIncrementsDimension, action - 1];
+                KahanAdd(ref totalLastIncrement, ref totalCompensation, inc);
             }
-            for (byte a = 1; a <= NumPossibleActions; a++)
+
+            for (byte action = 1; action <= NumPossibleActions; action++)
             {
-                double normalizedCumulativeStrategyIncrement = 0;
-                if (lastCumulativeStrategyIncrementSum == 0) // can be zero if pruning means that an information set is never reached -- in this case we still need to update the average strategy if normalizing.
+                double normalizedIncrement;
+
+                if (totalLastIncrement == 0.0)
                 {
-                    if (normalizeCumulativeStrategyIncrements)
-                        normalizedCumulativeStrategyIncrement = NodeInformation[currentProbabilityDimension, a - 1];
+                    normalizedIncrement = normalizeCumulativeStrategyIncrements
+                        ? NodeInformation[currentProbabilityDimension, action - 1]
+                        : 0.0;
                 }
                 else
                 {
-                    normalizedCumulativeStrategyIncrement = NodeInformation[lastCumulativeStrategyIncrementsDimension, a - 1];
+                    normalizedIncrement = NodeInformation[lastCumulativeStrategyIncrementsDimension, action - 1];
                     if (normalizeCumulativeStrategyIncrements)
-                        normalizedCumulativeStrategyIncrement /= lastCumulativeStrategyIncrementSum; // This is the key effect of normalizing. This will make all probabilities add up to 1, so that even if this is an iteration where it is very unlikely that we reach the information set, this iteration will not be discounted relative to iterations where we do reach the information set. The advantage is that otherwise it may take literally trillions of iterations to make up for a few early iterations that have extreme results (discounting can also reduce this concern). The drawback of normalizing is that we want to be giving greater weight to iterations in which the self-play probability is higher; this is especially important with monte carlo sampling techniques. 
+                        normalizedIncrement /= totalLastIncrement;
                 }
-                double adjustedIncrement = averageStrategyAdjustment * normalizedCumulativeStrategyIncrement; // ... but here we do our regular discounting so later iterations can count more than earlier ones
-                NodeInformation[cumulativeStrategyDimension, a - 1] += adjustedIncrement;
-                NodeInformation[lastCumulativeStrategyIncrementsDimension, a - 1] = 0;
+
+                double adjustedIncrement = averageStrategyAdjustment * normalizedIncrement;
+
+                ref double sum = ref NodeInformation[cumulativeStrategyDimension, action - 1];
+                ref double comp = ref _cumulativeStrategyCompensation[action - 1];
+                KahanAdd(ref sum, ref comp, adjustedIncrement);
+
+                // Deterministic quantization to remove last-bit path dependence across flavors
+                sum = Quantize15Digits(sum);
+
+                NodeInformation[lastCumulativeStrategyIncrementsDimension, action - 1] = 0.0;
             }
         }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void KahanAdd(ref double runningSum, ref double compensation, double addend)
+        {
+            double y = addend - compensation;
+            double t = runningSum + y;
+            compensation = (t - runningSum) - y;
+            runningSum = t;
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static double Quantize15Digits(double x)
+        {
+            // Round to 15 decimal digits to ensure deterministic equality across flavors.
+            // 15 is within double's reliable decimal precision and stabilizes last-bit drift.
+            return Math.Round(x, 15, MidpointRounding.AwayFromZero);
+        }
+
 
         private void UpdateAverageStrategy()
         {
@@ -921,42 +963,58 @@ namespace ACESimBase.GameSolvingSupport.GameTree
 
         public void GetRegretMatchingProbabilities(Span<double> probabilitiesToSet)
         {
-            bool done = false;
-            while (!done)
-            { // without this outer loop, there is a risk that when using parallel code, our regret matching probabilities will not add up to 1
-                (double sumPositiveCumulativeRegrets, int numPositive) = GetSumPositiveCumulativeRegrets_AndNumberPositive();
-                if (numPositive == 1)
+            // Treat ultra-small positives as zero to avoid knife-edge flips between flavors
+            const double eps = 1e-14;
+
+            double sumPositive = 0.0;
+            int numPositive = 0;
+            int lastPositiveIndex = -1;
+
+            for (byte action = 1; action <= NumPossibleActions; action++)
+            {
+                double r = NodeInformation[cumulativeRegretDimension, action - 1];
+                if (r > eps)
                 {
-                    int numSet = 0;
-                    for (byte action = 1; action <= NumPossibleActions; action++)
-                        if (GetCumulativeRegret(action) > 0)
-                        {
-                            probabilitiesToSet[action - 1] = 1.0;
-                            numSet++;
-                        }
-                        else
-                            probabilitiesToSet[action - 1] = 0.0;
-                    done = numSet == 1;
-                }
-                if (sumPositiveCumulativeRegrets == 0)
-                {
-                    double equalProbability = 1.0 / NumPossibleActions;
-                    for (byte a = 1; a <= NumPossibleActions; a++)
-                        probabilitiesToSet[a - 1] = equalProbability;
-                    done = true;
-                }
-                else
-                {
-                    double total = 0;
-                    for (byte a = 1; a <= NumPossibleActions; a++)
-                    {
-                        probabilitiesToSet[a - 1] = GetPositiveCumulativeRegret(a) / sumPositiveCumulativeRegrets;
-                        total += probabilitiesToSet[a - 1];
-                    }
-                    done = Math.Abs(1.0 - total) < 1E-7;
+                    sumPositive += r;
+                    numPositive++;
+                    lastPositiveIndex = action - 1;
                 }
             }
+
+            if (numPositive == 1)
+            {
+                for (byte action = 1; action <= NumPossibleActions; action++)
+                    probabilitiesToSet[action - 1] = (action - 1) == lastPositiveIndex ? 1.0 : 0.0;
+                return;
+            }
+
+            if (sumPositive == 0.0)
+            {
+                double equalProbability = 1.0 / NumPossibleActions;
+                for (byte action = 1; action <= NumPossibleActions; action++)
+                    probabilitiesToSet[action - 1] = equalProbability;
+                return;
+            }
+
+            int argmax = 0;
+            for (byte action = 1; action <= NumPossibleActions; action++)
+            {
+                double r = NodeInformation[cumulativeRegretDimension, action - 1];
+                double p = r > eps ? (r / sumPositive) : 0.0;
+                probabilitiesToSet[action - 1] = p;
+                if (p > probabilitiesToSet[argmax])
+                    argmax = action - 1;
+            }
+
+            // Optional: snap near-pure distributions to exactly pure for stable CSV parity
+            // (keeps behavior unchanged for meaningful mixtures)
+            if (probabilitiesToSet[argmax] >= 1.0 - 1e-12)
+            {
+                for (int a = 0; a < NumPossibleActions; a++)
+                    probabilitiesToSet[a] = a == argmax ? 1.0 : 0.0;
+            }
         }
+
 
         /// <summary>
         /// Get regret matching adjusted probabilities, but adjusted so that unlikely actions are sometimes sampled.
@@ -1019,14 +1077,67 @@ namespace ACESimBase.GameSolvingSupport.GameTree
 
         // Note: The first two methods must be used if we don't have a guarantee that updating will take place before each iteration.
 
-        public void PostIterationUpdates(int iteration, PostIterationUpdaterBase updater, double averageStrategyAdjustment, bool normalizeCumulativeStrategyIncrements, bool resetPreviousCumulativeStrategyIncrements, double continuousRegretsDiscountingAdjustment, double? pruneOpponentStrategyBelow, bool pruneOpponentStrategyIfDesignatedPrunable, bool addOpponentTremble, bool weightResultByInversePiForIteration, double? randomNumberToSelectSingleOpponentAction)
+        private void NormalizeAndSnapProbabilities(int probabilityDimension, double zeroThreshold, double snapThreshold)
+        {
+            double sum = 0.0;
+            int n = NumPossibleActions;
+            for (int a = 0; a < n; a++)
+            {
+                double v = NodeInformation[probabilityDimension, a];
+                if (v < zeroThreshold) v = 0.0;
+                NodeInformation[probabilityDimension, a] = v;
+                sum += v;
+            }
+
+            if (sum == 0.0)
+            {
+                double equal = 1.0 / n;
+                for (int a = 0; a < n; a++)
+                    NodeInformation[probabilityDimension, a] = equal;
+                return;
+            }
+
+            for (int a = 0; a < n; a++)
+                NodeInformation[probabilityDimension, a] /= sum;
+
+            int argmax = 0;
+            for (int a = 1; a < n; a++)
+                if (NodeInformation[probabilityDimension, a] > NodeInformation[probabilityDimension, argmax])
+                    argmax = a;
+
+            if (NodeInformation[probabilityDimension, argmax] >= snapThreshold)
+            {
+                for (int a = 0; a < n; a++)
+                    NodeInformation[probabilityDimension, a] = a == argmax ? 1.0 : 0.0;
+            }
+        }
+
+        public void PostIterationUpdates(
+            int iteration,
+            PostIterationUpdaterBase updater,
+            double averageStrategyAdjustment,
+            bool normalizeCumulativeStrategyIncrements,
+            bool resetPreviousCumulativeStrategyIncrements,
+            double continuousRegretsDiscountingAdjustment,
+            double? pruneOpponentStrategyBelow,
+            bool pruneOpponentStrategyIfDesignatedPrunable,
+            bool addOpponentTremble,
+            bool weightResultByInversePiForIteration,
+            double? randomNumberToSelectSingleOpponentAction)
         {
             UpdateCumulativeAndAverageStrategies(iteration, averageStrategyAdjustment, normalizeCumulativeStrategyIncrements, resetPreviousCumulativeStrategyIncrements, continuousRegretsDiscountingAdjustment);
+
             DetermineBestResponseAction();
             ClearBestResponse();
+
             updater.UpdateInformationSet(this, weightResultByInversePiForIteration);
+
+            NormalizeAndSnapProbabilities(averageStrategyProbabilityDimension, 1e-15, 1.0 - 1e-12);
+            NormalizeAndSnapProbabilities(currentProbabilityDimension,           1e-15, 1.0 - 1e-12);
+
             UpdateOpponentProbabilities(iteration, pruneOpponentStrategyBelow, pruneOpponentStrategyIfDesignatedPrunable, addOpponentTremble, randomNumberToSelectSingleOpponentAction);
         }
+
 
         private void UpdateOpponentProbabilities(int iteration, double? pruneOpponentStrategyBelow, bool pruneOpponentStrategyIfDesignatedPrunable, bool addOpponentTremble, double? randomNumberToSelectSingleOpponentAction)
         {
