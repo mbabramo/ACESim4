@@ -1817,7 +1817,7 @@ namespace ACESim
 
                 bool prune = (EvolutionSettings.PruneOnOpponentStrategy || EvolutionSettings.CFRBR)
                              && playerBeingOptimized != playerMakingDecision
-                             && probabilityOfAction == 0;
+                             && probabilityOfAction <= double.Epsilon;
 
                 if (!prune)
                 {
@@ -1905,6 +1905,7 @@ namespace ACESim
             }
             return result;
         }
+
 
 
         private GeneralizedVanillaUtilities GeneralizedVanillaCFR_ChanceNode(in HistoryPoint historyPoint, byte playerBeingOptimized,
