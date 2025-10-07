@@ -18,7 +18,7 @@ namespace ACESimBase.GameSolvingSupport.PostIterationUpdater
 
         public double GetNormalizedRegret(InformationSetNode node, int a, bool weightResultByInversePiForIteration, bool makeStrictlyPositive)
         {
-            double[,] nodeInformation = node.NodeInformation.ToArrayCopy();
+            double[,] nodeInformation = node.NodeInformation;
             double denominator = nodeInformation[InformationSetNode.sumInversePiDimension, a - 1];
             double regretUnnormalized = denominator == 0 ? 0.5 * (node.MaxPossibleThisPlayer - node.MinPossibleThisPlayer) : nodeInformation[InformationSetNode.sumRegretTimesInversePiDimension, a - 1] / denominator;
             double normalizedRegret = node.NormalizeRegret(regretUnnormalized, makeStrictlyPositive); // bad moves are now close to 0 and good moves are close to 1

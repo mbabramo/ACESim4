@@ -64,7 +64,7 @@ namespace ACESimBase.GameSolvingSupport.GameTree
 
         public byte PlayerIndex => Decision.PlayerIndex;
 
-        public Interceptable2DArray<double> NodeInformation;
+        public double[,] NodeInformation;
         public double[,] BackupNodeInformation;
 
         public double[] MaxPossible, MinPossible;
@@ -237,7 +237,6 @@ namespace ACESimBase.GameSolvingSupport.GameTree
         public void Initialize(bool clearPastValues = false)
         {
             ResetNodeInformation(totalDimensions, NumPossibleActions);
-            NodeInformation.ID = InformationSetNodeNumber;
             BackupNodeInformation = null;
             double probability = 1.0 / NumPossibleActions;
             if (double.IsNaN(probability) || NumPossibleActions == 0)
@@ -267,8 +266,7 @@ namespace ACESimBase.GameSolvingSupport.GameTree
 
         private void ResetNodeInformation(int numDimensions, int numPossibleActions)
         {
-            NodeInformation = new  Interceptable2DArray<double>(numDimensions, numPossibleActions);
-            NodeInformation.ID = InformationSetNodeNumber;
+            NodeInformation = new double[numDimensions, numPossibleActions];
             for (int i = 0; i < numDimensions; i++)
                 for (int j = 0; j < numPossibleActions; j++)
                     NodeInformation[i, j] = 0;
@@ -621,11 +619,8 @@ namespace ACESimBase.GameSolvingSupport.GameTree
         }
         public void IncrementLastRegret_Parallel(byte action, double regretTimesInversePi, double inversePi)
         {
-            // DEBUG -- restore Interlocked
-NodeInformation[sumRegretTimesInversePiDimension, action - 1] += regretTimesInversePi;
-NodeInformation[sumInversePiDimension, action - 1] += inversePi;
-
-
+            Interlocking.Add(ref NodeInformation[sumRegretTimesInversePiDimension, action - 1], regretTimesInversePi);
+            Interlocking.Add(ref NodeInformation[sumInversePiDimension, action - 1], inversePi);
             //    Debug.WriteLine($"after increment: regret*invpi {regretTimesInversePi} inversePi {inversePi} numerator {NodeInformation[lastRegretNumeratorDimension, action - 1]} denominator {NodeInformation[lastRegretDenominatorDimension, action - 1]} fraction {NodeInformation[lastRegretNumeratorDimension, action - 1] / NodeInformation[lastRegretDenominatorDimension, action - 1]}");
         }
 
@@ -700,19 +695,17 @@ NodeInformation[sumInversePiDimension, action - 1] += inversePi;
 
         public void IncrementCumulativeRegret_Parallel(int action, double amount, bool incrementBackup, int backupRegretsTrigger = int.MaxValue, bool incrementVisits = false)
         {
-            NodeInformation[cumulativeRegretDimension, action - 1] += amount;
+            Interlocking.Add(ref NodeInformation[cumulativeRegretDimension, action - 1], amount);
         }
 
         public void IncrementCumulativeRegret(int action, double amount, int backupRegretsTrigger = int.MaxValue, bool incrementVisits = false)
         {
-            double sum = NodeInformation[cumulativeRegretDimension, action - 1];
+            ref double sum = ref NodeInformation[cumulativeRegretDimension, action - 1];
 
             // If you already added a compensation array for regrets, use Kahan here.
             // Otherwise, keep the simple add and quantize after.
             sum += amount;
             sum = Quantize15Digits(sum);
-
-            NodeInformation[cumulativeRegretDimension, action - 1] = sum;
         }
 
 
@@ -727,7 +720,8 @@ NodeInformation[sumInversePiDimension, action - 1] += inversePi;
 
         public void IncrementLastCumulativeStrategyIncrements_Parallel(byte action, double strategyProbabilityTimesSelfReachProbability)
         {
-            NodeInformation[lastCumulativeStrategyIncrementsDimension, action - 1] += strategyProbabilityTimesSelfReachProbability;
+            Interlocking.Add(ref NodeInformation[lastCumulativeStrategyIncrementsDimension, action - 1], strategyProbabilityTimesSelfReachProbability);
+            //Interlocked.Increment(ref NumRegretIncrements);
         }
 
         public double GetLastCumulativeStrategyIncrement(byte action) => NodeInformation[lastCumulativeStrategyIncrementsDimension, action - 1];
@@ -798,12 +792,12 @@ NodeInformation[sumInversePiDimension, action - 1] += inversePi;
 
                 double adjustedIncrement = averageStrategyAdjustment * normalizedIncrement;
 
-                double sum = NodeInformation[cumulativeStrategyDimension, action - 1];
+                ref double sum = ref NodeInformation[cumulativeStrategyDimension, action - 1];
                 ref double comp = ref _cumulativeStrategyCompensation[action - 1];
                 KahanAdd(ref sum, ref comp, adjustedIncrement);
-                sum = Quantize15Digits(sum);
-                NodeInformation[cumulativeStrategyDimension, action - 1] = sum;
 
+                // Deterministic quantization to remove last-bit path dependence across flavors
+                sum = Quantize15Digits(sum);
 
                 NodeInformation[lastCumulativeStrategyIncrementsDimension, action - 1] = 0.0;
             }
@@ -864,7 +858,7 @@ NodeInformation[sumInversePiDimension, action - 1] += inversePi;
 
         public void IncrementCumulativeStrategy_Parallel(int action, double amount)
         {
-            NodeInformation[cumulativeStrategyDimension, action - 1] += amount;
+            Interlocking.Add(ref NodeInformation[cumulativeStrategyDimension, action - 1], amount);
         }
 
         public void IncrementCumulativeStrategy(int action, double amount)
@@ -1716,15 +1710,14 @@ NodeInformation[sumInversePiDimension, action - 1] += inversePi;
 
         public void CreateBackup()
         {
-            BackupNodeInformation = (double[,])NodeInformation.ToArrayCopy();
+            BackupNodeInformation = (double[,])NodeInformation.Clone();
             BackupBestResponseAction = BestResponseAction;
             BackupAverageStrategyAdjustmentsSum = AverageStrategyAdjustmentsSum;
         }
 
         public void RestoreBackup()
         {
-            NodeInformation = new Interceptable2DArray<double>((double[,])BackupNodeInformation.Clone());
-            NodeInformation.ID = InformationSetNodeNumber;
+            NodeInformation = (double[,])BackupNodeInformation.Clone();
             BestResponseAction = BackupBestResponseAction;
             AverageStrategyAdjustmentsSum = BackupAverageStrategyAdjustmentsSum;
         }

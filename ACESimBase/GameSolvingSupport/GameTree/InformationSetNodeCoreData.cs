@@ -23,7 +23,7 @@ namespace ACESimBase.GameSolvingSupport.GameTree
         public void CopyFromInformationSet(InformationSetNode informationSet)
         {
             InformationSetNodeNumber = informationSet.InformationSetNodeNumber;
-            NodeInformation = informationSet.NodeInformation.ToArrayCopy();
+            NodeInformation = informationSet.NodeInformation;
             PastValues = informationSet.PastValues;
             PastValuesCumulativeStrategyDiscounts = informationSet.PastValuesCumulativeStrategyDiscounts;
             LastPastValueIndexRecorded = informationSet.LastPastValueIndexRecorded;
@@ -35,8 +35,7 @@ namespace ACESimBase.GameSolvingSupport.GameTree
         public void CopyToInformationSet(InformationSetNode informationSet)
         {
             informationSet.InformationSetNodeNumber = InformationSetNodeNumber;
-            informationSet.NodeInformation = new Util.Collections.Interceptable2DArray<double>((double[,])NodeInformation.Clone());
-            informationSet.NodeInformation.ID = InformationSetNodeNumber; // DEBUG
+            informationSet.NodeInformation = NodeInformation;
             informationSet.PastValues = PastValues;
             informationSet.PastValuesCumulativeStrategyDiscounts = PastValuesCumulativeStrategyDiscounts;
             informationSet.LastPastValueIndexRecorded = LastPastValueIndexRecorded;
