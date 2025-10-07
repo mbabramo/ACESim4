@@ -1610,7 +1610,7 @@ namespace ACESim
                         break;
                 }
 
-                double[] equilibrium = GetInformationSetValues();
+               double[] equilibrium = GetInformationSetValues();
                 string equFile = CreateEquilibriaFile(new List<double[]> { equilibrium });
             }
             if (EvolutionSettings.CreateEFGFile)

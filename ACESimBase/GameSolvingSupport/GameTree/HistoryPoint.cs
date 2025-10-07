@@ -69,7 +69,7 @@ namespace ACESimBase.GameSolvingSupport.GameTree
             // GameHistory. In that case, deep copying it will attempt to copy from a zero-length buffer.
             GameHistoryStorable historyToPointStorable;
 
-            if (HistoryToPoint.Initialized && HistoryToPoint.Buffer != null && HistoryToPoint.Buffer.Length > 0)
+            if (HistoryToPoint.Initialized  && HistoryToPoint.Buffer.Length > 0)
                 historyToPointStorable = HistoryToPoint.DeepCopyToStorable();
             else
                 historyToPointStorable = GameHistoryStorable.NewInitialized();

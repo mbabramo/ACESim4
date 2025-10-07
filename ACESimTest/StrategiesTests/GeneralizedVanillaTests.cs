@@ -95,7 +95,7 @@ namespace ACESimTest.StrategiesTests
             }
         }
 
-        private int _iterationsForParity = 95; // minimum number causing test to fail // DEBUG -- change back to 1000
+        private int _iterationsForParity = 1; // minimum number causing test to fail // DEBUG -- change back to 1000
 
         private static bool ConfirmInformationSetsMatch(
             GeneralizedVanilla devA, string labelA,
@@ -260,10 +260,12 @@ namespace ACESimTest.StrategiesTests
         [DataRow(true,  true)]
         public async Task SameResultsUnrolledAndFastCFR(bool randomInformationSets, bool largerTree)
         {
-            var unrolled = await BuildWithFlavor(largerTree, randomInformationSets, GeneralizedVanillaFlavor.Unrolled, 1, _iterationsForParity);
+            byte rounds = 2; // DEBUG 1
+
+            var unrolled = await BuildWithFlavor(largerTree, randomInformationSets, GeneralizedVanillaFlavor.Unrolled, rounds, _iterationsForParity);
             await unrolled.RunAlgorithm("TESTOPTIONS");
 
-            var fast = await BuildWithFlavor(largerTree, randomInformationSets, GeneralizedVanillaFlavor.Fast, 1, _iterationsForParity);
+            var fast = await BuildWithFlavor(largerTree, randomInformationSets, GeneralizedVanillaFlavor.Fast, rounds, _iterationsForParity);
             await fast.RunAlgorithm("TESTOPTIONS");
 
             var ok = ConfirmInformationSetsMatch(unrolled, "Unrolled", fast, "Fast", maxLines: 1);
@@ -333,8 +335,10 @@ namespace ACESimTest.StrategiesTests
 
         private static async Task<GeneralizedVanilla> Initialize(bool largerTree, EvolutionSettings evolutionSettings, byte numPotentialBargainingRounds)
         {
-            byte branching = largerTree ? (byte)4 : (byte)2; // signals, precaution powers, and precaution levels
+            byte branching = largerTree ? (byte)5 /* DEBUG 4 */ : (byte)2; // signals, precaution powers, and precaution levels
             var options = LitigGameOptionsGenerator.PrecautionNegligenceGame(largerTree, largerTree, branching, numPotentialBargainingRounds, branching, branching);
+            options.SkipFileAndAnswerDecisions = true; // DEBUG
+            options.PredeterminedAbandonAndDefaults = false; // DEBUG
             GeneralizedVanilla.ClearCache();
             var developer = await GetGeneralizedVanilla(options, "TESTOPTIONS", evolutionSettings);
             return developer;
