@@ -21,7 +21,7 @@ namespace ACESimBase.GameSolvingSupport.PostIterationUpdater
         {
             // normalize regrets to costs between 0 and 1. the key assumption is that each iteration takes into account ALL possible outcomes (as in a vanilla hedge CFR algorithm)
             double sumWeights = 0;
-            double[,] nodeInformation = node.NodeInformation;
+            double[,] nodeInformation = node.NodeInformation.ToArrayCopy();
             int numPossibleActions = node.NumPossibleActions;
             for (int a = 1; a <= numPossibleActions; a++)
             {
