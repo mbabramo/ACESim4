@@ -1,6 +1,7 @@
 ﻿using System;
 using ACESimBase.GameSolvingSupport.GameTree;
 using ACESimBase.Util.Collections;
+using System.Runtime.CompilerServices;
 
 namespace ACESimBase.GameSolvingSupport.FastCFR
 {
@@ -27,8 +28,7 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
         private FloatSet[] _expectedCustomByLane = Array.Empty<FloatSet>();
 
         private double[] _scratchWeightsByLane = Array.Empty<double>();
-        private byte[] _scratchMaskSaved = Array.Empty<byte>();
-        private byte[] _scratchMaskChild = Array.Empty<byte>();
+        private double[] _scratchValueByLane = Array.Empty<double>(); // reuse instead of per-call 'new double[lanes]'
         private double[] _savedReachSelf = Array.Empty<double>();
         private double[] _savedReachOpp = Array.Empty<double>();
 
@@ -83,8 +83,7 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
             _expectedCustomByLane = _expectedCustomByLane.Length == lanes ? _expectedCustomByLane : new FloatSet[lanes];
 
             _scratchWeightsByLane = _scratchWeightsByLane.Length == lanes ? _scratchWeightsByLane : new double[lanes];
-            _scratchMaskSaved = _scratchMaskSaved.Length == lanes ? _scratchMaskSaved : new byte[lanes];
-            _scratchMaskChild = _scratchMaskChild.Length == lanes ? _scratchMaskChild : new byte[lanes];
+            _scratchValueByLane = _scratchValueByLane.Length == lanes ? _scratchValueByLane : new double[lanes];
             _savedReachSelf = _savedReachSelf.Length == lanes ? _savedReachSelf : new double[lanes];
             _savedReachOpp = _savedReachOpp.Length == lanes ? _savedReachOpp : new double[lanes];
 
@@ -130,32 +129,37 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
                 int ai = visit.Steps[i].ActionIndex;
                 var child = children[i];
 
+                // Save reaches and build child mask + per-lane weights without copying arrays.
                 for (int k = 0; k < lanes; k++)
                 {
-                    _scratchMaskChild[k] = 0;
                     _savedReachSelf[k] = ctx.ReachSelf[k];
                     _savedReachOpp[k] = ctx.ReachOpp[k];
                 }
 
+                int savedMaskBits = PackMask(ctx.ActiveMask, lanes);
+                int childMaskBits = 0;
+
                 for (int k = 0; k < lanes; k++)
                 {
-                    if (ctx.ActiveMask[k] == 0) continue;
+                    if (ctx.ActiveMask[k] == 0) { _scratchWeightsByLane[k] = 0.0; continue; }
+
                     double w = ownerIsOptimized ? _pSelfByLane[k][ai] : _pOppByLane[k][ai];
-                    if (!ownerIsOptimized && w <= Epsilon) { _scratchMaskChild[k] = 0; continue; }
-                    _scratchMaskChild[k] = 1;
+                    _scratchWeightsByLane[k] = w;
+
+                    if (!ownerIsOptimized && w <= Epsilon) continue;
+
+                    childMaskBits |= (1 << k);
                     if (ownerIsOptimized)
                         ctx.ReachSelf[k] = _savedReachSelf[k] * w;
                     else
                         ctx.ReachOpp[k] = _savedReachOpp[k] * w;
                 }
 
-                for (int k = 0; k < lanes; k++)
-                    _scratchMaskSaved[k] = ctx.ActiveMask[k];
-                Array.Copy(_scratchMaskChild, ctx.ActiveMask, lanes);
+                WriteMask(ctx.ActiveMask, lanes, childMaskBits);
 
                 var childResult = child.GoVec(ref ctx);
 
-                Array.Copy(_scratchMaskSaved, ctx.ActiveMask, lanes);
+                WriteMask(ctx.ActiveMask, lanes, savedMaskBits);
                 for (int k = 0; k < lanes; k++)
                 {
                     ctx.ReachSelf[k] = _savedReachSelf[k];
@@ -165,8 +169,8 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
                 var cu = childResult.UtilitiesByPlayerByLane;
                 for (int k = 0; k < lanes; k++)
                 {
-                    if (_scratchMaskChild[k] == 0) continue;
-                    double w = ownerIsOptimized ? _pSelfByLane[k][ai] : _pOppByLane[k][ai];
+                    if ((childMaskBits & (1 << k)) == 0) continue;
+                    double w = _scratchWeightsByLane[k];
                     for (int p = 0; p < _numPlayers; p++)
                         _expectedUByPlayerByLane[p][k] += w * cu[p][k];
                     _expectedCustomByLane[k] = _expectedCustomByLane[k].Plus(childResult.CustomByLane[k].Times((float)w));
@@ -175,20 +179,21 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
                 if (ownerIsOptimized)
                 {
                     for (int k = 0; k < lanes; k++)
-                        _qaByActionByLane[ai][k] = childResult.UtilitiesByPlayerByLane[PlayerIndex][k];
+                        if ((childMaskBits & (1 << k)) != 0)
+                            _qaByActionByLane[ai][k] = childResult.UtilitiesByPlayerByLane[PlayerIndex][k];
                 }
             }
 
             if (ownerIsOptimized)
             {
-                var V = new double[lanes];
+                // V[k] = Σ_a pSelf[k,a] * Qa[a][k]
                 for (int k = 0; k < lanes; k++)
                 {
-                    if (ctx.ActiveMask[k] == 0) { V[k] = 0.0; continue; }
+                    if (ctx.ActiveMask[k] == 0) { _scratchValueByLane[k] = 0.0; continue; }
                     double sum = 0.0;
                     for (int a = 0; a < NumActions; a++)
                         sum += _pSelfByLane[k][a] * _qaByActionByLane[a][k];
-                    V[k] = sum;
+                    _scratchValueByLane[k] = sum;
                 }
 
                 for (int a = 0; a < NumActions; a++)
@@ -200,7 +205,7 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
                     for (int k = 0; k < lanes; k++)
                     {
                         if (ctx.ActiveMask[k] == 0) continue;
-                        double regret = _qaByActionByLane[a][k] - V[k];
+                        double regret = _qaByActionByLane[a][k] - _scratchValueByLane[k];
                         rti[k] += regret * ctx.ReachOpp[k];
                         si[k] += ctx.ReachOpp[k];
                         inc[k] += ctx.ReachSelf[k] * _pSelfByLane[k][a];
@@ -228,6 +233,22 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
                         backing.IncrementLastCumulativeStrategyIncrements((byte)(a + 1), incr);
                 }
             }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static int PackMask(ReadOnlySpan<byte> mask, int count)
+        {
+            int bits = 0;
+            for (int k = 0; k < count; k++)
+                if (mask[k] != 0) bits |= (1 << k);
+            return bits;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void WriteMask(Span<byte> dest, int count, int bits)
+        {
+            for (int k = 0; k < count; k++)
+                dest[k] = ((bits >> k) & 1) != 0 ? (byte)1 : (byte)0;
         }
     }
 }

@@ -1,5 +1,6 @@
 ﻿using System;
 using ACESimBase.Util.Collections;
+using System.Runtime.CompilerServices;
 
 namespace ACESimBase.GameSolvingSupport.FastCFR
 {
@@ -16,8 +17,6 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
         private double[][] _expectedUByPlayerByLane = Array.Empty<double[]>();
         private FloatSet[] _expectedCustomByLane = Array.Empty<FloatSet>();
         private double[] _pLaneScratch = Array.Empty<double>();
-        private byte[] _maskSaved = Array.Empty<byte>();
-        private byte[] _maskChild = Array.Empty<byte>();
         private double[] _savedReachOpp = Array.Empty<double>();
         private double[] _savedReachChance = Array.Empty<double>();
 
@@ -66,8 +65,6 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
             Array.Clear(_expectedCustomByLane, 0, lanes);
 
             _pLaneScratch = _pLaneScratch.Length == lanes ? _pLaneScratch : new double[lanes];
-            _maskSaved = _maskSaved.Length == lanes ? _maskSaved : new byte[lanes];
-            _maskChild = _maskChild.Length == lanes ? _maskChild : new byte[lanes];
             _savedReachOpp = _savedReachOpp.Length == lanes ? _savedReachOpp : new double[lanes];
             _savedReachChance = _savedReachChance.Length == lanes ? _savedReachChance : new double[lanes];
 
@@ -80,23 +77,30 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
 
                 for (int k = 0; k < lanes; k++)
                 {
-                    _maskChild[k] = (byte)(ctx.ActiveMask[k] != 0 && _pLaneScratch[k] != 0.0 ? 1 : 0);
                     _savedReachOpp[k] = ctx.ReachOpp[k];
                     _savedReachChance[k] = ctx.ReachChance[k];
-                    if (_maskChild[k] != 0)
+                }
+
+                int savedMaskBits = PackMask(ctx.ActiveMask, lanes);
+                int childMaskBits = 0;
+
+                for (int k = 0; k < lanes; k++)
+                {
+                    bool active = ctx.ActiveMask[k] != 0 && _pLaneScratch[k] != 0.0;
+                    if (active)
                     {
+                        childMaskBits |= (1 << k);
                         double p = _pLaneScratch[k];
                         ctx.ReachOpp[k] = _savedReachOpp[k] * p;
                         ctx.ReachChance[k] = _savedReachChance[k] * p;
                     }
                 }
 
-                Array.Copy(ctx.ActiveMask, _maskSaved, lanes);
-                Array.Copy(_maskChild, ctx.ActiveMask, lanes);
+                WriteMask(ctx.ActiveMask, lanes, childMaskBits);
 
                 var childResult = child.GoVec(ref ctx);
 
-                Array.Copy(_maskSaved, ctx.ActiveMask, lanes);
+                WriteMask(ctx.ActiveMask, lanes, savedMaskBits);
                 for (int k = 0; k < lanes; k++)
                 {
                     ctx.ReachOpp[k] = _savedReachOpp[k];
@@ -106,7 +110,7 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
                 var cu = childResult.UtilitiesByPlayerByLane;
                 for (int k = 0; k < lanes; k++)
                 {
-                    if (_maskChild[k] == 0) continue;
+                    if ((childMaskBits & (1 << k)) == 0) continue;
                     double p = _pLaneScratch[k];
                     for (int pl = 0; pl < _numPlayers; pl++)
                         _expectedUByPlayerByLane[pl][k] += p * cu[pl][k];
@@ -115,6 +119,22 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
             }
 
             return new FastCFRNodeVecResult(_expectedUByPlayerByLane, _expectedCustomByLane);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static int PackMask(ReadOnlySpan<byte> mask, int count)
+        {
+            int bits = 0;
+            for (int k = 0; k < count; k++)
+                if (mask[k] != 0) bits |= (1 << k);
+            return bits;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void WriteMask(Span<byte> dest, int count, int bits)
+        {
+            for (int k = 0; k < count; k++)
+                dest[k] = ((bits >> k) & 1) != 0 ? (byte)1 : (byte)0;
         }
     }
 }

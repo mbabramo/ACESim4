@@ -5,6 +5,7 @@ using ACESimBase.Util.Collections;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 
 namespace ACESimBase.GameSolvingSupport.FastCFR
 {
@@ -42,7 +43,6 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
             AllocatePolicyBuffers();
         }
 
-
         public void ConfigureVectorRegion(FastCFRVectorRegionOptions options, Func<ChanceNode, bool> anchorSelector)
         {
             _vectorOptions = options ?? throw new ArgumentNullException(nameof(options));
@@ -62,6 +62,7 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
             int groups = (numOutcomes + _vectorWidth - 1) / _vectorWidth;
             var roots = new IFastCFRNodeVec[groups];
 
+            // Compile per-group vector roots
             for (int g = 0; g < groups; g++)
             {
                 int start = g * _vectorWidth;
@@ -251,6 +252,43 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
             return () => node;
         }
 
+        // New: initialize ONLY the vector nodes once per sweep (no context allocations).
+        internal void InitializeVectorNodesForSweep(byte optimizedPlayerIndex)
+        {
+            if (!_vectorRegionBuilt)
+                throw new InvalidOperationException("Vector region not built.");
+
+            if (_vecInitDoneThisSweep)
+                return;
+
+            foreach (var node in _vecInfosets)
+            {
+                int ln = node.LaneCount;
+                var ownerByLane = new double[ln][];
+                var oppByLane = new double[ln][];
+
+                for (int k = 0; k < ln; k++)
+                {
+                    var backing = node.GetBackingForLane(k);
+                    var owner = new double[backing.NumPossibleActions];
+                    var opp = new double[backing.NumPossibleActions];
+
+                    backing.GetCurrentProbabilities(owner, opponentProbabilities: false);
+                    backing.GetCurrentProbabilities(opp, opponentProbabilities: true);
+
+                    ownerByLane[k] = owner;
+                    oppByLane[k] = opp;
+                }
+
+                node.InitializeIterationVec(ownerByLane, oppByLane);
+            }
+
+            foreach (var node in _vecChances)
+                node.InitializeIterationVec(Array.Empty<double[]>(), Array.Empty<double[]>());
+
+            _vecInitDoneThisSweep = true;
+        }
+
         public FastCFRVecContext InitializeIterationVec(
             byte optimizedPlayerIndex,
             int[]? scenarioIndexByLane,
@@ -334,8 +372,6 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
             };
         }
 
-
-
         public void CopyTalliesIntoBackingNodes_Vector()
         {
             foreach (var v in _vecInfosets)
@@ -344,7 +380,6 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
             // Mark the end of the current vector sweep so the next call re-initializes nodes.
             _vecInitDoneThisSweep = false;
         }
-
     }
 
     internal sealed class FastCFRVectorAnchorShim : IFastCFRNode
@@ -357,6 +392,61 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
         private readonly bool _useDynamicProbs;
         private readonly int _numPlayers;
         public readonly int VectorWidth;
+
+        // Per-group pooled buffers (eliminate per-call allocations at the anchor)
+        private readonly GroupContext[] _groupContexts;
+
+        private sealed class GroupContext
+        {
+            public readonly int Lanes;
+            public readonly double[] ReachSelf;
+            public readonly double[] ReachOpp;
+            public readonly double[] ReachChance;
+            public readonly byte[] ActiveMask;
+            public readonly int[] ScenarioIndex;
+            public readonly double[] PLaneScratch;
+
+            public GroupContext(int lanes)
+            {
+                Lanes = lanes;
+                ReachSelf = new double[lanes];
+                ReachOpp = new double[lanes];
+                ReachChance = new double[lanes];
+                ActiveMask = new byte[lanes];
+                ScenarioIndex = new int[lanes];
+                PLaneScratch = new double[lanes];
+            }
+
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public void ResetFromScalar(ref FastCFRIterationContext scalar, bool suppressMath)
+            {
+                for (int k = 0; k < Lanes; k++)
+                {
+                    ReachSelf[k] = scalar.ReachSelf;
+                    ReachOpp[k] = scalar.ReachOpp;
+                    ReachChance[k] = scalar.ReachChance;
+                    ScenarioIndex[k] = scalar.ScenarioIndex;
+                    ActiveMask[k] = suppressMath ? (byte)0 : (byte)1;
+                }
+            }
+
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public FastCFRVecContext MakeContext(byte optimizedPlayerIndex, Func<byte, double>? rand)
+            {
+                return new FastCFRVecContext
+                {
+                    IterationNumber = 0,
+                    OptimizedPlayerIndex = optimizedPlayerIndex,
+                    SamplingCorrection = 1.0,
+                    ReachSelf = ReachSelf,
+                    ReachOpp = ReachOpp,
+                    ReachChance = ReachChance,
+                    ActiveMask = ActiveMask,
+                    ScenarioIndex = ScenarioIndex,
+                    Rand01ForDecision = rand
+                };
+            }
+        }
 
         public FastCFRVectorAnchorShim(
             FastCFRBuilder builder,
@@ -376,62 +466,63 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
             _useDynamicProbs = useDynamicProbs || !anchorChance.AllProbabilitiesEqual();
             _numPlayers = numPlayers;
             VectorWidth = vectorWidth;
+
+            _groupContexts = new GroupContext[_rootsByGroup.Length];
+            for (int g = 0; g < _groupContexts.Length; g++)
+            {
+                int lanes = Math.Min(VectorWidth, _numOutcomes - g * VectorWidth);
+                _groupContexts[g] = new GroupContext(lanes);
+            }
         }
 
         public void InitializeIteration(ReadOnlySpan<double> _ownerPolicy, ReadOnlySpan<double> _oppTraversal) { }
 
         public FastCFRNodeResult Go(ref FastCFRIterationContext ctx)
         {
+            // Ensure vector nodes are (re)initialized exactly once per sweep.
+            _builder.InitializeVectorNodesForSweep(ctx.OptimizedPlayerIndex);
+
             var expectedU = new double[_numPlayers];
             FloatSet expectedCustom = default;
 
-            int groups = _rootsByGroup.Length;
             int outcomeIndex = 0;
 
-            for (int g = 0; g < groups; g++)
+            for (int g = 0; g < _rootsByGroup.Length; g++)
             {
-                int lanes = Math.Min(VectorWidth, _numOutcomes - g * VectorWidth);
+                var gc = _groupContexts[g];
+                int lanes = gc.Lanes;
 
-                // Create a fresh, correctly-sized context for this group (nodes stay initialized).
-                var vecCtx = _builder.InitializeIterationVec(ctx.OptimizedPlayerIndex, new int[lanes], ctx.Rand01ForDecision);
+                // Seed per-lane arrays from the scalar context; set mask.
+                gc.ResetFromScalar(ref ctx, ctx.SuppressMath);
 
-                // Seed upstream reaches from the scalar context at the anchor.
-                for (int k = 0; k < lanes; k++)
-                {
-                    vecCtx.ReachSelf[k] = ctx.ReachSelf;
-                    vecCtx.ReachOpp[k] = ctx.ReachOpp;
-                    vecCtx.ReachChance[k] = ctx.ReachChance;
-                }
-
-                if (ctx.SuppressMath)
-                    Array.Clear(vecCtx.ActiveMask, 0, lanes);
-
-                var pLane = new double[lanes];
+                // Fill anchor probabilities into pooled scratch and update reaches.
                 for (int l = 0; l < lanes; l++)
                 {
                     int outcomeOneBased = outcomeIndex + 1;
-                    pLane[l] = _useDynamicProbs
+                    double p = _useDynamicProbs
                         ? _anchorChance.GetActionProbability(outcomeOneBased)
                         : (1.0 / _numOutcomes);
+                    gc.PLaneScratch[l] = p;
                     outcomeIndex++;
                 }
 
                 for (int k = 0; k < lanes; k++)
                 {
-                    if (vecCtx.ActiveMask[k] == 0) continue;
-                    double p = pLane[k];
-                    vecCtx.ReachOpp[k] *= p;
-                    vecCtx.ReachChance[k] *= p;
+                    if (gc.ActiveMask[k] == 0) continue;
+                    double p = gc.PLaneScratch[k];
+                    gc.ReachOpp[k] *= p;
+                    gc.ReachChance[k] *= p;
                 }
 
+                var vecCtx = gc.MakeContext(ctx.OptimizedPlayerIndex, ctx.Rand01ForDecision);
                 var result = _rootsByGroup[g].GoVec(ref vecCtx);
 
                 if (!ctx.SuppressMath)
                 {
                     for (int k = 0; k < lanes; k++)
                     {
-                        if (vecCtx.ActiveMask[k] == 0) continue;
-                        double p = pLane[k];
+                        if (gc.ActiveMask[k] == 0) continue;
+                        double p = gc.PLaneScratch[k];
                         for (int pl = 0; pl < _numPlayers; pl++)
                             expectedU[pl] += p * result.UtilitiesByPlayerByLane[pl][k];
                         expectedCustom = expectedCustom.Plus(result.CustomByLane[k].Times((float)p));
@@ -441,8 +532,6 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
 
             return new FastCFRNodeResult(expectedU, expectedCustom);
         }
-
-
     }
 }
 #nullable restore
