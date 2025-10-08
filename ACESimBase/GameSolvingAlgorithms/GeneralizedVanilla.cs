@@ -233,7 +233,6 @@ namespace ACESim
             ActionStrategy = ActionStrategies.CurrentProbability;
         }
 
-
         private async Task<ReportCollection> Fast_SolveGeneralizedVanillaCFR()
         {
             ReportCollection reportCollection = new ReportCollection();
@@ -290,6 +289,9 @@ namespace ACESim
                     // IMPORTANT: flush this sweep’s tallies BEFORE starting the next sweep,
                     // because InitializeIteration() will zero them for the next player.
                     Fast_Builder.CopyTalliesIntoBackingNodes();
+
+                    // Also flush vector-region tallies (if a vector region was built).
+                    Fast_Builder.CopyTalliesIntoBackingNodes_Vector();
                 }
 
                 StrategiesDeveloperStopwatch.Stop();
@@ -313,7 +315,6 @@ namespace ACESim
             TabbedText.SetConsoleProgressString(null);
             return reportCollection;
         }
-
 
         #endregion
 
