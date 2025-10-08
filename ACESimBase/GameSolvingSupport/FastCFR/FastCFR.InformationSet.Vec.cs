@@ -32,6 +32,8 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
         private double[] _savedReachSelf = Array.Empty<double>();
         private double[] _savedReachOpp = Array.Empty<double>();
 
+        public int LaneCount => _backingPerLane.Length;
+
         private const double Epsilon = double.Epsilon;
 
         public FastCFRInformationSetVec(

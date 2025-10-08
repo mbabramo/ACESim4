@@ -257,9 +257,10 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
             Func<byte, double>? rand01ForDecision)
         {
             if (!_vectorRegionBuilt)
-                throw new InvalidOperationException("Vector region not built.");
+                throw new InvalidOperationException("Vector region not built."); // existing behavior
 
-            int lanes = _vectorAnchorShim!.VectorWidth;
+            // Use the caller's group-lane length when provided; otherwise fall back to the max width.
+            int lanes = scenarioIndexByLane?.Length ?? _vectorAnchorShim!.VectorWidth;
 
             int[] scn;
             if (scenarioIndexByLane is null)
@@ -289,12 +290,14 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
                 mask[k] = 1;
             }
 
+            // Initialize each vector infoset with its OWN lane count.
             foreach (var node in _vecInfosets)
             {
-                var ownerByLane = new double[lanes][];
-                var oppByLane = new double[lanes][];
+                int ln = node.LaneCount;
+                var ownerByLane = new double[ln][];
+                var oppByLane = new double[ln][];
 
-                for (int k = 0; k < lanes; k++)
+                for (int k = 0; k < ln; k++)
                 {
                     var backing = node.GetBackingForLane(k);
                     var owner = new double[backing.NumPossibleActions];
@@ -310,6 +313,7 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
                 node.InitializeIterationVec(ownerByLane, oppByLane);
             }
 
+            // Chance nodes don't need lane-sized arrays during initialization.
             foreach (var node in _vecChances)
                 node.InitializeIterationVec(Array.Empty<double[]>(), Array.Empty<double[]>());
 
@@ -326,6 +330,7 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
                 Rand01ForDecision = rand01ForDecision
             };
         }
+
 
         public void CopyTalliesIntoBackingNodes_Vector()
         {
@@ -378,9 +383,10 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
             for (int g = 0; g < groups; g++)
             {
                 int lanes = Math.Min(VectorWidth, _numOutcomes - g * VectorWidth);
-                var vecCtx = _builder.InitializeIterationVec(ctx.OptimizedPlayerIndex, null, ctx.Rand01ForDecision);
 
-                // Honor suppress flag by zeroing the lane mask up-front
+                // Request a context sized exactly to this group's lane count.
+                var vecCtx = _builder.InitializeIterationVec(ctx.OptimizedPlayerIndex, new int[lanes], ctx.Rand01ForDecision);
+
                 if (ctx.SuppressMath)
                     Array.Clear(vecCtx.ActiveMask, 0, lanes);
 
@@ -394,7 +400,6 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
                     outcomeIndex++;
                 }
 
-                // Apply reach updates only for active lanes
                 for (int k = 0; k < lanes; k++)
                 {
                     if (vecCtx.ActiveMask[k] == 0) continue;
@@ -405,7 +410,6 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
 
                 var result = _rootsByGroup[g].GoVec(ref vecCtx);
 
-                // Combine results only when math is not suppressed
                 if (!ctx.SuppressMath)
                 {
                     for (int k = 0; k < lanes; k++)
@@ -421,6 +425,7 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
 
             return new FastCFRNodeResult(expectedU, expectedCustom);
         }
+
 
     }
 }
