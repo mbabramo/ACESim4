@@ -19,7 +19,7 @@ namespace ACESimBase.GameSolvingSupport.Settings
     public class EvolutionSettings
     {
         public GeneralizedVanillaFlavor GeneralizedVanillaFlavor = GeneralizedVanillaFlavor.Fast;
-        public bool FastCFRVectorize = true; // DEBUG -- this is not working // applies only if GeneralizedVanillaFlavor is FastCFR
+        public bool FastCFRVectorize = true; // DEBUG -- this is slower even though it should be faster // applies only if GeneralizedVanillaFlavor is FastCFR
         public bool IncludeCommentsWhenUnrolling = false;
         public bool UseCheckpointsWhenNotUnrolling = false; // for when unrolling, look at ArrayCommandList.UseCheckpoints
         public bool UnrollTemplateIdenticalRanges = true; // identical range here means when we have a chance node where the game structure is same for every chance value
