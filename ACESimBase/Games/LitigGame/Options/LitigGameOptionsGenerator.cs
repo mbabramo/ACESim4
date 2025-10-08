@@ -193,7 +193,6 @@ namespace ACESim
                 PrecautionNegligenceGame(settings.CollapseDecisionsInSimplifiedPrecautionNegligenceGame, settings.AllowQuitting, numSignalsAndOffers: settings.ParameterForMultipleOptions_Simplified, numPotentialBargainingRounds: settings.NumPotentialBargainingRounds, numPrecautionPowerLevels: settings.ParameterForMultipleOptions_Simplified, precautionLevels: settings.ParameterForMultipleOptions_Simplified)
                 :
                 PrecautionNegligenceGame(true, settings.AllowQuitting, settings.ParameterForMultipleOptions, settings.NumPotentialBargainingRounds, settings.ParameterForMultipleOptions, settings.ParameterForMultipleOptions);
-            gameOptions.SkipFileAndAnswerDecisions = true; // DEBUG
             gameOptions.PredeterminedAbandonAndDefaults = settings.PredeterminedAbandonAndDefaults;
             if (settings.PerfectAdjudication)
             {

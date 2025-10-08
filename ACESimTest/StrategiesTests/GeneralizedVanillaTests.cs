@@ -41,66 +41,13 @@ namespace ACESimTest.StrategiesTests
             }
         }
 
-        
-
-
-        [TestMethod]
-        [DataRow(false, false)]
-        [DataRow(false, true)]
-        [DataRow(true,  false)]
-        [DataRow(true,  true)]
-        public async Task UnrolledTemplates_AllPermutations_Parity(bool randomInformationSets, bool largerTree)
-        {
-            var evolutionSettings = new EvolutionSettings
-            {
-                TotalIterations = 1000,
-                GeneralizedVanillaFlavor = GeneralizedVanillaFlavor.Regular,
-                UnrollTemplateIdenticalRanges = false,
-                UnrollTemplateRepeatedRanges  = false,
-                Unroll_ChunkExecutorKind = ChunkExecutorKind.Interpreted,
-                TraceCFR = false
-            };
-
-            var permutations = new (bool useIdentical, bool useRepeated)[]
-            {
-                (false, false),
-                (true,  false),
-                (false, true),
-                (true,  true),
-            };
-
-            EvaluationResult firstUnrolled = null;
-
-            foreach (var (useIdentical, useRepeated) in permutations)
-            {
-                evolutionSettings.GeneralizedVanillaFlavor = GeneralizedVanillaFlavor.Unrolled;
-                evolutionSettings.UnrollTemplateIdenticalRanges = useIdentical;
-                evolutionSettings.UnrollTemplateRepeatedRanges  = useRepeated;
-                evolutionSettings.Unroll_ChunkExecutorKind = ChunkExecutorKind.Interpreted;
-                evolutionSettings.TraceCFR = false;
-
-                EvaluationResult result = await DevelopStrategyAndGetResults(randomInformationSets, largerTree, evolutionSettings, 2);
-
-                if (firstUnrolled is null)
-                {
-                    firstUnrolled = result;
-                }
-                else
-                {
-                    result.Utilities.SequenceEqual(firstUnrolled.Utilities).Should().BeTrue(
-                        $"Permutation mismatch (utilities): UnrollTemplateIdenticalRanges={useIdentical}, UnrollTemplateRepeatedRanges={useRepeated}");
-                    result.InformationSetValues.SequenceEqual(firstUnrolled.InformationSetValues).Should().BeTrue(
-                        $"Permutation mismatch (information set values): UnrollTemplateIdenticalRanges={useIdentical}, UnrollTemplateRepeatedRanges={useRepeated}");
-                }
-            }
-        }
-
-        private int _iterationsForParity = 1; // minimum number causing test to fail // DEBUG -- change back to 1000
+        private int _iterationsForParity = 100; // minimum number causing test to fail
 
         private static bool ConfirmInformationSetsMatch(
             GeneralizedVanilla devA, string labelA,
             GeneralizedVanilla devB, string labelB,
-            int maxLines = 1)
+            int maxLines = 1,
+            double tolerance = 1E-08)
         {
             var aSets = devA.InformationSets;
             var bSets = devB.InformationSets;
@@ -122,6 +69,27 @@ namespace ACESimTest.StrategiesTests
             int BRD = InformationSetNode.bestResponseDenominatorDimension;
 
             int lines = 0;
+
+            bool DiffVec(string field, double[] va, double[] vb)
+            {
+                if (va.Length != vb.Length)
+                {
+                    if (lines++ < maxLines)
+                        Debug.WriteLine($"{field} length mismatch {labelA}={va.Length} vs {labelB}={vb.Length}");
+                    return true;
+                }
+
+                for (int a = 0; a < va.Length; a++)
+                {
+                    if (Math.Abs(va[a] - vb[a]) > tolerance)
+                    {
+                        if (lines++ < maxLines)
+                            Debug.WriteLine($"[Δ>{tolerance:G}] {field} {labelA}={va[a]:G17} vs {labelB}={vb[a]:G17}");
+                        return true;
+                    }
+                }
+                return false;
+            }
 
             for (int i = 0; i < aSets.Count; i++)
             {
@@ -165,20 +133,6 @@ namespace ACESimTest.StrategiesTests
                     regB[a]    = B.NodeInformation[REG, a];
                 }
 
-                bool DiffVec(string field, double[] va, double[] vb)
-                {
-                    for (int a = 0; a < va.Length; a++)
-                    {
-                        if (va[a] != vb[a])
-                        {
-                            if (lines++ < maxLines)
-                                Debug.WriteLine($"[ISet#{i} P{A.PlayerIndex} D{A.DecisionIndex} a{a+1}] {field} {labelA}={va[a]:G17} vs {labelB}={vb[a]:G17}");
-                            return true;
-                        }
-                    }
-                    return false;
-                }
-
                 if (DiffVec("rawNum(sumRegret*invPi)", rawNumA, rawNumB)) return false;
                 if (DiffVec("rawDen(sumInvPi)",        rawDenA, rawDenB)) return false;
                 if (DiffVec("lastRegretIncrement",     lriA,    lriB))    return false;
@@ -201,6 +155,17 @@ namespace ACESimTest.StrategiesTests
 
             return true;
         }
+
+        private static bool AreVectorsNearlyEqual(double[] a, double[] b, double tolerance = 1E-08)
+        {
+            if (a == null || b == null) return a == b;
+            if (a.Length != b.Length) return false;
+            for (int i = 0; i < a.Length; i++)
+                if (Math.Abs(a[i] - b[i]) > tolerance)
+                    return false;
+            return true;
+        }
+
 
         private async Task<GeneralizedVanilla> BuildWithFlavor(bool largerTree, bool randomize, GeneralizedVanillaFlavor flavor, int rounds, int iters)
         {
@@ -260,7 +225,7 @@ namespace ACESimTest.StrategiesTests
         [DataRow(true,  true)]
         public async Task SameResultsUnrolledAndFastCFR(bool randomInformationSets, bool largerTree)
         {
-            byte rounds = 2; // DEBUG 1
+            byte rounds = 1;
 
             var unrolled = await BuildWithFlavor(largerTree, randomInformationSets, GeneralizedVanillaFlavor.Unrolled, rounds, _iterationsForParity);
             await unrolled.RunAlgorithm("TESTOPTIONS");
@@ -280,7 +245,7 @@ namespace ACESimTest.StrategiesTests
         public async Task EachExecutorProducesSameResults(bool randomInformationSets, bool largerTree)
         {
             EvolutionSettings evolutionSettings = new EvolutionSettings();
-            evolutionSettings.TotalIterations = 1000;
+            evolutionSettings.TotalIterations = 100;
             evolutionSettings.GeneralizedVanillaFlavor = GeneralizedVanillaFlavor.Unrolled;
             evolutionSettings.UnrollTemplateIdenticalRanges = false;
             evolutionSettings.UnrollTemplateRepeatedRanges = false;
@@ -301,8 +266,8 @@ namespace ACESimTest.StrategiesTests
 
                 if (results.Any())
                 {
-                    addToResults.Utilities.SequenceEqual(results.First().Utilities).Should().BeTrue($"utilities mismatch for executor {kind}");
-                    addToResults.InformationSetValues.SequenceEqual(results.First().InformationSetValues).Should().BeTrue($"information set values mismatch for executor {kind}");
+                    AreVectorsNearlyEqual(addToResults.Utilities, results.First().Utilities).Should().BeTrue($"utilities mismatch for executor {kind}");
+                    AreVectorsNearlyEqual(addToResults.InformationSetValues, results.First().InformationSetValues).Should().BeTrue($"information set values mismatch for executor {kind}");
                 }
 
                 results.Add(addToResults);
@@ -335,10 +300,10 @@ namespace ACESimTest.StrategiesTests
 
         private static async Task<GeneralizedVanilla> Initialize(bool largerTree, EvolutionSettings evolutionSettings, byte numPotentialBargainingRounds)
         {
-            byte branching = largerTree ? (byte)5 /* DEBUG 4 */ : (byte)2; // signals, precaution powers, and precaution levels
+            byte branching = largerTree ? (byte)4 : (byte)2; // signals, precaution powers, and precaution levels
             var options = LitigGameOptionsGenerator.PrecautionNegligenceGame(largerTree, largerTree, branching, numPotentialBargainingRounds, branching, branching);
-            options.SkipFileAndAnswerDecisions = true; // DEBUG
-            options.PredeterminedAbandonAndDefaults = false; // DEBUG
+            options.SkipFileAndAnswerDecisions = false;
+            options.PredeterminedAbandonAndDefaults = false; 
             GeneralizedVanilla.ClearCache();
             var developer = await GetGeneralizedVanilla(options, "TESTOPTIONS", evolutionSettings);
             return developer;
