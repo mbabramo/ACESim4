@@ -46,6 +46,11 @@ namespace ACESimBase.GameSolvingSupport.PostIterationUpdater
                 sumWeights *= 1E+15;
             }
 
+            if (node.InformationSetNodeNumber == 0)
+            {
+                var DEBUG = 0;
+            }
+
             // Finally, calculate the updated probabilities, plus the average strategies
             // We set each item to its proportion of the weights, but no less than SmallestProbabilityRepresented. 
             Func<byte, double> unadjustedProbabilityFunc = a => nodeInformation[InformationSetNode.adjustedWeightsDimension, a - 1] / sumWeights;

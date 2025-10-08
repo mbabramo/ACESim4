@@ -64,7 +64,7 @@ namespace ACESimBase.GameSolvingSupport.GameTree
 
         public byte PlayerIndex => Decision.PlayerIndex;
 
-        public double[,] NodeInformation;
+        public double[,] NodeInformation { get; set; }
         public double[,] BackupNodeInformation;
 
         public double[] MaxPossible, MinPossible;
@@ -113,6 +113,62 @@ namespace ACESimBase.GameSolvingSupport.GameTree
         
         private double[] _cumulativeStrategyCompensation;
 
+
+        #endregion
+
+        #region Hooks for NodeInformation mutations
+
+        int _DEBUGcounter;
+
+        /// <summary>
+        /// Called right before a NodeInformation cell is about to be mutated.
+        /// dimension: the first index (row). actionIndex: the second index (column, zero-based action).
+        /// </summary>
+        protected virtual void OnNodeInformationMutating(int dimension, int actionIndex) 
+        {
+            if (InformationSetNodeNumber == 0 && dimension == currentProbabilityDimension && actionIndex == 0)
+            {
+                // This is just a convenient place to put a breakpoint to see when the first information set's first action's current probability is changed.
+                Console.WriteLine($"Changing from {NodeInformation[dimension, actionIndex]} (counter {_DEBUGcounter++})"); // DEBUG
+            }
+        }
+
+        /// <summary>
+        /// Called immediately after a NodeInformation cell has been mutated.
+        /// dimension: the first index (row). actionIndex: the second index (column, zero-based action). value: the final value written.
+        /// </summary>
+        protected virtual void OnNodeInformationMutated(int dimension, int actionIndex, double value) 
+        {
+            if (InformationSetNodeNumber == 0 && dimension == currentProbabilityDimension && actionIndex == 0)
+            {
+                // This is just a convenient place to put a breakpoint to see when the first information set's first action's current probability is changed.
+                Console.WriteLine($"Changing to {value}"); // DEBUG
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void SetNI(int dimension, int actionIndex, double value)
+        {
+            OnNodeInformationMutating(dimension, actionIndex);
+            NodeInformation[dimension, actionIndex] = value;
+            OnNodeInformationMutated(dimension, actionIndex, NodeInformation[dimension, actionIndex]);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void AddNI(int dimension, int actionIndex, double delta)
+        {
+            OnNodeInformationMutating(dimension, actionIndex);
+            NodeInformation[dimension, actionIndex] += delta;
+            OnNodeInformationMutated(dimension, actionIndex, NodeInformation[dimension, actionIndex]);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void InterlockedAddNI(int dimension, int actionIndex, double delta)
+        {
+            OnNodeInformationMutating(dimension, actionIndex);
+            Interlocking.Add(ref NodeInformation[dimension, actionIndex], delta);
+            OnNodeInformationMutated(dimension, actionIndex, NodeInformation[dimension, actionIndex]);
+        }
 
         #endregion
 
@@ -244,18 +300,18 @@ namespace ACESimBase.GameSolvingSupport.GameTree
             BestResponseAction = 1;
             for (int a = 1; a <= NumPossibleActions; a++)
             {
-                NodeInformation[currentProbabilityDimension, a - 1] = probability;
-                NodeInformation[currentProbabilityForOpponentDimension, a - 1] = probability;
-                NodeInformation[averageStrategyProbabilityDimension, a - 1] = probability;
-                NodeInformation[bestResponseNumeratorDimension, a - 1] = 0;
-                NodeInformation[bestResponseDenominatorDimension, a - 1] = 0;
-                NodeInformation[cumulativeRegretDimension, a - 1] = 0;
-                NodeInformation[cumulativeStrategyDimension, a - 1] = 0;
-                NodeInformation[adjustedWeightsDimension, a - 1] = 1.0;
-                NodeInformation[sumRegretTimesInversePiDimension, a - 1] = 0;
-                NodeInformation[sumInversePiDimension, a - 1] = 0;
-                NodeInformation[lastCumulativeStrategyIncrementsDimension, a - 1] = 0;
-                NodeInformation[scratchDimension, a - 1] = 0;
+                SetNI(currentProbabilityDimension, a - 1, probability);
+                SetNI(currentProbabilityForOpponentDimension, a - 1, probability);
+                SetNI(averageStrategyProbabilityDimension, a - 1, probability);
+                SetNI(bestResponseNumeratorDimension, a - 1, 0);
+                SetNI(bestResponseDenominatorDimension, a - 1, 0);
+                SetNI(cumulativeRegretDimension, a - 1, 0);
+                SetNI(cumulativeStrategyDimension, a - 1, 0);
+                SetNI(adjustedWeightsDimension, a - 1, 1.0);
+                SetNI(sumRegretTimesInversePiDimension, a - 1, 0);
+                SetNI(sumInversePiDimension, a - 1, 0);
+                SetNI(lastCumulativeStrategyIncrementsDimension, a - 1, 0);
+                SetNI(scratchDimension, a - 1, 0);
             }
             if (EvolutionSettings.RecordPastValues && clearPastValues)
             {
@@ -275,39 +331,39 @@ namespace ACESimBase.GameSolvingSupport.GameTree
         public void ClearCumulativeStrategy()
         {
             for (int j = 0; j < NumPossibleActions; j++)
-                NodeInformation[cumulativeStrategyDimension, j] = 0;
+                SetNI(cumulativeStrategyDimension, j, 0);
         }
 
         public void ClearBestResponse()
         {
             for (int i = bestResponseNumeratorDimension; i <= bestResponseDenominatorDimension; i++)
                 for (int j = 0; j < NumPossibleActions; j++)
-                    NodeInformation[i, j] = 0;
+                    SetNI(i, j, 0);
             BestResponseDeterminedFromIncrements = false;
         }
 
         public void ClearAverageStrategyTally()
         {
             for (byte a = 0; a < NumPossibleActions; a++)
-                NodeInformation[cumulativeStrategyDimension, a] = 0;
+                SetNI(cumulativeStrategyDimension, a, 0);
         }
 
         public void ClearCumulativeRegrets()
         {
             for (byte a = 0; a < NumPossibleActions; a++)
-                NodeInformation[cumulativeRegretDimension, a] = 0;
+                SetNI(cumulativeRegretDimension, a, 0);
         }
 
         public void CopyFromOneDimensionToAnother(byte dimensionCopyingFrom, byte dimensionCopyingTo)
         {
             for (byte a = 0; a < NumPossibleActions; a++)
-                NodeInformation[dimensionCopyingTo, a] = NodeInformation[dimensionCopyingFrom, a];
+                SetNI(dimensionCopyingTo, a, NodeInformation[dimensionCopyingFrom, a]);
         }
 
         public void SubtractOutValues(byte dimensionSubtractingFrom, byte dimensionWithValuesToSubtract)
         {
             for (byte a = 0; a < NumPossibleActions; a++)
-                NodeInformation[dimensionSubtractingFrom, a] -= NodeInformation[dimensionWithValuesToSubtract, a];
+                SetNI(dimensionSubtractingFrom, a, NodeInformation[dimensionSubtractingFrom, a] - NodeInformation[dimensionWithValuesToSubtract, a]);
         }
 
         public GameStateTypeEnum GetGameStateType()
@@ -377,8 +433,8 @@ namespace ACESimBase.GameSolvingSupport.GameTree
                 TabbedText.WriteLine($"InformationSet {InformationSetNodeNumber}, Decision {Decision.Name} | Action {action}: Adding piInverse {piInverse:F3}, expectedValue {expectedValue:F3}.");
             double oldNumerator = NodeInformation[bestResponseNumeratorDimension, action - 1];
             double oldDenom = NodeInformation[bestResponseDenominatorDimension, action - 1];
-            NodeInformation[bestResponseNumeratorDimension, action - 1] += piInverse * expectedValue;
-            NodeInformation[bestResponseDenominatorDimension, action - 1] += piInverse;
+            AddNI(bestResponseNumeratorDimension, action - 1, piInverse * expectedValue);
+            AddNI(bestResponseDenominatorDimension, action - 1, piInverse);
             double newNumerator = NodeInformation[bestResponseNumeratorDimension, action - 1];
             double newDenom = NodeInformation[bestResponseDenominatorDimension, action - 1];
             if (LogBestResponseCalculation)
@@ -391,8 +447,8 @@ namespace ACESimBase.GameSolvingSupport.GameTree
 
         public void SetBestResponse_NumeratorAndDenominator(int action, double numerator, double denominator)
         {
-            NodeInformation[bestResponseNumeratorDimension, action - 1] = numerator;
-            NodeInformation[bestResponseDenominatorDimension, action - 1] = denominator;
+            SetNI(bestResponseNumeratorDimension, action - 1, numerator);
+            SetNI(bestResponseDenominatorDimension, action - 1, denominator);
             BestResponseDeterminedFromIncrements = false;
         }
 
@@ -559,7 +615,8 @@ namespace ACESimBase.GameSolvingSupport.GameTree
                 double successorValue = (1.0 - weightOnBestResponse) * currentAverageStrategyProbability + weightOnBestResponse * bestResponseProbability;
                 if (double.IsNaN(successorValue))
                     throw new Exception();
-                NodeInformation[cumulativeStrategyDimension, action - 1] = NodeInformation[averageStrategyProbabilityDimension, action - 1] = successorValue;
+                SetNI(cumulativeStrategyDimension, action - 1, successorValue);
+                SetNI(averageStrategyProbabilityDimension, action - 1, successorValue);
                 total += successorValue;
             }
             if (Math.Abs(total - 1.0) > 1E-8)
@@ -573,9 +630,9 @@ namespace ACESimBase.GameSolvingSupport.GameTree
             double total = 0;
             for (byte action = 1; action <= NumPossibleActions; action++)
             {
-                double currentAverageStrategyProbability = GetAverageStrategy(action);
                 double bestResponseProbability = BestResponseAction == action ? 1.0 : 0.0;
-                NodeInformation[cumulativeStrategyDimension, action - 1] = NodeInformation[averageStrategyProbabilityDimension, action - 1] = bestResponseProbability;
+                SetNI(cumulativeStrategyDimension, action - 1, bestResponseProbability);
+                SetNI(averageStrategyProbabilityDimension, action - 1, bestResponseProbability);
                 if (double.IsNaN(bestResponseProbability))
                     throw new Exception();
                 total += bestResponseProbability;
@@ -600,9 +657,9 @@ namespace ACESimBase.GameSolvingSupport.GameTree
                 double v = minValueForEachAction + NodeInformation[averageStrategyProbabilityDimension, action - 1] * remainingAfterPerturbation;
                 if (double.IsNaN(v))
                     throw new Exception();
-                NodeInformation[averageStrategyProbabilityDimension, action - 1] = v;
+                SetNI(averageStrategyProbabilityDimension, action - 1, v);
                 if (includeCumulativeStrategy)
-                    NodeInformation[cumulativeStrategyDimension, action - 1] = NodeInformation[averageStrategyProbabilityDimension, action - 1];
+                    SetNI(cumulativeStrategyDimension, action - 1, NodeInformation[averageStrategyProbabilityDimension, action - 1]);
             }
         }
 
@@ -614,19 +671,17 @@ namespace ACESimBase.GameSolvingSupport.GameTree
 
         public void IncrementLastRegret(byte action, double regretTimesInversePi, double inversePi)
         {
-            NodeInformation[sumRegretTimesInversePiDimension, action - 1] += regretTimesInversePi;
-            NodeInformation[sumInversePiDimension, action - 1] += inversePi;
+            AddNI(sumRegretTimesInversePiDimension, action - 1, regretTimesInversePi);
+            AddNI(sumInversePiDimension, action - 1, inversePi);
         }
         public void IncrementLastRegret_Parallel(byte action, double regretTimesInversePi, double inversePi)
         {
-            Interlocking.Add(ref NodeInformation[sumRegretTimesInversePiDimension, action - 1], regretTimesInversePi);
-            Interlocking.Add(ref NodeInformation[sumInversePiDimension, action - 1], inversePi);
-            //    Debug.WriteLine($"after increment: regret*invpi {regretTimesInversePi} inversePi {inversePi} numerator {NodeInformation[lastRegretNumeratorDimension, action - 1]} denominator {NodeInformation[lastRegretDenominatorDimension, action - 1]} fraction {NodeInformation[lastRegretNumeratorDimension, action - 1] / NodeInformation[lastRegretDenominatorDimension, action - 1]}");
+            InterlockedAddNI(sumRegretTimesInversePiDimension, action - 1, regretTimesInversePi);
+            InterlockedAddNI(sumInversePiDimension, action - 1, inversePi);
         }
 
         public double NormalizeRegret(double regret, bool makeStrictlyPositive)
         {
-            // best performance possible occurs if expected value is MaxPossibleThisPlayer when overall expected value is MinPossibleThisPlayer. worst performance possible occurs if regret is MinPossibleThisPlayer when overall expected value is MaxPossibleThisPlayer. Regret can range from -(MaxPossible - MinPossible) to +(MaxPossible - MinPossible). Thus, Regret + (MaxPossible - MinPossible) can range from 0 to 2*(MaxPossible - MinPossible). So, we can normalize regret to be from 0 to 1 by calculating (regret + range) / (2 * range). Keep in mind that regret is utility - expected value.
             double range = MaxPossibleThisPlayer - MinPossibleThisPlayer;
             if (makeStrictlyPositive)
             {
@@ -654,7 +709,7 @@ namespace ACESimBase.GameSolvingSupport.GameTree
 
         public void SetCumulativeRegret(int action, double regret)
         {
-            NodeInformation[cumulativeRegretDimension, action - 1] = regret;
+            SetNI(cumulativeRegretDimension, action - 1, regret);
         }
 
         public double GetPositiveCumulativeRegret(int action)
@@ -695,17 +750,16 @@ namespace ACESimBase.GameSolvingSupport.GameTree
 
         public void IncrementCumulativeRegret_Parallel(int action, double amount, bool incrementBackup, int backupRegretsTrigger = int.MaxValue, bool incrementVisits = false)
         {
-            Interlocking.Add(ref NodeInformation[cumulativeRegretDimension, action - 1], amount);
+            InterlockedAddNI(cumulativeRegretDimension, action - 1, amount);
         }
 
         public void IncrementCumulativeRegret(int action, double amount, int backupRegretsTrigger = int.MaxValue, bool incrementVisits = false)
         {
             ref double sum = ref NodeInformation[cumulativeRegretDimension, action - 1];
 
-            // If you already added a compensation array for regrets, use Kahan here.
-            // Otherwise, keep the simple add and quantize after.
             sum += amount;
             sum = Quantize15Digits(sum);
+            OnNodeInformationMutated(cumulativeRegretDimension, action - 1, sum);
         }
 
 
@@ -715,13 +769,12 @@ namespace ACESimBase.GameSolvingSupport.GameTree
 
         public void IncrementLastCumulativeStrategyIncrements(byte action, double strategyProbabilityTimesSelfReachProbability)
         {
-            NodeInformation[lastCumulativeStrategyIncrementsDimension, action - 1] += strategyProbabilityTimesSelfReachProbability;
+            AddNI(lastCumulativeStrategyIncrementsDimension, action - 1, strategyProbabilityTimesSelfReachProbability);
         }
 
         public void IncrementLastCumulativeStrategyIncrements_Parallel(byte action, double strategyProbabilityTimesSelfReachProbability)
         {
-            Interlocking.Add(ref NodeInformation[lastCumulativeStrategyIncrementsDimension, action - 1], strategyProbabilityTimesSelfReachProbability);
-            //Interlocked.Increment(ref NumRegretIncrements);
+            InterlockedAddNI(lastCumulativeStrategyIncrementsDimension, action - 1, strategyProbabilityTimesSelfReachProbability);
         }
 
         public double GetLastCumulativeStrategyIncrement(byte action) => NodeInformation[lastCumulativeStrategyIncrementsDimension, action - 1];
@@ -756,7 +809,7 @@ namespace ACESimBase.GameSolvingSupport.GameTree
             if (continuousDiscountingAdjustment != 1.0)
             {
                 for (byte a = 1; a <= NumPossibleActions; a++)
-                    NodeInformation[cumulativeRegretDimension, a - 1] *= continuousDiscountingAdjustment;
+                    SetNI(cumulativeRegretDimension, a - 1, NodeInformation[cumulativeRegretDimension, a - 1] * continuousDiscountingAdjustment);
             }
         }
         private void UpdateCumulativeStrategy(double averageStrategyAdjustment, bool normalizeCumulativeStrategyIncrements)
@@ -796,10 +849,10 @@ namespace ACESimBase.GameSolvingSupport.GameTree
                 ref double comp = ref _cumulativeStrategyCompensation[action - 1];
                 KahanAdd(ref sum, ref comp, adjustedIncrement);
 
-                // Deterministic quantization to remove last-bit path dependence across flavors
                 sum = Quantize15Digits(sum);
+                OnNodeInformationMutated(cumulativeStrategyDimension, action - 1, sum);
 
-                NodeInformation[lastCumulativeStrategyIncrementsDimension, action - 1] = 0.0;
+                SetNI(lastCumulativeStrategyIncrementsDimension, action - 1, 0.0);
             }
         }
 
@@ -814,8 +867,6 @@ namespace ACESimBase.GameSolvingSupport.GameTree
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static double Quantize15Digits(double x)
         {
-            // Round to 15 decimal digits to ensure deterministic equality across flavors.
-            // 15 is within double's reliable decimal precision and stabilizes last-bit drift.
             return Math.Round(x, 15, MidpointRounding.AwayFromZero);
         }
 
@@ -827,7 +878,6 @@ namespace ACESimBase.GameSolvingSupport.GameTree
             {
                 sumCumulativeStrategies += NodeInformation[cumulativeStrategyDimension, a - 1];
             }
-            // Also, calculate average strategies
             if (sumCumulativeStrategies > 0)
             {
                 Func<byte, double> avgStrategyFunc = a => NodeInformation[cumulativeStrategyDimension, a - 1] / sumCumulativeStrategies;
@@ -858,12 +908,12 @@ namespace ACESimBase.GameSolvingSupport.GameTree
 
         public void IncrementCumulativeStrategy_Parallel(int action, double amount)
         {
-            Interlocking.Add(ref NodeInformation[cumulativeStrategyDimension, action - 1], amount);
+            InterlockedAddNI(cumulativeStrategyDimension, action - 1, amount);
         }
 
         public void IncrementCumulativeStrategy(int action, double amount)
         {
-            NodeInformation[cumulativeStrategyDimension, action - 1] += amount;
+            AddNI(cumulativeStrategyDimension, action - 1, amount);
         }
 
         public static bool ZeroOutInCalculatingAverageStrategies = false;
@@ -936,9 +986,9 @@ namespace ACESimBase.GameSolvingSupport.GameTree
         {
             for (byte a = 1; a <= numPossibleActions; a++)
             {
-                NodeInformation[cumulativeStrategyDimension, a - 1] =
-                NodeInformation[cumulativeRegretDimension, a - 1] =
-                    a == action ? 1.0 : 0;
+                double v = a == action ? 1.0 : 0;
+                SetNI(cumulativeStrategyDimension, a - 1, v);
+                SetNI(cumulativeRegretDimension, a - 1, v);
             }
         }
 
@@ -955,7 +1005,6 @@ namespace ACESimBase.GameSolvingSupport.GameTree
 
         public List<double> GetEqualProbabilitiesList()
         {
-            // NOTE: Not thread-safe
             Span<double> probabilitiesToSet = stackalloc double[NumPossibleActions];
             GetEqualProbabilitiesRegretMatching(probabilitiesToSet);
             return ListExtensions.GetSpanAsList(probabilitiesToSet, NumPossibleActions);
@@ -963,7 +1012,6 @@ namespace ACESimBase.GameSolvingSupport.GameTree
 
         public void GetRegretMatchingProbabilities(Span<double> probabilitiesToSet)
         {
-            // Treat ultra-small positives as zero to avoid knife-edge flips between flavors
             const double eps = 1e-14;
 
             double sumPositive = 0.0;
@@ -1006,8 +1054,6 @@ namespace ACESimBase.GameSolvingSupport.GameTree
                     argmax = action - 1;
             }
 
-            // Optional: snap near-pure distributions to exactly pure for stable CSV parity
-            // (keeps behavior unchanged for meaningful mixtures)
             if (probabilitiesToSet[argmax] >= 1.0 - 1e-12)
             {
                 for (int a = 0; a < NumPossibleActions; a++)
@@ -1016,11 +1062,6 @@ namespace ACESimBase.GameSolvingSupport.GameTree
         }
 
 
-        /// <summary>
-        /// Get regret matching adjusted probabilities, but adjusted so that unlikely actions are sometimes sampled.
-        /// </summary>
-        /// <param name="probabilitiesToSet">A pointer to the probabilities to set, one per action.</param>
-        /// <param name="epsilon">The weight (from 0 to 1) on equal probabilities rather than on regret-matching probabilities.</param>
         public void GetEpsilonAdjustedRegretMatchingProbabilities(Span<double> probabilitiesToSet, double epsilon)
         {
             GetRegretMatchingProbabilities(probabilitiesToSet);
@@ -1075,8 +1116,6 @@ namespace ACESimBase.GameSolvingSupport.GameTree
 
         #region Post-iteration updates
 
-        // Note: The first two methods must be used if we don't have a guarantee that updating will take place before each iteration.
-
         private void NormalizeAndSnapProbabilities(int probabilityDimension, double zeroThreshold, double snapThreshold)
         {
             double sum = 0.0;
@@ -1085,7 +1124,7 @@ namespace ACESimBase.GameSolvingSupport.GameTree
             {
                 double v = NodeInformation[probabilityDimension, a];
                 if (v < zeroThreshold) v = 0.0;
-                NodeInformation[probabilityDimension, a] = v;
+                SetNI(probabilityDimension, a, v);
                 sum += v;
             }
 
@@ -1093,12 +1132,12 @@ namespace ACESimBase.GameSolvingSupport.GameTree
             {
                 double equal = 1.0 / n;
                 for (int a = 0; a < n; a++)
-                    NodeInformation[probabilityDimension, a] = equal;
+                    SetNI(probabilityDimension, a, equal);
                 return;
             }
 
             for (int a = 0; a < n; a++)
-                NodeInformation[probabilityDimension, a] /= sum;
+                SetNI(probabilityDimension, a, NodeInformation[probabilityDimension, a] / sum);
 
             int argmax = 0;
             for (int a = 1; a < n; a++)
@@ -1108,7 +1147,7 @@ namespace ACESimBase.GameSolvingSupport.GameTree
             if (NodeInformation[probabilityDimension, argmax] >= snapThreshold)
             {
                 for (int a = 0; a < n; a++)
-                    NodeInformation[probabilityDimension, a] = a == argmax ? 1.0 : 0.0;
+                    SetNI(probabilityDimension, a, a == argmax ? 1.0 : 0.0);
             }
         }
 
@@ -1145,11 +1184,10 @@ namespace ACESimBase.GameSolvingSupport.GameTree
             {
                 for (int a = 1; a <= NumPossibleActions; a++)
                 {
-                    NodeInformation[currentProbabilityForOpponentDimension, a - 1] = a == Decision.WarmStartValue ? 1.0 : 0;
+                    SetNI(currentProbabilityForOpponentDimension, a - 1, a == Decision.WarmStartValue ? 1.0 : 0);
                 }
                 return;
             }
-            // The opponent's probability is the probability to use when traversing an opponent information set during optimization. 
             bool pruning = pruneOpponentStrategyIfDesignatedPrunable || pruneOpponentStrategyBelow != null && pruneOpponentStrategyBelow != 0;
             double probabilityThreshold = pruning && !pruneOpponentStrategyIfDesignatedPrunable ? (double)pruneOpponentStrategyBelow : SmallestProbabilityRepresented;
             Func<byte, double> currentProbabilityFunc;
@@ -1160,24 +1198,22 @@ namespace ACESimBase.GameSolvingSupport.GameTree
             SetProbabilitiesFromFunc(currentProbabilityForOpponentDimension, probabilityThreshold, pruning, pruneOpponentStrategyIfDesignatedPrunable, currentProbabilityFunc);
 
             if (addOpponentTremble)
-                AddTrembleToOpponentProbabilities(0.1); // note: doesn't seem to make much difference
+                AddTrembleToOpponentProbabilities(0.1);
 
             if (randomNumberToSelectSingleOpponentAction != null)
             {
                 double p = (double)randomNumberToSelectSingleOpponentAction;
-                // find corresponding action based on cumulative probabilities
                 double total = 0;
                 byte a;
-                for (a = 1; a <= NumPossibleActions - 1; a++) // look at all actions but last (if we don't break, then it's the last action)
+                for (a = 1; a <= NumPossibleActions - 1; a++)
                 {
                     total += currentProbabilityFunc(a);
                     if (total > p)
                         break;
                 }
-                // set probabilities to 1 or 0
                 for (byte a2 = 1; a2 <= NumPossibleActions; a2++)
                 {
-                    NodeInformation[currentProbabilityForOpponentDimension, a2 - 1] = a == a2 ? 1.0 : 0;
+                    SetNI(currentProbabilityForOpponentDimension, a2 - 1, a == a2 ? 1.0 : 0);
                 }
             }
         }
@@ -1191,14 +1227,12 @@ namespace ACESimBase.GameSolvingSupport.GameTree
             {
                 double v = NodeInformation[probabilityDimension, a - 1];
                 if (v < probabilityThreshold)
-                    NodeInformation[probabilityDimension, a - 1] = 0;
+                    SetNI(probabilityDimension, a - 1, 0);
                 else
                     total += v;
             }
-            //if (Math.Abs(total - 1) > 1E-6)
-            //    throw new Exception($"Probabilities add up to {total} instead of 1");
             for (byte a = 1; a <= NumPossibleActions; a++)
-                NodeInformation[probabilityDimension, a - 1] /= total;
+                SetNI(probabilityDimension, a - 1, NodeInformation[probabilityDimension, a - 1] / total);
         }
 
         public void SetProbabilitiesFromFunc(int probabilityDimension, double probabilityThreshold, bool setBelowThresholdToZero, bool usePrunabilityInsteadOfThreshold, Func<byte, double> initialProbabilityFunc)
@@ -1214,7 +1248,7 @@ namespace ACESimBase.GameSolvingSupport.GameTree
                     throw new Exception();
                 if (!usePrunabilityInsteadOfThreshold && p <= probabilityThreshold || usePrunabilityInsteadOfThreshold && PrunableActions != null && PrunableActions[a - 1].consideredForPruning && PrunableActions[a - 1].prunable)
                     p = setBelowThresholdTo;
-                NodeInformation[probabilityDimension, a - 1] = p;
+                SetNI(probabilityDimension, a - 1, p);
                 if (a == 1 || p > largestValue)
                 {
                     if (a != 1)
@@ -1225,20 +1259,19 @@ namespace ACESimBase.GameSolvingSupport.GameTree
                 else
                     sumExcludingLargest += p;
             }
-            double remainingProbability = 1.0 - sumExcludingLargest; // note: still not guaranteed to create sum of exactly 1
+            double remainingProbability = 1.0 - sumExcludingLargest;
             if (double.IsNaN(remainingProbability))
                 throw new Exception();
-            NodeInformation[probabilityDimension, largestAction - 1] = remainingProbability;
+            SetNI(probabilityDimension, largestAction - 1, remainingProbability);
         }
 
-        // TODO: Consider deleting this.
         private void AddTrembleToOpponentProbabilities(double trembleProportion)
         {
             if (!Decision.IsContinuousAction)
                 return;
             for (byte a = 1; a <= NumPossibleActions; a++)
             {
-                NodeInformation[scratchDimension, a - 1] = NodeInformation[currentProbabilityForOpponentDimension, a - 1];
+                SetNI(scratchDimension, a - 1, NodeInformation[currentProbabilityForOpponentDimension, a - 1]);
             }
             for (byte a = 1; a <= NumPossibleActions; a++)
             {
@@ -1248,13 +1281,13 @@ namespace ACESimBase.GameSolvingSupport.GameTree
                 {
                     if (a > 1)
                     {
-                        NodeInformation[currentProbabilityForOpponentDimension, a - 2] += trembleSizeEachDirection;
-                        NodeInformation[currentProbabilityForOpponentDimension, a - 1] -= trembleSizeEachDirection;
+                        AddNI(currentProbabilityForOpponentDimension, a - 2, trembleSizeEachDirection);
+                        AddNI(currentProbabilityForOpponentDimension, a - 1, -trembleSizeEachDirection);
                     }
                     if (a < NumPossibleActions)
                     {
-                        NodeInformation[currentProbabilityForOpponentDimension, a] += trembleSizeEachDirection;
-                        NodeInformation[currentProbabilityForOpponentDimension, a - 1] -= trembleSizeEachDirection;
+                        AddNI(currentProbabilityForOpponentDimension, a, trembleSizeEachDirection);
+                        AddNI(currentProbabilityForOpponentDimension, a - 1, -trembleSizeEachDirection);
                     }
                 }
             }
@@ -1264,7 +1297,7 @@ namespace ACESimBase.GameSolvingSupport.GameTree
         {
             for (byte a = 1; a <= NumPossibleActions; a++)
             {
-                NodeInformation[currentProbabilityForOpponentDimension, a - 1] = NodeInformation[scratchDimension, a - 1];
+                SetNI(currentProbabilityForOpponentDimension, a - 1, NodeInformation[scratchDimension, a - 1]);
             }
         }
 
@@ -1291,7 +1324,7 @@ namespace ACESimBase.GameSolvingSupport.GameTree
             for (byte a = 1; a <= NumPossibleActions; a++)
             {
                 double v = PastValues[pastValueIndex][a - 1];
-                NodeInformation[averageStrategyProbabilityDimension, a - 1] = v;
+                SetNI(averageStrategyProbabilityDimension, a - 1, v);
                 if (double.IsNaN(v))
                     throw new Exception();
             }
@@ -1301,10 +1334,7 @@ namespace ACESimBase.GameSolvingSupport.GameTree
 
         #region Hedge
 
-        // Note: This requires further testing
-
-        // hedge probing
-        double V = 0; // V parameter in Cesa-Bianchi
+        double V = 0;
         double MaxAbsRegretDiff = 0;
         double E = 1;
         double Nu;
@@ -1325,14 +1355,13 @@ namespace ACESimBase.GameSolvingSupport.GameTree
                 else if (lastRegret < minLastRegret)
                     minLastRegret = lastRegret;
                 double product = lastPi * lastRegret;
-                firstSum += product * lastRegret; // i.e., pi * regret^2
+                firstSum += product * lastRegret;
                 secondSum += product;
             }
-            double varZt = firstSum - secondSum * secondSum; // see Cesa-Bianchi-2007 p. 333
+            double varZt = firstSum - secondSum * secondSum;
             if (varZt < 0)
-                varZt = 0; // rounding error
-            V += varZt; // p. 334
-            // update e, if necessary (p. 336)
+                varZt = 0;
+            V += varZt;
             double absRegretDiff = Math.Abs(maxLastRegret - minLastRegret);
             if (absRegretDiff > MaxAbsRegretDiff)
             {
@@ -1343,17 +1372,15 @@ namespace ACESimBase.GameSolvingSupport.GameTree
                     E = Math.Pow(2.0, k);
                 }
             }
-            // Now, calculate Nu
             Nu = Math.Min(1.0 / E, C * Math.Sqrt(Math.Log(NumPossibleActions) / V));
             if (double.IsNaN(Nu))
                 throw new Exception();
-            // Great, we can now calculate the p values. p. 333. First, we'll store the numerators, and then we'll divide by the denominator.
             double denominatorForAllActions = 0;
             for (int a = 1; a <= NumPossibleActions; a++)
             {
-                NodeInformation[cumulativeRegretDimension, a - 1] += NodeInformation[sumRegretTimesInversePiDimension, a - 1];
+                AddNI(cumulativeRegretDimension, a - 1, NodeInformation[sumRegretTimesInversePiDimension, a - 1]);
                 double numeratorForThisAction = Math.Exp(Nu * NodeInformation[cumulativeRegretDimension, a - 1]);
-                NodeInformation[scratchDimension, a - 1] = numeratorForThisAction; // alternative implementation would reuse lastRegretDimension
+                SetNI(scratchDimension, a - 1, numeratorForThisAction);
                 if (double.IsNaN(numeratorForThisAction))
                     throw new Exception("Regrets too high. Must scale all regrets.");
                 denominatorForAllActions += numeratorForThisAction;
@@ -1361,7 +1388,7 @@ namespace ACESimBase.GameSolvingSupport.GameTree
             for (int a = 1; a <= NumPossibleActions; a++)
             {
                 double quotient = NodeInformation[scratchDimension, a - 1] / denominatorForAllActions;
-                NodeInformation[currentProbabilityDimension, a - 1] = quotient;
+                SetNI(currentProbabilityDimension, a - 1, quotient);
                 if (double.IsNaN(quotient))
                     throw new Exception("Regrets too high. Must scale all regrets");
             }
@@ -1380,7 +1407,7 @@ namespace ACESimBase.GameSolvingSupport.GameTree
         {
             var result = NodeInformation[averageStrategyProbabilityDimension, action - 1];
             if (double.IsNaN(result))
-                throw new Exception("Average strategy is set to infinite / NaN."); // Possible cause: Old or corrupt equilibrium file. Try recomputing it.
+                throw new Exception("Average strategy is set to infinite / NaN.");
             return result;
         }
 
@@ -1406,9 +1433,9 @@ namespace ACESimBase.GameSolvingSupport.GameTree
 
             int index = PastValuesCumulativeStrategyDiscounts.BinarySearch(cumulativeDiscountLevelToSeek, Comparer<double>.Default);
             if (index < 0)
-                index = ~index; // when negative, index is the bitwise complement of the first index larger than the value sought
+                index = ~index;
             if (index == pastValuesCount)
-                index--; // should be very rare.
+                index--;
             for (int a = 0; a < NumPossibleActions; a++)
                 probabilities[a] = PastValues[index][a];
         }
@@ -1438,7 +1465,7 @@ namespace ACESimBase.GameSolvingSupport.GameTree
             bool done = false;
             int i = 0;
             while (!done)
-            { // without this outer loop, there is a risk that when using parallel code, our probabilities will not add up to 1
+            {
                 double total = 0;
                 for (byte a = 1; a <= NumPossibleActions; a++)
                 {
@@ -1447,7 +1474,7 @@ namespace ACESimBase.GameSolvingSupport.GameTree
                 }
                 done = Math.Abs(1.0 - total) < 1E-4;
                 if (i++ > 100)
-                    return; // throw new Exception("Probabilities don't add up to 1");
+                    return;
             }
         }
 
@@ -1465,7 +1492,7 @@ namespace ACESimBase.GameSolvingSupport.GameTree
         public void SetCurrentProbabilities(double[] probabilities)
         {
             for (int index = 0; index < NumPossibleActions; index++)
-                NodeInformation[currentProbabilityDimension, index] = probabilities[index];
+                SetNI(currentProbabilityDimension, index, probabilities[index]);
         }
 
         #endregion
@@ -1492,7 +1519,7 @@ namespace ACESimBase.GameSolvingSupport.GameTree
                 {
                     byte? nextDecisionIndex = labeledInformationSet.Count() > i + 1 ? labeledInformationSet[i + 1].decisionIndex : null;
                     Decision nextDecision = nextDecisionIndex == null ? null : gameDefinition.DecisionPointsExecutionOrder[(byte)nextDecisionIndex].Decision;
-                    bool nextDecisionIsOpponent = nextDecision != null && nextDecision.PlayerIndex == 1; // this will usually be true -- that is, both players make the same offer at the same time; but it will not be true if a player puts information into its own information set only (e.g., as a way of distinguishing one information set from the next)
+                    bool nextDecisionIsOpponent = nextDecision != null && nextDecision.PlayerIndex == 1;
                     if (nextDecisionIsOpponent && nextDecision.SymmetryMap != decision.SymmetryMap)
                         throw new Exception();
                     if (nextDecisionIsOpponent)
@@ -1521,7 +1548,6 @@ namespace ACESimBase.GameSolvingSupport.GameTree
         public static List<(byte decisionIndex, byte information)> GetSymmetricLabeledInformationSet_FromLaterDecisionToEarlier(GameDefinition gameDefinition, List<(byte decisionIndex, byte information)> labeledInformationSet)
 
         {
-            // This is exactly the same as the above, but it produces a labeled informatoin set.
             List<(byte decisionIndex, byte information)> symmetric = labeledInformationSet.ToList();
             for (int i = 0; i < symmetric.Count; i++)
             {
@@ -1537,7 +1563,7 @@ namespace ACESimBase.GameSolvingSupport.GameTree
                 {
                     byte? previousDecisionIndex = labeledInformationSet.Count() > i - 1 ? labeledInformationSet[i - 1].decisionIndex : null;
                     Decision previousDecision = previousDecisionIndex == null ? null : gameDefinition.DecisionPointsExecutionOrder[(byte)previousDecisionIndex].Decision;
-                    bool previousDecisionInInformationSetIsOpponents = previousDecision != null && previousDecision.PlayerIndex == 0 && previousDecision.DecisionByteCode == decision.DecisionByteCode - 1; // this will usually be true -- that is, both players make the same offer at the same time; but it will not be true if a player puts information into its own information set only (e.g., as a way of distinguishing one information set from the next)
+                    bool previousDecisionInInformationSetIsOpponents = previousDecision != null && previousDecision.PlayerIndex == 0 && previousDecision.DecisionByteCode == decision.DecisionByteCode - 1;
                     if (previousDecisionInInformationSetIsOpponents && previousDecision.SymmetryMap != decision.SymmetryMap)
                         throw new Exception();
                     if (previousDecisionInInformationSetIsOpponents)
@@ -1581,17 +1607,14 @@ namespace ACESimBase.GameSolvingSupport.GameTree
                 {
                     byte[] reverse = node.GetSymmetricInformationSet(gameDefinition);
                     reverseInformationSetToNodeMap[string.Join(",", reverse)] = node;
-                    // Debug.WriteLine($"Player 0: {String.Join(";", node.InformationSetWithLabels(gameDefinition))} => {String.Join(",", reverse)}"); 
                 }
             }
             foreach (InformationSetNode node in nodes)
             {
                 if (node.PlayerIndex == 1)
                 {
-                    //Debug.WriteLine($"{node.InformationSetWithLabels(gameDefinition)}");
                     InformationSetNode symmetricNode = reverseInformationSetToNodeMap[string.Join(",", node.InformationSetContents)];
                     result[node] = symmetricNode;
-                    //Debug.WriteLine($"Information set {symmetricNode.InformationSetNodeNumber} => {node.InformationSetNodeNumber} ");
                 }
             }
             return result;
@@ -1615,15 +1638,9 @@ namespace ACESimBase.GameSolvingSupport.GameTree
                         throw new Exception("Symmetry verification failed.");
                     if (Math.Abs(NodeInformation[sumRegretTimesInversePiDimension, target] - sourceInformationSet.NodeInformation[sumRegretTimesInversePiDimension, source]) > 1E-6)
                         throw new Exception("Symmetry verification failed.");
-                    // NOTE: We can't get perfect symmetry in our online best response (at least currently). This does NOT affect our general best response calculation, just the online approximation; moreover, we can still get a symmetric response from the online approximation, we just can't use symmetry verification. The problem is that the player 1 information sets will be visited twice as much as the player 0 information sets because of the sequencing. And this effectively gives player 1 more options in selecting best responses using this algorithm. So we're disabling verification of this.
-                    //if (Math.Abs(NodeInformation[bestResponseNumeratorDimension, target] - sourceInformationSet.NodeInformation[bestResponseNumeratorDimension, source]) > 1E-6)
-                    //    throw new Exception("Symmetry verification failed.");
-                    //if (Math.Abs(NodeInformation[bestResponseDenominatorDimension, target] - sourceInformationSet.NodeInformation[bestResponseDenominatorDimension, source]) > 1E-6)
-                    //    throw new Exception("Symmetry verification failed.");
                 }
-                // even if verifying symmetry, we make sure that the symmetry is exact, to avoid accumulating rounding errors
                 for (int dimension = 0; dimension <= scratchDimension; dimension++)
-                    NodeInformation[dimension, target] = sourceInformationSet.NodeInformation[dimension, source];
+                    SetNI(dimension, target, sourceInformationSet.NodeInformation[dimension, source]);
             }
         }
 
@@ -1651,22 +1668,22 @@ namespace ACESimBase.GameSolvingSupport.GameTree
         {
             if (double.IsNaN(probabilityValue))
                 throw new Exception("Probability value is not a number");
-            NodeInformation[currentProbabilityDimension, a - 1] = probabilityValue;
-            NodeInformation[currentProbabilityForOpponentDimension, a - 1] = probabilityValue;
+            SetNI(currentProbabilityDimension, a - 1, probabilityValue);
+            SetNI(currentProbabilityForOpponentDimension, a - 1, probabilityValue);
             if (setAverageAndCumulativeStrategy)
             {
-                NodeInformation[averageStrategyProbabilityDimension, a - 1] = probabilityValue;
-                NodeInformation[cumulativeStrategyDimension, a - 1] = probabilityValue;
+                SetNI(averageStrategyProbabilityDimension, a - 1, probabilityValue);
+                SetNI(cumulativeStrategyDimension, a - 1, probabilityValue);
             }
         }
         public void SetCurrentAndAverageStrategyValues(byte a, double current, double average)
         {
             if (double.IsNaN(current) || double.IsNaN(average))
                 throw new Exception();
-            NodeInformation[currentProbabilityDimension, a - 1] = current;
-            NodeInformation[currentProbabilityForOpponentDimension, a - 1] = current;
-            NodeInformation[averageStrategyProbabilityDimension, a - 1] = average;
-            NodeInformation[cumulativeStrategyDimension, a - 1] = average;
+            SetNI(currentProbabilityDimension, a - 1, current);
+            SetNI(currentProbabilityForOpponentDimension, a - 1, current);
+            SetNI(averageStrategyProbabilityDimension, a - 1, average);
+            SetNI(cumulativeStrategyDimension, a - 1, average);
         }
 
         public void SetCurrentAndAverageProbabilities(double[] probabilities)
@@ -1676,10 +1693,10 @@ namespace ACESimBase.GameSolvingSupport.GameTree
                 double p = probabilities[a - 1];
                 if (double.IsNaN(p))
                     throw new Exception();
-                NodeInformation[currentProbabilityDimension, a - 1] = p;
-                NodeInformation[currentProbabilityForOpponentDimension, a - 1] = p;
-                NodeInformation[averageStrategyProbabilityDimension, a - 1] = p;
-                NodeInformation[cumulativeStrategyDimension, a - 1] = p;
+                SetNI(currentProbabilityDimension, a - 1, p);
+                SetNI(currentProbabilityForOpponentDimension, a - 1, p);
+                SetNI(averageStrategyProbabilityDimension, a - 1, p);
+                SetNI(cumulativeStrategyDimension, a - 1, p);
             }
         }
 
@@ -1688,12 +1705,12 @@ namespace ACESimBase.GameSolvingSupport.GameTree
             for (byte a = 1; a <= NumPossibleActions; a++)
             {
                 double v = action == a ? 1.0 : 0;
-                NodeInformation[currentProbabilityDimension, a - 1] = v;
-                NodeInformation[currentProbabilityForOpponentDimension, a - 1] = v;
+                SetNI(currentProbabilityDimension, a - 1, v);
+                SetNI(currentProbabilityForOpponentDimension, a - 1, v);
                 if (setAverageAndCumulativeStrategy)
                 {
-                    NodeInformation[averageStrategyProbabilityDimension, a - 1] = v;
-                    NodeInformation[cumulativeStrategyDimension, a - 1] = v;
+                    SetNI(averageStrategyProbabilityDimension, a - 1, v);
+                    SetNI(cumulativeStrategyDimension, a - 1, v);
                 }
             }
         }
@@ -1733,8 +1750,8 @@ namespace ACESimBase.GameSolvingSupport.GameTree
                 if (p < threshold)
                 {
                     reallocated += p;
-                    NodeInformation[averageStrategyProbabilityDimension, action - 1] = 0;
-                    NodeInformation[cumulativeStrategyDimension, action - 1] = 0;
+                    SetNI(averageStrategyProbabilityDimension, action - 1, 0);
+                    SetNI(cumulativeStrategyDimension, action - 1, 0);
                 }
             }
             if (reallocated > 0)
@@ -1743,7 +1760,7 @@ namespace ACESimBase.GameSolvingSupport.GameTree
                 if (double.IsNaN(multiplyBy))
                     throw new Exception();
                 for (byte action = 1; action < NumPossibleActions; action++)
-                    NodeInformation[averageStrategyProbabilityDimension, action - 1] *= multiplyBy;
+                    SetNI(averageStrategyProbabilityDimension, action - 1, NodeInformation[averageStrategyProbabilityDimension, action - 1] * multiplyBy);
             }
         }
 
@@ -1762,8 +1779,8 @@ namespace ACESimBase.GameSolvingSupport.GameTree
                 double reallocation = minProbabilitySecondBest - secondHighest.value;
                 if (double.IsNaN(reallocation))
                     throw new Exception();
-                NodeInformation[averageStrategyProbabilityDimension, highest.index] -= reallocation;
-                NodeInformation[averageStrategyProbabilityDimension, secondHighest.index] += reallocation;
+                AddNI(averageStrategyProbabilityDimension, highest.index, -reallocation);
+                AddNI(averageStrategyProbabilityDimension, secondHighest.index, reallocation);
             }
             var revisedAverageStrategyProbabilities = GetAverageStrategiesAsArray();
             if (Math.Abs(revisedAverageStrategyProbabilities.Sum() - 1) > 1E-8)
@@ -1792,7 +1809,6 @@ namespace ACESimBase.GameSolvingSupport.GameTree
             }
         }
 
-        // past value product -- used in autogenerated correlated equilibrium code (referenced by string, so it appears to have zero references.
         public double PVP(int iteration, byte action, Func<double> multiplyByFn)
         {
             double d = PastValues[iteration][action - 1];
@@ -1813,7 +1829,7 @@ namespace ACESimBase.GameSolvingSupport.GameTree
                     }
 
                     double v = total / (LastPastValueIndexRecorded + 1);
-                    NodeInformation[averageStrategyProbabilityDimension, a - 1] = v;
+                    SetNI(averageStrategyProbabilityDimension, a - 1, v);
                     if (double.IsNaN(v))
                         throw new Exception();
                 }
@@ -1824,7 +1840,9 @@ namespace ACESimBase.GameSolvingSupport.GameTree
                 return;
             for (int a = 1; a <= NumPossibleActions; a++)
             {
-                NodeInformation[currentProbabilityDimension, a - 1] = NodeInformation[currentProbabilityForOpponentDimension, a - 1] = PastValues[pastValueIndex][a - 1];
+                double pv = PastValues[pastValueIndex][a - 1];
+                SetNI(currentProbabilityDimension, a - 1, pv);
+                SetNI(currentProbabilityForOpponentDimension, a - 1, pv);
             }
         }
 
@@ -1839,7 +1857,6 @@ namespace ACESimBase.GameSolvingSupport.GameTree
                 double sumDistances = 0;
                 for (int i = 0; i < numToTest; i++)
                 {
-                    // Note: we're not weighting these here
                     int j0 = RandomGenerator.Next(total);
                     int j1 = RandomGenerator.Next(total);
                     double sumSqDiffs = 0;
@@ -1855,7 +1872,7 @@ namespace ACESimBase.GameSolvingSupport.GameTree
                 avgDistanceString = avgDistance.ToSignificantFigures(3);
 
                 ranges = new List<(int startIteration, int endIteration, int significantActions)>();
-                int activeRangeStart = total / 2  /* focus on second half */;
+                int activeRangeStart = total / 2;
                 int significantActionsInRange = 0;
 
                 for (int i = activeRangeStart; i < total; i++)
@@ -1894,7 +1911,6 @@ namespace ACESimBase.GameSolvingSupport.GameTree
             double[] averageStrategies = GetAverageStrategiesAsArray();
             string avgStratString = GetAverageStrategiesAsString();
             bool avgStratSameAsBestResponse = averageStrategies[BestResponseAction - 1] > 0.9999999;
-            //if (ranges.Count() > 1)
             TabbedText.WriteLine($"{(avgStratSameAsBestResponse ? "*" : "")} decision {Decision.Name} Information set {InformationSetNodeNumber} bestrespon {BestResponseAction} hedge {hedgeString} avg {avgStratString} avg distance {avgDistanceString} ranges: {rangesString}");
         }
 
