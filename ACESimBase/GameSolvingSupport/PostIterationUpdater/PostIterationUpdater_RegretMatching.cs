@@ -20,12 +20,6 @@ namespace ACESimBase.GameSolvingSupport.PostIterationUpdater
 
         public override void UpdateInformationSet(InformationSetNode node, bool weightResultByInversePiForIteration)
         {
-            
-            if (node.InformationSetNodeNumber == 0)
-            {
-                var DEBUG = 0;
-            }
-
             // normalize regrets to costs between 0 and 1. the key assumption is that each iteration takes into account ALL possible outcomes (as in a vanilla hedge CFR algorithm)
             double sumPositiveCumRegrets = 0;
             double[,] nodeInformation = node.NodeInformation;
@@ -60,11 +54,6 @@ namespace ACESimBase.GameSolvingSupport.PostIterationUpdater
                 nodeInformation[InformationSetNode.currentProbabilityDimension, a - 1] = currentProbability;
                 if (double.IsNaN(currentProbability))
                     throw new Exception();
-            }
-
-            if (node.InformationSetNodeNumber == 0)
-            {
-                var DEBUG = 0;
             }
         }
     }
