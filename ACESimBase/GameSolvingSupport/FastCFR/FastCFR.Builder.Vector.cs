@@ -1,9 +1,10 @@
 ﻿#nullable enable
 
-using System;
-using System.Collections.Generic;
 using ACESimBase.GameSolvingSupport.GameTree;
 using ACESimBase.Util.Collections;
+using System;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace ACESimBase.GameSolvingSupport.FastCFR
 {
@@ -17,6 +18,30 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
         private FastCFRVectorAnchorShim? _vectorAnchorShim;
         private bool _vectorRegionBuilt;
         private int _vectorWidth;
+
+        public FastCFRBuilder(
+            HistoryNavigationInfo navigation,
+            Func<HistoryPoint> rootFactory,
+            FastCFRBuilderOptions options,
+            FastCFRVectorRegionOptions vectorOptions,
+            Func<ChanceNode, bool> anchorSelector)
+        {
+            _nav = navigation;
+            _rootFactory = rootFactory ?? throw new ArgumentNullException(nameof(rootFactory));
+            _opts = options ?? new FastCFRBuilderOptions();
+
+            // Configure vector region BEFORE compiling the tree.
+            if (vectorOptions != null && vectorOptions.EnableVectorRegion && anchorSelector != null)
+                ConfigureVectorRegion(vectorOptions, anchorSelector); // defined in the vector partial
+
+            _numNonChancePlayers = (byte)_nav.GameDefinition.Players.Count(p => !p.PlayerIsChance);
+
+            var rootHP = _rootFactory();
+            _rootAccessor = Compile(rootHP);     // may inject vector anchor shim here
+            FinalizeNodeObjects();
+            AllocatePolicyBuffers();
+        }
+
 
         public void ConfigureVectorRegion(FastCFRVectorRegionOptions options, Func<ChanceNode, bool> anchorSelector)
         {

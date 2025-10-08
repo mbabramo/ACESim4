@@ -203,13 +203,36 @@ namespace ACESim
                 UseDynamicChanceProbabilities = true
             };
 
-            Fast_Builder = new ACESimBase.GameSolvingSupport.FastCFR.FastCFRBuilder(
-                navigation: Navigation,
-                rootFactory: () => GetStartOfGameHistoryPoint(),
-                options: options);
-            
+            if (!EvolutionSettings.FastCFRVectorize)
+            {
+                Fast_Builder = new FastCFRBuilder(
+                    navigation: Navigation,
+                    rootFactory: () => GetStartOfGameHistoryPoint(),
+                    options: options);
+            }
+            else
+            {
+                var vecOptions = new FastCFRVectorRegionOptions
+                {
+                    EnableVectorRegion = true,
+                    PreferredVectorWidth = 0 // let the builder choose the hardware-friendly width
+                };
+
+                // A simple, general anchor: first chance node with 2+ outcomes.
+                Func<ChanceNode, bool> anchorSelector
+                    = cn => cn.Decision.NumPossibleActions > 1;
+
+                Fast_Builder = new FastCFRBuilder(
+                    navigation: Navigation,
+                    rootFactory: () => GetStartOfGameHistoryPoint(),
+                    options: options,
+                    vectorOptions: vecOptions,
+                    anchorSelector: anchorSelector);
+            }
+
             ActionStrategy = ActionStrategies.CurrentProbability;
         }
+
 
         private async Task<ReportCollection> Fast_SolveGeneralizedVanillaCFR()
         {
