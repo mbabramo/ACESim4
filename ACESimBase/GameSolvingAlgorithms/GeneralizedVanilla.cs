@@ -207,6 +207,8 @@ namespace ACESim
                 navigation: Navigation,
                 rootFactory: () => GetStartOfGameHistoryPoint(),
                 options: options);
+            
+            ActionStrategy = ActionStrategies.CurrentProbability;
         }
 
         private async Task<ReportCollection> Fast_SolveGeneralizedVanillaCFR()
