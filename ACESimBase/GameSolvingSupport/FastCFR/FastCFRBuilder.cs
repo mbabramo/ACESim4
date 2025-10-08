@@ -174,6 +174,11 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
 
         private Func<IFastCFRNode> CompileChance(HistoryPoint hp, ChanceNode cn)
         {
+            // If vector region is enabled and this is the first matching anchor, switch to the vector anchor shim.
+            if (!_vectorRegionBuilt && s_VectorOptions?.EnableVectorRegion == true && s_VectorAnchorSelector != null && s_VectorAnchorSelector(cn))
+                return CompileVectorAnchorShim(hp, cn);
+
+            // Scalar (existing) path
             var entry = GetOrCreateChanceEntry(cn);
             byte decisionIndex = hp.GetNextDecisionIndex(_nav);
             var decision = _nav.GameDefinition.DecisionsExecutionOrder[decisionIndex];
@@ -191,8 +196,7 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
                 if (_opts.UseDynamicChanceProbabilities || cn.AllProbabilitiesEqual() == false)
                 {
                     int outcomeIndexOneBased = a;
-                    provider = (ref FastCFRIterationContext _)
-                        => cn.GetActionProbability(outcomeIndexOneBased);
+                    provider = (ref FastCFRIterationContext _) => cn.GetActionProbability(outcomeIndexOneBased);
                 }
                 else
                 {
@@ -209,6 +213,7 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
 
             return entry.NodeAccessor;
         }
+
 
         private Func<IFastCFRNode> CompileFinal(HistoryPoint hp, FinalUtilitiesNode fu)
         {
