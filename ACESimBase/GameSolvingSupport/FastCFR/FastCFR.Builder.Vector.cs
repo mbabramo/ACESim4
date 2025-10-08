@@ -257,9 +257,8 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
             Func<byte, double>? rand01ForDecision)
         {
             if (!_vectorRegionBuilt)
-                throw new InvalidOperationException("Vector region not built."); // existing behavior
+                throw new InvalidOperationException("Vector region not built.");
 
-            // Use the caller's group-lane length when provided; otherwise fall back to the max width.
             int lanes = scenarioIndexByLane?.Length ?? _vectorAnchorShim!.VectorWidth;
 
             int[] scn;
@@ -278,6 +277,37 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
                 scn = scenarioIndexByLane;
             }
 
+            // Initialize all vector nodes ONCE per sweep; subsequent calls just create a fresh context.
+            if (!_vecInitDoneThisSweep)
+            {
+                foreach (var node in _vecInfosets)
+                {
+                    int ln = node.LaneCount;
+                    var ownerByLane = new double[ln][];
+                    var oppByLane = new double[ln][];
+
+                    for (int k = 0; k < ln; k++)
+                    {
+                        var backing = node.GetBackingForLane(k);
+                        var owner = new double[backing.NumPossibleActions];
+                        var opp = new double[backing.NumPossibleActions];
+
+                        backing.GetCurrentProbabilities(owner, opponentProbabilities: false);
+                        backing.GetCurrentProbabilities(opp, opponentProbabilities: true);
+
+                        ownerByLane[k] = owner;
+                        oppByLane[k] = opp;
+                    }
+
+                    node.InitializeIterationVec(ownerByLane, oppByLane);
+                }
+
+                foreach (var node in _vecChances)
+                    node.InitializeIterationVec(Array.Empty<double[]>(), Array.Empty<double[]>());
+
+                _vecInitDoneThisSweep = true;
+            }
+
             var reachSelf = new double[lanes];
             var reachOpp = new double[lanes];
             var reachChance = new double[lanes];
@@ -289,33 +319,6 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
                 reachChance[k] = 1.0;
                 mask[k] = 1;
             }
-
-            // Initialize each vector infoset with its OWN lane count.
-            foreach (var node in _vecInfosets)
-            {
-                int ln = node.LaneCount;
-                var ownerByLane = new double[ln][];
-                var oppByLane = new double[ln][];
-
-                for (int k = 0; k < ln; k++)
-                {
-                    var backing = node.GetBackingForLane(k);
-                    var owner = new double[backing.NumPossibleActions];
-                    var opp = new double[backing.NumPossibleActions];
-
-                    backing.GetCurrentProbabilities(owner, opponentProbabilities: false);
-                    backing.GetCurrentProbabilities(opp, opponentProbabilities: true);
-
-                    ownerByLane[k] = owner;
-                    oppByLane[k] = opp;
-                }
-
-                node.InitializeIterationVec(ownerByLane, oppByLane);
-            }
-
-            // Chance nodes don't need lane-sized arrays during initialization.
-            foreach (var node in _vecChances)
-                node.InitializeIterationVec(Array.Empty<double[]>(), Array.Empty<double[]>());
 
             return new FastCFRVecContext
             {
@@ -332,11 +335,16 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
         }
 
 
+
         public void CopyTalliesIntoBackingNodes_Vector()
         {
             foreach (var v in _vecInfosets)
                 v.FlushTalliesToBacking();
+
+            // Mark the end of the current vector sweep so the next call re-initializes nodes.
+            _vecInitDoneThisSweep = false;
         }
+
     }
 
     internal sealed class FastCFRVectorAnchorShim : IFastCFRNode
@@ -384,8 +392,16 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
             {
                 int lanes = Math.Min(VectorWidth, _numOutcomes - g * VectorWidth);
 
-                // Request a context sized exactly to this group's lane count.
+                // Create a fresh, correctly-sized context for this group (nodes stay initialized).
                 var vecCtx = _builder.InitializeIterationVec(ctx.OptimizedPlayerIndex, new int[lanes], ctx.Rand01ForDecision);
+
+                // Seed upstream reaches from the scalar context at the anchor.
+                for (int k = 0; k < lanes; k++)
+                {
+                    vecCtx.ReachSelf[k] = ctx.ReachSelf;
+                    vecCtx.ReachOpp[k] = ctx.ReachOpp;
+                    vecCtx.ReachChance[k] = ctx.ReachChance;
+                }
 
                 if (ctx.SuppressMath)
                     Array.Clear(vecCtx.ActiveMask, 0, lanes);
