@@ -1,104 +1,38 @@
 ﻿#nullable enable
+
 using System;
+using System.Collections.Generic;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
-using System.Runtime.InteropServices;
+using ACESimBase.GameSolvingSupport.GameTree;
 using ACESimBase.Util.Collections;
 
 namespace ACESimBase.GameSolvingSupport.FastCFR
 {
     public sealed class FastCFRVectorRegionOptions
     {
-        public bool EnableVectorRegion { get; set; } = false;
-        public int VectorWidth { get; set; } = 4;
-        public bool EnableVectorProbabilityProviders { get; set; } = true;
+        public bool EnableVectorRegion { get; set; } = true;
+        public int PreferredVectorWidth { get; set; } = 0; // 0 = pick best available
+        public bool EnableVectorProbabilityProviders { get; set; } = false; // stub
     }
 
-    public delegate void FastCFRProbProviderVec(
-        ref FastCFRVecContext ctx,
-        byte outcomeIndexOneBased,
-        Span<double> probabilitiesByLane);
-
-    public readonly struct FastCFRNodeVecResult
+    public static class FastCFRVecCapabilities
     {
-        public readonly double[][] UtilitiesByPlayerByLane;
-        public readonly FloatSet[] CustomByLane;
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public FastCFRNodeVecResult(double[][] utilitiesByPlayerByLane, FloatSet[] customByLane)
+        public static int EffectiveVectorWidth(FastCFRVectorRegionOptions? options)
         {
-            UtilitiesByPlayerByLane = utilitiesByPlayerByLane ?? Array.Empty<double[]>();
-            CustomByLane = customByLane ?? Array.Empty<FloatSet>();
-        }
-
-        public int NumPlayers => UtilitiesByPlayerByLane.Length;
-        public int NumLanes => UtilitiesByPlayerByLane.Length == 0 ? 0 : UtilitiesByPlayerByLane[0].Length;
-
-        public static FastCFRNodeVecResult Zero(int numPlayers, int lanes)
-        {
-            var u = new double[numPlayers][];
-            for (int p = 0; p < numPlayers; p++)
-                u[p] = new double[lanes];
-            var c = new FloatSet[lanes];
-            return new FastCFRNodeVecResult(u, c);
+            int preferred = options?.PreferredVectorWidth ?? 0;
+            int hw = Avx.IsSupported ? 4 : (Sse2.IsSupported ? 2 : 1);
+            if (preferred <= 0) return hw;
+            return Math.Max(1, Math.Min(preferred, hw));
         }
     }
 
-    public ref struct FastCFRVecContext
-    {
-        public int IterationNumber;
-        public byte OptimizedPlayerIndex;
-        public double SamplingCorrection;
-
-        public Span<double> ReachSelf;
-        public Span<double> ReachOpp;
-        public Span<double> ReachChance;
-
-        public Span<byte> ActiveMask;
-        public Span<int> ScenarioIndex;
-
-        public Func<byte, double>? Rand01ForDecision;
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool AnyActive()
-        {
-            var m = ActiveMask;
-            for (int i = 0; i < m.Length; i++)
-                if (m[i] != 0) return true;
-            return false;
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public int ActiveCount()
-        {
-            int n = 0;
-            var m = ActiveMask;
-            for (int i = 0; i < m.Length; i++)
-                if (m[i] != 0) n++;
-            return n;
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void ClearInactiveReaches()
-        {
-            var m = ActiveMask;
-            for (int i = 0; i < m.Length; i++)
-            {
-                if (m[i] == 0)
-                {
-                    ReachSelf[i] = 0.0;
-                    ReachOpp[i] = 0.0;
-                    ReachChance[i] = 0.0;
-                }
-            }
-        }
-    }
+    public delegate void FastCFRProbProviderVec(ref FastCFRVecContext ctx, byte outcomeIndexOneBased, Span<double> pLane);
 
     public interface IFastCFRNodeVec
     {
-        // Freeze per-lane policies for this iteration.
-        // Each inner array is the action-probability vector for one lane.
         void InitializeIterationVec(
             double[][] ownerCurrentPolicyByLane,
             double[][] opponentTraversalPolicyByLane);
@@ -106,17 +40,38 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
         FastCFRNodeVecResult GoVec(ref FastCFRVecContext ctx);
     }
 
+    public readonly struct FastCFRNodeVecResult
+    {
+        public readonly double[][] UtilitiesByPlayerByLane; // [player][lane]
+        public readonly FloatSet[] CustomByLane;            // [lane]
+        public FastCFRNodeVecResult(double[][] utilitiesByPlayerByLane, FloatSet[] customByLane)
+        {
+            UtilitiesByPlayerByLane = utilitiesByPlayerByLane;
+            CustomByLane = customByLane;
+        }
+    }
+
+    public ref struct FastCFRVecContext
+    {
+        public int IterationNumber;
+        public byte OptimizedPlayerIndex;
+        public double[] ReachSelf;   // [lane]
+        public double[] ReachOpp;    // [lane]
+        public double[] ReachChance; // [lane]
+        public byte[] ActiveMask;    // [lane] 0/1
+        public int[] ScenarioIndex;  // [lane] (must be single-valued across lanes)
+        public double SamplingCorrection;
+        public Func<byte, double>? Rand01ForDecision;
+    }
 
     public readonly struct FastCFRVisitStepVec
     {
-        public readonly byte ActionIndex;
+        public readonly byte ActionIndex; // 0..NumActions-1
         public readonly Func<IFastCFRNodeVec> ChildAccessor;
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public FastCFRVisitStepVec(byte actionIndex, Func<IFastCFRNodeVec> childAccessor)
         {
             ActionIndex = actionIndex;
-            ChildAccessor = childAccessor ?? throw new ArgumentNullException(nameof(childAccessor));
+            ChildAccessor = childAccessor;
         }
     }
 
@@ -124,11 +79,9 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
     {
         public readonly FastCFRVisitStepVec[] Steps;
         public readonly int NumPlayers;
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public FastCFRVisitProgramVec(FastCFRVisitStepVec[] steps, int numPlayers)
         {
-            Steps = steps ?? Array.Empty<FastCFRVisitStepVec>();
+            Steps = steps;
             NumPlayers = numPlayers;
         }
     }
@@ -137,34 +90,38 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
     {
         public readonly byte OutcomeIndexOneBased;
         public readonly Func<IFastCFRNodeVec> ChildAccessor;
-        public readonly double StaticProbability;
+        public readonly double StaticProbability; // >=0 means static; else use provider
         public readonly FastCFRProbProviderVec? ProbabilityProvider;
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public FastCFRChanceStepVec(byte outcomeIndexOneBased, Func<IFastCFRNodeVec> childAccessor, double staticProbability)
         {
             OutcomeIndexOneBased = outcomeIndexOneBased;
-            ChildAccessor = childAccessor ?? throw new ArgumentNullException(nameof(childAccessor));
+            ChildAccessor = childAccessor;
             StaticProbability = staticProbability;
             ProbabilityProvider = null;
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public FastCFRChanceStepVec(byte outcomeIndexOneBased, Func<IFastCFRNodeVec> childAccessor, FastCFRProbProviderVec probabilityProvider)
+        public FastCFRChanceStepVec(byte outcomeIndexOneBased, Func<IFastCFRNodeVec> childAccessor, FastCFRProbProviderVec provider)
         {
             OutcomeIndexOneBased = outcomeIndexOneBased;
-            ChildAccessor = childAccessor ?? throw new ArgumentNullException(nameof(childAccessor));
+            ChildAccessor = childAccessor;
             StaticProbability = -1.0;
-            ProbabilityProvider = probabilityProvider ?? throw new ArgumentNullException(nameof(probabilityProvider));
+            ProbabilityProvider = provider;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void FillProbabilities(ref FastCFRVecContext ctx, Span<double> perLaneProbabilities)
+        public void FillProbabilities(ref FastCFRVecContext ctx, Span<double> pLane)
         {
             if (ProbabilityProvider is null)
-                perLaneProbabilities.Fill(StaticProbability);
+            {
+                double p = StaticProbability;
+                for (int k = 0; k < pLane.Length; k++)
+                    pLane[k] = p;
+            }
             else
-                ProbabilityProvider(ref ctx, OutcomeIndexOneBased, perLaneProbabilities);
+            {
+                ProbabilityProvider(ref ctx, OutcomeIndexOneBased, pLane);
+            }
         }
     }
 
@@ -172,153 +129,15 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
     {
         public readonly FastCFRChanceStepVec[] Steps;
         public readonly int NumPlayers;
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public FastCFRChanceVisitProgramVec(FastCFRChanceStepVec[] steps, int numPlayers)
         {
-            Steps = steps ?? Array.Empty<FastCFRChanceStepVec>();
+            Steps = steps;
             NumPlayers = numPlayers;
-        }
-    }
-
-    internal static class FastCFRVecCapabilities
-    {
-        public static bool AvxAvailable => Avx.IsSupported;
-        public static bool Sse2Available => Sse2.IsSupported;
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static int EffectiveVectorWidth(FastCFRVectorRegionOptions? opts)
-        {
-            int requested = Math.Clamp(opts?.VectorWidth ?? 4, 1, 8);
-
-            if (AvxAvailable)
-                return Math.Min(4, requested);
-
-            if (Sse2Available)
-                return Math.Min(2, requested);
-
-            return 1;
         }
     }
 
     internal static class FastCFRVecMath
     {
-        public static void MulAccumulateMasked(ReadOnlySpan<double> a, ReadOnlySpan<double> b, ReadOnlySpan<byte> mask, Span<double> dst)
-        {
-            int n = a.Length;
-            if (n == 0) return;
-
-            if (Avx.IsSupported)
-            {
-                int stride = Vector256<double>.Count;
-                int i = 0;
-                while (i <= n - stride)
-                {
-                    var va = Vector256.LoadUnsafe(ref MemoryMarshal.GetReference(a), (nuint)i);
-                    var vb = Vector256.LoadUnsafe(ref MemoryMarshal.GetReference(b), (nuint)i);
-                    var vm = LoadMaskSegmentAsDouble256(mask, i);
-
-                    var mul = Avx.Multiply(va, vb);
-                    var masked = Avx.Multiply(mul, vm);
-
-                    var vdst = Vector256.LoadUnsafe(ref MemoryMarshal.GetReference(dst), (nuint)i);
-                    vdst = Avx.Add(vdst, masked);
-                    vdst.StoreUnsafe(ref MemoryMarshal.GetReference(dst), (nuint)i);
-
-                    i += stride;
-                }
-                for (; i < n; i++)
-                    if (mask[i] != 0) dst[i] += a[i] * b[i];
-
-                return;
-            }
-
-            if (Sse2.IsSupported)
-            {
-                int stride = Vector128<double>.Count;
-                int i = 0;
-                while (i <= n - stride)
-                {
-                    var va = Vector128.LoadUnsafe(ref MemoryMarshal.GetReference(a), (nuint)i);
-                    var vb = Vector128.LoadUnsafe(ref MemoryMarshal.GetReference(b), (nuint)i);
-                    var vm = LoadMaskSegmentAsDouble128(mask, i);
-
-                    var mul = Sse2.Multiply(va, vb);
-                    var masked = Sse2.Multiply(mul, vm);
-
-                    var vdst = Vector128.LoadUnsafe(ref MemoryMarshal.GetReference(dst), (nuint)i);
-                    vdst = Sse2.Add(vdst, masked);
-                    vdst.StoreUnsafe(ref MemoryMarshal.GetReference(dst), (nuint)i);
-
-                    i += stride;
-                }
-                for (; i < n; i++)
-                    if (mask[i] != 0) dst[i] += a[i] * b[i];
-
-                return;
-            }
-
-            for (int i = 0; i < n; i++)
-                if (mask[i] != 0) dst[i] += a[i] * b[i];
-        }
-
-        public static void ScaleInPlaceMasked(Span<double> x, ReadOnlySpan<double> factor, ReadOnlySpan<byte> mask)
-        {
-            int n = x.Length;
-            if (n == 0) return;
-
-            if (Avx.IsSupported)
-            {
-                int stride = Vector256<double>.Count;
-                int i = 0;
-                while (i <= n - stride)
-                {
-                    var vx = Vector256.LoadUnsafe(ref MemoryMarshal.GetReference(x), (nuint)i);
-                    var vf = Vector256.LoadUnsafe(ref MemoryMarshal.GetReference(factor), (nuint)i);
-                    var vm = LoadMaskSegmentAsDouble256(mask, i);
-
-                    var scaled = Avx.Multiply(vx, vf);
-                    var delta = Avx.Subtract(scaled, vx);
-                    var maskedDelta = Avx.Multiply(delta, vm);
-                    vx = Avx.Add(vx, maskedDelta);
-
-                    vx.StoreUnsafe(ref MemoryMarshal.GetReference(x), (nuint)i);
-                    i += stride;
-                }
-                for (; i < n; i++)
-                    if (mask[i] != 0) x[i] *= factor[i];
-
-                return;
-            }
-
-            if (Sse2.IsSupported)
-            {
-                int stride = Vector128<double>.Count;
-                int i = 0;
-                while (i <= n - stride)
-                {
-                    var vx = Vector128.LoadUnsafe(ref MemoryMarshal.GetReference(x), (nuint)i);
-                    var vf = Vector128.LoadUnsafe(ref MemoryMarshal.GetReference(factor), (nuint)i);
-                    var vm = LoadMaskSegmentAsDouble128(mask, i);
-
-                    var scaled = Sse2.Multiply(vx, vf);
-                    var delta = Sse2.Subtract(scaled, vx);
-                    var maskedDelta = Sse2.Multiply(delta, vm);
-                    vx = Sse2.Add(vx, maskedDelta);
-
-                    vx.StoreUnsafe(ref MemoryMarshal.GetReference(x), (nuint)i);
-                    i += stride;
-                }
-                for (; i < n; i++)
-                    if (mask[i] != 0) x[i] *= factor[i];
-
-                return;
-            }
-
-            for (int i = 0; i < n; i++)
-                if (mask[i] != 0) x[i] *= factor[i];
-        }
-
         public static void DotPerLane(
             ReadOnlySpan<double> weights,
             double[][] perActionLaneValues,
@@ -400,7 +219,6 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
                 return;
             }
 
-            // Fallback
             for (int a = 0; a < weights.Length; a++)
             {
                 var laneVals = perActionLaneValues[a];
@@ -411,88 +229,15 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
             }
         }
 
-
-        public static double ReduceSumMasked(ReadOnlySpan<double> x, ReadOnlySpan<byte> mask)
-        {
-            int n = x.Length;
-            double sum = 0.0;
-
-            if (Avx.IsSupported)
-            {
-                int stride = Vector256<double>.Count;
-                var acc = Vector256<double>.Zero;
-                int i = 0;
-                while (i <= n - stride)
-                {
-                    var vx = Vector256.LoadUnsafe(ref MemoryMarshal.GetReference(x), (nuint)i);
-                    var vm = LoadMaskSegmentAsDouble256(mask, i);
-                    var vmasked = Avx.Multiply(vx, vm);
-                    acc = Avx.Add(acc, vmasked);
-                    i += stride;
-                }
-                sum += HorizontalAdd256(acc);
-                for (; i < n; i++)
-                    if (mask[i] != 0) sum += x[i];
-
-                return sum;
-            }
-
-            if (Sse2.IsSupported)
-            {
-                int stride = Vector128<double>.Count;
-                var acc = Vector128<double>.Zero;
-                int i = 0;
-                while (i <= n - stride)
-                {
-                    var vx = Vector128.LoadUnsafe(ref MemoryMarshal.GetReference(x), (nuint)i);
-                    var vm = LoadMaskSegmentAsDouble128(mask, i);
-                    var vmasked = Sse2.Multiply(vx, vm);
-                    acc = Sse2.Add(acc, vmasked);
-                    i += stride;
-                }
-                sum += HorizontalAdd128(acc);
-                for (; i < n; i++)
-                    if (mask[i] != 0) sum += x[i];
-
-                return sum;
-            }
-
-            for (int i = 0; i < n; i++)
-                if (mask[i] != 0) sum += x[i];
-            return sum;
-        }
-
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static Vector256<double> LoadMaskSegmentAsDouble256(ReadOnlySpan<byte> mask, int offset)
+        public static double[][] AllocateJagged(int outer, int inner)
         {
-            double d0 = mask[offset + 0] != 0 ? 1.0 : 0.0;
-            double d1 = mask[offset + 1] != 0 ? 1.0 : 0.0;
-            double d2 = mask[offset + 2] != 0 ? 1.0 : 0.0;
-            double d3 = mask[offset + 3] != 0 ? 1.0 : 0.0;
-            return Vector256.Create(d0, d1, d2, d3);
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static Vector128<double> LoadMaskSegmentAsDouble128(ReadOnlySpan<byte> mask, int offset)
-        {
-            double d0 = mask[offset + 0] != 0 ? 1.0 : 0.0;
-            double d1 = mask[offset + 1] != 0 ? 1.0 : 0.0;
-            return Vector128.Create(d0, d1);
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static double HorizontalAdd256(Vector256<double> v)
-        {
-            var hi = Avx.ExtractVector128(v, 1);
-            var lo = v.GetLower();
-            var sum2 = Sse2.Add(hi, lo);
-            return sum2.GetElement(0) + sum2.GetElement(1);
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static double HorizontalAdd128(Vector128<double> v)
-        {
-            return v.GetElement(0) + v.GetElement(1);
+            var arr = new double[outer][];
+            for (int i = 0; i < outer; i++)
+                arr[i] = new double[inner];
+            return arr;
         }
     }
 }
+
+#nullable restore

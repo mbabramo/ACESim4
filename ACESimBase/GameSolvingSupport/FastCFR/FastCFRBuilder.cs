@@ -7,7 +7,7 @@ using ACESimBase.Util.Collections;
 
 namespace ACESimBase.GameSolvingSupport.FastCFR
 {
-    public enum FastCFRBuildMode { Full /* sampling can be added later via ctx.Rand01ForDecision */ }
+    public enum FastCFRBuildMode { Full }
 
     public sealed class FastCFRBuilderOptions
     {
@@ -15,10 +15,7 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
         public bool UseDynamicChanceProbabilities { get; set; } = true;
     }
 
-    /// <summary>
-    /// One-time compiler from HistoryPoint/Navigation to FastCFR runtime nodes with pre-recorded visit programs.
-    /// </summary>
-    public sealed class FastCFRBuilder
+    public sealed partial class FastCFRBuilder
     {
         public IFastCFRNode Root => _rootAccessor();
         public IReadOnlyList<FastCFRInformationSet> FastInformationSets => _infoEntries.Select(e => e.NodeAccessor()).ToList();
@@ -26,7 +23,7 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
 
         public FastCFRBuilder(HistoryNavigationInfo navigation, Func<HistoryPoint> rootFactory, FastCFRBuilderOptions options = null)
         {
-            _nav = navigation ;
+            _nav = navigation;
             _rootFactory = rootFactory ?? throw new ArgumentNullException(nameof(rootFactory));
             _opts = options ?? new FastCFRBuilderOptions();
 
@@ -38,38 +35,28 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
             AllocatePolicyBuffers();
         }
 
-        // ---------------------------------------------------------------------
-        // Public iteration lifecycle
-        // ---------------------------------------------------------------------
-
         public FastCFRIterationContext InitializeIteration(
             byte optimizedPlayerIndex,
             int scenarioIndex,
             Func<byte, double> rand01ForDecision)
         {
-            // Freeze policies into fast nodes and into local arrays used by reach-updating delegates.
             foreach (var entry in _infoEntries)
             {
                 var isn = entry.Original;
                 var node = entry.NodeAccessor();
 
                 var owner = new double[isn.NumPossibleActions];
-                var opp   = new double[isn.NumPossibleActions];
+                var opp = new double[isn.NumPossibleActions];
 
-                // Owner's current policy (currentProbabilityDimension)
-                {
-                    Span<double> buf = owner;
-                    isn.GetCurrentProbabilities(buf, opponentProbabilities: false);
-                }
-                // Opponent traversal policy (currentProbabilityForOpponentDimension)
-                {
-                    Span<double> buf = opp;
-                    isn.GetCurrentProbabilities(buf, opponentProbabilities: true);
-                }
+                Span<double> ownerSpan = owner;
+                isn.GetCurrentProbabilities(ownerSpan, opponentProbabilities: false);
+
+                Span<double> oppSpan = opp;
+                isn.GetCurrentProbabilities(oppSpan, opponentProbabilities: true);
 
                 node.InitializeIteration(owner, opp);
                 _frozenOwnerPolicies[entry.Id] = owner;
-                _frozenOppPolicies[entry.Id]   = opp;
+                _frozenOppPolicies[entry.Id] = opp;
             }
 
             foreach (var c in _chanceEntries)
@@ -92,9 +79,6 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
             };
         }
 
-        /// <summary>
-        /// Bulk-copy per-iteration tallies from FastCFRInformationSet nodes into the backing InformationSetNode instances.
-        /// </summary>
         public void CopyTalliesIntoBackingNodes()
         {
             foreach (var entry in _infoEntries)
@@ -118,10 +102,6 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
                 }
             }
         }
-
-        // ---------------------------------------------------------------------
-        // Build (one pass)
-        // ---------------------------------------------------------------------
 
         private Func<IFastCFRNode> Compile(HistoryPoint hp)
         {
@@ -149,7 +129,6 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
         {
             var entry = GetOrCreateInfoEntry(isn);
 
-            // Determine the decision index and decision instance at this point.
             byte decisionIndex = hp.GetNextDecisionIndex(_nav);
             var decision = _nav.GameDefinition.DecisionsExecutionOrder[decisionIndex];
             byte numActions = decision.NumPossibleActions;
@@ -170,84 +149,6 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
             entry.VisitPrograms.Add(program);
 
             return entry.NodeAccessor;
-        }
-
-        public FastCFRVecContext InitializeIterationVec(
-            byte optimizedPlayerIndex,
-            int[]? scenarioIndexByLane,
-            Func<byte, double>? rand01ForDecision)
-        {
-            if (!_vectorRegionBuilt)
-                throw new InvalidOperationException("Vector region not built.");
-
-            int lanes = _vectorAnchorShim!.VectorWidth;
-
-            // Enforce single scenario across lanes if supplied
-            int[] scn;
-            if (scenarioIndexByLane is null)
-            {
-                scn = new int[lanes]; // zeros
-            }
-            else
-            {
-                if (scenarioIndexByLane.Length != lanes)
-                    throw new ArgumentException("scenarioIndexByLane length mismatch.");
-                int s0 = scenarioIndexByLane[0];
-                for (int k = 1; k < lanes; k++)
-                    if (scenarioIndexByLane[k] != s0)
-                        throw new NotSupportedException("Vector region currently supports only a single scenario index across lanes.");
-                scn = scenarioIndexByLane;
-            }
-
-            var reachSelf = new double[lanes];
-            var reachOpp = new double[lanes];
-            var reachChance = new double[lanes];
-            var mask = new byte[lanes];
-            for (int k = 0; k < lanes; k++)
-            {
-                reachSelf[k] = 1.0;
-                reachOpp[k] = 1.0;
-                reachChance[k] = 1.0;
-                mask[k] = 1;
-            }
-
-            // Freeze per-lane policies for each vector infoset
-            foreach (var node in _vecInfosets)
-            {
-                var ownerByLane = new double[lanes][];
-                var oppByLane = new double[lanes][];
-
-                for (int k = 0; k < lanes; k++)
-                {
-                    var backing = node.GetBackingForLane(k);
-                    var owner = new double[backing.NumPossibleActions];
-                    var opp   = new double[backing.NumPossibleActions];
-
-                    backing.GetCurrentProbabilities(owner, opponentProbabilities: false);
-                    backing.GetCurrentProbabilities(opp,   opponentProbabilities: true);
-
-                    ownerByLane[k] = owner;
-                    oppByLane[k]   = opp;
-                }
-
-                node.InitializeIterationVec(ownerByLane, oppByLane);
-            }
-
-            foreach (var node in _vecChances)
-                node.InitializeIterationVec(Array.Empty<double[]>(), Array.Empty<double[]>()); // no-op
-
-            return new FastCFRVecContext
-            {
-                IterationNumber = 0,
-                OptimizedPlayerIndex = optimizedPlayerIndex,
-                SamplingCorrection = 1.0,
-                ReachSelf = reachSelf,
-                ReachOpp = reachOpp,
-                ReachChance = reachChance,
-                ActiveMask = mask,
-                ScenarioIndex = scn,
-                Rand01ForDecision = rand01ForDecision
-            };
         }
 
         private Func<IFastCFRNode> CompileChance(HistoryPoint hp, ChanceNode cn)
@@ -272,7 +173,8 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
                 if (_opts.UseDynamicChanceProbabilities || cn.AllProbabilitiesEqual() == false)
                 {
                     int outcomeIndexOneBased = a;
-                    provider = (ref FastCFRIterationContext _) => cn.GetActionProbability(outcomeIndexOneBased);
+                    provider = (ref FastCFRIterationContext _)
+                        => cn.GetActionProbability(outcomeIndexOneBased);
                 }
                 else
                 {
@@ -290,20 +192,14 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
             return entry.NodeAccessor;
         }
 
-
         private Func<IFastCFRNode> CompileFinal(HistoryPoint hp, FinalUtilitiesNode fu)
         {
             var entry = GetOrCreateFinalEntry(fu);
             return entry.NodeAccessor;
         }
 
-        // ---------------------------------------------------------------------
-        // Materialization
-        // ---------------------------------------------------------------------
-
         private void FinalizeNodeObjects()
         {
-            // Create FastCFRInformationSet objects now that all visit programs are known
             foreach (var e in _infoEntries)
             {
                 var visits = e.VisitPrograms.ToArray();
@@ -315,7 +211,6 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
                 e.NodeBacking = node;
             }
 
-            // Create FastCFRChance objects
             foreach (var e in _chanceEntries)
             {
                 var visits = e.VisitPrograms.ToArray();
@@ -326,13 +221,10 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
                 e.NodeBacking = node;
             }
 
-            // Bind children (must happen after all NodeBacking references are populated)
             foreach (var e in _infoEntries)
                 e.NodeBacking.BindChildrenAfterFinalize();
             foreach (var e in _chanceEntries)
                 e.NodeBacking.BindChildrenAfterFinalize();
-
-            // Finals already created in GetOrCreateFinalEntry
         }
 
         private void AllocatePolicyBuffers()
@@ -341,10 +233,6 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
             _frozenOwnerPolicies = new double[n][];
             _frozenOppPolicies = new double[n][];
         }
-
-        // ---------------------------------------------------------------------
-        // Entry bookkeeping
-        // ---------------------------------------------------------------------
 
         private InfoEntry GetOrCreateInfoEntry(InformationSetNode n)
         {
@@ -399,10 +287,8 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
 
         private static (double[][] utils, FloatSet[] custom) ExtractFinalArrays(FinalUtilitiesNode node, int numPlayers)
         {
-            // Try common shapes via reflection. Fallback to a single scenario if multi-scenario arrays are not present.
             var t = node.GetType();
 
-            // Attempt UtilitiesByScenario : IEnumerable<double[]>
             var utilsByScProp = t.GetProperty("UtilitiesByScenario", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
             if (utilsByScProp != null)
             {
@@ -416,7 +302,6 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
                 }
             }
 
-            // Fallback: Utilities : double[] for current scenario
             var utilsProp = t.GetProperty("Utilities", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
             double[] single = utilsProp != null ? (double[])utilsProp.GetValue(node) : new double[numPlayers];
             var one = new[] { single };
@@ -426,7 +311,6 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
 
         private static FloatSet[] ExtractCustomArray(object node, Type t, int count)
         {
-            // Try CustomResultsByScenario : IEnumerable<FloatSet>, else CustomResult : FloatSet, else default
             var bySc = t.GetProperty("CustomResultsByScenario", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
             if (bySc != null && bySc.GetValue(node) is System.Collections.IEnumerable seq)
             {
@@ -440,10 +324,6 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
                 return new[] { (FloatSet)singleProp.GetValue(node) };
             return Enumerable.Repeat(default(FloatSet), count).ToArray();
         }
-
-        // ---------------------------------------------------------------------
-        // Storage types
-        // ---------------------------------------------------------------------
 
         private sealed class InfoEntry
         {
@@ -469,10 +349,6 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
             public Func<FastCFRFinal> NodeAccessor;
         }
 
-        // ---------------------------------------------------------------------
-        // Fields
-        // ---------------------------------------------------------------------
-
         private readonly HistoryNavigationInfo _nav;
         private readonly FastCFRBuilderOptions _opts;
         private readonly Func<HistoryPoint> _rootFactory;
@@ -486,8 +362,8 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
         private readonly List<ChanceEntry> _chanceEntries = new List<ChanceEntry>();
         private readonly List<FinalEntry> _finalEntries = new List<FinalEntry>();
 
-        private double[][] _frozenOwnerPolicies; // [infoId][action]
-        private double[][] _frozenOppPolicies;   // [infoId][action]
+        private double[][] _frozenOwnerPolicies;
+        private double[][] _frozenOppPolicies;
 
         private readonly int _numNonChancePlayers;
     }

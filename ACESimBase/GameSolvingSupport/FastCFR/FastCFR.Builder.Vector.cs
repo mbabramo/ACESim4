@@ -1,4 +1,5 @@
 ﻿#nullable enable
+
 using System;
 using System.Collections.Generic;
 using ACESimBase.GameSolvingSupport.GameTree;
@@ -6,159 +7,22 @@ using ACESimBase.Util.Collections;
 
 namespace ACESimBase.GameSolvingSupport.FastCFR
 {
-    public partial class FastCFRBuilder
+    public sealed partial class FastCFRBuilder
     {
-        // ----------------------------
-        // Instance configuration
-        // ----------------------------
         private FastCFRVectorRegionOptions? _vectorOptions;
         private Func<ChanceNode, bool>? _vectorAnchorSelector;
+
+        private readonly List<FastCFRInformationSetVec> _vecInfosets = new List<FastCFRInformationSetVec>();
+        private readonly List<FastCFRChanceVec> _vecChances = new List<FastCFRChanceVec>();
+        private FastCFRVectorAnchorShim? _vectorAnchorShim;
+        private bool _vectorRegionBuilt;
+        private int _vectorWidth;
 
         public void ConfigureVectorRegion(FastCFRVectorRegionOptions options, Func<ChanceNode, bool> anchorSelector)
         {
             _vectorOptions = options ?? throw new ArgumentNullException(nameof(options));
             _vectorAnchorSelector = anchorSelector ?? throw new ArgumentNullException(nameof(anchorSelector));
         }
-
-
-        // ----------------------------
-        // Vector region state
-        // ----------------------------
-
-        private bool _vectorRegionBuilt;
-        private int _vectorWidth;
-        private readonly List<FastCFRInformationSetVec> _vecInfosets = new();
-        private readonly List<FastCFRChanceVec> _vecChances = new();
-
-        // The vector region is compiled beneath the anchor chance. We partition anchor outcomes into groups.
-        private FastCFRVectorAnchorShim? _vectorAnchorShim;
-
-        // ----------------------------
-        // Public iteration lifecycle (vector)
-        // ----------------------------
-
-        /// <summary>
-        /// Freeze per-lane policies across all vector infosets for this iteration.
-        /// Must be called once per iteration if a vector region was built.
-        /// </summary>
-        public FastCFRVecContext InitializeIterationVec(
-            byte optimizedPlayerIndex,
-            int[]? scenarioIndexByLane,
-            Func<byte, double>? rand01ForDecision)
-        {
-            if (!_vectorRegionBuilt)
-                throw new InvalidOperationException("Vector region not built.");
-
-            int lanes = _vectorAnchorShim!.VectorWidth;
-
-            // Enforce single scenario across lanes if supplied
-            int[] scn;
-            if (scenarioIndexByLane is null)
-            {
-                scn = new int[lanes]; // zeros
-            }
-            else
-            {
-                if (scenarioIndexByLane.Length != lanes)
-                    throw new ArgumentException("scenarioIndexByLane length mismatch.");
-                int s0 = scenarioIndexByLane[0];
-                for (int k = 1; k < lanes; k++)
-                    if (scenarioIndexByLane[k] != s0)
-                        throw new NotSupportedException("Vector region currently supports only a single scenario index across lanes.");
-                scn = scenarioIndexByLane;
-            }
-
-            var reachSelf = new double[lanes];
-            var reachOpp = new double[lanes];
-            var reachChance = new double[lanes];
-            var mask = new byte[lanes];
-            for (int k = 0; k < lanes; k++)
-            {
-                reachSelf[k] = 1.0;
-                reachOpp[k] = 1.0;
-                reachChance[k] = 1.0;
-                mask[k] = 1;
-            }
-
-            // Freeze per-lane policies for each vector infoset
-            foreach (var node in _vecInfosets)
-            {
-                var ownerByLane = new double[lanes][];
-                var oppByLane = new double[lanes][];
-
-                for (int k = 0; k < lanes; k++)
-                {
-                    var backing = node.GetBackingForLane(k);
-                    var owner = new double[backing.NumPossibleActions];
-                    var opp   = new double[backing.NumPossibleActions];
-
-                    backing.GetCurrentProbabilities(owner, opponentProbabilities: false);
-                    backing.GetCurrentProbabilities(opp,   opponentProbabilities: true);
-
-                    ownerByLane[k] = owner;
-                    oppByLane[k]   = opp;
-                }
-
-                node.InitializeIterationVec(ownerByLane, oppByLane);
-            }
-
-            foreach (var node in _vecChances)
-                node.InitializeIterationVec(Array.Empty<double[]>(), Array.Empty<double[]>()); // no-op
-
-            return new FastCFRVecContext
-            {
-                IterationNumber = 0,
-                OptimizedPlayerIndex = optimizedPlayerIndex,
-                SamplingCorrection = 1.0,
-                ReachSelf = reachSelf,
-                ReachOpp = reachOpp,
-                ReachChance = reachChance,
-                ActiveMask = mask,
-                ScenarioIndex = scn,
-                Rand01ForDecision = rand01ForDecision
-            };
-        }
-
-
-        /// <summary>
-        /// Copy per-lane tallies from vector infosets into their lane-specific backing InformationSetNodes.
-        /// Call after each iteration, in addition to CopyTalliesIntoBackingNodes() for the scalar path.
-        /// </summary>
-        public void CopyTalliesIntoBackingNodes_Vector()
-        {
-            if (!_vectorRegionBuilt)
-                return;
-
-            foreach (var node in _vecInfosets)
-            {
-                var backingLane0 = node.GetBackingForLane(0);
-                int numActions = backingLane0.NumPossibleActions;
-
-                for (int a = 0; a < numActions; a++)
-                {
-                    var sr = node.GetSumRegretTimesInversePi(a);
-                    var si = node.GetSumInversePi(a);
-                    var inc = node.GetLastCumulativeStrategyIncrements(a);
-
-                    for (int k = 0; k < sr.Length; k++)
-                    {
-                        var backing = node.GetBackingForLane(k);
-                        double rTimesInvPi = sr[k];
-                        double invPi = si[k];
-                        double incr = inc[k];
-
-                        if (invPi != 0.0 || rTimesInvPi != 0.0)
-                            backing.IncrementLastRegret((byte)(a + 1), rTimesInvPi, invPi);
-                        if (incr != 0.0)
-                            backing.IncrementLastCumulativeStrategyIncrements((byte)(a + 1), incr);
-                    }
-                }
-            }
-        }
-
-        // ----------------------------
-        // Anchor compilation entry
-        // ----------------------------
 
         private Func<IFastCFRNode> CompileVectorAnchorShim(HistoryPoint anchorHp, ChanceNode anchorChance)
         {
@@ -192,17 +56,29 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
 
             FinalizeVectorNodeObjects();
 
-            _vectorAnchorShim = new FastCFRVectorAnchorShim(this, anchorChance, decisionIndex, numOutcomes, roots, _opts.UseDynamicChanceProbabilities, _numNonChancePlayers, _vectorWidth);
+            _vectorAnchorShim = new FastCFRVectorAnchorShim(
+                this,
+                anchorChance,
+                decisionIndex,
+                numOutcomes,
+                roots,
+                _opts.UseDynamicChanceProbabilities,
+                _numNonChancePlayers,
+                _vectorWidth);
+
             _vectorRegionBuilt = true;
 
             FastCFRVectorAnchorShim local = _vectorAnchorShim;
             return () => local;
         }
 
-
-        // ----------------------------
-        // Vector subtree compilation
-        // ----------------------------
+        private void FinalizeVectorNodeObjects()
+        {
+            foreach (var e in _vecInfosets)
+                e.BindChildrenAfterFinalize();
+            foreach (var e in _vecChances)
+                e.BindChildrenAfterFinalize();
+        }
 
         private Func<IFastCFRNodeVec> CompileVector(HistoryPointStorable[] laneHps)
         {
@@ -273,7 +149,6 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
             var ownerIndex = (byte)isnByLane[0].PlayerIndex;
             var node = new FastCFRInformationSetVec(ownerIndex, decisionIndex, numActions, _numNonChancePlayers, isnByLane, new[] { program });
             _vecInfosets.Add(node);
-
             return () => node;
         }
 
@@ -322,7 +197,6 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
             var program = new FastCFRChanceVisitProgramVec(steps.ToArray(), _numNonChancePlayers);
             var node = new FastCFRChanceVec(decisionIndex, numOutcomes, _numNonChancePlayers, new[] { program });
             _vecChances.Add(node);
-
             return () => node;
         }
 
@@ -352,150 +226,177 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
             return () => node;
         }
 
-
-        private void FinalizeVectorNodeObjects()
+        public FastCFRVecContext InitializeIterationVec(
+            byte optimizedPlayerIndex,
+            int[]? scenarioIndexByLane,
+            Func<byte, double>? rand01ForDecision)
         {
-            foreach (var e in _vecInfosets)
-                e.BindChildrenAfterFinalizeVec();
-            foreach (var e in _vecChances)
-                e.BindChildrenAfterFinalizeVec();
-        }
+            if (!_vectorRegionBuilt)
+                throw new InvalidOperationException("Vector region not built.");
 
-        // ----------------------------
-        // Scalar anchor shim
-        // ----------------------------
+            int lanes = _vectorAnchorShim!.VectorWidth;
 
-        private sealed class FastCFRVectorAnchorShim : IFastCFRNode
-        {
-            private readonly FastCFRBuilder _owner;
-            private readonly ChanceNode _anchorChance;
-            private readonly byte _decisionIndex;
-            private readonly byte _numOutcomes;
-            private readonly IFastCFRNodeVec[] _rootsByGroup;
-            private readonly bool _useDynamicChanceProbabilities;
-            private readonly int _numPlayers;
-
-            public int VectorWidth { get; }
-
-            // Scratch reused across calls
-            private readonly double[] _pLane;
-            private readonly double[] _laneSelf;
-            private readonly double[] _laneOpp;
-            private readonly double[] _laneChance;
-            private readonly byte[] _laneMask;
-            private readonly int[] _laneScenarioIdx;
-            private readonly double[] _expectedUWork; // [player]
-            private readonly FloatSet _expectedCustomZero = default;
-
-            public FastCFRVectorAnchorShim(
-                FastCFRBuilder owner,
-                ChanceNode anchorChance,
-                byte decisionIndex,
-                byte numOutcomes,
-                IFastCFRNodeVec[] rootsByGroup,
-                bool useDynamicChanceProbabilities,
-                int numPlayers,
-                int vectorWidth)
+            int[] scn;
+            if (scenarioIndexByLane is null)
             {
-                _owner = owner;
-                _anchorChance = anchorChance;
-                _decisionIndex = decisionIndex;
-                _numOutcomes = numOutcomes;
-                _rootsByGroup = rootsByGroup;
-                _useDynamicChanceProbabilities = useDynamicChanceProbabilities;
-                _numPlayers = numPlayers;
-                VectorWidth = vectorWidth;
-
-                _pLane = new double[vectorWidth];
-                _laneSelf = new double[vectorWidth];
-                _laneOpp = new double[vectorWidth];
-                _laneChance = new double[vectorWidth];
-                _laneMask = new byte[vectorWidth];
-                _laneScenarioIdx = new int[vectorWidth];
-                _expectedUWork = new double[numPlayers];
+                scn = new int[lanes];
+            }
+            else
+            {
+                if (scenarioIndexByLane.Length != lanes)
+                    throw new ArgumentException("scenarioIndexByLane length mismatch.");
+                int s0 = scenarioIndexByLane[0];
+                for (int k = 1; k < lanes; k++)
+                    if (scenarioIndexByLane[k] != s0)
+                        throw new NotSupportedException("Vector region currently supports only a single scenario index across lanes.");
+                scn = scenarioIndexByLane;
             }
 
-            public void InitializeIteration(ReadOnlySpan<double> _ownerPolicy, ReadOnlySpan<double> _opponentTraversal)
+            var reachSelf = new double[lanes];
+            var reachOpp = new double[lanes];
+            var reachChance = new double[lanes];
+            var mask = new byte[lanes];
+            for (int k = 0; k < lanes; k++)
             {
-                // No-op. Vector nodes are initialized via FastCFRBuilder.InitializeIterationVec()
+                reachSelf[k] = 1.0;
+                reachOpp[k] = 1.0;
+                reachChance[k] = 1.0;
+                mask[k] = 1;
             }
 
-            public FastCFRNodeResult Go(ref FastCFRIterationContext ctx)
+            foreach (var node in _vecInfosets)
             {
-                Array.Clear(_expectedUWork, 0, _expectedUWork.Length);
-                var expectedCustom = default(FloatSet);
+                var ownerByLane = new double[lanes][];
+                var oppByLane = new double[lanes][];
 
-                int groups = _rootsByGroup.Length;
-                int outcomeIndex = 1;
-
-                for (int g = 0; g < groups; g++)
+                for (int k = 0; k < lanes; k++)
                 {
-                    var root = _rootsByGroup[g];
-                    int lanes = Math.Min(VectorWidth, _numOutcomes - (g * VectorWidth));
+                    var backing = node.GetBackingForLane(k);
+                    var owner = new double[backing.NumPossibleActions];
+                    var opp = new double[backing.NumPossibleActions];
 
-                    // Prepare lane context
-                    for (int k = 0; k < lanes; k++)
-                    {
-                        _laneSelf[k] = ctx.ReachSelf;
-                        _laneOpp[k] = ctx.ReachOpp;
-                        _laneChance[k] = ctx.ReachChance;
-                        _laneMask[k] = 1;
-                        _laneScenarioIdx[k] = 0; // scenario unused in this path
-                    }
-                    for (int k = lanes; k < VectorWidth; k++)
-                    {
-                        _laneMask[k] = 0;
-                        _pLane[k] = 0.0;
-                        _laneSelf[k] = _laneOpp[k] = _laneChance[k] = 0.0;
-                        _laneScenarioIdx[k] = 0;
-                    }
+                    backing.GetCurrentProbabilities(owner, opponentProbabilities: false);
+                    backing.GetCurrentProbabilities(opp, opponentProbabilities: true);
 
-                    // Fill anchor probabilities per lane for this group
-                    if (_useDynamicChanceProbabilities || !_anchorChance.AllProbabilitiesEqual())
-                    {
-                        for (int k = 0; k < lanes; k++)
-                            _pLane[k] = _anchorChance.GetActionProbability((byte)(outcomeIndex + k));
-                    }
-                    else
-                    {
-                        double p = 1.0 / _numOutcomes;
-                        for (int k = 0; k < lanes; k++)
-                            _pLane[k] = p;
-                    }
-
-                    // Scale reaches for chance at anchor
-                    FastCFRVecContext vctx = new FastCFRVecContext
-                    {
-                        IterationNumber = ctx.IterationNumber,
-                        OptimizedPlayerIndex = ctx.OptimizedPlayerIndex,
-                        SamplingCorrection = ctx.SamplingCorrection,
-                        ReachSelf = _laneSelf.AsSpan(),
-                        ReachOpp = _laneOpp.AsSpan(),
-                        ReachChance = _laneChance.AsSpan(),
-                        ActiveMask = _laneMask.AsSpan(),
-                        ScenarioIndex = _laneScenarioIdx.AsSpan(),
-                        Rand01ForDecision = ctx.Rand01ForDecision
-                    };
-
-                    FastCFRVecMath.ScaleInPlaceMasked(vctx.ReachOpp, _pLane, vctx.ActiveMask);
-                    FastCFRVecMath.ScaleInPlaceMasked(vctx.ReachChance, _pLane, vctx.ActiveMask);
-
-                    // Run vector subtree
-                    var vecResult = root.GoVec(ref vctx);
-
-                    // Accumulate expected value across lanes
-                    for (int p = 0; p < _numPlayers; p++)
-                        FastCFRVecMath.MulAccumulateMasked(vecResult.UtilitiesByPlayerByLane[p], _pLane, _laneMask, _expectedUWork);
-
-                    for (int k = 0; k < lanes; k++)
-                        if (_laneMask[k] != 0)
-                            expectedCustom = expectedCustom.Plus(vecResult.CustomByLane[k].Times((float)_pLane[k]));
-
-                    outcomeIndex += lanes;
+                    ownerByLane[k] = owner;
+                    oppByLane[k] = opp;
                 }
 
-                return new FastCFRNodeResult(_expectedUWork, expectedCustom);
+                node.InitializeIterationVec(ownerByLane, oppByLane);
             }
+
+            foreach (var node in _vecChances)
+                node.InitializeIterationVec(Array.Empty<double[]>(), Array.Empty<double[]>());
+
+            return new FastCFRVecContext
+            {
+                IterationNumber = 0,
+                OptimizedPlayerIndex = optimizedPlayerIndex,
+                SamplingCorrection = 1.0,
+                ReachSelf = reachSelf,
+                ReachOpp = reachOpp,
+                ReachChance = reachChance,
+                ActiveMask = mask,
+                ScenarioIndex = scn,
+                Rand01ForDecision = rand01ForDecision
+            };
+        }
+
+        public void CopyTalliesIntoBackingNodes_Vector()
+        {
+            foreach (var v in _vecInfosets)
+                v.FlushTalliesToBacking();
         }
     }
+
+    internal sealed class FastCFRVectorAnchorShim : IFastCFRNode
+    {
+        private readonly FastCFRBuilder _builder;
+        private readonly ChanceNode _anchorChance;
+        private readonly byte _decisionIndex;
+        private readonly byte _numOutcomes;
+        private readonly IFastCFRNodeVec[] _rootsByGroup;
+        private readonly bool _useDynamicProbs;
+        private readonly int _numPlayers;
+        public readonly int VectorWidth;
+
+        public FastCFRVectorAnchorShim(
+            FastCFRBuilder builder,
+            ChanceNode anchorChance,
+            byte decisionIndex,
+            byte numOutcomes,
+            IFastCFRNodeVec[] rootsByGroup,
+            bool useDynamicProbs,
+            int numPlayers,
+            int vectorWidth)
+        {
+            _builder = builder;
+            _anchorChance = anchorChance;
+            _decisionIndex = decisionIndex;
+            _numOutcomes = numOutcomes;
+            _rootsByGroup = rootsByGroup;
+            _useDynamicProbs = useDynamicProbs || !anchorChance.AllProbabilitiesEqual();
+            _numPlayers = numPlayers;
+            VectorWidth = vectorWidth;
+        }
+
+        public void InitializeIteration(ReadOnlySpan<double> _ownerPolicy, ReadOnlySpan<double> _oppTraversal) { }
+
+        public FastCFRNodeResult Go(ref FastCFRIterationContext ctx)
+        {
+            var expectedU = new double[_numPlayers];
+            FloatSet expectedCustom = default;
+
+            int groups = _rootsByGroup.Length;
+            int outcomeIndex = 0;
+
+            for (int g = 0; g < groups; g++)
+            {
+                int lanes = Math.Min(VectorWidth, _numOutcomes - g * VectorWidth);
+                var vecCtx = _builder.InitializeIterationVec(ctx.OptimizedPlayerIndex, null, ctx.Rand01ForDecision);
+
+                // Honor suppress flag by zeroing the lane mask up-front
+                if (ctx.SuppressMath)
+                    Array.Clear(vecCtx.ActiveMask, 0, lanes);
+
+                var pLane = new double[lanes];
+                for (int l = 0; l < lanes; l++)
+                {
+                    int outcomeOneBased = outcomeIndex + 1;
+                    pLane[l] = _useDynamicProbs
+                        ? _anchorChance.GetActionProbability(outcomeOneBased)
+                        : (1.0 / _numOutcomes);
+                    outcomeIndex++;
+                }
+
+                // Apply reach updates only for active lanes
+                for (int k = 0; k < lanes; k++)
+                {
+                    if (vecCtx.ActiveMask[k] == 0) continue;
+                    double p = pLane[k];
+                    vecCtx.ReachOpp[k] *= p;
+                    vecCtx.ReachChance[k] *= p;
+                }
+
+                var result = _rootsByGroup[g].GoVec(ref vecCtx);
+
+                // Combine results only when math is not suppressed
+                if (!ctx.SuppressMath)
+                {
+                    for (int k = 0; k < lanes; k++)
+                    {
+                        if (vecCtx.ActiveMask[k] == 0) continue;
+                        double p = pLane[k];
+                        for (int pl = 0; pl < _numPlayers; pl++)
+                            expectedU[pl] += p * result.UtilitiesByPlayerByLane[pl][k];
+                        expectedCustom = expectedCustom.Plus(result.CustomByLane[k].Times((float)p));
+                    }
+                }
+            }
+
+            return new FastCFRNodeResult(expectedU, expectedCustom);
+        }
+
+    }
 }
+#nullable restore

@@ -1,6 +1,4 @@
-﻿#nullable enable
-using System;
-using System.Runtime.CompilerServices;
+﻿using System;
 using ACESimBase.GameSolvingSupport.GameTree;
 using ACESimBase.Util.Collections;
 
@@ -13,28 +11,26 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
         public readonly byte NumActions;
 
         private readonly int _numPlayers;
-        private readonly FastCFRVisitProgramVec[] _visitsVec;
-        private IFastCFRNodeVec[][]? _childrenByVisit;
+        private readonly InformationSetNode[] _backingPerLane;
+        private readonly FastCFRVisitProgramVec[] _visits;
+        private IFastCFRNodeVec[][] _childrenByVisit = Array.Empty<IFastCFRNodeVec[]>();
         private int _visitCounter;
 
-        private readonly InformationSetNode[] _backingPerLane;
+        private double[][] _pSelfByLane = Array.Empty<double[]>();
+        private double[][] _pOppByLane = Array.Empty<double[]>();
 
-        private double[][]? _pSelfByLane; // [lane][action]
-        private double[][]? _pOppByLane;  // [lane][action]
+        private double[][] _sumRegretTimesInversePi = Array.Empty<double[]>();
+        private double[][] _sumInversePi = Array.Empty<double[]>();
+        private double[][] _lastCumulativeStrategyInc = Array.Empty<double[]>();
+        private double[][] _qaByActionByLane = Array.Empty<double[]>();
+        private double[][] _expectedUByPlayerByLane = Array.Empty<double[]>();
+        private FloatSet[] _expectedCustomByLane = Array.Empty<FloatSet>();
 
-        private double[][]? _sumRegretTimesInversePi;      // [action][lane]
-        private double[][]? _sumInversePi;                 // [action][lane]
-        private double[][]? _lastCumulativeStrategyInc;    // [action][lane]
-
-        private double[][]? _qaByActionByLane;             // [action][lane]
-        private double[][]? _expectedUByPlayerByLane;      // [player][lane]
-        private FloatSet[]? _expectedCustomByLane;         // [lane]
-
-        private double[]? _scratchWeightsByLane;           // [lane]
-        private byte[]? _scratchMaskSaved;                 // [lane]
-        private byte[]? _scratchMaskChild;                 // [lane]
-        private double[]? _savedReachSelf;                 // [lane]
-        private double[]? _savedReachOpp;                  // [lane]
+        private double[] _scratchWeightsByLane = Array.Empty<double>();
+        private byte[] _scratchMaskSaved = Array.Empty<byte>();
+        private byte[] _scratchMaskChild = Array.Empty<byte>();
+        private double[] _savedReachSelf = Array.Empty<double>();
+        private double[] _savedReachOpp = Array.Empty<double>();
 
         private const double Epsilon = double.Epsilon;
 
@@ -50,16 +46,18 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
             DecisionIndex = decisionIndex;
             NumActions = numActions;
             _numPlayers = numPlayers;
-            _backingPerLane = backingPerLane ?? throw new ArgumentNullException(nameof(backingPerLane));
-            _visitsVec = visits ?? Array.Empty<FastCFRVisitProgramVec>();
+            _backingPerLane = backingPerLane ?? Array.Empty<InformationSetNode>();
+            _visits = visits ?? Array.Empty<FastCFRVisitProgramVec>();
         }
 
-        public void BindChildrenAfterFinalizeVec()
+        public InformationSetNode GetBackingForLane(int lane) => _backingPerLane[lane];
+
+        internal void BindChildrenAfterFinalize()
         {
-            _childrenByVisit = new IFastCFRNodeVec[_visitsVec.Length][];
-            for (int v = 0; v < _visitsVec.Length; v++)
+            _childrenByVisit = new IFastCFRNodeVec[_visits.Length][];
+            for (int v = 0; v < _visits.Length; v++)
             {
-                var steps = _visitsVec[v].Steps;
+                var steps = _visits[v].Steps;
                 var arr = new IFastCFRNodeVec[steps.Length];
                 for (int i = 0; i < steps.Length; i++)
                     arr[i] = steps[i].ChildAccessor();
@@ -73,20 +71,20 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
         {
             int lanes = _backingPerLane.Length;
 
-            _pSelfByLane ??= AllocateJagged(lanes, NumActions);
-            _pOppByLane ??= AllocateJagged(lanes, NumActions);
-            _sumRegretTimesInversePi ??= AllocateJagged(NumActions, lanes);
-            _sumInversePi ??= AllocateJagged(NumActions, lanes);
-            _lastCumulativeStrategyInc ??= AllocateJagged(NumActions, lanes);
-            _qaByActionByLane ??= AllocateJagged(NumActions, lanes);
-            _expectedUByPlayerByLane ??= AllocateJagged(_numPlayers, lanes);
-            _expectedCustomByLane ??= new FloatSet[lanes];
+            _pSelfByLane = _pSelfByLane.Length == lanes ? _pSelfByLane : FastCFRVecMath.AllocateJagged(lanes, NumActions);
+            _pOppByLane = _pOppByLane.Length == lanes ? _pOppByLane : FastCFRVecMath.AllocateJagged(lanes, NumActions);
+            _sumRegretTimesInversePi = _sumRegretTimesInversePi.Length == NumActions ? _sumRegretTimesInversePi : FastCFRVecMath.AllocateJagged(NumActions, lanes);
+            _sumInversePi = _sumInversePi.Length == NumActions ? _sumInversePi : FastCFRVecMath.AllocateJagged(NumActions, lanes);
+            _lastCumulativeStrategyInc = _lastCumulativeStrategyInc.Length == NumActions ? _lastCumulativeStrategyInc : FastCFRVecMath.AllocateJagged(NumActions, lanes);
+            _qaByActionByLane = _qaByActionByLane.Length == NumActions ? _qaByActionByLane : FastCFRVecMath.AllocateJagged(NumActions, lanes);
+            _expectedUByPlayerByLane = _expectedUByPlayerByLane.Length == _numPlayers ? _expectedUByPlayerByLane : FastCFRVecMath.AllocateJagged(_numPlayers, lanes);
+            _expectedCustomByLane = _expectedCustomByLane.Length == lanes ? _expectedCustomByLane : new FloatSet[lanes];
 
-            _scratchWeightsByLane ??= new double[lanes];
-            _scratchMaskSaved ??= new byte[lanes];
-            _scratchMaskChild ??= new byte[lanes];
-            _savedReachSelf ??= new double[lanes];
-            _savedReachOpp ??= new double[lanes];
+            _scratchWeightsByLane = _scratchWeightsByLane.Length == lanes ? _scratchWeightsByLane : new double[lanes];
+            _scratchMaskSaved = _scratchMaskSaved.Length == lanes ? _scratchMaskSaved : new byte[lanes];
+            _scratchMaskChild = _scratchMaskChild.Length == lanes ? _scratchMaskChild : new byte[lanes];
+            _savedReachSelf = _savedReachSelf.Length == lanes ? _savedReachSelf : new double[lanes];
+            _savedReachOpp = _savedReachOpp.Length == lanes ? _savedReachOpp : new double[lanes];
 
             for (int k = 0; k < lanes; k++)
             {
@@ -106,198 +104,128 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
                 Array.Clear(_lastCumulativeStrategyInc[a], 0, lanes);
                 Array.Clear(_qaByActionByLane[a], 0, lanes);
             }
+            for (int p = 0; p < _numPlayers; p++)
+                Array.Clear(_expectedUByPlayerByLane[p], 0, _expectedUByPlayerByLane[p].Length);
+            Array.Clear(_expectedCustomByLane, 0, _expectedCustomByLane.Length);
+
+            _visitCounter = 0;
+        }
+
+        public FastCFRNodeVecResult GoVec(ref FastCFRVecContext ctx)
+        {
+            int lanes = _backingPerLane.Length;
+            var visitIndex = _visitCounter++;
+            var visit = _visits[visitIndex];
+            var children = _childrenByVisit[visitIndex];
+            bool ownerIsOptimized = PlayerIndex == ctx.OptimizedPlayerIndex;
 
             for (int p = 0; p < _numPlayers; p++)
                 Array.Clear(_expectedUByPlayerByLane[p], 0, lanes);
             Array.Clear(_expectedCustomByLane, 0, lanes);
 
-            _visitCounter = 0;
-        }
-
-
-        public FastCFRNodeVecResult GoVec(ref FastCFRVecContext ctx)
-        {
-            int lanes = _backingPerLane.Length;
-            if (!ctx.AnyActive())
+            for (int i = 0; i < children.Length; i++)
             {
-                EnsureExpectedBuffersCleared(lanes);
-                return new FastCFRNodeVecResult(_expectedUByPlayerByLane!, _expectedCustomByLane!);
-            }
+                int ai = visit.Steps[i].ActionIndex;
+                var child = children[i];
 
-            int visitIndex = _visitCounter++;
-            var visit = _visitsVec[visitIndex];
-            var children = _childrenByVisit![visitIndex];
-
-            bool ownerIsOptimized = PlayerIndex == ctx.OptimizedPlayerIndex;
-
-            // Clear expected utilities/custom for this visit
-            for (int p = 0; p < _numPlayers; p++)
-                Array.Clear(_expectedUByPlayerByLane![p], 0, lanes);
-            Array.Clear(_expectedCustomByLane!, 0, lanes);
-
-            var weightsByLane = _scratchWeightsByLane!;
-            var savedMask = _scratchMaskSaved!;
-            var childMask = _scratchMaskChild!;
-            var savedSelf = _savedReachSelf!;
-            var savedOpp = _savedReachOpp!;
-
-            for (int stepIdx = 0; stepIdx < children.Length; stepIdx++)
-            {
-                var step = visit.Steps[stepIdx];
-                var child = children[stepIdx];
-                int a = step.ActionIndex;
-
-                // Build per-lane weights for this action
-                if (ownerIsOptimized)
+                for (int k = 0; k < lanes; k++)
                 {
-                    for (int k = 0; k < lanes; k++)
-                        weightsByLane[k] = _pSelfByLane![k][a];
-                }
-                else
-                {
-                    for (int k = 0; k < lanes; k++)
-                        weightsByLane[k] = _pOppByLane![k][a];
+                    _scratchMaskChild[k] = 0;
+                    _savedReachSelf[k] = ctx.ReachSelf[k];
+                    _savedReachOpp[k] = ctx.ReachOpp[k];
                 }
 
-                // Save reaches
-                if (ownerIsOptimized)
+                for (int k = 0; k < lanes; k++)
                 {
-                    for (int k = 0; k < lanes; k++)
-                        savedSelf[k] = ctx.ReachSelf[k];
-                    // Scale self reach on active lanes (always recurse for owner-optimized)
-                    FastCFRVecMath.ScaleInPlaceMasked(ctx.ReachSelf, weightsByLane, ctx.ActiveMask);
-                }
-                else
-                {
-                    for (int k = 0; k < lanes; k++)
-                        savedOpp[k] = ctx.ReachOpp[k];
-                    // Build child mask = active && w > epsilon
-                    for (int k = 0; k < lanes; k++)
-                    {
-                        savedMask[k] = ctx.ActiveMask[k];
-                        childMask[k] = (savedMask[k] != 0 && weightsByLane[k] > Epsilon) ? (byte)1 : (byte)0;
-                    }
-                    ctx.ActiveMask = childMask.AsSpan();
-                    FastCFRVecMath.ScaleInPlaceMasked(ctx.ReachOpp, weightsByLane, ctx.ActiveMask);
+                    if (ctx.ActiveMask[k] == 0) continue;
+                    double w = ownerIsOptimized ? _pSelfByLane[k][ai] : _pOppByLane[k][ai];
+                    if (!ownerIsOptimized && w <= Epsilon) { _scratchMaskChild[k] = 0; continue; }
+                    _scratchMaskChild[k] = 1;
+                    if (ownerIsOptimized)
+                        ctx.ReachSelf[k] = _savedReachSelf[k] * w;
+                    else
+                        ctx.ReachOpp[k] = _savedReachOpp[k] * w;
                 }
 
-                // Recurse
+                for (int k = 0; k < lanes; k++)
+                    _scratchMaskSaved[k] = ctx.ActiveMask[k];
+                Array.Copy(_scratchMaskChild, ctx.ActiveMask, lanes);
+
                 var childResult = child.GoVec(ref ctx);
 
-                // Restore reaches and mask
+                Array.Copy(_scratchMaskSaved, ctx.ActiveMask, lanes);
+                for (int k = 0; k < lanes; k++)
+                {
+                    ctx.ReachSelf[k] = _savedReachSelf[k];
+                    ctx.ReachOpp[k] = _savedReachOpp[k];
+                }
+
+                var cu = childResult.UtilitiesByPlayerByLane;
+                for (int k = 0; k < lanes; k++)
+                {
+                    if (_scratchMaskChild[k] == 0) continue;
+                    double w = ownerIsOptimized ? _pSelfByLane[k][ai] : _pOppByLane[k][ai];
+                    for (int p = 0; p < _numPlayers; p++)
+                        _expectedUByPlayerByLane[p][k] += w * cu[p][k];
+                    _expectedCustomByLane[k] = _expectedCustomByLane[k].Plus(childResult.CustomByLane[k].Times((float)w));
+                }
+
                 if (ownerIsOptimized)
                 {
                     for (int k = 0; k < lanes; k++)
-                        ctx.ReachSelf[k] = savedSelf[k];
-                }
-                else
-                {
-                    for (int k = 0; k < lanes; k++)
-                        ctx.ReachOpp[k] = savedOpp[k];
-                    ctx.ActiveMask = savedMask.AsSpan();
-                }
-
-                // Accumulate expected utilities and custom
-                if (ownerIsOptimized)
-                {
-                    // expected += w * childU on active lanes
-                    for (int p = 0; p < _numPlayers; p++)
-                        FastCFRVecMath.MulAccumulateMasked(
-                            weightsByLane,
-                            childResult.UtilitiesByPlayerByLane[p],
-                            ctx.ActiveMask,
-                            _expectedUByPlayerByLane![p]);
-
-                    // Store Qa for regret calc (owner payoff per lane)
-                    var ownerU = childResult.UtilitiesByPlayerByLane[PlayerIndex];
-                    var qaLane = _qaByActionByLane![a];
-                    Array.Copy(ownerU, qaLane, lanes);
-
-                    // Custom per lane
-                    for (int k = 0; k < lanes; k++)
-                        if (ctx.ActiveMask[k] != 0)
-                            _expectedCustomByLane![k] = _expectedCustomByLane[k].Plus(childResult.CustomByLane[k].Times((float)weightsByLane[k]));
-                }
-                else
-                {
-                    // expected += w * childU on childMask lanes
-                    for (int p = 0; p < _numPlayers; p++)
-                        FastCFRVecMath.MulAccumulateMasked(
-                            childResult.UtilitiesByPlayerByLane[p],
-                            weightsByLane,
-                            childMask,
-                            _expectedUByPlayerByLane![p]);
-
-                    for (int k = 0; k < lanes; k++)
-                        if (childMask[k] != 0)
-                            _expectedCustomByLane![k] = _expectedCustomByLane[k].Plus(childResult.CustomByLane[k].Times((float)weightsByLane[k]));
+                        _qaByActionByLane[ai][k] = childResult.UtilitiesByPlayerByLane[PlayerIndex][k];
                 }
             }
 
-            // Regret updates if owner is optimized
             if (ownerIsOptimized)
             {
-                // Compute V[k] = sum_a pSelf[k][a] * Qa[a][k]
-                var vLane = savedSelf; // reuse scratch
-                Array.Clear(vLane, 0, lanes);
-                for (int a = 0; a < NumActions; a++)
+                var V = new double[lanes];
+                for (int k = 0; k < lanes; k++)
                 {
-                    var qa = _qaByActionByLane![a];
-                    for (int k = 0; k < lanes; k++)
-                        if (ctx.ActiveMask[k] != 0)
-                            vLane[k] += _pSelfByLane![k][a] * qa[k];
+                    if (ctx.ActiveMask[k] == 0) { V[k] = 0.0; continue; }
+                    double sum = 0.0;
+                    for (int a = 0; a < NumActions; a++)
+                        sum += _pSelfByLane[k][a] * _qaByActionByLane[a][k];
+                    V[k] = sum;
                 }
 
-                // Update tallies per action × lane
                 for (int a = 0; a < NumActions; a++)
                 {
-                    var qa = _qaByActionByLane![a];
-                    var sumR = _sumRegretTimesInversePi![a];
-                    var sumI = _sumInversePi![a];
-                    var inc = _lastCumulativeStrategyInc![a];
+                    var rti = _sumRegretTimesInversePi[a];
+                    var si = _sumInversePi[a];
+                    var inc = _lastCumulativeStrategyInc[a];
 
                     for (int k = 0; k < lanes; k++)
                     {
                         if (ctx.ActiveMask[k] == 0) continue;
-
-                        double regret = qa[k] - vLane[k];
-                        double invPi = ctx.ReachOpp[k];
-                        sumR[k] += regret * invPi;
-                        sumI[k] += invPi;
-                        inc[k] += ctx.ReachSelf[k] * _pSelfByLane![k][a];
+                        double regret = _qaByActionByLane[a][k] - V[k];
+                        rti[k] += regret * ctx.ReachOpp[k];
+                        si[k] += ctx.ReachOpp[k];
+                        inc[k] += ctx.ReachSelf[k] * _pSelfByLane[k][a];
                     }
                 }
             }
 
-            return new FastCFRNodeVecResult(_expectedUByPlayerByLane!, _expectedCustomByLane!);
+            return new FastCFRNodeVecResult(_expectedUByPlayerByLane, _expectedCustomByLane);
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public ReadOnlySpan<double> GetSumRegretTimesInversePi(int actionIndexZeroBased) => _sumRegretTimesInversePi![actionIndexZeroBased];
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public ReadOnlySpan<double> GetSumInversePi(int actionIndexZeroBased) => _sumInversePi![actionIndexZeroBased];
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public ReadOnlySpan<double> GetLastCumulativeStrategyIncrements(int actionIndexZeroBased) => _lastCumulativeStrategyInc![actionIndexZeroBased];
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public InformationSetNode GetBackingForLane(int laneIndex) => _backingPerLane[laneIndex];
-
-        private static double[][] AllocateJagged(int outer, int inner)
+        public void FlushTalliesToBacking()
         {
-            var arr = new double[outer][];
-            for (int i = 0; i < outer; i++)
-                arr[i] = new double[inner];
-            return arr;
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void EnsureExpectedBuffersCleared(int lanes)
-        {
-            for (int p = 0; p < _numPlayers; p++)
-                Array.Clear(_expectedUByPlayerByLane![p], 0, lanes);
-            Array.Clear(_expectedCustomByLane!, 0, lanes);
+            int lanes = _backingPerLane.Length;
+            for (int k = 0; k < lanes; k++)
+            {
+                var backing = _backingPerLane[k];
+                for (int a = 0; a < NumActions; a++)
+                {
+                    double rTimesInvPi = _sumRegretTimesInversePi[a][k];
+                    double invPi = _sumInversePi[a][k];
+                    double incr = _lastCumulativeStrategyInc[a][k];
+                    if (invPi != 0.0 || rTimesInvPi != 0.0)
+                        backing.IncrementLastRegret((byte)(a + 1), rTimesInvPi, invPi);
+                    if (incr != 0.0)
+                        backing.IncrementLastCumulativeStrategyIncrements((byte)(a + 1), incr);
+                }
+            }
         }
     }
 }

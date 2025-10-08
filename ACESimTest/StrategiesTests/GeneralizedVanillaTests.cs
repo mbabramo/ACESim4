@@ -58,14 +58,14 @@ namespace ACESimTest.StrategiesTests
                 return false;
             }
 
-            int CP  = InformationSetNode.currentProbabilityDimension;
-            int CPO = InformationSetNode.currentProbabilityForOpponentDimension;
-            int ASP = InformationSetNode.averageStrategyProbabilityDimension;
+            //int CP  = InformationSetNode.currentProbabilityDimension;
+            //int CPO = InformationSetNode.currentProbabilityForOpponentDimension;
+            //int ASP = InformationSetNode.averageStrategyProbabilityDimension;
             int REG = InformationSetNode.cumulativeRegretDimension;
-            int CST = InformationSetNode.cumulativeStrategyDimension;
+            //int CST = InformationSetNode.cumulativeStrategyDimension;
             int SRT = InformationSetNode.sumRegretTimesInversePiDimension;
             int SIV = InformationSetNode.sumInversePiDimension;
-            int LCI = InformationSetNode.lastCumulativeStrategyIncrementsDimension;
+            //int LCI = InformationSetNode.lastCumulativeStrategyIncrementsDimension;
             int BRD = InformationSetNode.bestResponseDenominatorDimension;
 
             int lines = 0;
