@@ -97,12 +97,15 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
 
     public interface IFastCFRNodeVec
     {
+        // Freeze per-lane policies for this iteration.
+        // Each inner array is the action-probability vector for one lane.
         void InitializeIterationVec(
-            ReadOnlySpan<double>[] ownerCurrentPolicyByLane,
-            ReadOnlySpan<double>[] opponentTraversalPolicyByLane);
+            double[][] ownerCurrentPolicyByLane,
+            double[][] opponentTraversalPolicyByLane);
 
         FastCFRNodeVecResult GoVec(ref FastCFRVecContext ctx);
     }
+
 
     public readonly struct FastCFRVisitStepVec
     {
@@ -316,7 +319,11 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
                 if (mask[i] != 0) x[i] *= factor[i];
         }
 
-        public static void DotPerLane(ReadOnlySpan<double> weights, ReadOnlySpan<double>[] perActionLaneValues, ReadOnlySpan<byte> mask, Span<double> resultPerLane)
+        public static void DotPerLane(
+            ReadOnlySpan<double> weights,
+            double[][] perActionLaneValues,
+            ReadOnlySpan<byte> mask,
+            Span<double> resultPerLane)
         {
             int lanes = resultPerLane.Length;
             if (lanes == 0)
@@ -336,10 +343,12 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
                 {
                     double w = weights[a];
                     var wVec = Vector256.Create(w);
+                    ReadOnlySpan<double> laneVals = perActionLaneValues[a];
+
                     int k = 0;
                     while (k <= lanes - stride)
                     {
-                        var v = Vector256.LoadUnsafe(ref MemoryMarshal.GetReference(perActionLaneValues[a]), (nuint)k);
+                        var v = Vector256.LoadUnsafe(ref MemoryMarshal.GetReference(laneVals), (nuint)k);
                         var r = Vector256.LoadUnsafe(ref MemoryMarshal.GetReference(resultPerLane), (nuint)k);
                         var m = Vector256.LoadUnsafe(ref MemoryMarshal.GetReference(maskAsDouble), (nuint)k);
 
@@ -352,7 +361,7 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
                     }
                     for (; k < lanes; k++)
                         if (mask[k] != 0)
-                            resultPerLane[k] += perActionLaneValues[a][k] * w;
+                            resultPerLane[k] += laneVals[k] * w;
                 }
                 return;
             }
@@ -368,10 +377,12 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
                 {
                     double w = weights[a];
                     var wVec = Vector128.Create(w);
+                    ReadOnlySpan<double> laneVals = perActionLaneValues[a];
+
                     int k = 0;
                     while (k <= lanes - stride)
                     {
-                        var v = Vector128.LoadUnsafe(ref MemoryMarshal.GetReference(perActionLaneValues[a]), (nuint)k);
+                        var v = Vector128.LoadUnsafe(ref MemoryMarshal.GetReference(laneVals), (nuint)k);
                         var r = Vector128.LoadUnsafe(ref MemoryMarshal.GetReference(resultPerLane), (nuint)k);
                         var m = Vector128.LoadUnsafe(ref MemoryMarshal.GetReference(maskAsDouble), (nuint)k);
 
@@ -384,19 +395,22 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
                     }
                     for (; k < lanes; k++)
                         if (mask[k] != 0)
-                            resultPerLane[k] += perActionLaneValues[a][k] * w;
+                            resultPerLane[k] += laneVals[k] * w;
                 }
                 return;
             }
 
+            // Fallback
             for (int a = 0; a < weights.Length; a++)
             {
+                var laneVals = perActionLaneValues[a];
                 double w = weights[a];
                 for (int k = 0; k < lanes; k++)
                     if (mask[k] != 0)
-                        resultPerLane[k] += perActionLaneValues[a][k] * w;
+                        resultPerLane[k] += laneVals[k] * w;
             }
         }
+
 
         public static double ReduceSumMasked(ReadOnlySpan<double> x, ReadOnlySpan<byte> mask)
         {

@@ -36,7 +36,7 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
         private double[]? _savedReachSelf;                 // [lane]
         private double[]? _savedReachOpp;                  // [lane]
 
-        private const double Epsilon = 0.0;
+        private const double Epsilon = double.Epsilon;
 
         public FastCFRInformationSetVec(
             byte playerIndex,
@@ -68,8 +68,8 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
         }
 
         public void InitializeIterationVec(
-            ReadOnlySpan<double>[] ownerCurrentPolicyByLane,
-            ReadOnlySpan<double>[] opponentTraversalPolicyByLane)
+            double[][] ownerCurrentPolicyByLane,
+            double[][] opponentTraversalPolicyByLane)
         {
             int lanes = _backingPerLane.Length;
 
@@ -88,7 +88,6 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
             _savedReachSelf ??= new double[lanes];
             _savedReachOpp ??= new double[lanes];
 
-            // Freeze policies and clear tallies
             for (int k = 0; k < lanes; k++)
             {
                 var selfSrc = ownerCurrentPolicyByLane[k];
@@ -102,14 +101,10 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
 
             for (int a = 0; a < NumActions; a++)
             {
-                var r = _sumRegretTimesInversePi[a];
-                var s = _sumInversePi[a];
-                var inc = _lastCumulativeStrategyInc[a];
-                var qa = _qaByActionByLane[a];
-                Array.Clear(r, 0, r.Length);
-                Array.Clear(s, 0, s.Length);
-                Array.Clear(inc, 0, inc.Length);
-                Array.Clear(qa, 0, qa.Length);
+                Array.Clear(_sumRegretTimesInversePi[a], 0, lanes);
+                Array.Clear(_sumInversePi[a], 0, lanes);
+                Array.Clear(_lastCumulativeStrategyInc[a], 0, lanes);
+                Array.Clear(_qaByActionByLane[a], 0, lanes);
             }
 
             for (int p = 0; p < _numPlayers; p++)
@@ -118,6 +113,7 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
 
             _visitCounter = 0;
         }
+
 
         public FastCFRNodeVecResult GoVec(ref FastCFRVecContext ctx)
         {

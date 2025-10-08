@@ -44,10 +44,11 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
             }
         }
 
-        public void InitializeIterationVec(ReadOnlySpan<double>[] _owner, ReadOnlySpan<double>[] _opp)
+        public void InitializeIterationVec(double[][] _owner, double[][] _opp)
         {
             _visitCounter = 0;
         }
+
 
         public FastCFRNodeVecResult GoVec(ref FastCFRVecContext ctx)
         {

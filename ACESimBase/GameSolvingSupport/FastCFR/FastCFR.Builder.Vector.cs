@@ -9,17 +9,17 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
     public partial class FastCFRBuilder
     {
         // ----------------------------
-        // Static configuration
+        // Instance configuration
         // ----------------------------
+        private FastCFRVectorRegionOptions? _vectorOptions;
+        private Func<ChanceNode, bool>? _vectorAnchorSelector;
 
-        private static FastCFRVectorRegionOptions? s_VectorOptions;
-        private static Func<ChanceNode, bool>? s_VectorAnchorSelector;
-
-        public static void ConfigureVectorRegion(FastCFRVectorRegionOptions options, Func<ChanceNode, bool> anchorSelector)
+        public void ConfigureVectorRegion(FastCFRVectorRegionOptions options, Func<ChanceNode, bool> anchorSelector)
         {
-            s_VectorOptions = options ?? throw new ArgumentNullException(nameof(options));
-            s_VectorAnchorSelector = anchorSelector ?? throw new ArgumentNullException(nameof(anchorSelector));
+            _vectorOptions = options ?? throw new ArgumentNullException(nameof(options));
+            _vectorAnchorSelector = anchorSelector ?? throw new ArgumentNullException(nameof(anchorSelector));
         }
+
 
         // ----------------------------
         // Vector region state
@@ -41,21 +41,37 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
         /// Freeze per-lane policies across all vector infosets for this iteration.
         /// Must be called once per iteration if a vector region was built.
         /// </summary>
-        public FastCFRVecContext InitializeIterationVec(byte optimizedPlayerIndex, int[]? scenarioIndexByLane, Func<byte, double>? rand01ForDecision)
+        public FastCFRVecContext InitializeIterationVec(
+            byte optimizedPlayerIndex,
+            int[]? scenarioIndexByLane,
+            Func<byte, double>? rand01ForDecision)
         {
             if (!_vectorRegionBuilt)
                 throw new InvalidOperationException("Vector region not built.");
 
-            // Determine the lane count from the anchor shim.
             int lanes = _vectorAnchorShim!.VectorWidth;
 
-            // Prepare context storage.
+            // Enforce single scenario across lanes if supplied
+            int[] scn;
+            if (scenarioIndexByLane is null)
+            {
+                scn = new int[lanes]; // zeros
+            }
+            else
+            {
+                if (scenarioIndexByLane.Length != lanes)
+                    throw new ArgumentException("scenarioIndexByLane length mismatch.");
+                int s0 = scenarioIndexByLane[0];
+                for (int k = 1; k < lanes; k++)
+                    if (scenarioIndexByLane[k] != s0)
+                        throw new NotSupportedException("Vector region currently supports only a single scenario index across lanes.");
+                scn = scenarioIndexByLane;
+            }
+
             var reachSelf = new double[lanes];
             var reachOpp = new double[lanes];
             var reachChance = new double[lanes];
             var mask = new byte[lanes];
-            var scn = scenarioIndexByLane ?? new int[lanes];
-
             for (int k = 0; k < lanes; k++)
             {
                 reachSelf[k] = 1.0;
@@ -64,34 +80,31 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
                 mask[k] = 1;
             }
 
-            // Initialize nodes (freeze policies per lane) using each node's own backing-per-lane.
+            // Freeze per-lane policies for each vector infoset
             foreach (var node in _vecInfosets)
             {
-                int L = node.GetBackingForLane(0).NumPossibleActions; // used only to shape spans below
-
-                var ownerByLane = new ReadOnlySpan<double>[lanes];
-                var oppByLane = new ReadOnlySpan<double>[lanes];
+                var ownerByLane = new double[lanes][];
+                var oppByLane = new double[lanes][];
 
                 for (int k = 0; k < lanes; k++)
                 {
                     var backing = node.GetBackingForLane(k);
                     var owner = new double[backing.NumPossibleActions];
-                    var opp = new double[backing.NumPossibleActions];
+                    var opp   = new double[backing.NumPossibleActions];
 
                     backing.GetCurrentProbabilities(owner, opponentProbabilities: false);
-                    backing.GetCurrentProbabilities(opp, opponentProbabilities: true);
+                    backing.GetCurrentProbabilities(opp,   opponentProbabilities: true);
 
                     ownerByLane[k] = owner;
-                    oppByLane[k] = opp;
+                    oppByLane[k]   = opp;
                 }
 
                 node.InitializeIterationVec(ownerByLane, oppByLane);
             }
 
             foreach (var node in _vecChances)
-                node.InitializeIterationVec(Array.Empty<ReadOnlySpan<double>>(), Array.Empty<ReadOnlySpan<double>>());
+                node.InitializeIterationVec(Array.Empty<double[]>(), Array.Empty<double[]>()); // no-op
 
-            // Build and return the context
             return new FastCFRVecContext
             {
                 IterationNumber = 0,
@@ -105,6 +118,7 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
                 Rand01ForDecision = rand01ForDecision
             };
         }
+
 
         /// <summary>
         /// Copy per-lane tallies from vector infosets into their lane-specific backing InformationSetNodes.
@@ -148,17 +162,14 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
 
         private Func<IFastCFRNode> CompileVectorAnchorShim(HistoryPoint anchorHp, ChanceNode anchorChance)
         {
-            // Effective width from options/hardware
-            _vectorWidth = FastCFRVecCapabilities.EffectiveVectorWidth(s_VectorOptions);
+            _vectorWidth = FastCFRVecCapabilities.EffectiveVectorWidth(_vectorOptions);
             if (_vectorWidth <= 1)
                 throw new InvalidOperationException("Vector region requested but SIMD not available.");
 
-            // Decision metadata
             byte decisionIndex = anchorHp.GetNextDecisionIndex(_nav);
             var decision = _nav.GameDefinition.DecisionsExecutionOrder[decisionIndex];
             byte numOutcomes = (byte)decision.NumPossibleActions;
 
-            // Partition outcomes into groups of lanes and compile a vector subtree for each group
             int groups = (numOutcomes + _vectorWidth - 1) / _vectorWidth;
             var roots = new IFastCFRNodeVec[groups];
 
@@ -167,61 +178,69 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
                 int start = g * _vectorWidth;
                 int lanes = Math.Min(_vectorWidth, numOutcomes - start);
 
-                var laneHps = new HistoryPoint[lanes];
+                var laneHpsStored = new HistoryPointStorable[lanes];
                 for (int l = 0; l < lanes; l++)
                 {
                     byte aOneBased = (byte)(start + l + 1);
-                    laneHps[l] = anchorHp.GetBranch(_nav, aOneBased, decision, decisionIndex);
+                    var nextHp = anchorHp.GetBranch(_nav, aOneBased, decision, decisionIndex);
+                    laneHpsStored[l] = nextHp.ToStorable();
                 }
 
-                var vecAccessor = CompileVector(laneHps);
+                var vecAccessor = CompileVector(laneHpsStored);
                 roots[g] = vecAccessor();
             }
 
-            // Finalize/bind vector children now that all node references exist
             FinalizeVectorNodeObjects();
 
-            // Create a scalar node that will drive the vector subtree(s)
             _vectorAnchorShim = new FastCFRVectorAnchorShim(this, anchorChance, decisionIndex, numOutcomes, roots, _opts.UseDynamicChanceProbabilities, _numNonChancePlayers, _vectorWidth);
             _vectorRegionBuilt = true;
 
-            // Return an accessor just like the scalar build methods do
             FastCFRVectorAnchorShim local = _vectorAnchorShim;
             return () => local;
         }
+
 
         // ----------------------------
         // Vector subtree compilation
         // ----------------------------
 
-        private Func<IFastCFRNodeVec> CompileVector(HistoryPoint[] laneHps)
+        private Func<IFastCFRNodeVec> CompileVector(HistoryPointStorable[] laneHps)
         {
-            // We assume identical shape beneath the anchor (as per configuration).
-            var state0 = laneHps[0].GetGameStatePrerecorded(_nav);
+            var hp0 = laneHps[0].ShallowCopyToRefStruct();
+            var state0 = hp0.GetGameStatePrerecorded(_nav);
             if (state0 is null)
-                state0 = _nav.GetGameState(in laneHps[0]);
+                state0 = _nav.GetGameState(in hp0);
 
             switch (state0)
             {
-                case InformationSetNode isn:
+                case InformationSetNode:
                 {
                     var isnByLane = new InformationSetNode[laneHps.Length];
                     for (int k = 0; k < laneHps.Length; k++)
-                        isnByLane[k] = (InformationSetNode)(_nav.GetGameState(in laneHps[k]));
+                    {
+                        var hp = laneHps[k].ShallowCopyToRefStruct();
+                        isnByLane[k] = (InformationSetNode)_nav.GetGameState(in hp);
+                    }
                     return CompileVectorInformationSet(laneHps, isnByLane);
                 }
-                case ChanceNode cn:
+                case ChanceNode:
                 {
                     var cnByLane = new ChanceNode[laneHps.Length];
                     for (int k = 0; k < laneHps.Length; k++)
-                        cnByLane[k] = (ChanceNode)(_nav.GetGameState(in laneHps[k]));
+                    {
+                        var hp = laneHps[k].ShallowCopyToRefStruct();
+                        cnByLane[k] = (ChanceNode)_nav.GetGameState(in hp);
+                    }
                     return CompileVectorChance(laneHps, cnByLane);
                 }
-                case FinalUtilitiesNode fu:
+                case FinalUtilitiesNode:
                 {
                     var fuByLane = new FinalUtilitiesNode[laneHps.Length];
                     for (int k = 0; k < laneHps.Length; k++)
-                        fuByLane[k] = (FinalUtilitiesNode)(_nav.GetGameState(in laneHps[k]));
+                    {
+                        var hp = laneHps[k].ShallowCopyToRefStruct();
+                        fuByLane[k] = (FinalUtilitiesNode)_nav.GetGameState(in hp);
+                    }
                     return CompileVectorFinal(laneHps, fuByLane);
                 }
                 default:
@@ -229,26 +248,28 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
             }
         }
 
-        private Func<IFastCFRNodeVec> CompileVectorInformationSet(HistoryPoint[] laneHps, InformationSetNode[] isnByLane)
+        private Func<IFastCFRNodeVec> CompileVectorInformationSet(HistoryPointStorable[] laneHps, InformationSetNode[] isnByLane)
         {
-            byte decisionIndex = laneHps[0].GetNextDecisionIndex(_nav);
+            var hp0 = laneHps[0].ShallowCopyToRefStruct();
+            byte decisionIndex = hp0.GetNextDecisionIndex(_nav);
             var decision = _nav.GameDefinition.DecisionsExecutionOrder[decisionIndex];
             byte numActions = (byte)decision.NumPossibleActions;
 
             var steps = new List<FastCFRVisitStepVec>(numActions);
             for (byte a = 1; a <= numActions; a++)
             {
-                var nextLaneHps = new HistoryPoint[laneHps.Length];
+                var nextLaneHps = new HistoryPointStorable[laneHps.Length];
                 for (int k = 0; k < laneHps.Length; k++)
-                    nextLaneHps[k] = laneHps[k].GetBranch(_nav, a, decision, decisionIndex);
-
+                {
+                    var hp = laneHps[k].ShallowCopyToRefStruct();
+                    var next = hp.GetBranch(_nav, a, decision, decisionIndex).ToStorable();
+                    nextLaneHps[k] = next;
+                }
                 var childAccessor = CompileVector(nextLaneHps);
                 steps.Add(new FastCFRVisitStepVec((byte)(a - 1), childAccessor));
             }
 
             var program = new FastCFRVisitProgramVec(steps.ToArray(), _numNonChancePlayers);
-
-            // Node creation (use lane 0 for identity metadata)
             var ownerIndex = (byte)isnByLane[0].PlayerIndex;
             var node = new FastCFRInformationSetVec(ownerIndex, decisionIndex, numActions, _numNonChancePlayers, isnByLane, new[] { program });
             _vecInfosets.Add(node);
@@ -256,18 +277,23 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
             return () => node;
         }
 
-        private Func<IFastCFRNodeVec> CompileVectorChance(HistoryPoint[] laneHps, ChanceNode[] cnByLane)
+        private Func<IFastCFRNodeVec> CompileVectorChance(HistoryPointStorable[] laneHps, ChanceNode[] cnByLane)
         {
-            byte decisionIndex = laneHps[0].GetNextDecisionIndex(_nav);
+            var hp0 = laneHps[0].ShallowCopyToRefStruct();
+            byte decisionIndex = hp0.GetNextDecisionIndex(_nav);
             var decision = _nav.GameDefinition.DecisionsExecutionOrder[decisionIndex];
             byte numOutcomes = (byte)decision.NumPossibleActions;
 
             var steps = new List<FastCFRChanceStepVec>(numOutcomes);
             for (byte a = 1; a <= numOutcomes; a++)
             {
-                var nextLaneHps = new HistoryPoint[laneHps.Length];
+                var nextLaneHps = new HistoryPointStorable[laneHps.Length];
                 for (int k = 0; k < laneHps.Length; k++)
-                    nextLaneHps[k] = laneHps[k].GetBranch(_nav, a, decision, decisionIndex);
+                {
+                    var hp = laneHps[k].ShallowCopyToRefStruct();
+                    var next = hp.GetBranch(_nav, a, decision, decisionIndex).ToStorable();
+                    nextLaneHps[k] = next;
+                }
 
                 var childAccessor = CompileVector(nextLaneHps);
 
@@ -300,14 +326,12 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
             return () => node;
         }
 
-        private Func<IFastCFRNodeVec> CompileVectorFinal(HistoryPoint[] laneHps, FinalUtilitiesNode[] fuByLane)
+        private Func<IFastCFRNodeVec> CompileVectorFinal(HistoryPointStorable[] laneHps, FinalUtilitiesNode[] fuByLane)
         {
-            // Build [player][lane] utilities and [lane] custom arrays
             int lanes = laneHps.Length;
 
-            // Use lane 0 to discover player count
             var (utils0, custom0) = ExtractFinalArrays(fuByLane[0], _numNonChancePlayers);
-            int numPlayers = utils0[0].Length; // one scenario assumed
+            int numPlayers = utils0[0].Length; // single scenario assumed
             var utilsByPlayerByLane = new double[numPlayers][];
             for (int p = 0; p < numPlayers; p++)
                 utilsByPlayerByLane[p] = new double[lanes];
@@ -327,6 +351,7 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
             var node = new FastCFRFinalVec(utilsByPlayerByLane, customByLane);
             return () => node;
         }
+
 
         private void FinalizeVectorNodeObjects()
         {
