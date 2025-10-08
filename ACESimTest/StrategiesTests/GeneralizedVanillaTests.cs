@@ -240,6 +240,52 @@ namespace ACESimTest.StrategiesTests
         [TestMethod]
         [DataRow(false, false)]
         [DataRow(false, true)]
+        [DataRow(true,  false)]
+        [DataRow(true,  true)]
+        public async Task SameResultsFastCFR_VectorizedVsScalar(bool randomInformationSets, bool largerTree)
+        {
+            byte rounds = 1;
+
+            // Scalar FastCFR
+            var sScalar = new EvolutionSettings
+            {
+                TotalIterations = _iterationsForParity,
+                GeneralizedVanillaFlavor = GeneralizedVanillaFlavor.Fast,
+                UnrollTemplateIdenticalRanges = false,
+                UnrollTemplateRepeatedRanges = false,
+                Unroll_ChunkExecutorKind = ChunkExecutorKind.Interpreted,
+                TraceCFR = false,
+                ParallelOptimization = false,
+                FastCFRVectorize = false
+            };
+            var devScalar = await Initialize(largerTree, sScalar, rounds);
+            if (randomInformationSets) RandomizeInformationSetProbabilities(devScalar);
+            await devScalar.RunAlgorithm("TESTOPTIONS");
+
+            // Vectorized FastCFR (identical settings except toggle)
+            var sVector = new EvolutionSettings
+            {
+                TotalIterations = _iterationsForParity,
+                GeneralizedVanillaFlavor = GeneralizedVanillaFlavor.Fast,
+                UnrollTemplateIdenticalRanges = false,
+                UnrollTemplateRepeatedRanges = false,
+                Unroll_ChunkExecutorKind = ChunkExecutorKind.Interpreted,
+                TraceCFR = false,
+                ParallelOptimization = false,
+                FastCFRVectorize = true
+            };
+            var devVector = await Initialize(largerTree, sVector, rounds);
+            if (randomInformationSets) RandomizeInformationSetProbabilities(devVector);
+            await devVector.RunAlgorithm("TESTOPTIONS");
+
+            var ok = ConfirmInformationSetsMatch(devScalar, "Fast-Scalar", devVector, "Fast-Vector", maxLines: 1);
+            ok.Should().BeTrue("information sets must match between FastCFR scalar and FastCFR vectorized");
+        }
+
+
+        [TestMethod]
+        [DataRow(false, false)]
+        [DataRow(false, true)]
         [DataRow(true, false)]
         [DataRow(true, true)]
         public async Task EachExecutorProducesSameResults(bool randomInformationSets, bool largerTree)
