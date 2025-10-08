@@ -134,9 +134,9 @@ namespace ACESimBase.GameSolvingSupport.Settings
         internal int NumRandomIterationsForUtilityCalculation = 1000;
         internal bool SuppressReportDisplayOnScreen;
 
-        public static bool PruneOnOpponentStrategy = true; // NOTE: In general sum games, this seemed to cause difficulties at one point, because some of the player's own information sets may not be visited, as a result of pruning on opponents' sets. Also, note that this cannot be used with symmetric games.
-        public static double PruneOnOpponentStrategyThreshold = 1E-4; // NOTE: This is the probability for this action, not the cumulative probability. Meanwhile, this is not looked at directly during the generalized tree walk. This value affects only the updating of the information sets, by setting pruned probability to the smallest value possible (a positive value about 1). Pruning will then happen in turn in the tree walk.
-        public static bool PredeterminePrunabilityBasedOnRelativeContributions = false; // if True, then we prune if and only if the action contributes negligibly at any later information set
+        public bool PruneOnOpponentStrategy = true; // NOTE: In general sum games, this seemed to cause difficulties at one point, because some of the player's own information sets may not be visited, as a result of pruning on opponents' sets. Also, note that this cannot be used with symmetric games.
+        public double PruneOnOpponentStrategyThreshold = 1E-4; // NOTE: This is the probability for this action, not the cumulative probability. Meanwhile, this is not looked at directly during the generalized tree walk. This value affects only the updating of the information sets, by setting pruned probability to the smallest value possible (a positive value about 1). Pruning will then happen in turn in the tree walk.
+        public bool PredeterminePrunabilityBasedOnRelativeContributions = false; // if True, then we prune if and only if the action contributes negligibly at any later information set
 
         public bool CFRBR = false; // if true, opponent plays best response
         public bool CFR_OpponentPlaysAverageStrategy = false; // typically, the opponent plays the current strategy in CFR. With this variant, the opponent plays the average strategy. This sometimes gives mildly better results, but not consistent performance improvements.

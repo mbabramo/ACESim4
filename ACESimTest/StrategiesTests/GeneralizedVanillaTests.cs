@@ -256,7 +256,7 @@ namespace ACESimTest.StrategiesTests
                 Unroll_ChunkExecutorKind = ChunkExecutorKind.Interpreted,
                 TraceCFR = false,
                 ParallelOptimization = false,
-                FastCFRVectorize = false
+                FastCFRVectorize = false,
             };
             var devScalar = await Initialize(largerTree, sScalar, rounds);
             if (randomInformationSets) RandomizeInformationSetProbabilities(devScalar);
@@ -272,7 +272,7 @@ namespace ACESimTest.StrategiesTests
                 Unroll_ChunkExecutorKind = ChunkExecutorKind.Interpreted,
                 TraceCFR = false,
                 ParallelOptimization = false,
-                FastCFRVectorize = true
+                FastCFRVectorize = true,
             };
             var devVector = await Initialize(largerTree, sVector, rounds);
             if (randomInformationSets) RandomizeInformationSetProbabilities(devVector);
