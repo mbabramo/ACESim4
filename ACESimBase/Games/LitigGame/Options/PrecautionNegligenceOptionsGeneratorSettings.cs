@@ -10,7 +10,7 @@ namespace ACESimBase.Games.LitigGame.Options
     {
         public bool UseSimplifiedPrecautionNegligenceGame = false;
         public byte ParameterForMultipleOptions_Simplified = 2;
-        public byte ParameterForMultipleOptions = 8;
+        public byte ParameterForMultipleOptions = 5;
 
         public bool CollapseDecisionsInSimplifiedPrecautionNegligenceGame = true; 
         public bool PerfectAdjudication = false;

@@ -1,7 +1,7 @@
 ﻿using System;
+using System.Runtime.CompilerServices;
 using ACESimBase.GameSolvingSupport.GameTree;
 using ACESimBase.Util.Collections;
-using System.Runtime.CompilerServices;
 
 namespace ACESimBase.GameSolvingSupport.FastCFR
 {
@@ -17,24 +17,27 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
         private IFastCFRNodeVec[][] _childrenByVisit = Array.Empty<IFastCFRNodeVec[]>();
         private int _visitCounter;
 
-        // ---- SoA contiguous buffers [action-major][lane] ----
+        // Policies/action-state in SoA: [action-major][lane]
         private double[] _pSelf_AL = Array.Empty<double>();
-        private double[] _pOpp_AL = Array.Empty<double>();
-        private double[] _qa_AL = Array.Empty<double>();
+        private double[] _pOpp_AL  = Array.Empty<double>();
+        private double[] _qa_AL    = Array.Empty<double>();
         private double[] _sumRegretTimesInversePi_AL = Array.Empty<double>();
-        private double[] _sumInversePi_AL = Array.Empty<double>();
+        private double[] _sumInversePi_AL            = Array.Empty<double>();
         private double[] _lastCumulativeStrategyInc_AL = Array.Empty<double>();
 
-        // Small results: keep rows [player][lane], one-time allocated
+        // Result rows shown to callers (stable wrappers) — [player][lane]
         private double[][] _expectedUByPlayerByLane = Array.Empty<double[]>();
         private FloatSet[] _expectedCustomByLane = Array.Empty<FloatSet>();
 
-        // Scratch (per node)
+        // Contiguous accumulation buffer for utilities: [player-major][lane]
+        private double[] _expectedU_PL = Array.Empty<double>();
+
+        // Scratch
         private double[] _savedReachSelf = Array.Empty<double>();
-        private double[] _savedReachOpp = Array.Empty<double>();
-        private byte[] _maskChild = Array.Empty<byte>();
+        private double[] _savedReachOpp  = Array.Empty<double>();
+        private byte[]   _maskChild      = Array.Empty<byte>();
         private double[] _scratchVByLane = Array.Empty<double>();
-        private double[] _scratchTempByLane = Array.Empty<double>();
+        private double[] _scratchTemp    = Array.Empty<double>();
 
         public int LaneCount => _backingPerLane.Length;
 
@@ -78,21 +81,25 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
 
             if (_pSelf_AL.Length != AL)
             {
-                _pSelf_AL = new double[AL];
-                _pOpp_AL = new double[AL];
-                _qa_AL = new double[AL];
-                _sumRegretTimesInversePi_AL = new double[AL];
-                _sumInversePi_AL = new double[AL];
+                _pSelf_AL  = new double[AL];
+                _pOpp_AL   = new double[AL];
+                _qa_AL     = new double[AL];
+                _sumRegretTimesInversePi_AL   = new double[AL];
+                _sumInversePi_AL              = new double[AL];
                 _lastCumulativeStrategyInc_AL = new double[AL];
-                _savedReachSelf = new double[lanes];
-                _savedReachOpp = new double[lanes];
-                _maskChild = new byte[lanes];
-                _scratchVByLane = new double[lanes];
-                _scratchTempByLane = new double[lanes];
 
-                // allocate small result rows once
+                _savedReachSelf = new double[lanes];
+                _savedReachOpp  = new double[lanes];
+                _maskChild      = new byte[lanes];
+                _scratchVByLane = new double[lanes];
+                _scratchTemp    = new double[lanes];
+
+                // Stable wrapper rows for return type
                 _expectedUByPlayerByLane = FastCFRVecMath.AllocateJagged(_numPlayers, lanes);
                 _expectedCustomByLane = new FloatSet[lanes];
+
+                // Contiguous accumulation buffer [player-major][lane]
+                _expectedU_PL = new double[_numPlayers * lanes];
             }
             else
             {
@@ -101,9 +108,10 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
                 Array.Clear(_sumInversePi_AL, 0, _sumInversePi_AL.Length);
                 Array.Clear(_lastCumulativeStrategyInc_AL, 0, _lastCumulativeStrategyInc_AL.Length);
                 Array.Clear(_expectedCustomByLane, 0, _expectedCustomByLane.Length);
+                Array.Clear(_expectedU_PL, 0, _expectedU_PL.Length);
             }
 
-            // Fill SoA: for each action, lay out probabilities across lanes
+            // Fill SoA rows for probabilities from per-lane inputs
             for (int a = 0; a < NumActions; a++)
             {
                 int baseIx = a * lanes;
@@ -114,7 +122,7 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
                 }
             }
 
-            // Clear expected utilities rows
+            // Clear wrapper rows
             for (int p = 0; p < _numPlayers; p++)
                 Array.Clear(_expectedUByPlayerByLane[p], 0, lanes);
 
@@ -129,32 +137,33 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
             var children = _childrenByVisit[visitIndex];
             bool ownerIsOptimized = PlayerIndex == ctx.OptimizedPlayerIndex;
 
+            // Zero small results
             for (int p = 0; p < _numPlayers; p++)
                 Array.Clear(_expectedUByPlayerByLane[p], 0, lanes);
             Array.Clear(_expectedCustomByLane, 0, lanes);
+            Array.Clear(_expectedU_PL, 0, _expectedU_PL.Length);
 
             for (int i = 0; i < children.Length; i++)
             {
                 int ai = visit.Steps[i].ActionIndex;
                 var child = children[i];
 
-                // Save reaches and assemble child mask using contiguous weights row
                 for (int k = 0; k < lanes; k++)
                 {
                     _savedReachSelf[k] = ctx.ReachSelf[k];
-                    _savedReachOpp[k] = ctx.ReachOpp[k];
+                    _savedReachOpp[k]  = ctx.ReachOpp[k];
                 }
 
                 int savedMaskBits = PackMask(ctx.ActiveMask, lanes);
                 int childMaskBits = 0;
+
                 ReadOnlySpan<double> wRow = ownerIsOptimized
                     ? new ReadOnlySpan<double>(_pSelf_AL, ai * lanes, lanes)
-                    : new ReadOnlySpan<double>(_pOpp_AL, ai * lanes, lanes);
+                    : new ReadOnlySpan<double>(_pOpp_AL,  ai * lanes, lanes);
 
                 for (int k = 0; k < lanes; k++)
                 {
                     if (ctx.ActiveMask[k] == 0) { _maskChild[k] = 0; continue; }
-
                     double w = wRow[k];
                     if (!ownerIsOptimized && w <= Epsilon) { _maskChild[k] = 0; continue; }
 
@@ -164,7 +173,7 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
                     if (ownerIsOptimized)
                         ctx.ReachSelf[k] = _savedReachSelf[k] * w;
                     else
-                        ctx.ReachOpp[k] = _savedReachOpp[k] * w;
+                        ctx.ReachOpp[k]  = _savedReachOpp[k]  * w;
                 }
 
                 WriteMask(ctx.ActiveMask, lanes, childMaskBits);
@@ -175,16 +184,18 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
                 for (int k = 0; k < lanes; k++)
                 {
                     ctx.ReachSelf[k] = _savedReachSelf[k];
-                    ctx.ReachOpp[k] = _savedReachOpp[k];
+                    ctx.ReachOpp[k]  = _savedReachOpp[k];
                 }
 
+                // Accumulate utilities contiguously: U_PL[p,:] += wRow[:] * childU[p,:]
                 var cu = childResult.UtilitiesByPlayerByLane;
-
-                // E[U] += wRow * childU (masked)
                 for (int p = 0; p < _numPlayers; p++)
-                    FastCFRVecMath.MulAddMasked(_expectedUByPlayerByLane[p], cu[p], wRow, _maskChild);
+                {
+                    var dst = new Span<double>(_expectedU_PL, p * lanes, lanes);
+                    FastCFRVecMath.MulAddMasked(dst, cu[p], wRow, _maskChild);
+                }
 
-                // custom (scalar)
+                // Custom (scalar per lane)
                 for (int k = 0; k < lanes; k++)
                 {
                     if (_maskChild[k] == 0) continue;
@@ -194,7 +205,7 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
 
                 if (ownerIsOptimized)
                 {
-                    // Qa[a, k] from child owner utility
+                    // Qa[a,:] = childOwnerUtil[:]
                     ReadOnlySpan<double> childOwner = cu[PlayerIndex];
                     Span<double> qaRow = new Span<double>(_qa_AL, ai * lanes, lanes);
                     for (int k = 0; k < lanes; k++)
@@ -205,28 +216,36 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
 
             if (ownerIsOptimized)
             {
-                // V[k] = Σ_a pSelf[a,k] * Qa[a,k]
+                // V[:] = Σ_a pSelf[a,:] * Qa[a,:]
                 Array.Clear(_scratchVByLane, 0, lanes);
                 for (int a = 0; a < NumActions; a++)
                 {
                     ReadOnlySpan<double> wRow = new ReadOnlySpan<double>(_pSelf_AL, a * lanes, lanes);
-                    ReadOnlySpan<double> qRow = new ReadOnlySpan<double>(_qa_AL, a * lanes, lanes);
+                    ReadOnlySpan<double> qRow = new ReadOnlySpan<double>(_qa_AL,   a * lanes, lanes);
                     FastCFRVecMath.MulAddMasked(_scratchVByLane, qRow, wRow, ctx.ActiveMask);
                 }
 
                 for (int a = 0; a < NumActions; a++)
                 {
                     ReadOnlySpan<double> qRow = new ReadOnlySpan<double>(_qa_AL, a * lanes, lanes);
-                    Span<double> rtiRow = new Span<double>(_sumRegretTimesInversePi_AL, a * lanes, lanes);
-                    Span<double> siRow  = new Span<double>(_sumInversePi_AL, a * lanes, lanes);
+                    Span<double> rtiRow = new Span<double>(_sumRegretTimesInversePi_AL,   a * lanes, lanes);
+                    Span<double> siRow  = new Span<double>(_sumInversePi_AL,              a * lanes, lanes);
                     Span<double> incRow = new Span<double>(_lastCumulativeStrategyInc_AL, a * lanes, lanes);
                     ReadOnlySpan<double> wRow = new ReadOnlySpan<double>(_pSelf_AL, a * lanes, lanes);
 
-                    FastCFRVecMath.SubMaskedInto(_scratchTempByLane, qRow, _scratchVByLane, ctx.ActiveMask);
-                    FastCFRVecMath.MulAddMasked(rtiRow, _scratchTempByLane, ctx.ReachOpp, ctx.ActiveMask);
-                    FastCFRVecMath.AddMasked(siRow, ctx.ReachOpp, ctx.ActiveMask);
-                    FastCFRVecMath.MulAddMasked(incRow, ctx.ReachSelf, wRow, ctx.ActiveMask);
+                    FastCFRVecMath.SubMaskedInto(_scratchTemp, qRow, _scratchVByLane, ctx.ActiveMask);
+                    FastCFRVecMath.MulAddMasked(rtiRow, _scratchTemp, ctx.ReachOpp, ctx.ActiveMask);
+                    FastCFRVecMath.AddMasked   (siRow,  ctx.ReachOpp,               ctx.ActiveMask);
+                    FastCFRVecMath.MulAddMasked(incRow, ctx.ReachSelf, wRow,         ctx.ActiveMask);
                 }
+            }
+
+            // Publish contiguous results into the stable wrapper rows expected by callers
+            for (int p = 0; p < _numPlayers; p++)
+            {
+                var src = new ReadOnlySpan<double>(_expectedU_PL, p * lanes, lanes);
+                var dst = _expectedUByPlayerByLane[p];
+                src.CopyTo(dst);
             }
 
             return new FastCFRNodeVecResult(_expectedUByPlayerByLane, _expectedCustomByLane);
@@ -242,8 +261,8 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
                 {
                     int ix = a * lanes + k;
                     double rTimesInvPi = _sumRegretTimesInversePi_AL[ix];
-                    double invPi = _sumInversePi_AL[ix];
-                    double incr = _lastCumulativeStrategyInc_AL[ix];
+                    double invPi       = _sumInversePi_AL[ix];
+                    double incr        = _lastCumulativeStrategyInc_AL[ix];
                     if (invPi != 0.0 || rTimesInvPi != 0.0)
                         backing.IncrementLastRegret((byte)(a + 1), rTimesInvPi, invPi);
                     if (incr != 0.0)

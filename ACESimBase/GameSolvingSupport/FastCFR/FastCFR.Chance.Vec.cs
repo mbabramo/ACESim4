@@ -1,6 +1,6 @@
 ﻿using System;
-using ACESimBase.Util.Collections;
 using System.Runtime.CompilerServices;
+using ACESimBase.Util.Collections;
 
 namespace ACESimBase.GameSolvingSupport.FastCFR
 {
@@ -14,15 +14,24 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
         private IFastCFRNodeVec[][] _childrenByVisit = Array.Empty<IFastCFRNodeVec[]>();
         private int _visitCounter;
 
+        // Stable wrappers returned to caller: [player][lane]
         private double[][] _expectedUByPlayerByLane = Array.Empty<double[]>();
         private FloatSet[] _expectedCustomByLane = Array.Empty<FloatSet>();
 
+        // Contiguous accumulation buffer for utilities: [player-major][lane]
+        private double[] _expectedU_PL = Array.Empty<double>();
+
+        // Scratch
         private double[] _pLaneScratch = Array.Empty<double>();
         private double[] _savedReachOpp = Array.Empty<double>();
         private double[] _savedReachChance = Array.Empty<double>();
-        private byte[] _maskChild = Array.Empty<byte>();
+        private byte[]   _maskChild = Array.Empty<byte>();
 
-        public FastCFRChanceVec(byte decisionIndex, byte numOutcomes, int numPlayers, FastCFRChanceVisitProgramVec[] visits)
+        public FastCFRChanceVec(
+            byte decisionIndex,
+            byte numOutcomes,
+            int numPlayers,
+            FastCFRChanceVisitProgramVec[] visits)
         {
             DecisionIndex = decisionIndex;
             NumOutcomes = numOutcomes;
@@ -56,16 +65,24 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
             var visit = _visits[visitIndex];
             var children = _childrenByVisit[visitIndex];
 
-            _expectedUByPlayerByLane = _expectedUByPlayerByLane.Length == _numPlayers ? _expectedUByPlayerByLane : FastCFRVecMath.AllocateJagged(_numPlayers, lanes);
-            for (int p = 0; p < _numPlayers; p++)
-                Array.Clear(_expectedUByPlayerByLane[p], 0, lanes);
-            _expectedCustomByLane = _expectedCustomByLane.Length == lanes ? _expectedCustomByLane : new FloatSet[lanes];
-            Array.Clear(_expectedCustomByLane, 0, lanes);
-
-            _pLaneScratch = _pLaneScratch.Length == lanes ? _pLaneScratch : new double[lanes];
-            _savedReachOpp = _savedReachOpp.Length == lanes ? _savedReachOpp : new double[lanes];
-            _savedReachChance = _savedReachChance.Length == lanes ? _savedReachChance : new double[lanes];
-            _maskChild = _maskChild.Length == lanes ? _maskChild : new byte[lanes];
+            // Allocate on first use for this node, else clear
+            if (_expectedUByPlayerByLane.Length != _numPlayers)
+            {
+                _expectedUByPlayerByLane = FastCFRVecMath.AllocateJagged(_numPlayers, lanes);
+                _expectedCustomByLane = new FloatSet[lanes];
+                _expectedU_PL = new double[_numPlayers * lanes];
+                _pLaneScratch = new double[lanes];
+                _savedReachOpp = new double[lanes];
+                _savedReachChance = new double[lanes];
+                _maskChild = new byte[lanes];
+            }
+            else
+            {
+                for (int p = 0; p < _numPlayers; p++)
+                    Array.Clear(_expectedUByPlayerByLane[p], 0, lanes);
+                Array.Clear(_expectedCustomByLane, 0, lanes);
+                Array.Clear(_expectedU_PL, 0, _expectedU_PL.Length);
+            }
 
             for (int stepIndex = 0; stepIndex < visit.Steps.Length; stepIndex++)
             {
@@ -79,13 +96,14 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
 
                 for (int k = 0; k < lanes; k++)
                 {
-                    _maskChild[k] = (byte)(ctx.ActiveMask[k] != 0 && _pLaneScratch[k] != 0.0 ? 1 : 0);
+                    bool active = ctx.ActiveMask[k] != 0 && _pLaneScratch[k] != 0.0;
+                    _maskChild[k] = active ? (byte)1 : (byte)0;
                     _savedReachOpp[k] = ctx.ReachOpp[k];
                     _savedReachChance[k] = ctx.ReachChance[k];
-                    if (_maskChild[k] != 0)
+                    if (active)
                     {
                         double p = _pLaneScratch[k];
-                        ctx.ReachOpp[k] = _savedReachOpp[k] * p;
+                        ctx.ReachOpp[k]    = _savedReachOpp[k]    * p;
                         ctx.ReachChance[k] = _savedReachChance[k] * p;
                         childMaskBits |= (1 << k);
                     }
@@ -98,23 +116,32 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
                 WriteMask(ctx.ActiveMask, lanes, savedMaskBits);
                 for (int k = 0; k < lanes; k++)
                 {
-                    ctx.ReachOpp[k] = _savedReachOpp[k];
+                    ctx.ReachOpp[k]    = _savedReachOpp[k];
                     ctx.ReachChance[k] = _savedReachChance[k];
                 }
 
+                // E[U] += p_lane * childU  (accumulate on contiguous buffer)
                 var cu = childResult.UtilitiesByPlayerByLane;
-
-                // SIMD accumulate expected utilities over lanes: E[U] += p_lane * childU
                 for (int p = 0; p < _numPlayers; p++)
-                    FastCFRVecMath.MulAddMasked(_expectedUByPlayerByLane[p], cu[p], _pLaneScratch, _maskChild);
+                {
+                    var dst = new Span<double>(_expectedU_PL, p * lanes, lanes);
+                    FastCFRVecMath.MulAddMasked(dst, cu[p], _pLaneScratch, _maskChild);
+                }
 
-                // Custom results (scalar)
+                // Custom results (scalar per lane)
                 for (int k = 0; k < lanes; k++)
                 {
                     if (_maskChild[k] == 0) continue;
                     double p = _pLaneScratch[k];
                     _expectedCustomByLane[k] = _expectedCustomByLane[k].Plus(childResult.CustomByLane[k].Times((float)p));
                 }
+            }
+
+            // Publish contiguous results into the stable wrapper rows
+            for (int p = 0; p < _numPlayers; p++)
+            {
+                int offset = p * lanes;
+                Array.Copy(_expectedU_PL, offset, _expectedUByPlayerByLane[p], 0, lanes);
             }
 
             return new FastCFRNodeVecResult(_expectedUByPlayerByLane, _expectedCustomByLane);
