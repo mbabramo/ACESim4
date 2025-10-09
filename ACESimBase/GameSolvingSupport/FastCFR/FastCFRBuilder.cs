@@ -155,9 +155,6 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
 
         private Func<IFastCFRNode> CompileChance(HistoryPoint hp, ChanceNode cn)
         {
-            if (!_vectorRegionBuilt && _vectorOptions?.EnableVectorRegion == true && _vectorAnchorSelector != null && _vectorAnchorSelector(cn))
-                return CompileVectorAnchorShim(hp, cn);
-
             var entry = GetOrCreateChanceEntry(cn);
             byte decisionIndex = hp.GetNextDecisionIndex(_nav);
             var decision = _nav.GameDefinition.DecisionsExecutionOrder[decisionIndex];

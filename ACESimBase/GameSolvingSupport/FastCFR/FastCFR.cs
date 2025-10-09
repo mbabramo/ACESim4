@@ -1,4 +1,5 @@
-﻿using System;
+﻿// ACESimBase/GameSolvingSupport/FastCFR/FastCFR.cs
+using System;
 using ACESimBase.GameSolvingSupport.GameTree; // InformationSetNode.SmallestProbabilityRepresented
 using ACESimBase.Util.Collections; // FloatSet
 
@@ -31,7 +32,7 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
         public Func<byte, double> Rand01ForDecision; // optional deterministic RNG
     }
 
-    // Delegates kept for compatibility (not used in new steps) ---------------
+    // Delegates kept for compatibility (also used by the global program)
     public delegate FastCFRNodeResult FastCFRCall(ref FastCFRIterationContext ctx);
     public delegate double FastCFRProbProvider(ref FastCFRIterationContext ctx);
 
@@ -42,15 +43,14 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
         FastCFRNodeResult Go(ref FastCFRIterationContext ctx);
     }
 
-    // Visit program data -----------------------------------------------------
+    // Visit program data (scalar path retained for compatibility) -----------
     public enum FastCFRVisitStepKind : byte { ChildForAction }
 
-    // New visit step: stores child accessor only (child binding after finalize)
     public readonly struct FastCFRVisitStep
     {
         public readonly FastCFRVisitStepKind Kind;
         public readonly byte ActionIndex; // 0..NumActions-1
-        public readonly Func<IFastCFRNode> ChildAccessor; // resolved to IFastCFRNode[] after finalize
+        public readonly Func<IFastCFRNode> ChildAccessor; // bound after finalize
         public FastCFRVisitStep(FastCFRVisitStepKind kind, byte actionIndex, Func<IFastCFRNode> childAccessor)
         {
             Kind = kind;
@@ -70,7 +70,7 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
         }
     }
 
-    // Chance steps now also just store child accessor; probability determined on demand
+    // Chance (scalar compatibility path) ------------------------------------
     public readonly struct FastCFRChanceStep
     {
         public readonly Func<IFastCFRNode> ChildAccessor;
@@ -103,7 +103,7 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
         }
     }
 
-    // Information set node ---------------------------------------------------
+    // Information set node (scalar compatibility path + tally storage) ------
     public sealed class FastCFRInformationSet : IFastCFRNode
     {
         public readonly byte PlayerIndex;
@@ -114,13 +114,13 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
         private int _visitCounter;
 
         // Frozen policies per iteration
-        private readonly double[] _pSelf;
-        private readonly double[] _pOpp;
+        internal readonly double[] _pSelf; // owner policy frozen for this sweep
+        internal readonly double[] _pOpp;  // opponent traversal policy for this sweep
 
         // Tallies collected during traversal
-        private readonly double[] _sumRegretTimesInversePi;
-        private readonly double[] _sumInversePi;
-        private readonly double[] _lastCumulativeStrategyInc;
+        internal readonly double[] _sumRegretTimesInversePi;
+        internal readonly double[] _sumInversePi;
+        internal readonly double[] _lastCumulativeStrategyInc;
 
         // Bound child arrays per visit (after finalize)
         private IFastCFRNode[][] _childrenByVisit;
@@ -174,6 +174,7 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
             _visitCounter = 0;
         }
 
+        // Scalar compatibility path (not used by the global runner, but kept for tests/tools)
         public FastCFRNodeResult Go(ref FastCFRIterationContext ctx)
         {
             var visitIndex = _visitCounter++;
@@ -229,18 +230,9 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
 
                 if (ownerIsOptimized || w > double.Epsilon)
                 {
-                    if (_numPlayers == 2)
-                    {
-                        var cu = child.Utilities;
-                        expectedU[0] += w * cu[0];
-                        expectedU[1] += w * cu[1];
-                    }
-                    else
-                    {
-                        var cu = child.Utilities;
-                        for (int pl = 0; pl < expectedU.Length; pl++)
-                            expectedU[pl] += w * cu[pl];
-                    }
+                    var cu = child.Utilities;
+                    for (int pl = 0; pl < expectedU.Length; pl++)
+                        expectedU[pl] += w * cu[pl];
                     expectedCustom = expectedCustom.Plus(child.Custom.Times((float)w));
                 }
             }
@@ -262,13 +254,12 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
             return new FastCFRNodeResult(expectedU, expectedCustom);
         }
 
-
         public ReadOnlySpan<double> SumRegretTimesInversePi => _sumRegretTimesInversePi;
         public ReadOnlySpan<double> SumInversePi => _sumInversePi;
         public ReadOnlySpan<double> LastCumulativeStrategyIncrements => _lastCumulativeStrategyInc;
     }
 
-    // Chance node ------------------------------------------------------------
+    // Chance node (scalar compatibility path) --------------------------------
     public sealed class FastCFRChance : IFastCFRNode
     {
         public readonly byte DecisionIndex;
@@ -340,16 +331,9 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
                 var child = children[k].Go(ref ctx);
                 ctx.ReachOpp = oldOpp;
                 ctx.ReachChance = oldChance;
-                if (_numPlayers == 2)
-                {
-                    expectedU[0] += p * child.Utilities[0];
-                    expectedU[1] += p * child.Utilities[1];
-                }
-                else
-                {
-                    var cu = child.Utilities;
-                    for (int i = 0; i < expectedU.Length; i++) expectedU[i] += p * cu[i];
-                }
+
+                var cu = child.Utilities;
+                for (int i = 0; i < expectedU.Length; i++) expectedU[i] += p * cu[i];
                 expectedCustom = expectedCustom.Plus(child.Custom.Times((float)p));
             }
             return new FastCFRNodeResult(expectedU, expectedCustom);
