@@ -206,6 +206,7 @@ namespace ACESim
             Fast_Builder = new FastCFRBuilder(
                     navigation: Navigation,
                     rootFactory: () => GetStartOfGameHistoryPoint(),
+                    useFloat: EvolutionSettings.FastCFR_UseFloat,
                     options: options);
 
             ActionStrategy = ActionStrategies.CurrentProbability;

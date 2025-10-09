@@ -177,7 +177,8 @@ namespace ACESimTest.StrategiesTests
                 UnrollTemplateRepeatedRanges = false,
                 Unroll_ChunkExecutorKind = ChunkExecutorKind.Interpreted,
                 TraceCFR = false,
-                ParallelOptimization = false
+                ParallelOptimization = false,
+                FastCFR_UseFloat = false,
             };
             var dev = await Initialize(largerTree, s, (byte)rounds);
             if (randomize) RandomizeInformationSetProbabilities(dev);
@@ -250,6 +251,7 @@ namespace ACESimTest.StrategiesTests
             evolutionSettings.UnrollTemplateIdenticalRanges = false;
             evolutionSettings.UnrollTemplateRepeatedRanges = false;
             evolutionSettings.TraceCFR = false;
+            evolutionSettings.FastCFR_UseFloat = false;
             List<EvaluationResult> results = new();
 
             foreach (ChunkExecutorKind kind in new ChunkExecutorKind[] { ChunkExecutorKind.Interpreted, ChunkExecutorKind.Roslyn, ChunkExecutorKind.RoslynWithLocalVariableRecycling, ChunkExecutorKind.IL, ChunkExecutorKind.ILWithLocalVariableRecycling })

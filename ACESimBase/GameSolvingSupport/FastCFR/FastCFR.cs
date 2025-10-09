@@ -43,6 +43,38 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
         FastCFRNodeResult Go(ref FastCFRIterationContext ctx);
     }
 
+    /// <summary>
+    /// Exposes information-set tallies in double space while allowing internal storage
+    /// in a smaller scalar (e.g., float). Implemented by concrete info-set nodes only.
+    /// </summary>
+    public interface IFastCFRInformationSet : IFastCFRNode
+    {
+        ReadOnlySpan<double> SumRegretTimesInversePi { get; }
+        ReadOnlySpan<double> SumInversePi { get; }
+        ReadOnlySpan<double> LastCumulativeStrategyIncrements { get; }
+    }
+
+    /// <summary>
+    /// Non-generic base so builder code can bind children without knowing TScalar.
+    /// </summary>
+    public abstract class FastCFRInformationSetBase : IFastCFRInformationSet
+    {
+        public abstract void InitializeIteration(ReadOnlySpan<double> ownerCurrentPolicy, ReadOnlySpan<double> opponentTraversalPolicy);
+        public abstract FastCFRNodeResult Go(ref FastCFRIterationContext ctx);
+        internal abstract void BindChildrenAfterFinalize();
+
+        public abstract ReadOnlySpan<double> SumRegretTimesInversePi { get; }
+        public abstract ReadOnlySpan<double> SumInversePi { get; }
+        public abstract ReadOnlySpan<double> LastCumulativeStrategyIncrements { get; }
+    }
+
+    /// <summary>
+    /// Backwards-compatible name (was a sealed concrete class). Now serves as an abstract
+    /// base for the specialized float/double closures so existing usages that reference
+    /// the name still compile.
+    /// </summary>
+    public abstract class FastCFRInformationSet : FastCFRInformationSetBase { }
+
     // Visit program data (scalar path retained for compatibility) -----------
     public enum FastCFRVisitStepKind : byte { ChildForAction }
 
@@ -103,8 +135,10 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
         }
     }
 
-    // Information set node (scalar compatibility path + tally storage) ------
-    public sealed class FastCFRInformationSet : IFastCFRNode
+    // Information set node (generic core + sealed closures) -----------------
+
+    public abstract class FastCFRInformationSetGeneric<TScalar> : FastCFRInformationSet
+        where TScalar : struct
     {
         public readonly byte PlayerIndex;
         public readonly byte DecisionIndex;
@@ -113,14 +147,14 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
         private readonly FastCFRVisitProgram[] _visits;
         private int _visitCounter;
 
-        // Frozen policies per iteration
-        internal readonly double[] _pSelf; // owner policy frozen for this sweep
-        internal readonly double[] _pOpp;  // opponent traversal policy for this sweep
+        // Frozen policies per iteration (stored as TScalar)
+        protected readonly TScalar[] _pSelf; // owner policy frozen for this sweep
+        protected readonly TScalar[] _pOpp;  // opponent traversal policy for this sweep
 
-        // Tallies collected during traversal
-        internal readonly double[] _sumRegretTimesInversePi;
-        internal readonly double[] _sumInversePi;
-        internal readonly double[] _lastCumulativeStrategyInc;
+        // Tallies collected during traversal (stored as TScalar)
+        protected readonly TScalar[] _sumRegretTimesInversePi;
+        protected readonly TScalar[] _sumInversePi;
+        protected readonly TScalar[] _lastCumulativeStrategyInc;
 
         // Bound child arrays per visit (after finalize)
         private IFastCFRNode[][] _childrenByVisit;
@@ -130,23 +164,33 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
         private readonly double[] _zeroUtilities;
         private readonly double[] _workUtilities;
 
-        public FastCFRInformationSet(byte playerIndex, byte decisionIndex, byte numActions, FastCFRVisitProgram[] visits)
+        // Reusable double views for exporting tallies efficiently
+        private readonly double[] _bufferRegretTimesInvPi;
+        private readonly double[] _bufferInvPi;
+        private readonly double[] _bufferLastCumStrat;
+
+        protected FastCFRInformationSetGeneric(byte playerIndex, byte decisionIndex, byte numActions, FastCFRVisitProgram[] visits)
         {
             PlayerIndex = playerIndex;
             DecisionIndex = decisionIndex;
             NumActions = numActions;
             _visits = visits ?? Array.Empty<FastCFRVisitProgram>();
-            _pSelf = new double[numActions];
-            _pOpp = new double[numActions];
-            _sumRegretTimesInversePi = new double[numActions];
-            _sumInversePi = new double[numActions];
-            _lastCumulativeStrategyInc = new double[numActions];
+            _pSelf = new TScalar[numActions];
+            _pOpp = new TScalar[numActions];
+            _sumRegretTimesInversePi = new TScalar[numActions];
+            _sumInversePi = new TScalar[numActions];
+            _lastCumulativeStrategyInc = new TScalar[numActions];
+
             _numPlayers = _visits.Length == 0 ? 0 : _visits[0].NumPlayers;
             _zeroUtilities = _numPlayers == 0 ? Array.Empty<double>() : new double[_numPlayers];
             _workUtilities = _numPlayers == 0 ? Array.Empty<double>() : new double[_numPlayers];
+
+            _bufferRegretTimesInvPi = new double[numActions];
+            _bufferInvPi = new double[numActions];
+            _bufferLastCumStrat = new double[numActions];
         }
 
-        internal void BindChildrenAfterFinalize()
+        internal override void BindChildrenAfterFinalize()
         {
             _childrenByVisit = new IFastCFRNode[_visits.Length][];
             for (int v = 0; v < _visits.Length; v++)
@@ -159,23 +203,23 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
             }
         }
 
-        public void InitializeIteration(ReadOnlySpan<double> ownerCurrentPolicy, ReadOnlySpan<double> opponentTraversalPolicy)
+        public override void InitializeIteration(ReadOnlySpan<double> ownerCurrentPolicy, ReadOnlySpan<double> opponentTraversalPolicy)
         {
             if (ownerCurrentPolicy.Length != NumActions || opponentTraversalPolicy.Length != NumActions)
                 throw new ArgumentException("Policy length mismatch for infoset initialization.");
             for (int a = 0; a < NumActions; a++)
             {
-                _pSelf[a] = ownerCurrentPolicy[a];
-                _pOpp[a] = opponentTraversalPolicy[a];
-                _sumRegretTimesInversePi[a] = 0;
-                _sumInversePi[a] = 0;
-                _lastCumulativeStrategyInc[a] = 0;
+                _pSelf[a] = FromDouble(ownerCurrentPolicy[a]);
+                _pOpp[a] = FromDouble(opponentTraversalPolicy[a]);
+                _sumRegretTimesInversePi[a] = FromDouble(0.0);
+                _sumInversePi[a] = FromDouble(0.0);
+                _lastCumulativeStrategyInc[a] = FromDouble(0.0);
             }
             _visitCounter = 0;
         }
 
         // Scalar compatibility path (not used by the global runner, but kept for tests/tools)
-        public FastCFRNodeResult Go(ref FastCFRIterationContext ctx)
+        public override FastCFRNodeResult Go(ref FastCFRIterationContext ctx)
         {
             var visitIndex = _visitCounter++;
             var visit = _visits[visitIndex];
@@ -191,7 +235,6 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
                 return new FastCFRNodeResult(_zeroUtilities, default);
             }
 
-            var p = ownerIsOptimized ? _pSelf : _pOpp;
             var expectedU = _workUtilities;
             for (int i = 0; i < expectedU.Length; i++) expectedU[i] = 0.0;
             FloatSet expectedCustom = default;
@@ -201,7 +244,8 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
             {
                 ref readonly var step = ref visit.Steps[i];
                 int ai = step.ActionIndex;
-                double w = p[ai];
+
+                double w = ownerIsOptimized ? ToDouble(_pSelf[ai]) : ToDouble(_pOpp[ai]);
 
                 if (!ownerIsOptimized && w <= double.Epsilon)
                 {
@@ -240,23 +284,80 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
             if (ownerIsOptimized)
             {
                 double V = 0.0;
-                for (int a = 0; a < NumActions; a++) V += _pSelf[a] * Qa[a];
+                for (int a = 0; a < NumActions; a++) V += ToDouble(_pSelf[a]) * Qa[a];
+
                 double inversePi = ctx.ReachOpp;
                 double piSelf = ctx.ReachSelf;
+
                 for (int a = 0; a < NumActions; a++)
                 {
                     double regret = Qa[a] - V;
-                    _sumRegretTimesInversePi[a] += regret * inversePi;
-                    _sumInversePi[a] += inversePi;
-                    _lastCumulativeStrategyInc[a] += piSelf * _pSelf[a];
+
+                    double rOld = ToDouble(_sumRegretTimesInversePi[a]);
+                    _sumRegretTimesInversePi[a] = FromDouble(rOld + regret * inversePi);
+
+                    double invOld = ToDouble(_sumInversePi[a]);
+                    _sumInversePi[a] = FromDouble(invOld + inversePi);
+
+                    double lastOld = ToDouble(_lastCumulativeStrategyInc[a]);
+                    _lastCumulativeStrategyInc[a] = FromDouble(lastOld + piSelf * ToDouble(_pSelf[a]));
                 }
             }
+
             return new FastCFRNodeResult(expectedU, expectedCustom);
         }
 
-        public ReadOnlySpan<double> SumRegretTimesInversePi => _sumRegretTimesInversePi;
-        public ReadOnlySpan<double> SumInversePi => _sumInversePi;
-        public ReadOnlySpan<double> LastCumulativeStrategyIncrements => _lastCumulativeStrategyInc;
+        public override ReadOnlySpan<double> SumRegretTimesInversePi
+        {
+            get
+            {
+                for (int a = 0; a < NumActions; a++)
+                    _bufferRegretTimesInvPi[a] = ToDouble(_sumRegretTimesInversePi[a]);
+                return _bufferRegretTimesInvPi;
+            }
+        }
+
+        public override ReadOnlySpan<double> SumInversePi
+        {
+            get
+            {
+                for (int a = 0; a < NumActions; a++)
+                    _bufferInvPi[a] = ToDouble(_sumInversePi[a]);
+                return _bufferInvPi;
+            }
+        }
+
+        public override ReadOnlySpan<double> LastCumulativeStrategyIncrements
+        {
+            get
+            {
+                for (int a = 0; a < NumActions; a++)
+                    _bufferLastCumStrat[a] = ToDouble(_lastCumulativeStrategyInc[a]);
+                return _bufferLastCumStrat;
+            }
+        }
+
+        // Conversion hooks specialized per TScalar closure
+        protected abstract double ToDouble(TScalar v);
+        protected abstract TScalar FromDouble(double v);
+    }
+
+    public sealed class FastCFRInformationSetDouble : FastCFRInformationSetGeneric<double>
+    {
+        public FastCFRInformationSetDouble(byte playerIndex, byte decisionIndex, byte numActions, FastCFRVisitProgram[] visits)
+            : base(playerIndex, decisionIndex, numActions, visits) { }
+
+        protected override double ToDouble(double v) => v;
+        protected override double FromDouble(double v) => v;
+    }
+
+    public sealed class FastCFRInformationSetFloat : FastCFRInformationSetGeneric<float>
+    {
+        public FastCFRInformationSetFloat(byte playerIndex, byte decisionIndex, byte numActions, FastCFRVisitProgram[] visits)
+            : base(playerIndex, decisionIndex, numActions, visits) { }
+
+        protected override double ToDouble(float v) => v;
+        protected override float FromDouble(double v) => (float)v;
     }
 
     // Chance node (scalar compatibility path) --------------------------------

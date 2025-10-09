@@ -1,4 +1,5 @@
-﻿using System;
+﻿// ACESimBase/GameSolvingSupport/FastCFR/FastCFRBuilder.cs
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -18,10 +19,12 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
     public sealed partial class FastCFRBuilder
     {
         public IFastCFRNode Root => _rootAccessor();
+
+        // Kept public for caller tooling; now returns the abstract base for compatibility.
         public IReadOnlyList<FastCFRInformationSet> FastInformationSets => _infoEntries.Select(e => e.NodeAccessor()).ToList();
         public IReadOnlyList<InformationSetNode> BackingInformationSets => _infoEntries.Select(e => e.Original).ToList();
 
-        public FastCFRBuilder(HistoryNavigationInfo navigation, Func<HistoryPoint> rootFactory, FastCFRBuilderOptions options = null)
+        public FastCFRBuilder(HistoryNavigationInfo navigation, Func<HistoryPoint> rootFactory, bool useFloat, FastCFRBuilderOptions options = null)
         {
             _nav = navigation;
             _rootFactory = rootFactory ?? throw new ArgumentNullException(nameof(rootFactory));
@@ -30,6 +33,7 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
             _numNonChancePlayers = (byte)_nav.GameDefinition.Players.Count(p => !p.PlayerIsChance);
 
             var rootHP = _rootFactory();
+            _useFloat = useFloat;
             _rootAccessor = Compile(rootHP);
             FinalizeNodeObjects();
             AllocatePolicyBuffers();
@@ -83,11 +87,14 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
         {
             foreach (var entry in _infoEntries)
             {
-                var node = entry.NodeAccessor();
+                var node = entry.NodeAccessor(); // FastCFRInformationSet (abstract base)
                 var backing = entry.Original;
-                var sr = node.SumRegretTimesInversePi;
-                var si = node.SumInversePi;
-                var inc = node.LastCumulativeStrategyIncrements;
+
+                // IFastCFRInformationSet is implemented by the base we expose.
+                var sr = ((IFastCFRInformationSet)node).SumRegretTimesInversePi;
+                var si = ((IFastCFRInformationSet)node).SumInversePi;
+                var inc = ((IFastCFRInformationSet)node).LastCumulativeStrategyIncrements;
+
                 int n = backing.NumPossibleActions;
                 for (int a = 0; a < n; a++)
                 {
@@ -200,12 +207,19 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
             foreach (var e in _infoEntries)
             {
                 var visits = e.VisitPrograms.ToArray();
-                var node = new FastCFRInformationSet(
-                    playerIndex: e.Original.PlayerIndex,
-                    decisionIndex: e.Original.DecisionIndex,
-                    numActions: (byte)e.Original.NumPossibleActions,
-                    visits: visits);
-                e.NodeBacking = node;
+                FastCFRInformationSetBase node =
+                    _useFloat
+                    ? new FastCFRInformationSetFloat(
+                        playerIndex: e.Original.PlayerIndex,
+                        decisionIndex: e.Original.DecisionIndex,
+                        numActions: (byte)e.Original.NumPossibleActions,
+                        visits: visits)
+                    : new FastCFRInformationSetDouble(
+                        playerIndex: e.Original.PlayerIndex,
+                        decisionIndex: e.Original.DecisionIndex,
+                        numActions: (byte)e.Original.NumPossibleActions,
+                        visits: visits);
+                e.NodeBacking = (FastCFRInformationSet) node;
             }
 
             foreach (var e in _chanceEntries)
@@ -241,7 +255,7 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
                 Id = _infoEntries.Count,
                 Original = n,
                 VisitPrograms = new List<FastCFRVisitProgram>(),
-                NodeAccessor = () => entry.NodeBacking
+                NodeAccessor = () => entry.NodeBacking // filled in FinalizeNodeObjects
             };
             _infoEntries.Add(entry);
             _infoMap[n] = entry;
@@ -327,7 +341,7 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
             public int Id;
             public InformationSetNode Original;
             public List<FastCFRVisitProgram> VisitPrograms;
-            public FastCFRInformationSet NodeBacking;
+            public FastCFRInformationSet NodeBacking; // abstract base for both float/double closures
             public Func<FastCFRInformationSet> NodeAccessor;
         }
 
@@ -363,5 +377,6 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
         private double[][] _frozenOppPolicies;
 
         private readonly int _numNonChancePlayers;
+        private readonly bool _useFloat;
     }
 }
