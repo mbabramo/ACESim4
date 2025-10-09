@@ -138,7 +138,7 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
 
     internal static class FastCFRVecMath
     {
-        // Existing API: used when weights are common across lanes.
+        // Existing helper (kept for compatibility)
         public static void DotPerLane(
             ReadOnlySpan<double> weights,
             double[][] perActionLaneValues,
@@ -230,7 +230,7 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
             }
         }
 
-        // New helpers ---------------------------------------------------------
+        // New SIMD-friendly masked ops on contiguous buffers -----------------
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void AddMasked(Span<double> dst, ReadOnlySpan<double> src, ReadOnlySpan<byte> mask)
@@ -408,5 +408,4 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
         }
     }
 }
-
 #nullable restore
