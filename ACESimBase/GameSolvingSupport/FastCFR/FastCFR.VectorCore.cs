@@ -138,6 +138,7 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
 
     internal static class FastCFRVecMath
     {
+        // Existing API: used when weights are common across lanes.
         public static void DotPerLane(
             ReadOnlySpan<double> weights,
             double[][] perActionLaneValues,
@@ -227,6 +228,174 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
                     if (mask[k] != 0)
                         resultPerLane[k] += laneVals[k] * w;
             }
+        }
+
+        // New helpers ---------------------------------------------------------
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void AddMasked(Span<double> dst, ReadOnlySpan<double> src, ReadOnlySpan<byte> mask)
+        {
+            int n = dst.Length;
+            if (n == 0) return;
+
+            if (Avx.IsSupported)
+            {
+                int stride = Vector256<double>.Count;
+                Span<double> mD = stackalloc double[n];
+                for (int i = 0; i < n; i++) mD[i] = mask[i] != 0 ? 1.0 : 0.0;
+
+                int i2 = 0;
+                while (i2 <= n - stride)
+                {
+                    var d = Vector256.LoadUnsafe(ref MemoryMarshal.GetReference(dst), (nuint)i2);
+                    var s = Vector256.LoadUnsafe(ref MemoryMarshal.GetReference(src), (nuint)i2);
+                    var m = Vector256.LoadUnsafe(ref MemoryMarshal.GetReference(mD), (nuint)i2);
+                    d = Avx.Add(d, Avx.Multiply(s, m));
+                    d.StoreUnsafe(ref MemoryMarshal.GetReference(dst), (nuint)i2);
+                    i2 += stride;
+                }
+                for (; i2 < n; i2++)
+                    if (mask[i2] != 0) dst[i2] += src[i2];
+                return;
+            }
+
+            if (Sse2.IsSupported)
+            {
+                int stride = Vector128<double>.Count;
+                Span<double> mD = stackalloc double[n];
+                for (int i = 0; i < n; i++) mD[i] = mask[i] != 0 ? 1.0 : 0.0;
+
+                int i2 = 0;
+                while (i2 <= n - stride)
+                {
+                    var d = Vector128.LoadUnsafe(ref MemoryMarshal.GetReference(dst), (nuint)i2);
+                    var s = Vector128.LoadUnsafe(ref MemoryMarshal.GetReference(src), (nuint)i2);
+                    var m = Vector128.LoadUnsafe(ref MemoryMarshal.GetReference(mD), (nuint)i2);
+                    d = Sse2.Add(d, Sse2.Multiply(s, m));
+                    d.StoreUnsafe(ref MemoryMarshal.GetReference(dst), (nuint)i2);
+                    i2 += stride;
+                }
+                for (; i2 < n; i2++)
+                    if (mask[i2] != 0) dst[i2] += src[i2];
+                return;
+            }
+
+            for (int i = 0; i < n; i++)
+                if (mask[i] != 0) dst[i] += src[i];
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void MulAddMasked(Span<double> dst, ReadOnlySpan<double> src, ReadOnlySpan<double> weights, ReadOnlySpan<byte> mask)
+        {
+            int n = dst.Length;
+            if (n == 0) return;
+
+            if (Avx.IsSupported)
+            {
+                int stride = Vector256<double>.Count;
+                Span<double> mD = stackalloc double[n];
+                for (int i = 0; i < n; i++) mD[i] = mask[i] != 0 ? 1.0 : 0.0;
+
+                int i2 = 0;
+                while (i2 <= n - stride)
+                {
+                    var d = Vector256.LoadUnsafe(ref MemoryMarshal.GetReference(dst), (nuint)i2);
+                    var s = Vector256.LoadUnsafe(ref MemoryMarshal.GetReference(src), (nuint)i2);
+                    var w = Vector256.LoadUnsafe(ref MemoryMarshal.GetReference(weights), (nuint)i2);
+                    var m = Vector256.LoadUnsafe(ref MemoryMarshal.GetReference(mD), (nuint)i2);
+
+                    var term = Avx.Multiply(s, w);
+                    term = Avx.Multiply(term, m);
+                    d = Avx.Add(d, term);
+
+                    d.StoreUnsafe(ref MemoryMarshal.GetReference(dst), (nuint)i2);
+                    i2 += stride;
+                }
+                for (; i2 < n; i2++)
+                    if (mask[i2] != 0) dst[i2] += src[i2] * weights[i2];
+                return;
+            }
+
+            if (Sse2.IsSupported)
+            {
+                int stride = Vector128<double>.Count;
+                Span<double> mD = stackalloc double[n];
+                for (int i = 0; i < n; i++) mD[i] = mask[i] != 0 ? 1.0 : 0.0;
+
+                int i2 = 0;
+                while (i2 <= n - stride)
+                {
+                    var d = Vector128.LoadUnsafe(ref MemoryMarshal.GetReference(dst), (nuint)i2);
+                    var s = Vector128.LoadUnsafe(ref MemoryMarshal.GetReference(src), (nuint)i2);
+                    var w = Vector128.LoadUnsafe(ref MemoryMarshal.GetReference(weights), (nuint)i2);
+                    var m = Vector128.LoadUnsafe(ref MemoryMarshal.GetReference(mD), (nuint)i2);
+
+                    var term = Sse2.Multiply(s, w);
+                    term = Sse2.Multiply(term, m);
+                    d = Sse2.Add(d, term);
+
+                    d.StoreUnsafe(ref MemoryMarshal.GetReference(dst), (nuint)i2);
+                    i2 += stride;
+                }
+                for (; i2 < n; i2++)
+                    if (mask[i2] != 0) dst[i2] += src[i2] * weights[i2];
+                return;
+            }
+
+            for (int i = 0; i < n; i++)
+                if (mask[i] != 0) dst[i] += src[i] * weights[i];
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void SubMaskedInto(Span<double> dst, ReadOnlySpan<double> x, ReadOnlySpan<double> y, ReadOnlySpan<byte> mask)
+        {
+            int n = dst.Length;
+            if (n == 0) return;
+
+            if (Avx.IsSupported)
+            {
+                int stride = Vector256<double>.Count;
+                Span<double> mD = stackalloc double[n];
+                for (int i = 0; i < n; i++) mD[i] = mask[i] != 0 ? 1.0 : 0.0;
+
+                int i2 = 0;
+                while (i2 <= n - stride)
+                {
+                    var xv = Vector256.LoadUnsafe(ref MemoryMarshal.GetReference(x), (nuint)i2);
+                    var yv = Vector256.LoadUnsafe(ref MemoryMarshal.GetReference(y), (nuint)i2);
+                    var m = Vector256.LoadUnsafe(ref MemoryMarshal.GetReference(mD), (nuint)i2);
+                    var r = Avx.Multiply(Avx.Subtract(xv, yv), m);
+                    r.StoreUnsafe(ref MemoryMarshal.GetReference(dst), (nuint)i2);
+                    i2 += stride;
+                }
+                for (; i2 < n; i2++)
+                    dst[i2] = mask[i2] != 0 ? (x[i2] - y[i2]) : 0.0;
+                return;
+            }
+
+            if (Sse2.IsSupported)
+            {
+                int stride = Vector128<double>.Count;
+                Span<double> mD = stackalloc double[n];
+                for (int i = 0; i < n; i++) mD[i] = mask[i] != 0 ? 1.0 : 0.0;
+
+                int i2 = 0;
+                while (i2 <= n - stride)
+                {
+                    var xv = Vector128.LoadUnsafe(ref MemoryMarshal.GetReference(x), (nuint)i2);
+                    var yv = Vector128.LoadUnsafe(ref MemoryMarshal.GetReference(y), (nuint)i2);
+                    var m = Vector128.LoadUnsafe(ref MemoryMarshal.GetReference(mD), (nuint)i2);
+                    var r = Sse2.Multiply(Sse2.Subtract(xv, yv), m);
+                    r.StoreUnsafe(ref MemoryMarshal.GetReference(dst), (nuint)i2);
+                    i2 += stride;
+                }
+                for (; i2 < n; i2++)
+                    dst[i2] = mask[i2] != 0 ? (x[i2] - y[i2]) : 0.0;
+                return;
+            }
+
+            for (int i = 0; i < n; i++)
+                dst[i] = mask[i] != 0 ? (x[i] - y[i]) : 0.0;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

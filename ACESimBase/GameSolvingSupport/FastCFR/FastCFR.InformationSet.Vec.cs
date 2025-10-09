@@ -1,7 +1,6 @@
 ﻿using System;
 using ACESimBase.GameSolvingSupport.GameTree;
 using ACESimBase.Util.Collections;
-using System.Runtime.CompilerServices;
 
 namespace ACESimBase.GameSolvingSupport.FastCFR
 {
@@ -28,9 +27,14 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
         private FloatSet[] _expectedCustomByLane = Array.Empty<FloatSet>();
 
         private double[] _scratchWeightsByLane = Array.Empty<double>();
-        private double[] _scratchValueByLane = Array.Empty<double>(); // reuse instead of per-call 'new double[lanes]'
+        private byte[] _scratchMaskSaved = Array.Empty<byte>();
+        private byte[] _scratchMaskChild = Array.Empty<byte>();
         private double[] _savedReachSelf = Array.Empty<double>();
         private double[] _savedReachOpp = Array.Empty<double>();
+
+        // New SIMD-friendly scratch
+        private double[] _scratchVByLane = Array.Empty<double>();
+        private double[] _scratchTempByLane = Array.Empty<double>();
 
         public int LaneCount => _backingPerLane.Length;
 
@@ -83,9 +87,12 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
             _expectedCustomByLane = _expectedCustomByLane.Length == lanes ? _expectedCustomByLane : new FloatSet[lanes];
 
             _scratchWeightsByLane = _scratchWeightsByLane.Length == lanes ? _scratchWeightsByLane : new double[lanes];
-            _scratchValueByLane = _scratchValueByLane.Length == lanes ? _scratchValueByLane : new double[lanes];
+            _scratchMaskSaved = _scratchMaskSaved.Length == lanes ? _scratchMaskSaved : new byte[lanes];
+            _scratchMaskChild = _scratchMaskChild.Length == lanes ? _scratchMaskChild : new byte[lanes];
             _savedReachSelf = _savedReachSelf.Length == lanes ? _savedReachSelf : new double[lanes];
             _savedReachOpp = _savedReachOpp.Length == lanes ? _savedReachOpp : new double[lanes];
+            _scratchVByLane = _scratchVByLane.Length == lanes ? _scratchVByLane : new double[lanes];
+            _scratchTempByLane = _scratchTempByLane.Length == lanes ? _scratchTempByLane : new double[lanes];
 
             for (int k = 0; k < lanes; k++)
             {
@@ -129,57 +136,59 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
                 int ai = visit.Steps[i].ActionIndex;
                 var child = children[i];
 
-                // Save reaches and build child mask + per-lane weights without copying arrays.
                 for (int k = 0; k < lanes; k++)
                 {
+                    _scratchMaskChild[k] = 0;
                     _savedReachSelf[k] = ctx.ReachSelf[k];
                     _savedReachOpp[k] = ctx.ReachOpp[k];
                 }
 
-                int savedMaskBits = PackMask(ctx.ActiveMask, lanes);
-                int childMaskBits = 0;
-
+                // Prepare child mask, update reaches, and stage per-lane weights
                 for (int k = 0; k < lanes; k++)
                 {
                     if (ctx.ActiveMask[k] == 0) { _scratchWeightsByLane[k] = 0.0; continue; }
-
                     double w = ownerIsOptimized ? _pSelfByLane[k][ai] : _pOppByLane[k][ai];
+                    if (!ownerIsOptimized && w <= Epsilon) { _scratchWeightsByLane[k] = 0.0; _scratchMaskChild[k] = 0; continue; }
+
+                    _scratchMaskChild[k] = 1;
                     _scratchWeightsByLane[k] = w;
 
-                    if (!ownerIsOptimized && w <= Epsilon) continue;
-
-                    childMaskBits |= (1 << k);
                     if (ownerIsOptimized)
                         ctx.ReachSelf[k] = _savedReachSelf[k] * w;
                     else
                         ctx.ReachOpp[k] = _savedReachOpp[k] * w;
                 }
 
-                WriteMask(ctx.ActiveMask, lanes, childMaskBits);
+                for (int k = 0; k < lanes; k++)
+                    _scratchMaskSaved[k] = ctx.ActiveMask[k];
+                Array.Copy(_scratchMaskChild, ctx.ActiveMask, lanes);
 
                 var childResult = child.GoVec(ref ctx);
 
-                WriteMask(ctx.ActiveMask, lanes, savedMaskBits);
+                Array.Copy(_scratchMaskSaved, ctx.ActiveMask, lanes);
                 for (int k = 0; k < lanes; k++)
                 {
                     ctx.ReachSelf[k] = _savedReachSelf[k];
                     ctx.ReachOpp[k] = _savedReachOpp[k];
                 }
 
+                // SIMD accumulate expected utilities: E[U] += w_lane * childU
                 var cu = childResult.UtilitiesByPlayerByLane;
+                for (int p = 0; p < _numPlayers; p++)
+                    FastCFRVecMath.MulAddMasked(_expectedUByPlayerByLane[p], cu[p], _scratchWeightsByLane, _scratchMaskChild);
+
+                // Custom results are small structs; keep scalar
                 for (int k = 0; k < lanes; k++)
                 {
-                    if ((childMaskBits & (1 << k)) == 0) continue;
+                    if (_scratchMaskChild[k] == 0) continue;
                     double w = _scratchWeightsByLane[k];
-                    for (int p = 0; p < _numPlayers; p++)
-                        _expectedUByPlayerByLane[p][k] += w * cu[p][k];
                     _expectedCustomByLane[k] = _expectedCustomByLane[k].Plus(childResult.CustomByLane[k].Times((float)w));
                 }
 
                 if (ownerIsOptimized)
                 {
                     for (int k = 0; k < lanes; k++)
-                        if ((childMaskBits & (1 << k)) != 0)
+                        if (_scratchMaskChild[k] != 0)
                             _qaByActionByLane[ai][k] = childResult.UtilitiesByPlayerByLane[PlayerIndex][k];
                 }
             }
@@ -187,29 +196,32 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
             if (ownerIsOptimized)
             {
                 // V[k] = Σ_a pSelf[k,a] * Qa[a][k]
-                for (int k = 0; k < lanes; k++)
-                {
-                    if (ctx.ActiveMask[k] == 0) { _scratchValueByLane[k] = 0.0; continue; }
-                    double sum = 0.0;
-                    for (int a = 0; a < NumActions; a++)
-                        sum += _pSelfByLane[k][a] * _qaByActionByLane[a][k];
-                    _scratchValueByLane[k] = sum;
-                }
-
+                Array.Clear(_scratchVByLane, 0, lanes);
                 for (int a = 0; a < NumActions; a++)
                 {
-                    var rti = _sumRegretTimesInversePi[a];
-                    var si = _sumInversePi[a];
-                    var inc = _lastCumulativeStrategyInc[a];
-
+                    // weightsByLane := pSelfByLane[:, a]
                     for (int k = 0; k < lanes; k++)
-                    {
-                        if (ctx.ActiveMask[k] == 0) continue;
-                        double regret = _qaByActionByLane[a][k] - _scratchValueByLane[k];
-                        rti[k] += regret * ctx.ReachOpp[k];
-                        si[k] += ctx.ReachOpp[k];
-                        inc[k] += ctx.ReachSelf[k] * _pSelfByLane[k][a];
-                    }
+                        _scratchWeightsByLane[k] = _pSelfByLane[k][a];
+
+                    FastCFRVecMath.MulAddMasked(_scratchVByLane, _qaByActionByLane[a], _scratchWeightsByLane, ctx.ActiveMask);
+                }
+
+                // Regret tallies across lanes using SIMD helpers
+                for (int a = 0; a < NumActions; a++)
+                {
+                    // regretByLane = Qa[a] - V
+                    FastCFRVecMath.SubMaskedInto(_scratchTempByLane, _qaByActionByLane[a], _scratchVByLane, ctx.ActiveMask);
+
+                    // sumRegretTimesInversePi[a] += regretByLane * ReachOpp
+                    FastCFRVecMath.MulAddMasked(_sumRegretTimesInversePi[a], _scratchTempByLane, ctx.ReachOpp, ctx.ActiveMask);
+
+                    // sumInversePi[a] += ReachOpp
+                    FastCFRVecMath.AddMasked(_sumInversePi[a], ctx.ReachOpp, ctx.ActiveMask);
+
+                    // lastCumulativeStrategyInc[a] += ReachSelf * pSelfByLane[:,a]
+                    for (int k = 0; k < lanes; k++)
+                        _scratchWeightsByLane[k] = _pSelfByLane[k][a];
+                    FastCFRVecMath.MulAddMasked(_lastCumulativeStrategyInc[a], ctx.ReachSelf, _scratchWeightsByLane, ctx.ActiveMask);
                 }
             }
 
@@ -233,22 +245,6 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
                         backing.IncrementLastCumulativeStrategyIncrements((byte)(a + 1), incr);
                 }
             }
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static int PackMask(ReadOnlySpan<byte> mask, int count)
-        {
-            int bits = 0;
-            for (int k = 0; k < count; k++)
-                if (mask[k] != 0) bits |= (1 << k);
-            return bits;
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void WriteMask(Span<byte> dest, int count, int bits)
-        {
-            for (int k = 0; k < count; k++)
-                dest[k] = ((bits >> k) & 1) != 0 ? (byte)1 : (byte)0;
         }
     }
 }
