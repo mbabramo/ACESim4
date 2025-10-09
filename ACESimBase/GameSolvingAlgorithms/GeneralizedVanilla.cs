@@ -203,32 +203,10 @@ namespace ACESim
                 UseDynamicChanceProbabilities = true
             };
 
-            if (!EvolutionSettings.FastCFRVectorize)
-            {
-                Fast_Builder = new FastCFRBuilder(
+            Fast_Builder = new FastCFRBuilder(
                     navigation: Navigation,
                     rootFactory: () => GetStartOfGameHistoryPoint(),
                     options: options);
-            }
-            else
-            {
-                var vecOptions = new FastCFRVectorRegionOptions
-                {
-                    EnableVectorRegion = true,
-                    PreferredVectorWidth = 0 // let the builder choose the hardware-friendly width
-                };
-
-                // A simple, general anchor: first chance node with 2+ outcomes.
-                Func<ChanceNode, bool> anchorSelector
-                    = cn => cn.Decision.NumPossibleActions > 1;
-
-                Fast_Builder = new FastCFRBuilder(
-                    navigation: Navigation,
-                    rootFactory: () => GetStartOfGameHistoryPoint(),
-                    options: options,
-                    vectorOptions: vecOptions,
-                    anchorSelector: anchorSelector);
-            }
 
             ActionStrategy = ActionStrategies.CurrentProbability;
         }
@@ -289,9 +267,6 @@ namespace ACESim
                     // IMPORTANT: flush this sweep’s tallies BEFORE starting the next sweep,
                     // because InitializeIteration() will zero them for the next player.
                     Fast_Builder.CopyTalliesIntoBackingNodes();
-
-                    // Also flush vector-region tallies (if a vector region was built).
-                    Fast_Builder.CopyTalliesIntoBackingNodes_Vector();
                 }
 
                 StrategiesDeveloperStopwatch.Stop();

@@ -21,8 +21,6 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
         public IReadOnlyList<FastCFRInformationSet> FastInformationSets => _infoEntries.Select(e => e.NodeAccessor()).ToList();
         public IReadOnlyList<InformationSetNode> BackingInformationSets => _infoEntries.Select(e => e.Original).ToList();
 
-        private bool _vecInitDoneThisSweep;
-
         public FastCFRBuilder(HistoryNavigationInfo navigation, Func<HistoryPoint> rootFactory, FastCFRBuilderOptions options = null)
         {
             _nav = navigation;
