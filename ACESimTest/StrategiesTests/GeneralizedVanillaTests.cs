@@ -229,11 +229,11 @@ namespace ACESimTest.StrategiesTests
             var regular = await BuildWithFlavor(largerTree, randomInformationSets, GeneralizedVanillaFlavor.Regular, 1, _iterationsForParity);
             await regular.RunAlgorithm("TESTOPTIONS");
 
-            var fast = await BuildWithFlavor(largerTree, randomInformationSets, GeneralizedVanillaFlavor.Gpu, 1, _iterationsForParity);
-            await fast.RunAlgorithm("TESTOPTIONS");
+            var gpu = await BuildWithFlavor(largerTree, randomInformationSets, GeneralizedVanillaFlavor.Gpu, 1, _iterationsForParity);
+            await gpu.RunAlgorithm("TESTOPTIONS");
 
-            var ok = ConfirmInformationSetsMatch(regular, "Regular", fast, "Fast", maxLines: 1);
-            ok.Should().BeTrue("information sets must match between Regular and Fast");
+            var ok = ConfirmInformationSetsMatch(regular, "Regular", gpu, "GPU", maxLines: 1);
+            ok.Should().BeTrue("information sets must match between Regular and GPU");
         }
 
         [TestMethod]
