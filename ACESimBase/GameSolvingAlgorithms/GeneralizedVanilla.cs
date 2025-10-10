@@ -1,6 +1,7 @@
 ﻿using ACESimBase.GameSolvingSupport;
 using ACESimBase.GameSolvingSupport.FastCFR;
 using ACESimBase.GameSolvingSupport.GameTree;
+using ACESimBase.GameSolvingSupport.GpuCFR;
 using ACESimBase.GameSolvingSupport.PostIterationUpdater;
 using ACESimBase.GameSolvingSupport.Settings;
 using ACESimBase.GameSolvingSupport.SolverSpecificSupport;
@@ -19,6 +20,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
+using static ACESimBase.GameSolvingSupport.GpuCFR.GpuCFRBuilder;
 
 namespace ACESim
 {
@@ -285,6 +287,123 @@ namespace ACESim
                 targetMet = Status.BestResponseTargetMet(EvolutionSettings.BestResponseTarget);
                 if (EvolutionSettings.PruneOnOpponentStrategy && EvolutionSettings.PredeterminePrunabilityBasedOnRelativeContributions)
                     CalculateReachProbabilitiesAndPrunability(EvolutionSettings.ParallelOptimization);
+                ReinitializeInformationSetsIfNecessary(iteration);
+            }
+
+            TabbedText.SetConsoleProgressString(null);
+            return reportCollection;
+        }
+
+        #endregion
+
+        #region GPU
+
+        private GpuCFRBuilder Gpu_Builder;
+
+        private void Gpu_EnsureBuilder()
+        {
+            if (Gpu_Builder != null)
+                return;
+
+            if (EvolutionSettings.CFRBR)
+                throw new NotSupportedException("GPU flavor does not support CFRBR. Disable EvolutionSettings.CFRBR to use GPU flavor.");
+
+            var options = new GpuCFRBuilderOptions
+            {
+                UseDynamicChanceProbabilities = true,
+                NumNonChancePlayers = NumNonChancePlayers
+            };
+
+            Gpu_Builder = new GpuCFRBuilder(
+                navigation: Navigation,
+                rootFactory: () => GetStartOfGameHistoryPoint(),
+                useFloat: EvolutionSettings.FastCFR_UseFloat, // reuse existing precision toggle
+                options: options);
+
+            ActionStrategy = ActionStrategies.CurrentProbability;
+        }
+
+        private async Task<ReportCollection> Gpu_SolveGeneralizedVanillaCFR()
+        {
+            // If GPU isn’t available, fall back to the Fast flavor seamlessly.
+            if (Gpu_Builder == null || !Gpu_Builder.IsAvailable)
+            {
+                TabbedText.WriteLine("GPU context not available; falling back to Fast flavor for this run.");
+                Fast_EnsureBuilder();
+                return await Fast_SolveGeneralizedVanillaCFR();
+            }
+
+            ReportCollection reportCollection = new ReportCollection();
+            bool targetMet = false;
+            Stopwatch s = new Stopwatch();
+            s.Start();
+            long lastElapsedSeconds = -1;
+
+            for (int iteration = 1; iteration <= EvolutionSettings.TotalIterations && !targetMet; iteration++)
+            {
+                long elapsedSeconds = s.ElapsedMilliseconds / 1000;
+                if (!EvolutionSettings.TraceCFR && elapsedSeconds != lastElapsedSeconds)
+                    TabbedText.SetConsoleProgressString($"Iteration {iteration} (elapsed seconds: {s.ElapsedMilliseconds / 1000})");
+                lastElapsedSeconds = elapsedSeconds;
+
+                if (iteration % 50 == 1 && EvolutionSettings.DynamicSetParallel)
+                    DynamicallySetParallel();
+
+                Status.IterationNumDouble = iteration;
+                Status.IterationNum = iteration;
+                CalculateDiscountingAdjustments();
+
+                StrategiesDeveloperStopwatch.Start();
+
+                GeneralizedVanillaUtilities[] results = new GeneralizedVanillaUtilities[NumNonChancePlayers];
+
+                for (byte playerBeingOptimized = 0; playerBeingOptimized < NumNonChancePlayers; playerBeingOptimized++)
+                {
+                    if (playerBeingOptimized == 1 && GameDefinition.GameIsSymmetric() && TakeShortcutInSymmetricGames)
+                        continue;
+
+                    var ctx = Gpu_Builder.InitializeIteration(
+                        optimizedPlayerIndex: playerBeingOptimized,
+                        scenarioIndex: GameDefinition.CurrentOverallScenarioIndex,
+                        rand01ForDecision: null);
+
+                    ctx.IterationNumber = iteration;
+                    ctx.ReachSelf = 1.0;
+                    ctx.ReachOpp = 1.0;
+                    ctx.ReachChance = 1.0;
+                    ctx.SamplingCorrection = 1.0;
+                    ctx.SuppressMath = false;
+
+                    var nodeResult = Gpu_Builder.Root.Go(ref ctx);
+
+                    results[playerBeingOptimized] = new GeneralizedVanillaUtilities
+                    {
+                        CurrentVsCurrent = nodeResult.Utilities[playerBeingOptimized],
+                        AverageStrategyVsAverageStrategy = nodeResult.Utilities[playerBeingOptimized],
+                        BestResponseToAverageStrategy = 0.0 // CFRBR disabled for GPU flavor
+                    };
+
+                    // Flush per-sweep tallies into backing nodes before the next sweep.
+                    Gpu_Builder.CopyTalliesIntoBackingNodes();
+                }
+
+                StrategiesDeveloperStopwatch.Stop();
+
+                // Post-iteration: apply regret/avg-strategy updates once after both sweeps.
+                UpdateInformationSets(iteration);
+                await PostIterationWorkForPrincipalComponentsAnalysis(iteration, reportCollection);
+                SimulatedAnnealing(iteration);
+                MiniReport(iteration, results);
+
+                var result = await ConsiderGeneratingReports(iteration,
+                    () => $"{GameDefinition.OptionSetName} Iteration {iteration} Overall milliseconds per iteration {(StrategiesDeveloperStopwatch.ElapsedMilliseconds / (double)iteration)}");
+                reportCollection.Add(result);
+
+                targetMet = Status.BestResponseTargetMet(EvolutionSettings.BestResponseTarget);
+
+                if (EvolutionSettings.PruneOnOpponentStrategy && EvolutionSettings.PredeterminePrunabilityBasedOnRelativeContributions)
+                    CalculateReachProbabilitiesAndPrunability(EvolutionSettings.ParallelOptimization);
+
                 ReinitializeInformationSetsIfNecessary(iteration);
             }
 
@@ -1574,17 +1693,28 @@ namespace ACESim
             }
             await base.Initialize();
             InitializeInformationSets();
+
             if (EvolutionSettings.GeneralizedVanillaFlavor == GeneralizedVanillaFlavor.Unrolled && (!EvolutionSettings.UseExistingEquilibriaIfAvailable || !EquilibriaFileAlreadyExists()))
             {
                 Unroll_CreateUnrolledCommandList();
             }
+
             if (EvolutionSettings.GeneralizedVanillaFlavor == GeneralizedVanillaFlavor.Fast)
             {
                 if (EvolutionSettings.CFRBR)
                     throw new NotSupportedException("FastCFR does not support CFRBR. Disable EvolutionSettings.CFRBR to use FastCFR.");
                 Fast_EnsureBuilder();
             }
+
+            if (EvolutionSettings.GeneralizedVanillaFlavor == GeneralizedVanillaFlavor.Gpu)
+            {
+                if (EvolutionSettings.CFRBR)
+                    throw new NotSupportedException("GPU flavor does not support CFRBR. Disable EvolutionSettings.CFRBR to use GPU flavor.");
+                Gpu_EnsureBuilder();
+            }
         }
+
+
 
         public override async Task<ReportCollection> RunAlgorithm(string optionSetName)
         {
@@ -1609,6 +1739,9 @@ namespace ACESim
                         break;
                     case GeneralizedVanillaFlavor.Fast:
                         reportCollection = await Fast_SolveGeneralizedVanillaCFR();
+                        break;
+                    case GeneralizedVanillaFlavor.Gpu:
+                        reportCollection = await Gpu_SolveGeneralizedVanillaCFR();
                         break;
                 }
 

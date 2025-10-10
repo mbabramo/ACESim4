@@ -10,6 +10,7 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
     {
         Regular,
         Unrolled,
-        Fast
+        Fast,
+        Gpu
     }
 }
