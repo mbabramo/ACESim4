@@ -30,9 +30,7 @@ namespace ACESim
         double AverageStrategyAdjustment, AverageStrategyAdjustmentAsPctOfMax;
         PostIterationUpdaterBase PostIterationUpdater;
         Dictionary<InformationSetNode, InformationSetNode> InformationSetSymmetryMap;
-        public bool TakeShortcutInSymmetricGames = false;
-        private bool ShouldUseSymmetryShortcut() => TakeShortcutInSymmetricGames && GameDefinition.GameIsSymmetric() && InformationSetSymmetryMap != null
-        && InformationSetSymmetryMap.Count == InformationSets.Count(x => x.PlayerIndex == 1);
+        public bool TakeShortcutInSymmetricGames = true;
         bool VerifySymmetry = false; // if true, symmetry is verified instead of used as a way of saving time,
 
         public GeneralizedVanilla(List<Strategy> existingStrategyState, EvolutionSettings evolutionSettings, GameDefinition gameDefinition, PostIterationUpdaterBase postIterationUpdater) : base(existingStrategyState, evolutionSettings, gameDefinition)
@@ -113,7 +111,7 @@ namespace ACESim
 
         private void HandleSymmetry(int iteration)
         {
-            bool symmetric = ShouldUseSymmetryShortcut();
+            bool symmetric = GameDefinition.GameIsSymmetric() && TakeShortcutInSymmetricGames;
             if (symmetric)
             {
                 if (iteration == 1)
@@ -244,7 +242,7 @@ namespace ACESim
 
                 for (byte playerBeingOptimized = 0; playerBeingOptimized < NumNonChancePlayers; playerBeingOptimized++)
                 {
-                    if (playerBeingOptimized == 1 && ShouldUseSymmetryShortcut())
+                    if (playerBeingOptimized == 1 && GameDefinition.GameIsSymmetric() && TakeShortcutInSymmetricGames && !VerifySymmetry)
                         continue;
 
                     // Reset visit-counters and freeze policies for THIS player's sweep.
@@ -359,7 +357,10 @@ namespace ACESim
                 for (byte playerBeingOptimized = 0; playerBeingOptimized < NumNonChancePlayers; playerBeingOptimized++)
                 {
                     // Align GPU logic with Regular/Fast: only skip when NOT verifying symmetry
-                    if (playerBeingOptimized == 1 && ShouldUseSymmetryShortcut())
+                    if (playerBeingOptimized == 1 &&
+                        GameDefinition.GameIsSymmetric() &&
+                        TakeShortcutInSymmetricGames &&
+                        !VerifySymmetry)
                         continue;
 
                     var ctx = Gpu_Builder.InitializeIteration(
