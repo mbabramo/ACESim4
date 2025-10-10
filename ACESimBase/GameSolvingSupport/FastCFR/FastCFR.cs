@@ -30,7 +30,6 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
         public double ReachChance;
         public double SamplingCorrection;
         public int ScenarioIndex;
-        public bool SuppressMath;
         public Func<byte, double> Rand01ForDecision;
     }
 
@@ -205,15 +204,6 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
             var children = _childrenByVisit[visitIndex];
             bool ownerIsOptimized = PlayerIndex == ctx.OptimizedPlayerIndex;
 
-            if (ctx.SuppressMath)
-            {
-                bool prior = ctx.SuppressMath;
-                for (int i = 0; i < children.Length; i++)
-                    children[i].Go(ref ctx);
-                ctx.SuppressMath = prior;
-                return new FastCFRNodeResult(_zeroUtilities, default);
-            }
-
             var expectedU = _workUtilities;
             for (int i = 0; i < expectedU.Length; i++) expectedU[i] = 0.0;
             FloatSet expectedCustom = default;
@@ -236,14 +226,7 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
 
                     double w = ownerIsOptimized ? ToDouble(_pSelf[ai]) : ToDouble(_pOpp[ai]);
 
-                    if (!ownerIsOptimized && w <= double.Epsilon)
-                    {
-                        bool prior = ctx.SuppressMath; ctx.SuppressMath = true;
-                        children[i].Go(ref ctx);
-                        ctx.SuppressMath = prior;
-                        continue;
-                    }
-
+                    // Always traverse; simply ignore contribution when weight is ~0 for opponent traversal.
                     FastCFRNodeResult child;
                     if (ownerIsOptimized)
                     {
@@ -287,7 +270,6 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
                         else if (typeof(TScalar) == typeof(float))
                         {
                             Span<float> QaF = stackalloc float[Vector<float>.Count];
-                            // We will reuse QaF chunk-by-chunk to avoid large stack usage.
                             V = DotProductFloatChunked(Qa, QaF);
                             SimdUpdateFloatChunked(Qa, QaF, (float)V, (float)inversePi, (float)piSelf);
                         }
@@ -554,12 +536,7 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
             var visitIndex = _visitCounter++;
             var visit = _visits[visitIndex];
             var children = _childrenByVisit[visitIndex];
-            if (ctx.SuppressMath)
-            {
-                for (int k = 0; k < children.Length; k++)
-                    children[k].Go(ref ctx);
-                return new FastCFRNodeResult(_zeroUtilities, default);
-            }
+
             var expectedU = _workUtilities;
             for (int i = 0; i < expectedU.Length; i++) expectedU[i] = 0.0;
             FloatSet expectedCustom = default;
@@ -567,24 +544,25 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
             {
                 ref readonly var step = ref visit.Steps[k];
                 double p = step.GetProbability(ref ctx);
-                if (p == 0.0)
-                {
-                    bool prior = ctx.SuppressMath; ctx.SuppressMath = true;
-                    children[k].Go(ref ctx);
-                    ctx.SuppressMath = prior;
-                    continue;
-                }
+
+                // Always traverse; ignore contribution when probability is 0.
                 double oldOpp = ctx.ReachOpp;
                 double oldChance = ctx.ReachChance;
-                ctx.ReachOpp = oldOpp * p;
-                ctx.ReachChance = oldChance * p;
+                if (p > 0.0)
+                {
+                    ctx.ReachOpp = oldOpp * p;
+                    ctx.ReachChance = oldChance * p;
+                }
                 var child = children[k].Go(ref ctx);
                 ctx.ReachOpp = oldOpp;
                 ctx.ReachChance = oldChance;
 
-                var cu = child.Utilities;
-                for (int i = 0; i < expectedU.Length; i++) expectedU[i] += p * cu[i];
-                expectedCustom = expectedCustom.Plus(child.Custom.Times((float)p));
+                if (p > 0.0)
+                {
+                    var cu = child.Utilities;
+                    for (int i = 0; i < expectedU.Length; i++) expectedU[i] += p * cu[i];
+                    expectedCustom = expectedCustom.Plus(child.Custom.Times((float)p));
+                }
             }
             return new FastCFRNodeResult(expectedU, expectedCustom);
         }
@@ -606,8 +584,6 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
         public void InitializeIteration(ReadOnlySpan<double> _ownerPolicy, ReadOnlySpan<double> _opponentTraversal) { }
         public FastCFRNodeResult Go(ref FastCFRIterationContext ctx)
         {
-            if (ctx.SuppressMath)
-                return FastCFRNodeResult.Zero(_numPlayers);
             int s = (uint)ctx.ScenarioIndex < (uint)_utilitiesByScenario.Length ? ctx.ScenarioIndex : 0;
             return new FastCFRNodeResult(_utilitiesByScenario[s], _customByScenario[s]);
         }

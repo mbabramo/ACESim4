@@ -78,7 +78,6 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
                 ReachChance = 1.0,
                 SamplingCorrection = 1.0,
                 ScenarioIndex = scenarioIndex,
-                SuppressMath = false,
                 Rand01ForDecision = rand01ForDecision ?? (_ => 0.0)
             };
         }

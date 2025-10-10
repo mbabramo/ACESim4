@@ -256,7 +256,6 @@ namespace ACESim
                     ctx.ReachOpp = 1.0;
                     ctx.ReachChance = 1.0;
                     ctx.SamplingCorrection = 1.0;
-                    ctx.SuppressMath = false;
 
                     var nodeResult = Fast_Builder.Root.Go(ref ctx);
 
@@ -322,7 +321,6 @@ namespace ACESim
 
             ActionStrategy = ActionStrategies.CurrentProbability;
         }
-
         private async Task<ReportCollection> Gpu_SolveGeneralizedVanillaCFR()
         {
             if (Gpu_Builder == null || !Gpu_Builder.IsAvailable)
@@ -358,7 +356,11 @@ namespace ACESim
 
                 for (byte playerBeingOptimized = 0; playerBeingOptimized < NumNonChancePlayers; playerBeingOptimized++)
                 {
-                    if (playerBeingOptimized == 1 && GameDefinition.GameIsSymmetric() && TakeShortcutInSymmetricGames)
+                    // Align GPU logic with Regular/Fast: only skip when NOT verifying symmetry
+                    if (playerBeingOptimized == 1 &&
+                        GameDefinition.GameIsSymmetric() &&
+                        TakeShortcutInSymmetricGames &&
+                        !VerifySymmetry)
                         continue;
 
                     var ctx = Gpu_Builder.InitializeIteration(
@@ -407,6 +409,8 @@ namespace ACESim
             TabbedText.SetConsoleProgressString(null);
             return reportCollection;
         }
+
+
 
         #endregion
 
