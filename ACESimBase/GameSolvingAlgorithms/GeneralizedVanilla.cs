@@ -30,7 +30,7 @@ namespace ACESim
         double AverageStrategyAdjustment, AverageStrategyAdjustmentAsPctOfMax;
         PostIterationUpdaterBase PostIterationUpdater;
         Dictionary<InformationSetNode, InformationSetNode> InformationSetSymmetryMap;
-        public bool TakeShortcutInSymmetricGames = true;
+        public bool TakeShortcutInSymmetricGames = false;
         bool VerifySymmetry = false; // if true, symmetry is verified instead of used as a way of saving time,
 
         public GeneralizedVanilla(List<Strategy> existingStrategyState, EvolutionSettings evolutionSettings, GameDefinition gameDefinition, PostIterationUpdaterBase postIterationUpdater) : base(existingStrategyState, evolutionSettings, gameDefinition)
@@ -53,7 +53,7 @@ namespace ACESim
 
             int numInformationSets = InformationSets.Count;
             PostIterationUpdater.PrepareForUpdating(iteration, EvolutionSettings);
-            double? pruneOpponentStrategyBelow = !EvolutionSettings.CFR_OpponentSampling && EvolutionSettings.PruneOnOpponentStrategy && !TakeShortcutInSymmetricGames && !EvolutionSettings.PredeterminePrunabilityBasedOnRelativeContributions ? EvolutionSettings.PruneOnOpponentStrategyThreshold : (double?)null;
+            double? pruneOpponentStrategyBelow = null; // This isn't working !EvolutionSettings.CFR_OpponentSampling && EvolutionSettings.PruneOnOpponentStrategy && !TakeShortcutInSymmetricGames && !EvolutionSettings.PredeterminePrunabilityBasedOnRelativeContributions ? EvolutionSettings.PruneOnOpponentStrategyThreshold : (double?)null;
             bool predeterminePrunability = !EvolutionSettings.CFR_OpponentSampling && EvolutionSettings.PruneOnOpponentStrategy && !TakeShortcutInSymmetricGames && EvolutionSettings.PredeterminePrunabilityBasedOnRelativeContributions;
 
             Func<int, double?> randomNumberToSelectSingleOpponentAction = n => null;
