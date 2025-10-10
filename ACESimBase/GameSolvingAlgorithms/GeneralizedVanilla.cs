@@ -317,7 +317,7 @@ namespace ACESim
             Gpu_Builder = new GpuCFRBuilder(
                 navigation: Navigation,
                 rootFactory: () => GetStartOfGameHistoryPoint(),
-                useFloat: EvolutionSettings.FastCFR_UseFloat, // reuse existing precision toggle
+                useFloat: EvolutionSettings.FastCFR_UseFloat,
                 options: options);
 
             ActionStrategy = ActionStrategies.CurrentProbability;
@@ -325,7 +325,6 @@ namespace ACESim
 
         private async Task<ReportCollection> Gpu_SolveGeneralizedVanillaCFR()
         {
-            // If GPU isn’t available, fall back to the Fast flavor seamlessly.
             if (Gpu_Builder == null || !Gpu_Builder.IsAvailable)
             {
                 TabbedText.WriteLine("GPU context not available; falling back to Fast flavor for this run.");
@@ -380,16 +379,14 @@ namespace ACESim
                     {
                         CurrentVsCurrent = nodeResult.Utilities[playerBeingOptimized],
                         AverageStrategyVsAverageStrategy = nodeResult.Utilities[playerBeingOptimized],
-                        BestResponseToAverageStrategy = 0.0 // CFRBR disabled for GPU flavor
+                        BestResponseToAverageStrategy = 0.0
                     };
 
-                    // Flush per-sweep tallies into backing nodes before the next sweep.
                     Gpu_Builder.CopyTalliesIntoBackingNodes();
                 }
 
                 StrategiesDeveloperStopwatch.Stop();
 
-                // Post-iteration: apply regret/avg-strategy updates once after both sweeps.
                 UpdateInformationSets(iteration);
                 await PostIterationWorkForPrincipalComponentsAnalysis(iteration, reportCollection);
                 SimulatedAnnealing(iteration);
@@ -412,6 +409,8 @@ namespace ACESim
         }
 
         #endregion
+
+
 
         #region Unrolled preparation
 
@@ -1687,25 +1686,22 @@ namespace ACESim
         public override async Task Initialize()
         {
             if (EvolutionSettings.GeneralizedVanillaFlavor == GeneralizedVanillaFlavor.Unrolled && Navigation.LookupApproach == InformationSetLookupApproach.PlayGameDirectly)
-            { // override -- combination is not currently supported
+            {
                 LookupApproach = InformationSetLookupApproach.CachedGameHistoryOnly;
                 Navigation = Navigation.WithLookupApproach(LookupApproach);
             }
             await base.Initialize();
             InitializeInformationSets();
-
             if (EvolutionSettings.GeneralizedVanillaFlavor == GeneralizedVanillaFlavor.Unrolled && (!EvolutionSettings.UseExistingEquilibriaIfAvailable || !EquilibriaFileAlreadyExists()))
             {
                 Unroll_CreateUnrolledCommandList();
             }
-
             if (EvolutionSettings.GeneralizedVanillaFlavor == GeneralizedVanillaFlavor.Fast)
             {
                 if (EvolutionSettings.CFRBR)
                     throw new NotSupportedException("FastCFR does not support CFRBR. Disable EvolutionSettings.CFRBR to use FastCFR.");
                 Fast_EnsureBuilder();
             }
-
             if (EvolutionSettings.GeneralizedVanillaFlavor == GeneralizedVanillaFlavor.Gpu)
             {
                 if (EvolutionSettings.CFRBR)
@@ -1713,8 +1709,6 @@ namespace ACESim
                 Gpu_EnsureBuilder();
             }
         }
-
-
 
         public override async Task<ReportCollection> RunAlgorithm(string optionSetName)
         {
@@ -1725,7 +1719,6 @@ namespace ACESim
                 SaveWeightedGameProgressesAfterEachReport = true;
                 double[] equilibrium = LoadEquilibriaFile().First();
                 await ProcessEquilibrium(reportCollection, false, false, true, false, 1, InformationSets, 0, true, true, equilibrium);
-                // NOTE: If we switch to recording multiple equilibria, we'll change the above.
             }
             else
             {
@@ -1745,7 +1738,7 @@ namespace ACESim
                         break;
                 }
 
-               double[] equilibrium = GetInformationSetValues();
+                double[] equilibrium = GetInformationSetValues();
                 string equFile = CreateEquilibriaFile(new List<double[]> { equilibrium });
             }
             if (EvolutionSettings.CreateEFGFile)
@@ -1753,7 +1746,6 @@ namespace ACESim
 
             return reportCollection;
         }
-
 
         private async Task<ReportCollection> SolveGeneralizedVanillaCFR()
         {
