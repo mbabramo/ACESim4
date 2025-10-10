@@ -20,7 +20,7 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
     {
         public IFastCFRNode Root => _rootAccessor();
 
-        // Public for tooling; returns abstract base for both float/double closures.
+        // Kept public for caller tooling; now returns the abstract base for compatibility.
         public IReadOnlyList<FastCFRInformationSet> FastInformationSets => _infoEntries.Select(e => e.NodeAccessor()).ToList();
         public IReadOnlyList<InformationSetNode> BackingInformationSets => _infoEntries.Select(e => e.Original).ToList();
 
@@ -36,7 +36,7 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
             _useFloat = useFloat;
             _rootAccessor = Compile(rootHP);
             FinalizeNodeObjects();
-            AllocatePolicyBuffers(); // allocate once per infoset; reused every iteration
+            AllocatePolicyBuffers();
         }
 
         public FastCFRIterationContext InitializeIteration(
@@ -44,28 +44,25 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
             int scenarioIndex,
             Func<byte, double> rand01ForDecision)
         {
-            // Reuse per-node policy buffers; avoid per-iteration allocations
             foreach (var entry in _infoEntries)
             {
                 var isn = entry.Original;
                 var node = entry.NodeAccessor();
 
-                var owner = entry.OwnerBuffer;
-                var opp   = entry.OppBuffer;
+                var owner = new double[isn.NumPossibleActions];
+                var opp = new double[isn.NumPossibleActions];
 
-                Span<double> ownerSpan = owner.AsSpan(0, isn.NumPossibleActions);
+                Span<double> ownerSpan = owner;
                 isn.GetCurrentProbabilities(ownerSpan, opponentProbabilities: false);
 
-                Span<double> oppSpan = opp.AsSpan(0, isn.NumPossibleActions);
+                Span<double> oppSpan = opp;
                 isn.GetCurrentProbabilities(oppSpan, opponentProbabilities: true);
 
-                node.InitializeIteration(ownerSpan, oppSpan);
-
+                node.InitializeIteration(owner, opp);
                 _frozenOwnerPolicies[entry.Id] = owner;
-                _frozenOppPolicies[entry.Id]   = opp;
+                _frozenOppPolicies[entry.Id] = opp;
             }
 
-            // Initialize chance/final nodes (chance will lazily compute dynamic probabilities)
             foreach (var c in _chanceEntries)
                 c.NodeAccessor().InitializeIteration(ReadOnlySpan<double>.Empty, ReadOnlySpan<double>.Empty);
 
@@ -90,11 +87,12 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
         {
             foreach (var entry in _infoEntries)
             {
-                var node = entry.NodeAccessor(); // abstract base
+                var node = entry.NodeAccessor(); // FastCFRInformationSet (abstract base)
                 var backing = entry.Original;
 
-                var sr  = ((IFastCFRInformationSet)node).SumRegretTimesInversePi;
-                var si  = ((IFastCFRInformationSet)node).SumInversePi; // action-invariant but expanded on demand
+                // IFastCFRInformationSet is implemented by the base we expose.
+                var sr = ((IFastCFRInformationSet)node).SumRegretTimesInversePi;
+                var si = ((IFastCFRInformationSet)node).SumInversePi;
                 var inc = ((IFastCFRInformationSet)node).LastCumulativeStrategyIncrements;
 
                 int n = backing.NumPossibleActions;
@@ -102,8 +100,8 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
                 {
                     byte act = (byte)(a + 1);
                     double rTimesInvPi = sr[a];
-                    double invPi       = si[a];
-                    double incr        = inc[a];
+                    double invPi = si[a];
+                    double incr = inc[a];
                     if (invPi != 0 || rTimesInvPi != 0)
                         backing.IncrementLastRegret(act, rTimesInvPi, invPi);
                     if (incr != 0)
@@ -176,7 +174,6 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
                 FastCFRProbProvider provider = null;
                 double staticP = 0.0;
 
-                // Path-independent provider: lookup on the ChanceNode by outcome
                 if (_opts.UseDynamicChanceProbabilities || cn.AllProbabilitiesEqual() == false)
                 {
                     int outcomeIndexOneBased = a;
@@ -245,15 +242,7 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
         {
             int n = _infoEntries.Count;
             _frozenOwnerPolicies = new double[n][];
-            _frozenOppPolicies   = new double[n][];
-
-            // Allocate per-infoset policy buffers once; reused each iteration
-            foreach (var e in _infoEntries)
-            {
-                int a = e.Original.NumPossibleActions;
-                e.OwnerBuffer = new double[a];
-                e.OppBuffer   = new double[a];
-            }
+            _frozenOppPolicies = new double[n][];
         }
 
         private InfoEntry GetOrCreateInfoEntry(InformationSetNode n)
@@ -354,10 +343,6 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
             public List<FastCFRVisitProgram> VisitPrograms;
             public FastCFRInformationSet NodeBacking; // abstract base for both float/double closures
             public Func<FastCFRInformationSet> NodeAccessor;
-
-            // Reused policy buffers (allocated once)
-            public double[] OwnerBuffer;
-            public double[] OppBuffer;
         }
 
         private sealed class ChanceEntry
