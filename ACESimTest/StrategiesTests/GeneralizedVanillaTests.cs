@@ -224,6 +224,23 @@ namespace ACESimTest.StrategiesTests
         [DataRow(false, true)]
         [DataRow(true,  false)]
         [DataRow(true,  true)]
+        public async Task SameResultsRegularAndGPUCFR(bool randomInformationSets, bool largerTree)
+        {
+            var regular = await BuildWithFlavor(largerTree, randomInformationSets, GeneralizedVanillaFlavor.Regular, 1, _iterationsForParity);
+            await regular.RunAlgorithm("TESTOPTIONS");
+
+            var fast = await BuildWithFlavor(largerTree, randomInformationSets, GeneralizedVanillaFlavor.Gpu, 1, _iterationsForParity);
+            await fast.RunAlgorithm("TESTOPTIONS");
+
+            var ok = ConfirmInformationSetsMatch(regular, "Regular", fast, "Fast", maxLines: 1);
+            ok.Should().BeTrue("information sets must match between Regular and Fast");
+        }
+
+        [TestMethod]
+        [DataRow(false, false)]
+        [DataRow(false, true)]
+        [DataRow(true,  false)]
+        [DataRow(true,  true)]
         public async Task SameResultsUnrolledAndFastCFR(bool randomInformationSets, bool largerTree)
         {
             byte rounds = 1;
