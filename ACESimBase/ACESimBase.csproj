@@ -20,6 +20,8 @@
     <PackageReference Include="alglib.net" Version="3.19.0" />
     <PackageReference Include="CsvHelper" Version="33.0.1" />
     <PackageReference Include="HDF5-CSharp" Version="1.19.0" />
+    <PackageReference Include="ILGPU" Version="1.5.3" />
+    <PackageReference Include="ILGPU.Algorithms" Version="1.5.3" />
     <PackageReference Include="MathNet.Numerics" Version="5.0.0" />
     <PackageReference Include="Microsoft.Azure.KeyVault.Core" Version="3.0.5" />
     <PackageReference Include="Microsoft.Azure.Storage.Blob" Version="11.2.3" />
