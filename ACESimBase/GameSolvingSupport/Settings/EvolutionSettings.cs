@@ -19,7 +19,7 @@ namespace ACESimBase.GameSolvingSupport.Settings
     public class EvolutionSettings
     {
         public GeneralizedVanillaFlavor GeneralizedVanillaFlavor = GeneralizedVanillaFlavor.Fast;
-        public bool FastCFR_UseFloat = false; // DEBUG
+        public bool FastCFR_UseFloat = false; // offers very slight speedup
         public bool IncludeCommentsWhenUnrolling = false;
         public bool UseCheckpointsWhenNotUnrolling = false; // for when unrolling, look at ArrayCommandList.UseCheckpoints
         public bool UnrollTemplateIdenticalRanges = true; // identical range here means when we have a chance node where the game structure is same for every chance value

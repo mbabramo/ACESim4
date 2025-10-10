@@ -1,14 +1,17 @@
 ﻿// ACESimBase/GameSolvingSupport/FastCFR/FastCFR.cs
 using System;
-using ACESimBase.GameSolvingSupport.GameTree; // InformationSetNode.SmallestProbabilityRepresented
-using ACESimBase.Util.Collections; // FloatSet
+using System.Buffers;
+using System.Numerics;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+using ACESimBase.GameSolvingSupport.GameTree;
+using ACESimBase.Util.Collections;
 
 namespace ACESimBase.GameSolvingSupport.FastCFR
 {
-    // Shared result wrapper --------------------------------------------------
     public readonly struct FastCFRNodeResult
     {
-        public readonly double[] Utilities; // per non-chance player
+        public readonly double[] Utilities;
         public readonly FloatSet Custom;
         public FastCFRNodeResult(double[] utilities, FloatSet custom)
         {
@@ -18,21 +21,19 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
         public static FastCFRNodeResult Zero(int numPlayers) => new FastCFRNodeResult(new double[numPlayers], default);
     }
 
-    // Iteration context ------------------------------------------------------
     public ref struct FastCFRIterationContext
     {
         public int IterationNumber;
-        public byte OptimizedPlayerIndex; // whose regrets we update this iteration
-        public double ReachSelf;   // π_i for optimized player
-        public double ReachOpp;    // product of other (non-chance) players' reach
-        public double ReachChance; // π_c (maintained for completeness / diagnostics)
-        public double SamplingCorrection; // importance weight (1.0 in full CFR)
-        public int ScenarioIndex;  // scenario for finals
-        public bool SuppressMath;  // when true: walk structure but ignore math
-        public Func<byte, double> Rand01ForDecision; // optional deterministic RNG
+        public byte OptimizedPlayerIndex;
+        public double ReachSelf;
+        public double ReachOpp;
+        public double ReachChance;
+        public double SamplingCorrection;
+        public int ScenarioIndex;
+        public bool SuppressMath;
+        public Func<byte, double> Rand01ForDecision;
     }
 
-    // Delegates kept for compatibility (also used by the global program)
     public delegate FastCFRNodeResult FastCFRCall(ref FastCFRIterationContext ctx);
     public delegate double FastCFRProbProvider(ref FastCFRIterationContext ctx);
 
@@ -43,10 +44,6 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
         FastCFRNodeResult Go(ref FastCFRIterationContext ctx);
     }
 
-    /// <summary>
-    /// Exposes information-set tallies in double space while allowing internal storage
-    /// in a smaller scalar (e.g., float). Implemented by concrete info-set nodes only.
-    /// </summary>
     public interface IFastCFRInformationSet : IFastCFRNode
     {
         ReadOnlySpan<double> SumRegretTimesInversePi { get; }
@@ -54,9 +51,6 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
         ReadOnlySpan<double> LastCumulativeStrategyIncrements { get; }
     }
 
-    /// <summary>
-    /// Non-generic base so builder code can bind children without knowing TScalar.
-    /// </summary>
     public abstract class FastCFRInformationSetBase : IFastCFRInformationSet
     {
         public abstract void InitializeIteration(ReadOnlySpan<double> ownerCurrentPolicy, ReadOnlySpan<double> opponentTraversalPolicy);
@@ -68,21 +62,15 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
         public abstract ReadOnlySpan<double> LastCumulativeStrategyIncrements { get; }
     }
 
-    /// <summary>
-    /// Backwards-compatible name (was a sealed concrete class). Now serves as an abstract
-    /// base for the specialized float/double closures so existing usages that reference
-    /// the name still compile.
-    /// </summary>
     public abstract class FastCFRInformationSet : FastCFRInformationSetBase { }
 
-    // Visit program data (scalar path retained for compatibility) -----------
     public enum FastCFRVisitStepKind : byte { ChildForAction }
 
     public readonly struct FastCFRVisitStep
     {
         public readonly FastCFRVisitStepKind Kind;
-        public readonly byte ActionIndex; // 0..NumActions-1
-        public readonly Func<IFastCFRNode> ChildAccessor; // bound after finalize
+        public readonly byte ActionIndex;
+        public readonly Func<IFastCFRNode> ChildAccessor;
         public FastCFRVisitStep(FastCFRVisitStepKind kind, byte actionIndex, Func<IFastCFRNode> childAccessor)
         {
             Kind = kind;
@@ -102,12 +90,11 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
         }
     }
 
-    // Chance (scalar compatibility path) ------------------------------------
     public readonly struct FastCFRChanceStep
     {
         public readonly Func<IFastCFRNode> ChildAccessor;
-        public readonly double StaticProbability; // >=0 if static, else <0 meaning dynamic
-        public readonly FastCFRProbProvider ProbabilityProvider; // null if static
+        public readonly double StaticProbability;
+        public readonly FastCFRProbProvider ProbabilityProvider;
         public FastCFRChanceStep(Func<IFastCFRNode> childAccessor, double staticProbability)
         {
             ChildAccessor = childAccessor;
@@ -135,8 +122,6 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
         }
     }
 
-    // Information set node (generic core + sealed closures) -----------------
-
     public abstract class FastCFRInformationSetGeneric<TScalar> : FastCFRInformationSet
         where TScalar : struct
     {
@@ -147,24 +132,19 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
         private readonly FastCFRVisitProgram[] _visits;
         private int _visitCounter;
 
-        // Frozen policies per iteration (stored as TScalar)
-        protected readonly TScalar[] _pSelf; // owner policy frozen for this sweep
-        protected readonly TScalar[] _pOpp;  // opponent traversal policy for this sweep
+        protected readonly TScalar[] _pSelf;
+        protected readonly TScalar[] _pOpp;
 
-        // Tallies collected during traversal (stored as TScalar)
         protected readonly TScalar[] _sumRegretTimesInversePi;
         protected readonly TScalar[] _sumInversePi;
         protected readonly TScalar[] _lastCumulativeStrategyInc;
 
-        // Bound child arrays per visit (after finalize)
         private IFastCFRNode[][] _childrenByVisit;
 
-        // Small reusable buffers
         private readonly int _numPlayers;
         private readonly double[] _zeroUtilities;
         private readonly double[] _workUtilities;
 
-        // Reusable double views for exporting tallies efficiently
         private readonly double[] _bufferRegretTimesInvPi;
         private readonly double[] _bufferInvPi;
         private readonly double[] _bufferLastCumStrat;
@@ -218,7 +198,6 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
             _visitCounter = 0;
         }
 
-        // Scalar compatibility path (not used by the global runner, but kept for tests/tools)
         public override FastCFRNodeResult Go(ref FastCFRIterationContext ctx)
         {
             var visitIndex = _visitCounter++;
@@ -238,73 +217,245 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
             var expectedU = _workUtilities;
             for (int i = 0; i < expectedU.Length; i++) expectedU[i] = 0.0;
             FloatSet expectedCustom = default;
-            Span<double> Qa = ownerIsOptimized ? stackalloc double[NumActions] : Span<double>.Empty;
 
-            for (int i = 0; i < children.Length; i++)
-            {
-                ref readonly var step = ref visit.Steps[i];
-                int ai = step.ActionIndex;
-
-                double w = ownerIsOptimized ? ToDouble(_pSelf[ai]) : ToDouble(_pOpp[ai]);
-
-                if (!ownerIsOptimized && w <= double.Epsilon)
-                {
-                    bool prior = ctx.SuppressMath; ctx.SuppressMath = true;
-                    children[i].Go(ref ctx);
-                    ctx.SuppressMath = prior;
-                    continue;
-                }
-
-                FastCFRNodeResult child;
-                if (ownerIsOptimized)
-                {
-                    double oldSelf = ctx.ReachSelf;
-                    ctx.ReachSelf = oldSelf * w;
-                    child = children[i].Go(ref ctx);
-                    ctx.ReachSelf = oldSelf;
-                    Qa[ai] = child.Utilities[PlayerIndex];
-                }
-                else
-                {
-                    double oldOpp = ctx.ReachOpp;
-                    ctx.ReachOpp = oldOpp * w;
-                    child = children[i].Go(ref ctx);
-                    ctx.ReachOpp = oldOpp;
-                }
-
-                if (ownerIsOptimized || w > double.Epsilon)
-                {
-                    var cu = child.Utilities;
-                    for (int pl = 0; pl < expectedU.Length; pl++)
-                        expectedU[pl] += w * cu[pl];
-                    expectedCustom = expectedCustom.Plus(child.Custom.Times((float)w));
-                }
-            }
-
+            double[] qaArray = null;
+            Span<double> Qa = Span<double>.Empty;
             if (ownerIsOptimized)
             {
-                double V = 0.0;
-                for (int a = 0; a < NumActions; a++) V += ToDouble(_pSelf[a]) * Qa[a];
+                qaArray = ArrayPool<double>.Shared.Rent(NumActions);
+                Qa = qaArray.AsSpan(0, NumActions);
+                Qa.Clear();
+            }
 
-                double inversePi = ctx.ReachOpp;
-                double piSelf = ctx.ReachSelf;
-
-                for (int a = 0; a < NumActions; a++)
+            try
+            {
+                for (int i = 0; i < children.Length; i++)
                 {
-                    double regret = Qa[a] - V;
+                    ref readonly var step = ref visit.Steps[i];
+                    int ai = step.ActionIndex;
 
-                    double rOld = ToDouble(_sumRegretTimesInversePi[a]);
-                    _sumRegretTimesInversePi[a] = FromDouble(rOld + regret * inversePi);
+                    double w = ownerIsOptimized ? ToDouble(_pSelf[ai]) : ToDouble(_pOpp[ai]);
 
-                    double invOld = ToDouble(_sumInversePi[a]);
-                    _sumInversePi[a] = FromDouble(invOld + inversePi);
+                    if (!ownerIsOptimized && w <= double.Epsilon)
+                    {
+                        bool prior = ctx.SuppressMath; ctx.SuppressMath = true;
+                        children[i].Go(ref ctx);
+                        ctx.SuppressMath = prior;
+                        continue;
+                    }
 
-                    double lastOld = ToDouble(_lastCumulativeStrategyInc[a]);
-                    _lastCumulativeStrategyInc[a] = FromDouble(lastOld + piSelf * ToDouble(_pSelf[a]));
+                    FastCFRNodeResult child;
+                    if (ownerIsOptimized)
+                    {
+                        double oldSelf = ctx.ReachSelf;
+                        ctx.ReachSelf = oldSelf * w;
+                        child = children[i].Go(ref ctx);
+                        ctx.ReachSelf = oldSelf;
+                        Qa[ai] = child.Utilities[PlayerIndex];
+                    }
+                    else
+                    {
+                        double oldOpp = ctx.ReachOpp;
+                        ctx.ReachOpp = oldOpp * w;
+                        child = children[i].Go(ref ctx);
+                        ctx.ReachOpp = oldOpp;
+                    }
+
+                    if (ownerIsOptimized || w > double.Epsilon)
+                    {
+                        var cu = child.Utilities;
+                        for (int pl = 0; pl < expectedU.Length; pl++)
+                            expectedU[pl] += w * cu[pl];
+                        expectedCustom = expectedCustom.Plus(child.Custom.Times((float)w));
+                    }
                 }
+
+                if (ownerIsOptimized)
+                {
+                    double inversePi = ctx.ReachOpp;
+                    double piSelf = ctx.ReachSelf;
+
+                    double V;
+                    if (Vector.IsHardwareAccelerated)
+                    {
+                        if (typeof(TScalar) == typeof(double))
+                        {
+                            var pSelfD = MemoryMarshal.Cast<TScalar, double>(_pSelf.AsSpan());
+                            V = DotProductDouble(pSelfD, Qa);
+                            SimdUpdateDouble(Qa, V, inversePi, piSelf);
+                        }
+                        else if (typeof(TScalar) == typeof(float))
+                        {
+                            Span<float> QaF = stackalloc float[Vector<float>.Count];
+                            // We will reuse QaF chunk-by-chunk to avoid large stack usage.
+                            V = DotProductFloatChunked(Qa, QaF);
+                            SimdUpdateFloatChunked(Qa, QaF, (float)V, (float)inversePi, (float)piSelf);
+                        }
+                        else
+                        {
+                            V = DotProductScalar(Qa);
+                            ScalarUpdateTallies(Qa, V, inversePi, piSelf);
+                        }
+                    }
+                    else
+                    {
+                        V = DotProductScalar(Qa);
+                        ScalarUpdateTallies(Qa, V, inversePi, piSelf);
+                    }
+                }
+            }
+            finally
+            {
+                if (qaArray != null)
+                    ArrayPool<double>.Shared.Return(qaArray, clearArray: true);
             }
 
             return new FastCFRNodeResult(expectedU, expectedCustom);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private double DotProductDouble(ReadOnlySpan<double> a, ReadOnlySpan<double> b)
+        {
+            int n = NumActions;
+            int vc = Vector<double>.Count;
+            int i = 0;
+            Vector<double> acc = Vector<double>.Zero;
+
+            while (i <= n - vc)
+            {
+                var va = new Vector<double>(a.Slice(i, vc));
+                var vb = new Vector<double>(b.Slice(i, vc));
+                acc += va * vb;
+                i += vc;
+            }
+
+            double sum = 0.0;
+            for (int lane = 0; lane < vc; lane++) sum += acc[lane];
+            for (; i < n; i++) sum += a[i] * b[i];
+            return sum;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void SimdUpdateDouble(ReadOnlySpan<double> Qa, double V, double inversePi, double piSelf)
+        {
+            var sumR = MemoryMarshal.Cast<TScalar, double>(_sumRegretTimesInversePi.AsSpan());
+            var sumI = MemoryMarshal.Cast<TScalar, double>(_sumInversePi.AsSpan());
+            var last = MemoryMarshal.Cast<TScalar, double>(_lastCumulativeStrategyInc.AsSpan());
+            var p = MemoryMarshal.Cast<TScalar, double>(_pSelf.AsSpan());
+
+            int n = NumActions;
+            int vc = Vector<double>.Count;
+            int i = 0;
+
+            var vV = new Vector<double>(V);
+            var vInv = new Vector<double>(inversePi);
+            var vPiS = new Vector<double>(piSelf);
+
+            while (i <= n - vc)
+            {
+                var vQa = new Vector<double>(Qa.Slice(i, vc));
+                var vP = new Vector<double>(p.Slice(i, vc));
+
+                var vRegAdd = (vQa - vV) * vInv;
+
+                (new Vector<double>(sumR.Slice(i, vc)) + vRegAdd).CopyTo(sumR.Slice(i, vc));
+                (new Vector<double>(sumI.Slice(i, vc)) + vInv).CopyTo(sumI.Slice(i, vc));
+                (new Vector<double>(last.Slice(i, vc)) + (vP * vPiS)).CopyTo(last.Slice(i, vc));
+
+                i += vc;
+            }
+
+            for (; i < n; i++)
+            {
+                double r = Qa[i] - V;
+                sumR[i] += r * inversePi;
+                sumI[i] += inversePi;
+                last[i] += piSelf * p[i];
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private double DotProductFloatChunked(ReadOnlySpan<double> QaD, Span<float> chunkBuffer)
+        {
+            var pSelfF = MemoryMarshal.Cast<TScalar, float>(_pSelf.AsSpan());
+            int n = NumActions;
+            int vc = Vector<float>.Count;
+            int i = 0;
+            Vector<float> acc = Vector<float>.Zero;
+
+            while (i <= n - vc)
+            {
+                for (int k = 0; k < vc; k++) chunkBuffer[k] = (float)QaD[i + k];
+                var va = new Vector<float>(pSelfF.Slice(i, vc));
+                var vb = new Vector<float>(chunkBuffer);
+                acc += va * vb;
+                i += vc;
+            }
+
+            double sum = 0.0;
+            for (int lane = 0; lane < vc; lane++) sum += acc[lane];
+            for (; i < n; i++) sum += pSelfF[i] * (float)QaD[i];
+            return sum;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void SimdUpdateFloatChunked(ReadOnlySpan<double> QaD, Span<float> chunkBuffer, float V, float inversePi, float piSelf)
+        {
+            var sumR = MemoryMarshal.Cast<TScalar, float>(_sumRegretTimesInversePi.AsSpan());
+            var sumI = MemoryMarshal.Cast<TScalar, float>(_sumInversePi.AsSpan());
+            var last = MemoryMarshal.Cast<TScalar, float>(_lastCumulativeStrategyInc.AsSpan());
+            var p = MemoryMarshal.Cast<TScalar, float>(_pSelf.AsSpan());
+
+            int n = NumActions;
+            int vc = Vector<float>.Count;
+            int i = 0;
+
+            var vV = new Vector<float>(V);
+            var vInv = new Vector<float>(inversePi);
+            var vPiS = new Vector<float>(piSelf);
+
+            while (i <= n - vc)
+            {
+                for (int k = 0; k < vc; k++) chunkBuffer[k] = (float)QaD[i + k];
+
+                var vQa = new Vector<float>(chunkBuffer);
+                var vP = new Vector<float>(p.Slice(i, vc));
+
+                (new Vector<float>(sumR.Slice(i, vc)) + ((vQa - vV) * vInv)).CopyTo(sumR.Slice(i, vc));
+                (new Vector<float>(sumI.Slice(i, vc)) + vInv).CopyTo(sumI.Slice(i, vc));
+                (new Vector<float>(last.Slice(i, vc)) + (vP * vPiS)).CopyTo(last.Slice(i, vc));
+
+                i += vc;
+            }
+
+            for (; i < n; i++)
+            {
+                float r = (float)QaD[i] - V;
+                sumR[i] += r * inversePi;
+                sumI[i] += inversePi;
+                last[i] += piSelf * p[i];
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private double DotProductScalar(ReadOnlySpan<double> Qa)
+        {
+            double sum = 0.0;
+            for (int a = 0; a < NumActions; a++)
+                sum += ToDouble(_pSelf[a]) * Qa[a];
+            return sum;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void ScalarUpdateTallies(ReadOnlySpan<double> Qa, double V, double inversePi, double piSelf)
+        {
+            for (int a = 0; a < NumActions; a++)
+            {
+                double r = Qa[a] - V;
+                _sumRegretTimesInversePi[a] = FromDouble(ToDouble(_sumRegretTimesInversePi[a]) + r * inversePi);
+                _sumInversePi[a] = FromDouble(ToDouble(_sumInversePi[a]) + inversePi);
+                _lastCumulativeStrategyInc[a] = FromDouble(ToDouble(_lastCumulativeStrategyInc[a]) + piSelf * ToDouble(_pSelf[a]));
+            }
         }
 
         public override ReadOnlySpan<double> SumRegretTimesInversePi
@@ -337,7 +488,6 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
             }
         }
 
-        // Conversion hooks specialized per TScalar closure
         protected abstract double ToDouble(TScalar v);
         protected abstract TScalar FromDouble(double v);
     }
@@ -360,7 +510,6 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
         protected override float FromDouble(double v) => (float)v;
     }
 
-    // Chance node (scalar compatibility path) --------------------------------
     public sealed class FastCFRChance : IFastCFRNode
     {
         public readonly byte DecisionIndex;
@@ -441,10 +590,9 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
         }
     }
 
-    // Final node -------------------------------------------------------------
     public sealed class FastCFRFinal : IFastCFRNode
     {
-        private readonly double[][] _utilitiesByScenario; // [scenario][player]
+        private readonly double[][] _utilitiesByScenario;
         private readonly FloatSet[] _customByScenario;
         private readonly int _numPlayers;
         public FastCFRFinal(double[][] utilitiesByScenario, FloatSet[] customByScenario)
