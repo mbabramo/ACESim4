@@ -1,6 +1,8 @@
 ﻿// ACESimBase/GameSolvingSupport/GpuCFR/GpuCFRBuilder.cs
 using System;
+using System.Buffers;
 using System.Collections.Generic;
+using System.Reflection;
 using ILGPU;
 using ILGPU.Runtime;
 using ACESimBase.GameSolvingSupport.GameTree;
@@ -8,14 +10,9 @@ using ACESimBase.GameSolvingSupport.Settings;
 
 namespace ACESimBase.GameSolvingSupport.GpuCFR
 {
-    /// <summary>
-    /// CFR builder that collects per-action updates during traversal and computes
-    /// regret/avg-strategy increments on the GPU via ILGPU. If a CUDA GPU is not
-    /// available, ILGPU falls back to the CPU accelerator automatically.
-    /// </summary>
     public sealed class GpuCFRBuilder : IDisposable
     {
-        #region Public surface (unchanged)
+        #region Public surface
 
         public sealed class RootNode
         {
@@ -24,21 +21,27 @@ namespace ACESimBase.GameSolvingSupport.GpuCFR
 
             public NodeResult Go(ref IterationContext ctx)
             {
-                // Reset per-sweep buffers.
                 _owner._pending.Clear();
 
-                // Initialize reach vectors (current-policy and average-policy streams).
-                var pi = new double[_owner.NumNonChancePlayers];
-                var avgPi = new double[_owner.NumNonChancePlayers];
-                for (byte p = 0; p < _owner.NumNonChancePlayers; p++)
+                var pi = ArrayPool<double>.Shared.Rent(_owner.NumNonChancePlayers);
+                var avgPi = ArrayPool<double>.Shared.Rent(_owner.NumNonChancePlayers);
+                try
                 {
-                    pi[p] = 1.0;
-                    avgPi[p] = 1.0;
-                }
+                    for (byte p = 0; p < _owner.NumNonChancePlayers; p++)
+                    {
+                        pi[p] = 1.0;
+                        avgPi[p] = 1.0;
+                    }
 
-                var hp = _owner._rootFactory();
-                var u = _owner.Visit(in hp, ref ctx, pi, avgPi);
-                return new NodeResult(u);
+                    var hp = _owner._rootFactory();
+                    var u = _owner.Visit(in hp, ref ctx, pi, avgPi);
+                    return new NodeResult(u);
+                }
+                finally
+                {
+                    ArrayPool<double>.Shared.Return(pi, clearArray: true);
+                    ArrayPool<double>.Shared.Return(avgPi, clearArray: true);
+                }
             }
         }
 
@@ -67,7 +70,7 @@ namespace ACESimBase.GameSolvingSupport.GpuCFR
         }
 
         public RootNode Root { get; }
-        public bool IsAvailable { get; }
+        public bool IsAvailable { get; private set; }
         public byte NumNonChancePlayers { get; }
 
         public GpuCFRBuilder(
@@ -76,17 +79,14 @@ namespace ACESimBase.GameSolvingSupport.GpuCFR
             bool useFloat,
             GpuCFRBuilderOptions options)
         {
-            _navigation = navigation; // may be non-null in your env
+            _navigation = navigation;
             _rootFactory = rootFactory ?? throw new ArgumentNullException(nameof(rootFactory));
             _useFloatPreference = useFloat;
             _options = options ?? new GpuCFRBuilderOptions();
             NumNonChancePlayers = _options.NumNonChancePlayers;
 
-            // Build a context with default devices and Algorithms enabled.
-            // This wires up ILGPU.Algorithms properly.
             _context = Context.Create(builder => builder.Default().EnableAlgorithms());
 
-            // Prefer a real GPU; fall back to FastCFR (IsAvailable=false) if none.
             Accelerator found = null;
             foreach (var device in _context)
             {
@@ -100,29 +100,20 @@ namespace ACESimBase.GameSolvingSupport.GpuCFR
 
             if (found == null)
             {
-                // No CUDA/OpenCL device detected -> let outer code fall back to Fast flavor.
-                IsAvailable = false;
-                Root = new RootNode(this);
-                throw new Exception("CUDA not found");
-                //return;
+                throw new InvalidOperationException("No compatible GPU accelerator (CUDA or OpenCL) was found. GPU mode cannot be used on this system.");
             }
 
             _accelerator = found;
-
-            // Precision choice: keep it simple; honor user preference.
             _useDeviceFloat = _useFloatPreference;
 
-            // Compile kernels once.
             LoadKernels();
 
             Root = new RootNode(this);
             IsAvailable = true;
         }
 
-
         public IterationContext InitializeIteration(byte optimizedPlayerIndex, int scenarioIndex, Func<int, double> rand01ForDecision)
         {
-            // Nothing to freeze here; policies are read directly from nodes during traversal.
             return new IterationContext
             {
                 IterationNumber = 0,
@@ -136,15 +127,24 @@ namespace ACESimBase.GameSolvingSupport.GpuCFR
             };
         }
 
-        /// <summary>
-        /// Launches the ILGPU kernel over all pending per-action updates and applies
-        /// the results to backing information-set nodes. Clears the pending buffer.
-        /// </summary>
         public void CopyTalliesIntoBackingNodes()
         {
             int n = _pending.Count;
             if (n == 0)
+            {
+                _pending.Clear();
                 return;
+            }
+
+            // If no GPU is present, compute the contributions on CPU so that
+            // Regular and GPU flavors remain bit-for-bit consistent when the
+            // GPU path is selected but unavailable.
+            if (_accelerator is null)
+            {
+                CpuApplyPending();
+                _pending.Clear();
+                return;
+            }
 
             if (_useDeviceFloat)
                 RunKernelFloat(n);
@@ -163,7 +163,6 @@ namespace ACESimBase.GameSolvingSupport.GpuCFR
         private readonly bool _useFloatPreference;
         private readonly GpuCFRBuilderOptions _options;
 
-        // ILGPU
         private readonly Context _context;
         private readonly Accelerator _accelerator;
         private bool _useDeviceFloat;
@@ -173,25 +172,31 @@ namespace ACESimBase.GameSolvingSupport.GpuCFR
             ArrayView<double>, ArrayView<double>, ArrayView<double>> _kernelDouble;
 
         private Action<Index1D,
-            ArrayView<float>, ArrayView<float>, ArrayView<float>, ArrayView<float>, ArrayView<float>,
+            ArrayView<float>, ArrayView<float>, ArrayView<float>, ArrayView<float>, ArrayView<float> ,
             ArrayView<float>, ArrayView<float>, ArrayView<float>> _kernelFloat;
 
         private struct PendingUpdate
         {
             public InformationSetNode Node;
             public byte ActionOneBased;
-            public double Q;         // action value for optimized player
-            public double V;         // state value for optimized player under current policy
-            public double InversePi; // product of opponent & chance reach
-            public double PiSelf;    // reach of optimized player (clipped)
-            public double PAction;   // current policy prob for the action
+            public double Q;
+            public double V;
+            public double InversePi;
+            public double PiSelf;
+            public double PAction;
         }
 
         private readonly List<PendingUpdate> _pending = new List<PendingUpdate>(capacity: 1 << 14);
 
+        private DoubleDeviceBuffers _dbl;
+        private FloatDeviceBuffers _flt;
+
+        // Cache for scenario-aware terminal utilities
+        private readonly Dictionary<FinalUtilitiesNode, double[][]> _finalUtilitiesCache = new Dictionary<FinalUtilitiesNode, double[][]>();
+
         #endregion
 
-        #region Traversal (CPU) — collects per-action updates for GPU
+        #region Traversal (CPU)
 
         private double[] Visit(in HistoryPoint hp, ref IterationContext ctx, double[] pi, double[] avgPi)
         {
@@ -199,16 +204,22 @@ namespace ACESimBase.GameSolvingSupport.GpuCFR
 
             if (state is FinalUtilitiesNode fu)
             {
+                // Respect ScenarioIndex just like the Fast/Regular paths.
+                var utilsByScenario = GetFinalUtilitiesByScenario(fu);
+                int s = (uint)ctx.ScenarioIndex < (uint)utilsByScenario.Length ? ctx.ScenarioIndex : 0;
+                var src = utilsByScenario[s];
+
                 var u = new double[NumNonChancePlayers];
-                for (int i = 0; i < NumNonChancePlayers; i++)
-                    u[i] = fu.Utilities[i];
+                int copy = Math.Min(NumNonChancePlayers, src.Length);
+                for (int i = 0; i < copy; i++)
+                    u[i] = src[i];
                 return u;
             }
             else if (state is ChanceNode cn)
             {
                 return VisitChance(in hp, cn, ref ctx, pi, avgPi);
             }
-            else // InformationSetNode
+            else
             {
                 return VisitDecision(in hp, (InformationSetNode)state, ref ctx, pi, avgPi);
             }
@@ -227,28 +238,35 @@ namespace ACESimBase.GameSolvingSupport.GpuCFR
                 if (p == 0.0)
                     continue;
 
-                var nextPi = new double[NumNonChancePlayers];
-                var nextAvgPi = new double[NumNonChancePlayers];
-                GetNextPiValues(pi,     ctx.OptimizedPlayerIndex, p, changeOtherPlayers: true,  dest: nextPi);
-                GetNextPiValues(avgPi,  ctx.OptimizedPlayerIndex, p, changeOtherPlayers: true,  dest: nextAvgPi);
+                var nextPi = ArrayPool<double>.Shared.Rent(NumNonChancePlayers);
+                var nextAvgPi = ArrayPool<double>.Shared.Rent(NumNonChancePlayers);
+                try
+                {
+                    GetNextPiValues(pi,    ctx.OptimizedPlayerIndex, p, changeOtherPlayers: true,  dest: nextPi);
+                    GetNextPiValues(avgPi, ctx.OptimizedPlayerIndex, p, changeOtherPlayers: true,  dest: nextAvgPi);
 
-                HistoryPoint nextHp;
-                if (_navigation.LookupApproach != InformationSetLookupApproach.PlayGameDirectly && cn.Decision.IsReversible)
-                    nextHp = hp.SwitchToBranch(_navigation, a, cn.Decision, cn.DecisionIndex);
-                else
-                    nextHp = hp.GetBranch(_navigation, a, cn.Decision, cn.DecisionIndex);
+                    HistoryPoint nextHp;
+                    if (_navigation.LookupApproach != InformationSetLookupApproach.PlayGameDirectly && cn.Decision.IsReversible)
+                        nextHp = hp.SwitchToBranch(_navigation, a, cn.Decision, cn.DecisionIndex);
+                    else
+                        nextHp = hp.GetBranch(_navigation, a, cn.Decision, cn.DecisionIndex);
 
-                var childU = Visit(in nextHp, ref ctx, nextPi, nextAvgPi);
-                for (int i = 0; i < NumNonChancePlayers; i++)
-                    expected[i] += p * childU[i];
+                    var childU = Visit(in nextHp, ref ctx, nextPi, nextAvgPi);
+                    for (int i = 0; i < NumNonChancePlayers; i++)
+                        expected[i] += p * childU[i];
 
-                if (_navigation.LookupApproach != InformationSetLookupApproach.PlayGameDirectly && cn.Decision.IsReversible)
-                    _navigation.GameDefinition.ReverseSwitchToBranchEffects(cn.Decision, in nextHp);
+                    if (_navigation.LookupApproach != InformationSetLookupApproach.PlayGameDirectly && cn.Decision.IsReversible)
+                        _navigation.GameDefinition.ReverseSwitchToBranchEffects(cn.Decision, in nextHp);
+                }
+                finally
+                {
+                    ArrayPool<double>.Shared.Return(nextPi, clearArray: true);
+                    ArrayPool<double>.Shared.Return(nextAvgPi, clearArray: true);
+                }
             }
 
             return expected;
         }
-
         private double[] VisitDecision(in HistoryPoint hp, InformationSetNode isn, ref IterationContext ctx, double[] pi, double[] avgPi)
         {
             byte decisionIndex = isn.DecisionIndex;
@@ -256,7 +274,12 @@ namespace ACESimBase.GameSolvingSupport.GpuCFR
             byte numActions = decision.NumPossibleActions;
             byte playerAtNode = isn.PlayerIndex;
 
-            var pAction = new double[numActions];
+            const int StackThreshold = 64;
+
+            Span<double> actionBuf = numActions <= StackThreshold ? stackalloc double[numActions] : default;
+            double[] rentedActionBuf = null;
+            Span<double> pAction = numActions <= StackThreshold ? actionBuf : (rentedActionBuf = ArrayPool<double>.Shared.Rent(numActions));
+
             if (decision.AlwaysDoAction is byte always)
             {
                 SetAlwaysAction(numActions, pAction, always);
@@ -267,40 +290,52 @@ namespace ACESimBase.GameSolvingSupport.GpuCFR
                 isn.GetCurrentProbabilities(pAction, opponentProbabilities);
             }
 
-            var expectedOptimizedForAction = new double[numActions];
-            double expectedOptimized = 0.0;
-            var expected = new double[NumNonChancePlayers];
+            double[] expected = new double[NumNonChancePlayers];
 
             double inversePi = GetInversePiValue(pi, ctx.OptimizedPlayerIndex);
+
+            double[] rentedEoA = null;
+            Span<double> expectedOptimizedForAction =
+                numActions <= StackThreshold ? stackalloc double[numActions] : (rentedEoA = ArrayPool<double>.Shared.Rent(numActions));
+
+            double expectedOptimized = 0.0;
 
             for (byte a = 1; a <= numActions; a++)
             {
                 double prob = pAction[a - 1];
-                if (prob <= 0.0 && playerAtNode != ctx.OptimizedPlayerIndex)
-                    continue; // skip zero-prob opponent branches
+                if (prob <= double.Epsilon && playerAtNode != ctx.OptimizedPlayerIndex)
+                    continue;
 
                 double avgProb = isn.GetAverageStrategy(a);
 
-                var nextPi = new double[NumNonChancePlayers];
-                var nextAvgPi = new double[NumNonChancePlayers];
-                GetNextPiValues(pi,     playerAtNode, prob,    changeOtherPlayers: false, dest: nextPi);
-                GetNextPiValues(avgPi,  playerAtNode, avgProb, changeOtherPlayers: false, dest: nextAvgPi);
+                var nextPi = ArrayPool<double>.Shared.Rent(NumNonChancePlayers);
+                var nextAvgPi = ArrayPool<double>.Shared.Rent(NumNonChancePlayers);
+                try
+                {
+                    GetNextPiValues(pi, playerAtNode, prob, changeOtherPlayers: false, dest: nextPi);
+                    GetNextPiValues(avgPi, playerAtNode, avgProb, changeOtherPlayers: false, dest: nextAvgPi);
 
-                HistoryPoint nextHp;
-                if (_navigation.LookupApproach != InformationSetLookupApproach.PlayGameDirectly && isn.Decision.IsReversible)
-                    nextHp = hp.SwitchToBranch(_navigation, a, isn.Decision, isn.DecisionIndex);
-                else
-                    nextHp = hp.GetBranch(_navigation, a, isn.Decision, isn.DecisionIndex);
+                    HistoryPoint nextHp;
+                    if (_navigation.LookupApproach != InformationSetLookupApproach.PlayGameDirectly && isn.Decision.IsReversible)
+                        nextHp = hp.SwitchToBranch(_navigation, a, isn.Decision, isn.DecisionIndex);
+                    else
+                        nextHp = hp.GetBranch(_navigation, a, isn.Decision, isn.DecisionIndex);
 
-                var childU = Visit(in nextHp, ref ctx, nextPi, nextAvgPi);
+                    var childU = Visit(in nextHp, ref ctx, nextPi, nextAvgPi);
 
-                for (int i = 0; i < NumNonChancePlayers; i++)
-                    expected[i] += prob * childU[i];
+                    for (int i = 0; i < NumNonChancePlayers; i++)
+                        expected[i] += prob * childU[i];
 
-                expectedOptimizedForAction[a - 1] = childU[ctx.OptimizedPlayerIndex];
+                    expectedOptimizedForAction[a - 1] = childU[ctx.OptimizedPlayerIndex];
 
-                if (_navigation.LookupApproach != InformationSetLookupApproach.PlayGameDirectly && isn.Decision.IsReversible)
-                    _navigation.GameDefinition.ReverseSwitchToBranchEffects(isn.Decision, in nextHp);
+                    if (_navigation.LookupApproach != InformationSetLookupApproach.PlayGameDirectly && isn.Decision.IsReversible)
+                        _navigation.GameDefinition.ReverseSwitchToBranchEffects(isn.Decision, in nextHp);
+                }
+                finally
+                {
+                    ArrayPool<double>.Shared.Return(nextPi, clearArray: true);
+                    ArrayPool<double>.Shared.Return(nextAvgPi, clearArray: true);
+                }
             }
 
             if (playerAtNode == ctx.OptimizedPlayerIndex)
@@ -308,6 +343,7 @@ namespace ACESimBase.GameSolvingSupport.GpuCFR
                 for (byte a = 1; a <= numActions; a++)
                     expectedOptimized += pAction[a - 1] * expectedOptimizedForAction[a - 1];
 
+                // Match Regular flavor: clamp reach used for average‑strategy contribution.
                 double piSelf = pi[ctx.OptimizedPlayerIndex];
                 if (piSelf < InformationSetNode.SmallestProbabilityRepresented)
                     piSelf = InformationSetNode.SmallestProbabilityRepresented;
@@ -327,8 +363,12 @@ namespace ACESimBase.GameSolvingSupport.GpuCFR
                 }
             }
 
+            if (rentedActionBuf != null) ArrayPool<double>.Shared.Return(rentedActionBuf, clearArray: true);
+            if (rentedEoA != null) ArrayPool<double>.Shared.Return(rentedEoA, clearArray: true);
+
             return expected;
         }
+
 
         #endregion
 
@@ -370,6 +410,9 @@ namespace ACESimBase.GameSolvingSupport.GpuCFR
 
         private void LoadKernels()
         {
+            if (_accelerator is null)
+                return;
+
             if (_useDeviceFloat)
             {
                 _kernelFloat = _accelerator.LoadAutoGroupedStreamKernel<
@@ -388,7 +431,8 @@ namespace ACESimBase.GameSolvingSupport.GpuCFR
 
         private void RunKernelDouble(int n)
         {
-            // Pack host arrays from pending list
+            EnsureDoubleCapacity(n);
+
             var q = new double[n];
             var v = new double[n];
             var invPi = new double[n];
@@ -405,36 +449,42 @@ namespace ACESimBase.GameSolvingSupport.GpuCFR
                 pAction[i] = rec.PAction;
             }
 
-            using var dq = _accelerator.Allocate1D(q);
-            using var dv = _accelerator.Allocate1D(v);
-            using var dinv = _accelerator.Allocate1D(invPi);
-            using var dpiSelf = _accelerator.Allocate1D(piSelf);
-            using var dpAct = _accelerator.Allocate1D(pAction);
+            var viewQ = _dbl.Q.View.SubView(0, n);
+            var viewV = _dbl.V.View.SubView(0, n);
+            var viewInv = _dbl.Inv.View.SubView(0, n);
+            var viewPiSelf = _dbl.PiSelf.View.SubView(0, n);
+            var viewPAct = _dbl.PAct.View.SubView(0, n);
 
-            using var doutRInvPi = _accelerator.Allocate1D<double>(n);
-            using var doutInvPi = _accelerator.Allocate1D<double>(n);
-            using var doutCumInc = _accelerator.Allocate1D<double>(n);
+            viewQ.CopyFromCPU(q);
+            viewV.CopyFromCPU(v);
+            viewInv.CopyFromCPU(invPi);
+            viewPiSelf.CopyFromCPU(piSelf);
+            viewPAct.CopyFromCPU(pAction);
 
-            _kernelDouble(n, dq.View, dv.View, dinv.View, dpiSelf.View, dpAct.View,
-                          doutRInvPi.View, doutInvPi.View, doutCumInc.View);
+            _kernelDouble(n, _dbl.Q.View, _dbl.V.View, _dbl.Inv.View, _dbl.PiSelf.View, _dbl.PAct.View,
+                          _dbl.OutRInv.View, _dbl.OutInv.View, _dbl.OutCum.View);
             _accelerator.Synchronize();
 
-            var hRInvPi = doutRInvPi.GetAsArray1D();
-            var hInvPi = doutInvPi.GetAsArray1D();
-            var hCumInc = doutCumInc.GetAsArray1D();
+            var hRInvPi = new double[n];
+            var hInv = new double[n];
+            var hCum = new double[n];
 
-            // Apply to backing nodes
+            _dbl.OutRInv.View.SubView(0, n).CopyToCPU(hRInvPi);
+            _dbl.OutInv.View.SubView(0, n).CopyToCPU(hInv);
+            _dbl.OutCum.View.SubView(0, n).CopyToCPU(hCum);
+
             for (int i = 0; i < n; i++)
             {
                 var rec = _pending[i];
-                rec.Node.IncrementLastRegret(rec.ActionOneBased, hRInvPi[i], hInvPi[i]);
-                rec.Node.IncrementLastCumulativeStrategyIncrements(rec.ActionOneBased, hCumInc[i]);
+                rec.Node.IncrementLastRegret(rec.ActionOneBased, hRInvPi[i], hInv[i]);
+                rec.Node.IncrementLastCumulativeStrategyIncrements(rec.ActionOneBased, hCum[i]);
             }
         }
 
         private void RunKernelFloat(int n)
         {
-            // Pack host arrays from pending list (cast to float)
+            EnsureFloatCapacity(n);
+
             var q = new float[n];
             var v = new float[n];
             var invPi = new float[n];
@@ -451,30 +501,35 @@ namespace ACESimBase.GameSolvingSupport.GpuCFR
                 pAction[i] = (float)rec.PAction;
             }
 
-            using var dq = _accelerator.Allocate1D(q);
-            using var dv = _accelerator.Allocate1D(v);
-            using var dinv = _accelerator.Allocate1D(invPi);
-            using var dpiSelf = _accelerator.Allocate1D(piSelf);
-            using var dpAct = _accelerator.Allocate1D(pAction);
+            var viewQ = _flt.Q.View.SubView(0, n);
+            var viewV = _flt.V.View.SubView(0, n);
+            var viewInv = _flt.Inv.View.SubView(0, n);
+            var viewPiSelf = _flt.PiSelf.View.SubView(0, n);
+            var viewPAct = _flt.PAct.View.SubView(0, n);
 
-            using var doutRInvPi = _accelerator.Allocate1D<float>(n);
-            using var doutInvPi = _accelerator.Allocate1D<float>(n);
-            using var doutCumInc = _accelerator.Allocate1D<float>(n);
+            viewQ.CopyFromCPU(q);
+            viewV.CopyFromCPU(v);
+            viewInv.CopyFromCPU(invPi);
+            viewPiSelf.CopyFromCPU(piSelf);
+            viewPAct.CopyFromCPU(pAction);
 
-            _kernelFloat(n, dq.View, dv.View, dinv.View, dpiSelf.View, dpAct.View,
-                         doutRInvPi.View, doutInvPi.View, doutCumInc.View);
+            _kernelFloat(n, _flt.Q.View, _flt.V.View, _flt.Inv.View, _flt.PiSelf.View, _flt.PAct.View,
+                         _flt.OutRInv.View, _flt.OutInv.View, _flt.OutCum.View);
             _accelerator.Synchronize();
 
-            var hRInvPi = doutRInvPi.GetAsArray1D();
-            var hInvPi = doutInvPi.GetAsArray1D();
-            var hCumInc = doutCumInc.GetAsArray1D();
+            var hRInvPi = new float[n];
+            var hInv = new float[n];
+            var hCum = new float[n];
 
-            // Apply to backing nodes
+            _flt.OutRInv.View.SubView(0, n).CopyToCPU(hRInvPi);
+            _flt.OutInv.View.SubView(0, n).CopyToCPU(hInv);
+            _flt.OutCum.View.SubView(0, n).CopyToCPU(hCum);
+
             for (int i = 0; i < n; i++)
             {
                 var rec = _pending[i];
-                rec.Node.IncrementLastRegret(rec.ActionOneBased, hRInvPi[i], hInvPi[i]);
-                rec.Node.IncrementLastCumulativeStrategyIncrements(rec.ActionOneBased, hCumInc[i]);
+                rec.Node.IncrementLastRegret(rec.ActionOneBased, hRInvPi[i], hInv[i]);
+                rec.Node.IncrementLastCumulativeStrategyIncrements(rec.ActionOneBased, hCum[i]);
             }
         }
 
@@ -482,7 +537,20 @@ namespace ACESimBase.GameSolvingSupport.GpuCFR
 
         #region Helpers
 
-        private static void SetAlwaysAction(byte numActions, double[] dest, byte actionOneBased)
+        private void CpuApplyPending()
+        {
+            // CPU fallback identical to GPU kernel math, used when no accelerator is available.
+            for (int i = 0; i < _pending.Count; i++)
+            {
+                var rec = _pending[i];
+                double r = rec.Q - rec.V;
+                double rTimesInvPi = r * rec.InversePi;
+                rec.Node.IncrementLastRegret(rec.ActionOneBased, rTimesInvPi, rec.InversePi);
+                rec.Node.IncrementLastCumulativeStrategyIncrements(rec.ActionOneBased, rec.PiSelf * rec.PAction);
+            }
+        }
+
+        private static void SetAlwaysAction(byte numActions, Span<double> dest, byte actionOneBased)
         {
             for (int i = 0; i < numActions; i++) dest[i] = 0.0;
             dest[actionOneBased - 1] = 1.0;
@@ -509,22 +577,119 @@ namespace ACESimBase.GameSolvingSupport.GpuCFR
             }
         }
 
+        private double[][] GetFinalUtilitiesByScenario(FinalUtilitiesNode node)
+        {
+            if (_finalUtilitiesCache.TryGetValue(node, out var arr))
+                return arr;
+
+            var t = node.GetType();
+
+            // Try UtilitiesByScenario first (multi-scenario games)
+            var utilsByScProp = t.GetProperty("UtilitiesByScenario", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+            if (utilsByScProp != null && utilsByScProp.GetValue(node) is System.Collections.IEnumerable seq)
+            {
+                var list = new List<double[]>();
+                foreach (var item in seq)
+                    list.Add((double[])item);
+                arr = list.ToArray();
+                _finalUtilitiesCache[node] = arr;
+                return arr;
+            }
+
+            // Fallback to single Utilities array
+            var utilsProp = t.GetProperty("Utilities", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+            double[] single = utilsProp != null ? (double[])utilsProp.GetValue(node) : new double[NumNonChancePlayers];
+            arr = new[] { single };
+            _finalUtilitiesCache[node] = arr;
+            return arr;
+        }
+
+        private void EnsureDoubleCapacity(int needed)
+        {
+            if (_dbl == null) _dbl = new DoubleDeviceBuffers();
+            if (_dbl.Capacity >= needed) return;
+
+            _dbl.Dispose();
+            _dbl.Q      = _accelerator.Allocate1D<double>(needed);
+            _dbl.V      = _accelerator.Allocate1D<double>(needed);
+            _dbl.Inv    = _accelerator.Allocate1D<double>(needed);
+            _dbl.PiSelf = _accelerator.Allocate1D<double>(needed);
+            _dbl.PAct   = _accelerator.Allocate1D<double>(needed);
+            _dbl.OutRInv = _accelerator.Allocate1D<double>(needed);
+            _dbl.OutInv  = _accelerator.Allocate1D<double>(needed);
+            _dbl.OutCum  = _accelerator.Allocate1D<double>(needed);
+            _dbl.Capacity = needed;
+        }
+
+        private void EnsureFloatCapacity(int needed)
+        {
+            if (_flt == null) _flt = new FloatDeviceBuffers();
+            if (_flt.Capacity >= needed) return;
+
+            _flt.Dispose();
+            _flt.Q      = _accelerator.Allocate1D<float>(needed);
+            _flt.V      = _accelerator.Allocate1D<float>(needed);
+            _flt.Inv    = _accelerator.Allocate1D<float>(needed);
+            _flt.PiSelf = _accelerator.Allocate1D<float>(needed);
+            _flt.PAct   = _accelerator.Allocate1D<float>(needed);
+            _flt.OutRInv = _accelerator.Allocate1D<float>(needed);
+            _flt.OutInv  = _accelerator.Allocate1D<float>(needed);
+            _flt.OutCum  = _accelerator.Allocate1D<float>(needed);
+            _flt.Capacity = needed;
+        }
+
+        private sealed class DoubleDeviceBuffers : IDisposable
+        {
+            public int Capacity;
+            public MemoryBuffer1D<double, Stride1D.Dense> Q;
+            public MemoryBuffer1D<double, Stride1D.Dense> V;
+            public MemoryBuffer1D<double, Stride1D.Dense> Inv;
+            public MemoryBuffer1D<double, Stride1D.Dense> PiSelf;
+            public MemoryBuffer1D<double, Stride1D.Dense> PAct;
+            public MemoryBuffer1D<double, Stride1D.Dense> OutRInv;
+            public MemoryBuffer1D<double, Stride1D.Dense> OutInv;
+            public MemoryBuffer1D<double, Stride1D.Dense> OutCum;
+
+            public void Dispose()
+            {
+                Q?.Dispose(); V?.Dispose(); Inv?.Dispose(); PiSelf?.Dispose(); PAct?.Dispose();
+                OutRInv?.Dispose(); OutInv?.Dispose(); OutCum?.Dispose();
+                Q = V = Inv = PiSelf = PAct = OutRInv = OutInv = OutCum = null;
+                Capacity = 0;
+            }
+        }
+
+        private sealed class FloatDeviceBuffers : IDisposable
+        {
+            public int Capacity;
+            public MemoryBuffer1D<float, Stride1D.Dense> Q;
+            public MemoryBuffer1D<float, Stride1D.Dense> V;
+            public MemoryBuffer1D<float, Stride1D.Dense> Inv;
+            public MemoryBuffer1D<float, Stride1D.Dense> PiSelf;
+            public MemoryBuffer1D<float, Stride1D.Dense> PAct;
+            public MemoryBuffer1D<float, Stride1D.Dense> OutRInv;
+            public MemoryBuffer1D<float, Stride1D.Dense> OutInv;
+            public MemoryBuffer1D<float, Stride1D.Dense> OutCum;
+
+            public void Dispose()
+            {
+                Q?.Dispose(); V?.Dispose(); Inv?.Dispose(); PiSelf?.Dispose(); PAct?.Dispose();
+                OutRInv?.Dispose(); OutInv?.Dispose(); OutCum?.Dispose();
+                Q = V = Inv = PiSelf = PAct = OutRInv = OutInv = OutCum = null;
+                Capacity = 0;
+            }
+        }
+
         #endregion
 
         #region IDisposable
 
         public void Dispose()
         {
-            try
-            {
-                _accelerator?.Dispose();
-            }
-            catch { /* ignore */ }
-            try
-            {
-                _context?.Dispose();
-            }
-            catch { /* ignore */ }
+            try { _dbl?.Dispose(); } catch { }
+            try { _flt?.Dispose(); } catch { }
+            try { _accelerator?.Dispose(); } catch { }
+            try { _context?.Dispose(); } catch { }
         }
 
         #endregion
