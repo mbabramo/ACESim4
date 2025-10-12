@@ -10,13 +10,13 @@ namespace ACESimBase.Games.LitigGame.Options
     {
         public bool UseSimplifiedPrecautionNegligenceGame = false;
         public byte ParameterForMultipleOptions_Simplified = 2;
-        public byte ParameterForMultipleOptions = 5;
+        public byte ParameterForMultipleOptions = 10;
 
         public bool CollapseDecisionsInSimplifiedPrecautionNegligenceGame = true; 
         public bool PerfectAdjudication = false;
         public bool PerfectInformationToo = false;
 
-        public byte NumPotentialBargainingRounds = 3; // DEBUG
+        public byte NumPotentialBargainingRounds = 1; 
         public bool AllowQuitting = true;
         public bool PredeterminedAbandonAndDefaults = false; // should be false when doing more than one bargaining round OR when using CFR.
 

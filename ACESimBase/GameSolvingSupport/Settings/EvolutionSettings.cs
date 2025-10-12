@@ -18,7 +18,7 @@ namespace ACESimBase.GameSolvingSupport.Settings
     [Serializable]
     public class EvolutionSettings
     {
-        public GeneralizedVanillaFlavor GeneralizedVanillaFlavor = GeneralizedVanillaFlavor.Gpu; // DEBUG
+        public GeneralizedVanillaFlavor GeneralizedVanillaFlavor = GeneralizedVanillaFlavor.Fast;
         public bool FastCFR_UseFloat = false; // offers very slight speedup
         public bool IncludeCommentsWhenUnrolling = false;
         public bool UseCheckpointsWhenNotUnrolling = false; // for when unrolling, look at ArrayCommandList.UseCheckpoints
