@@ -11,6 +11,6 @@ namespace ACESimBase.GameSolvingSupport.FastCFR
         Regular,
         Unrolled,
         Fast,
-        Gpu
+        Gpu // Unfortunately remains slow even for large trees
     }
 }

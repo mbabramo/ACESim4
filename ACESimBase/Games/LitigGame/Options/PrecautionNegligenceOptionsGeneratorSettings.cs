@@ -16,7 +16,7 @@ namespace ACESimBase.Games.LitigGame.Options
         public bool PerfectAdjudication = false;
         public bool PerfectInformationToo = false;
 
-        public byte NumPotentialBargainingRounds = 2; // DEBUG
+        public byte NumPotentialBargainingRounds = 3; // DEBUG
         public bool AllowQuitting = true;
         public bool PredeterminedAbandonAndDefaults = false; // should be false when doing more than one bargaining round OR when using CFR.
 

@@ -15,6 +15,8 @@ namespace ACESimBase.Util.Debugging
 
         private static int Tabs = 0;
 
+        public static bool DisableConsoleProgressString = false;
+
         public static void TabIndent()
         {
             Interlocked.Increment(ref Tabs);
@@ -160,6 +162,8 @@ namespace ACESimBase.Util.Debugging
 
         public static void SetConsoleProgressString(string consoleProgressString)
         {
+            if (DisableConsoleProgressString)
+                return;
             HideConsoleProgressString();
             ConsoleProgressString = consoleProgressString;
             ShowConsoleProgressString();

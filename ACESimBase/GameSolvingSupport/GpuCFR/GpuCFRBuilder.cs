@@ -7,6 +7,9 @@ using ILGPU;
 using ILGPU.Runtime;
 using ACESimBase.GameSolvingSupport.GameTree;
 using ACESimBase.GameSolvingSupport.Settings;
+using Microsoft.FSharp.Core;
+using ACESim;
+using ACESimBase.Util.Debugging;
 
 namespace ACESimBase.GameSolvingSupport.GpuCFR
 {
@@ -136,9 +139,32 @@ namespace ACESimBase.GameSolvingSupport.GpuCFR
                 return;
             }
 
-            // If no GPU is present, compute the contributions on CPU so that
-            // Regular and GPU flavors remain bit-for-bit consistent when the
-            // GPU path is selected but unavailable.
+            // Always-on parity summary of pending updates before apply
+            {
+                int p0 = 0, p1 = 0, pOther = 0;
+                double sumRTimesInvPi = 0.0, sumInvPi = 0.0, sumCumInc = 0.0;
+                var unique = new HashSet<InformationSetNode>();
+
+                for (int i = 0; i < n; i++)
+                {
+                    var rec = _pending[i];
+
+                    if (rec.Node.PlayerIndex == 0) p0++;
+                    else if (rec.Node.PlayerIndex == 1) p1++;
+                    else pOther++;
+
+                    unique.Add(rec.Node);
+
+                    double r = rec.Q - rec.V;
+                    sumRTimesInvPi += r * rec.InversePi;
+                    sumInvPi += rec.InversePi;
+                    sumCumInc += rec.PiSelf * rec.PAction;
+                }
+
+                if (GeneralizedVanilla.EnableParityLogging)
+                    TabbedText.WriteLine($"[PARITY] GPU pending pre-apply n={n} p0={p0} p1={p1} other={pOther} uniqueNodes={unique.Count} sumR×InvPi={sumRTimesInvPi:G17} sumInvPi={sumInvPi:G17} sumAvgStrInc={sumCumInc:G17}");
+            }
+
             if (_accelerator is null)
             {
                 CpuApplyPending();
@@ -153,6 +179,8 @@ namespace ACESimBase.GameSolvingSupport.GpuCFR
 
             _pending.Clear();
         }
+
+
 
         #endregion
 
@@ -556,18 +584,20 @@ namespace ACESimBase.GameSolvingSupport.GpuCFR
             dest[actionOneBased - 1] = 1.0;
         }
 
-        private static double GetInversePiValue(double[] pi, byte playerIndex)
+        private double GetInversePiValue(double[] pi, byte playerIndex)
         {
             double product = 1.0;
-            for (byte p = 0; p < pi.Length; p++)
+            // Only multiply the logical player slots. ArrayPool may return longer buffers.
+            for (byte p = 0; p < NumNonChancePlayers; p++)
                 if (p != playerIndex)
                     product *= pi[p];
             return product;
         }
 
-        private static void GetNextPiValues(double[] current, byte playerIndex, double prob, bool changeOtherPlayers, double[] dest)
+        private void GetNextPiValues(double[] current, byte playerIndex, double prob, bool changeOtherPlayers, double[] dest)
         {
-            for (byte p = 0; p < current.Length; p++)
+            // Only touch the logical player slots. Ignore any extra capacity from ArrayPool.
+            for (byte p = 0; p < NumNonChancePlayers; p++)
             {
                 double cur = current[p];
                 if (p == playerIndex)
@@ -576,6 +606,7 @@ namespace ACESimBase.GameSolvingSupport.GpuCFR
                     dest[p] = changeOtherPlayers ? cur * prob : cur;
             }
         }
+
 
         private double[][] GetFinalUtilitiesByScenario(FinalUtilitiesNode node)
         {

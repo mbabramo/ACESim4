@@ -30,7 +30,12 @@ namespace ACESimTest.StrategiesTests
     [TestClass]
     public class GeneralizedVanillaTests : StrategiesDeveloperTestsBase
     {
-        private sealed class EvaluationResult
+        public GeneralizedVanillaTests() : base()
+        {
+            TabbedText.DisableConsoleProgressString = true;
+        }
+
+    private sealed class EvaluationResult
         {
             public double[] Utilities { get; }
             public double[] InformationSetValues { get; }
@@ -41,7 +46,7 @@ namespace ACESimTest.StrategiesTests
             }
         }
 
-        private int _iterationsForParity = 100; // minimum number causing test to fail
+        private int _iterationsForParity =  100; // minimum number causing test to fail
 
         private static bool ConfirmInformationSetsMatch(
             GeneralizedVanilla devA, string labelA,
@@ -232,9 +237,119 @@ namespace ACESimTest.StrategiesTests
             var gpu = await BuildWithFlavor(largerTree, randomInformationSets, GeneralizedVanillaFlavor.Gpu, 1, _iterationsForParity);
             await gpu.RunAlgorithm("TESTOPTIONS");
 
-            var ok = ConfirmInformationSetsMatch(regular, "Regular", gpu, "GPU", maxLines: 1);
+            // Dump entire tree state (all information sets, all vectors) for both flavors.
+            DumpAllInformationSets("REGULAR post-update", regular);
+            DumpAllInformationSets("GPU     post-update", gpu);
+
+            // Keep your parity assertion (increase maxLines if you want more detail in failures).
+            var ok = ConfirmInformationSetsMatch(regular, "Regular", gpu, "GPU", maxLines: 200, tolerance: 1E-08);
             ok.Should().BeTrue("information sets must match between Regular and GPU");
         }
+
+        private static string F(double v) => v.ToString("G17", System.Globalization.CultureInfo.InvariantCulture);
+
+        private static void DumpAllInformationSets(string label, GeneralizedVanilla dev)
+        {
+            // Keep it “small tree” friendly (adjust thresholds as you like)
+            if (dev.InformationSets == null) return;
+            if (dev.InformationSets.Count > 64)
+            {
+                System.Diagnostics.Debug.WriteLine($"[{label}] skip dump: {dev.InformationSets.Count} information sets (raise threshold if desired).");
+                return;
+            }
+
+            System.Diagnostics.Debug.WriteLine($"[{label}] informationSets={dev.InformationSets.Count}");
+
+            for (int i = 0; i < dev.InformationSets.Count; i++)
+            {
+                var iset = dev.InformationSets[i];
+                var name = iset.Decision?.Name ?? "";
+
+                System.Diagnostics.Debug.WriteLine($"ISet idx={i} node={iset.InformationSetNodeNumber} P{iset.PlayerIndex} D{iset.DecisionIndex} actions={iset.NumPossibleActions} name=\"{name}\"");
+
+                // Core per-action tallies
+                DumpVector("sumRegretTimesInversePi", iset, InformationSetNode.sumRegretTimesInversePiDimension);
+                DumpVector("sumInversePi",            iset, InformationSetNode.sumInversePiDimension);
+                DumpVector("cumulativeRegret",        iset, InformationSetNode.cumulativeRegretDimension);
+                DumpVector("bestResponseDenominator", iset, InformationSetNode.bestResponseDenominatorDimension);
+
+                // Last-iteration increments (note: after UpdateInformationSets they may be zeros)
+                var lastReg = iset.GetLastRegretIncrementsAsArray();
+                if (lastReg != null) DumpArray("lastRegretIncrements", lastReg);
+
+                var lastCum = iset.GetLastCumulativeStrategyIncrementAsArray();
+                if (lastCum != null) DumpArray("lastCumulativeStrategyIncrements", lastCum);
+
+                // Running strategy state
+                var cumStr = iset.GetCumulativeStrategiesAsArray();
+                if (cumStr != null) DumpArray("cumulativeStrategy", cumStr);
+
+                var avgStr = iset.GetAverageStrategiesAsArray();
+                if (avgStr != null) DumpArray("averageStrategy", avgStr);
+
+                // Current (self) and opponent probabilities
+                var cur = iset.GetCurrentProbabilitiesAsArray();
+                if (cur != null) DumpArray("currentProbabilities(self)", cur);
+
+                var opp = new double[iset.NumPossibleActions];
+                iset.GetCurrentProbabilities(opp, opponentProbabilities: true);
+                DumpArray("currentProbabilities(opponent)", opp);
+            }
+
+            static void DumpVector(string label, InformationSetNode iset, int dim)
+            {
+                int n = iset.NumPossibleActions;
+                var arr = new double[n];
+                for (int a = 0; a < n; a++) arr[a] = iset.NodeInformation[dim, a];
+                DumpArray(label, arr);
+            }
+
+            static void DumpArray(string label, double[] arr)
+            {
+                var sb = new System.Text.StringBuilder();
+                sb.Append(label);
+                sb.Append(" [");
+                for (int i = 0; i < arr.Length; i++)
+                {
+                    if (i > 0) sb.Append(", ");
+                    sb.Append(F(arr[i]));
+                }
+                sb.Append(']');
+                System.Diagnostics.Debug.WriteLine(sb.ToString());
+            }
+        }
+
+
+        private static void PrintParityDigest(string label, GeneralizedVanilla dev)
+        {
+            int REG = InformationSetNode.cumulativeRegretDimension;
+            int SRT = InformationSetNode.sumRegretTimesInversePiDimension;
+            int SIV = InformationSetNode.sumInversePiDimension;
+            int BRD = InformationSetNode.bestResponseDenominatorDimension;
+
+            double sumRawNum = 0, sumRawDen = 0, sumReg = 0, sumLCI = 0, sumLRI = 0;
+            int brdCount = 0, nActions = 0;
+
+            foreach (var iset in dev.InformationSets)
+            {
+                var lci = iset.GetLastCumulativeStrategyIncrementAsArray();
+                var lri = iset.GetLastRegretIncrementsAsArray();
+                if (lci != null) sumLCI += lci.Sum();
+                if (lri != null) sumLRI += lri.Sum();
+
+                for (int a = 0; a < iset.NumPossibleActions; a++)
+                {
+                    nActions++;
+                    sumRawNum += iset.NodeInformation[SRT, a];
+                    sumRawDen += iset.NodeInformation[SIV, a];
+                    sumReg    += iset.NodeInformation[REG, a];
+                    if (iset.NodeInformation[BRD, a] != 0.0) brdCount++;
+                }
+            }
+
+            Debug.WriteLine($"{label} :: rawNum={sumRawNum:G17} rawDen={sumRawDen:G17} lastRegIncr={sumLRI:G17} lastCumStrIncr={sumLCI:G17} cumReg={sumReg:G17} brd>0={brdCount}/{nActions}");
+        }
+
 
         [TestMethod]
         [DataRow(false, false)]

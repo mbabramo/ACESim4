@@ -273,8 +273,12 @@ namespace ACESim
 
                 StrategiesDeveloperStopwatch.Stop();
 
+                ParityDigest("FAST pre-update", iteration, null);
+
                 // Now apply the post-iteration updates once, using both players’ flushed tallies.
                 UpdateInformationSets(iteration);
+                ParityDigest("FAST post-update", iteration, null);
+
                 await PostIterationWorkForPrincipalComponentsAnalysis(iteration, reportCollection);
                 SimulatedAnnealing(iteration);
                 MiniReport(iteration, results);
@@ -321,6 +325,7 @@ namespace ACESim
 
             ActionStrategy = ActionStrategies.CurrentProbability;
         }
+
         private async Task<ReportCollection> Gpu_SolveGeneralizedVanillaCFR()
         {
             if (Gpu_Builder == null || !Gpu_Builder.IsAvailable)
@@ -356,12 +361,15 @@ namespace ACESim
 
                 for (byte playerBeingOptimized = 0; playerBeingOptimized < NumNonChancePlayers; playerBeingOptimized++)
                 {
-                    // Align GPU logic with Regular/Fast: only skip when NOT verifying symmetry
+                    // Align with Regular/Fast: only skip when using symmetry shortcut and not verifying
                     if (playerBeingOptimized == 1 &&
                         GameDefinition.GameIsSymmetric() &&
                         TakeShortcutInSymmetricGames &&
                         !VerifySymmetry)
                         continue;
+
+                    // Digest the state *before* this player's GPU sweep
+                    ParityDigest("GPU pre-go", iteration, playerBeingOptimized);
 
                     var ctx = Gpu_Builder.InitializeIteration(
                         optimizedPlayerIndex: playerBeingOptimized,
@@ -384,12 +392,21 @@ namespace ACESim
                         BestResponseToAverageStrategy = 0.0
                     };
 
+                    // The builder flushes the last-iteration tallies into backing nodes here.
                     Gpu_Builder.CopyTalliesIntoBackingNodes();
+
+                    // Digest immediately *after* the flush; lastRegret/lastCumStrategy should be non-zero when work happened.
+                    ParityDigest("GPU post-flush", iteration, playerBeingOptimized);
                 }
 
                 StrategiesDeveloperStopwatch.Stop();
 
+                // After both players’ sweeps, we do the same updater as Regular/Fast.
                 UpdateInformationSets(iteration);
+
+                // Digest after the updater – cumulative fields should change here if flush was non-zero.
+                ParityDigest("GPU post-update", iteration, null);
+
                 await PostIterationWorkForPrincipalComponentsAnalysis(iteration, reportCollection);
                 SimulatedAnnealing(iteration);
                 MiniReport(iteration, results);
@@ -409,6 +426,8 @@ namespace ACESim
             TabbedText.SetConsoleProgressString(null);
             return reportCollection;
         }
+
+
 
 
 
@@ -2112,6 +2131,91 @@ namespace ACESim
                 GameDefinition.ReverseSwitchToBranchEffects(chanceNode.Decision, in nextHistoryPoint);
 
             return result;
+        }
+
+        #endregion
+
+        #region Parity logging (for debugging purposes only)
+
+        public static bool EnableParityLogging = false;
+
+        private void ParityDigest(string phase, int iteration, byte? player = null)
+        {
+            if (!EnableParityLogging)
+                return;
+
+            double sumRawNum = 0.0, sumRawDen = 0.0, sumLRI = 0.0, sumLCI = 0.0, sumCumReg = 0.0;
+            double sumCumStr = 0.0, sumAvgStr = 0.0, sumCur = 0.0, sumOpp = 0.0;
+            int brdCount = 0, totalActions = 0;
+
+            foreach (var iset in InformationSets)
+            {
+                int nA = iset.NumPossibleActions;
+                totalActions += nA;
+
+                var lri = iset.GetLastRegretIncrementsAsArray();
+                if (lri != null) sumLRI += lri.Sum();
+
+                var lci = iset.GetLastCumulativeStrategyIncrementAsArray();
+                if (lci != null) sumLCI += lci.Sum();
+
+                var cumStr = iset.GetCumulativeStrategiesAsArray();
+                if (cumStr != null) sumCumStr += cumStr.Sum();
+
+                var avgStr = iset.GetAverageStrategiesAsArray();
+                if (avgStr != null) sumAvgStr += avgStr.Sum();
+
+                var cur = iset.GetCurrentProbabilitiesAsArray();
+                if (cur != null) sumCur += cur.Sum();
+
+                var opp = new double[nA];
+                iset.GetCurrentProbabilities(opp, opponentProbabilities: true);
+                sumOpp += opp.Sum();
+
+                for (int a = 0; a < nA; a++)
+                {
+                    sumRawNum += iset.NodeInformation[InformationSetNode.sumRegretTimesInversePiDimension, a];
+                    sumRawDen += iset.NodeInformation[InformationSetNode.sumInversePiDimension, a];
+                    sumCumReg += iset.NodeInformation[InformationSetNode.cumulativeRegretDimension, a];
+                    if (iset.NodeInformation[InformationSetNode.bestResponseDenominatorDimension, a] != 0.0)
+                        brdCount++;
+                }
+            }
+
+            TabbedText.WriteLine(
+                $"[PARITY] {phase} iter={iteration} player={(player?.ToString() ?? "-")} rawNum={sumRawNum:G17} rawDen={sumRawDen:G17} lastRegIncr={sumLRI:G17} lastCumStrIncr={sumLCI:G17} cumReg={sumCumReg:G17} cumStr={sumCumStr:G17} avgStrSum={sumAvgStr:G17} curSum={sumCur:G17} oppSum={sumOpp:G17} brd>0={brdCount}/{totalActions}");
+
+            ScanForNan(phase, iteration);
+        }
+
+        private void ScanForNan(string phase, int iteration)
+        {
+            int[] dims =
+            {
+                InformationSetNode.sumRegretTimesInversePiDimension,
+                InformationSetNode.sumInversePiDimension,
+                InformationSetNode.cumulativeRegretDimension,
+                InformationSetNode.bestResponseDenominatorDimension
+            };
+
+            for (int i = 0; i < InformationSets.Count; i++)
+            {
+                var iset = InformationSets[i];
+                int nA = iset.NumPossibleActions;
+                for (int a = 0; a < nA; a++)
+                {
+                    for (int d = 0; d < dims.Length; d++)
+                    {
+                        double v = iset.NodeInformation[dims[d], a];
+                        if (double.IsNaN(v) || double.IsInfinity(v))
+                        {
+                            TabbedText.WriteLine(
+                                $"[PARITY] NaN/Inf at iter={iteration} phase={phase} ISetIdx={i} P{iset.PlayerIndex} D{iset.DecisionIndex} a={a + 1} dim={dims[d]} val={v}");
+                            return;
+                        }
+                    }
+                }
+            }
         }
 
         #endregion
