@@ -31,7 +31,7 @@ namespace ACESimBase.GameSolvingSupport.Settings
 
         #region Settings
 
-        public GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.GeneralizedVanilla;
+        public GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.SequenceForm; // DEBUG
         public bool OnlyRunCoreSimulations = false;
 
         public int? AlwaysDoTaskID = null;  // set this to a task to replay a particular task (either over and over again, using ACESimDistributed, or just once, using ACESimConsole).
@@ -83,7 +83,7 @@ namespace ACESimBase.GameSolvingSupport.Settings
             SelectLitigGameCorrSig
         }
 
-        public static AvailableGames GeneralGameToPlay = AvailableGames.SelectLitigGameEndog; // Note: More specific game options may be available in the launcher.
+        public static AvailableGames GeneralGameToPlay = AvailableGames.SelectLitigGameCorrSig; // DEBUG AvailableGames.SelectLitigGameEndog; // Note: More specific game options may be available in the launcher.
 
         public static Launcher GetLauncher()
         {

@@ -22,7 +22,7 @@ namespace ACESim
         public bool TestDisputeGeneratorVariations = false;
         public bool IncludeRunningSideBetVariations = false;
         public bool LimitToAmerican = true;
-        public bool UseSmallerTree = true; 
+        public bool UseSmallerTree = true; // DEBUG
 
         public override List<(string, string)> DefaultVariableValues
         {
@@ -110,7 +110,7 @@ namespace ACESim
                     // Note -- some of this is redundant, but we need to do this because of transformations to the original options that may affect damages and liability strength points.
                     LitigGameOptions o = (LitigGameOptions)option;
                     const int bigTreeNumber = 10;
-                    const int littleTreeNumber = 5;
+                    const int littleTreeNumber = 2; // DEBUG
                     if (o.NumLiabilitySignals == bigTreeNumber)
                         o.NumLiabilitySignals = littleTreeNumber;
                     if (o.NumLiabilityStrengthPoints == bigTreeNumber)
