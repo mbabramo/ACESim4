@@ -20,10 +20,10 @@ namespace ACESim
 
         public virtual void Setup(LitigGameDefinition litigGameDefinition)
             => LitigGameDefinition = litigGameDefinition;
-
         public virtual List<Decision> GenerateDisputeDecisions(LitigGameDefinition gameDefinition)
         {
             var opt = gameDefinition.Options;
+            bool collapseChanceDecisions = opt.CollapseChanceDecisions;
 
             GetActionsSetup(gameDefinition,
                 out byte prePrimaryActions,
@@ -38,22 +38,51 @@ namespace ACESim
                 out bool primaryTerminates,
                 out bool postTerminates);
 
-            List<Decision> decisions = new List<Decision>();
+            static bool InformsEitherParty(byte[] playersToInform)
+            {
+                if (playersToInform == null || playersToInform.Length == 0)
+                    return false;
 
-            if (prePrimaryActions > 0)
-                decisions.Add(new Decision(PrePrimaryNameAndAbbreviation.name, PrePrimaryNameAndAbbreviation.abbreviation, true,
-                    (byte)LitigGamePlayers.PrePrimaryChance, preInform, prePrimaryActions,
-                    (byte)LitigGameDecisions.PrePrimaryActionChance, unevenChanceActions: preUneven)
+                for (int i = 0; i < playersToInform.Length; i++)
+                {
+                    byte player = playersToInform[i];
+                    if (player == (byte)LitigGamePlayers.Plaintiff || player == (byte)LitigGamePlayers.Defendant)
+                        return true;
+                }
+                return false;
+            }
+
+            var decisions = new List<Decision>();
+
+            bool includePrePrimaryChance = prePrimaryActions > 0 && (!collapseChanceDecisions || InformsEitherParty(preInform));
+            if (includePrePrimaryChance)
+            {
+                decisions.Add(new Decision(
+                    PrePrimaryNameAndAbbreviation.name,
+                    PrePrimaryNameAndAbbreviation.abbreviation,
+                    true,
+                    (byte)LitigGamePlayers.PrePrimaryChance,
+                    preInform,
+                    prePrimaryActions,
+                    (byte)LitigGameDecisions.PrePrimaryActionChance,
+                    unevenChanceActions: preUneven)
                 {
                     StoreActionInGameCacheItem = gameDefinition.GameHistoryCacheIndex_PrePrimaryChance,
                     IsReversible = true,
                     GameStructureSameForEachAction = GetPrePrimaryUnrollSettings().unrollIdentical,
                     SymmetryMap = (GetPrePrimaryUnrollSettings().symmetryMapInput, SymmetryMapOutput.ChanceDecision)
                 });
+            }
 
             if (primaryActions > 0)
-                decisions.Add(new Decision(PrimaryNameAndAbbreviation.name, PrimaryNameAndAbbreviation.abbreviation, false,
-                    (byte)LitigGamePlayers.Defendant, priInform, primaryActions,
+            {
+                decisions.Add(new Decision(
+                    PrimaryNameAndAbbreviation.name,
+                    PrimaryNameAndAbbreviation.abbreviation,
+                    false,
+                    (byte)LitigGamePlayers.Defendant,
+                    priInform,
+                    primaryActions,
                     (byte)LitigGameDecisions.PrimaryAction)
                 {
                     StoreActionInGameCacheItem = gameDefinition.GameHistoryCacheIndex_PrimaryAction,
@@ -62,11 +91,20 @@ namespace ACESim
                     GameStructureSameForEachAction = GetPrimaryUnrollSettings().unrollIdentical,
                     SymmetryMap = (GetPrimaryUnrollSettings().symmetryMapInput, SymmetryMapOutput.CantBeSymmetric)
                 });
+            }
 
-            if (postPrimaryActions > 0)
-                decisions.Add(new Decision(PostPrimaryNameAndAbbreviation.name, PostPrimaryNameAndAbbreviation.abbreviation, true,
-                    (byte)LitigGamePlayers.PostPrimaryChance, postInform, postPrimaryActions,
-                    (byte)LitigGameDecisions.PostPrimaryActionChance, unevenChanceActions: postUneven)
+            bool includePostPrimaryChance = postPrimaryActions > 0 && (!collapseChanceDecisions || InformsEitherParty(postInform));
+            if (includePostPrimaryChance)
+            {
+                decisions.Add(new Decision(
+                    PostPrimaryNameAndAbbreviation.name,
+                    PostPrimaryNameAndAbbreviation.abbreviation,
+                    true,
+                    (byte)LitigGamePlayers.PostPrimaryChance,
+                    postInform,
+                    postPrimaryActions,
+                    (byte)LitigGameDecisions.PostPrimaryActionChance,
+                    unevenChanceActions: postUneven)
                 {
                     StoreActionInGameCacheItem = gameDefinition.GameHistoryCacheIndex_PostPrimaryChance,
                     IsReversible = true,
@@ -74,42 +112,60 @@ namespace ACESim
                     GameStructureSameForEachAction = GetPostPrimaryUnrollSettings().unrollIdentical,
                     SymmetryMap = (GetPostPrimaryUnrollSettings().symmetryMapInput, SymmetryMapOutput.ChanceDecision)
                 });
+            }
 
-            var liabPlayers = new List<byte>
+            bool includeLiabilityStrength = !collapseChanceDecisions;
+            if (includeLiabilityStrength)
             {
-                (byte)LitigGamePlayers.PLiabilitySignalChance,
-                (byte)LitigGamePlayers.DLiabilitySignalChance,
-                (byte)LitigGamePlayers.CourtLiabilityChance,
-                (byte)LitigGamePlayers.Resolution
-            };
-            if (opt.PLiabilityNoiseStdev == 0) liabPlayers.Add((byte)LitigGamePlayers.Plaintiff);
-            if (opt.DLiabilityNoiseStdev == 0) liabPlayers.Add((byte)LitigGamePlayers.Defendant);
+                var liabPlayers = new List<byte>
+        {
+            (byte)LitigGamePlayers.PLiabilitySignalChance,
+            (byte)LitigGamePlayers.DLiabilitySignalChance,
+            (byte)LitigGamePlayers.CourtLiabilityChance,
+            (byte)LitigGamePlayers.Resolution
+        };
+                if (opt.PLiabilityNoiseStdev == 0) liabPlayers.Add((byte)LitigGamePlayers.Plaintiff);
+                if (opt.DLiabilityNoiseStdev == 0) liabPlayers.Add((byte)LitigGamePlayers.Defendant);
 
-            decisions.Add(new Decision(opt.NumDamagesStrengthPoints > 1 ? "Liability Strength" : "Case Strength", "LiabStr", true,
-                (byte)LitigGamePlayers.LiabilityStrengthChance, liabPlayers.ToArray(), opt.NumLiabilityStrengthPoints,
-                (byte)LitigGameDecisions.LiabilityStrength, unevenChanceActions: strengthUneven)
-            {
-                StoreActionInGameCacheItem = gameDefinition.GameHistoryCacheIndex_LiabilityStrength,
-                IsReversible = true,
-                GameStructureSameForEachAction = GetLiabilityStrengthUnrollSettings().unrollIdentical,
-                SymmetryMap = (GetLiabilityStrengthUnrollSettings().symmetryMapInput, SymmetryMapOutput.ChanceDecision)
-            });
+                decisions.Add(new Decision(
+                    opt.NumDamagesStrengthPoints > 1 ? "Liability Strength" : "Case Strength",
+                    "LiabStr",
+                    true,
+                    (byte)LitigGamePlayers.LiabilityStrengthChance,
+                    liabPlayers.ToArray(),
+                    opt.NumLiabilityStrengthPoints,
+                    (byte)LitigGameDecisions.LiabilityStrength,
+                    unevenChanceActions: strengthUneven)
+                {
+                    StoreActionInGameCacheItem = gameDefinition.GameHistoryCacheIndex_LiabilityStrength,
+                    IsReversible = true,
+                    GameStructureSameForEachAction = GetLiabilityStrengthUnrollSettings().unrollIdentical,
+                    SymmetryMap = (GetLiabilityStrengthUnrollSettings().symmetryMapInput, SymmetryMapOutput.ChanceDecision)
+                });
+            }
 
-            if (opt.NumDamagesStrengthPoints > 1)
+            bool includeDamagesStrength = !collapseChanceDecisions && opt.NumDamagesStrengthPoints > 1;
+            if (includeDamagesStrength)
             {
                 var dmgPlayers = new List<byte>
-                {
-                    (byte)LitigGamePlayers.PDamagesSignalChance,
-                    (byte)LitigGamePlayers.DDamagesSignalChance,
-                    (byte)LitigGamePlayers.CourtDamagesChance,
-                    (byte)LitigGamePlayers.Resolution
-                };
+        {
+            (byte)LitigGamePlayers.PDamagesSignalChance,
+            (byte)LitigGamePlayers.DDamagesSignalChance,
+            (byte)LitigGamePlayers.CourtDamagesChance,
+            (byte)LitigGamePlayers.Resolution
+        };
                 if (opt.PDamagesNoiseStdev == 0) dmgPlayers.Add((byte)LitigGamePlayers.Plaintiff);
                 if (opt.DDamagesNoiseStdev == 0) dmgPlayers.Add((byte)LitigGamePlayers.Defendant);
 
-                decisions.Add(new Decision("Damages Strength", "DamStr", true,
-                    (byte)LitigGamePlayers.DamagesStrengthChance, dmgPlayers.ToArray(), opt.NumDamagesStrengthPoints,
-                    (byte)LitigGameDecisions.DamagesStrength, unevenChanceActions: strengthUneven)
+                decisions.Add(new Decision(
+                    "Damages Strength",
+                    "DamStr",
+                    true,
+                    (byte)LitigGamePlayers.DamagesStrengthChance,
+                    dmgPlayers.ToArray(),
+                    opt.NumDamagesStrengthPoints,
+                    (byte)LitigGameDecisions.DamagesStrength,
+                    unevenChanceActions: strengthUneven)
                 {
                     StoreActionInGameCacheItem = gameDefinition.GameHistoryCacheIndex_DamagesStrength,
                     IsReversible = true,
@@ -118,9 +174,12 @@ namespace ACESim
                 });
             }
 
-            gameDefinition.CreateLiabilitySignalsTables();
-            if (opt.NumDamagesStrengthPoints > 1)
-                gameDefinition.CreateDamagesSignalsTables();
+            if (!collapseChanceDecisions)
+            {
+                gameDefinition.CreateLiabilitySignalsTables();
+                if (opt.NumDamagesStrengthPoints > 1)
+                    gameDefinition.CreateDamagesSignalsTables();
+            }
 
             AddSignalDecisions(gameDefinition, decisions);
 

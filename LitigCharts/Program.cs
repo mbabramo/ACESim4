@@ -20,7 +20,9 @@ namespace LitigCharts
 
             // Runner.AdditiveEvidenceArticle();
 
-            Runner.ProcessLitigationGameData(Runner.DataBeingAnalyzed.EndogenousDisputesArticle);
+            // Runner.ProcessLitigationGameData(Runner.DataBeingAnalyzed.EndogenousDisputesArticle);
+            
+            Runner.ProcessLitigationGameData(Runner.DataBeingAnalyzed.CorrelatedSignalsArticle);
         }
     }
 }

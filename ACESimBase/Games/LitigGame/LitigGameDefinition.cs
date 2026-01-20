@@ -142,7 +142,7 @@ namespace ACESim
                     new PlayerInfo(ResolutionPlayerName, (int) LitigGamePlayers.Resolution, true, false),
 
                     new PlayerInfo(PrePrimaryChanceName, (int) LitigGamePlayers.PrePrimaryChance, true, false),
-                    new PlayerInfo(PostPrimaryChanceName, (int) LitigGamePlayers.PrePrimaryChance, true, false),
+                    new PlayerInfo(PostPrimaryChanceName, (int) LitigGamePlayers.PostPrimaryChance, true, false),
                     new PlayerInfo(LiabilityStrengthChanceName, (int) LitigGamePlayers.LiabilityStrengthChance, true, false),
                     new PlayerInfo(PLiabilityNoiseChanceName, (int) LitigGamePlayers.PLiabilitySignalChance, true, false),
                     new PlayerInfo(DLiabilityNoiseChanceName, (int) LitigGamePlayers.DLiabilitySignalChance, true, false),

@@ -171,34 +171,47 @@ namespace LitigCharts
         public static List<(string folderName, string[] extensions)> GetFilePlacementRules(DataBeingAnalyzed article)
         {
             HashSet<string> alreadyProcessed = new();
+            List<(string folderName, string[] extensions)> placementRules = null;
 
-            var placementRules = new List<(string folderName, string[] extensions)>
+            if (article == DataBeingAnalyzed.CorrelatedSignalsArticle)
             {
-                // ("First Equilibrium", GetFileTypeExtensionsForEquilibriumType("Eq1")),
-                ("EFG Files", new[] { ".efg" }),
-                ("Equilibria Files", new[] { "-equ.csv" }),
-                ("Logs", new[] { "-log.txt" }),
-                ("Latex underlying data", expandToIncludeAdditionalEquilibria(new[] { "-offers.csv", "-fileans.csv", "-stagecostlight.csv", "-stagecostdark.csv", "-costbreakdowndata.csv" })),
-                ("Latex files", expandToIncludeAdditionalEquilibria(new[] { "-offers.tex", "-fileans.tex", "-stagecostlight.tex", "-stagecostdark.tex", "-costbreakdownlight.tex", "-costbreakdowndark.tex", "-winratebydpsignallight.tex", "-winratebydpsignaldark.tex", "-winratebypdsignallight.tex", "-winratebypdsignaldark.tex"  })),
-                ("File-Answer Diagrams", expandToIncludeAdditionalEquilibria( new[] { "-fileans.pdf" })),
-                ("Offer Heatmaps", expandToIncludeAdditionalEquilibria( new[] { "-offers.pdf" })),
-                ("Cost Breakdown Diagrams (Normal)", expandToIncludeAdditionalEquilibria( new[] { "-costbreakdownlight.pdf" })),
-                ("Cost Breakdown Diagrams (Dark Mode)", expandToIncludeAdditionalEquilibria( new[] { "-costbreakdowndark.pdf" })),
-                ("Win Rate by Signal Diagrams (D Horizontal) (Normal)", expandToIncludeAdditionalEquilibria( new[] { "-winratebydpsignallight.pdf" })),
-                ("Win Rate by Signal Diagrams (D Horizontal) (Dark Mode)", expandToIncludeAdditionalEquilibria( new[] { "-winratebydpsignaldark.pdf" })),
-                ("Win Rate by Signal Diagrams (P Horizontal) (Normal)", expandToIncludeAdditionalEquilibria( new[] { "-winratebypdsignallight.pdf" })),
-                ("Win Rate by Signal Diagrams (P Horizontal) (Dark Mode)", expandToIncludeAdditionalEquilibria( new[] { "-winratebypdsignaldark.pdf" })),
-                ("Cross Tabs", expandToIncludeAdditionalEquilibria(new[] { ".csv" })),
-            };
-
-            if (article != DataBeingAnalyzed.EndogenousDisputesArticle)
-            {
-                placementRules.AddRange(new List<(string folderName, string[] extensions)>
+                placementRules = new()
                 {
+                    // ("First Equilibrium", GetFileTypeExtensionsForEquilibriumType("Eq1")),
+                    ("EFG Files", new[] { ".efg" }),
+                    ("Equilibria Files", new[] { "-equ.csv" }),
+                    ("Logs", new[] { "-log.txt" }),
+                    ("Latex underlying data", expandToIncludeAdditionalEquilibria(new[] { "-offers.csv", "-fileans.csv", "-stagecostlight.csv", "-stagecostdark.csv", "-costbreakdowndata.csv" })),
+                    ("Latex files", expandToIncludeAdditionalEquilibria(new[] { "-offers.tex", "-fileans.tex", "-stagecostlight.tex", "-stagecostdark.tex", "-costbreakdownlight.tex", "-costbreakdowndark.tex"  })),
+                    ("File-Answer Diagrams", expandToIncludeAdditionalEquilibria( new[] { "-fileans.pdf" })),
+                    ("Offer Heatmaps", expandToIncludeAdditionalEquilibria( new[] { "-offers.pdf" })),
+                    ("Cost Breakdown Diagrams (Normal)", expandToIncludeAdditionalEquilibria( new[] { "-costbreakdownlight.pdf" })),
+                    ("Cost Breakdown Diagrams (Dark Mode)", expandToIncludeAdditionalEquilibria( new[] { "-costbreakdowndark.pdf" })),
+                    ("Cross Tabs", expandToIncludeAdditionalEquilibria(new[] { ".csv" })),
                     ("Stage Costs Diagrams (Normal)", expandToIncludeAdditionalEquilibria(new[] { "-stagecostlight.pdf" })),
                     ("Stage Costs Diagrams (Dark Mode)", expandToIncludeAdditionalEquilibria(new[] { "-stagecostdark.pdf" })),
-                }
-                );
+                };
+            }
+            else if (article == DataBeingAnalyzed.EndogenousDisputesArticle)
+            {
+                placementRules = new()
+                {
+                    // ("First Equilibrium", GetFileTypeExtensionsForEquilibriumType("Eq1")),
+                    ("EFG Files", new[] { ".efg" }),
+                    ("Equilibria Files", new[] { "-equ.csv" }),
+                    ("Logs", new[] { "-log.txt" }),
+                    ("Latex underlying data", expandToIncludeAdditionalEquilibria(new[] { "-offers.csv", "-fileans.csv", "-stagecostlight.csv", "-stagecostdark.csv", "-costbreakdowndata.csv" })),
+                    ("Latex files", expandToIncludeAdditionalEquilibria(new[] { "-offers.tex", "-fileans.tex", "-stagecostlight.tex", "-stagecostdark.tex", "-costbreakdownlight.tex", "-costbreakdowndark.tex", "-winratebydpsignallight.tex", "-winratebydpsignaldark.tex", "-winratebypdsignallight.tex", "-winratebypdsignaldark.tex"  })),
+                    ("File-Answer Diagrams", expandToIncludeAdditionalEquilibria( new[] { "-fileans.pdf" })),
+                    ("Offer Heatmaps", expandToIncludeAdditionalEquilibria( new[] { "-offers.pdf" })),
+                    ("Cost Breakdown Diagrams (Normal)", expandToIncludeAdditionalEquilibria( new[] { "-costbreakdownlight.pdf" })),
+                    ("Cost Breakdown Diagrams (Dark Mode)", expandToIncludeAdditionalEquilibria( new[] { "-costbreakdowndark.pdf" })),
+                    ("Win Rate by Signal Diagrams (D Horizontal) (Normal)", expandToIncludeAdditionalEquilibria( new[] { "-winratebydpsignallight.pdf" })),
+                    ("Win Rate by Signal Diagrams (D Horizontal) (Dark Mode)", expandToIncludeAdditionalEquilibria( new[] { "-winratebydpsignaldark.pdf" })),
+                    ("Win Rate by Signal Diagrams (P Horizontal) (Normal)", expandToIncludeAdditionalEquilibria( new[] { "-winratebypdsignallight.pdf" })),
+                    ("Win Rate by Signal Diagrams (P Horizontal) (Dark Mode)", expandToIncludeAdditionalEquilibria( new[] { "-winratebypdsignaldark.pdf" })),
+                    ("Cross Tabs", expandToIncludeAdditionalEquilibria(new[] { ".csv" })),
+                };
             }
 
             string[] notAlreadyProcessed(string[] original)
@@ -268,9 +281,13 @@ namespace LitigCharts
                 workExists = processesToLaunch.Any();
                 foreach (string fileSuffix in equilibriumTypeSuffixes)
                 {
-                    List<string> extensions = ["-costbreakdownlight" + fileSuffix, "-costbreakdowndark" + fileSuffix, "-offers" + fileSuffix, "-fileans" + fileSuffix, "-winratebydpsignallight" + fileSuffix, "-winratebydpsignaldark" + fileSuffix, "-winratebypdsignallight" + fileSuffix, "-winratebypdsignaldark" + fileSuffix];
-                    if (article != DataBeingAnalyzed.EndogenousDisputesArticle)
+                    List<string> extensions = ["-costbreakdownlight" + fileSuffix, "-costbreakdowndark" + fileSuffix, "-offers" + fileSuffix, "-fileans" + fileSuffix];
+                    if (article == DataBeingAnalyzed.CorrelatedSignalsArticle)
                         extensions.AddRange(["-stagecostlight" + fileSuffix, "-stagecostdark" + fileSuffix]);
+                    if (article == DataBeingAnalyzed.EndogenousDisputesArticle)
+                        extensions.AddRange(
+                            ["-winratebydpsignallight" + fileSuffix, "-winratebydpsignaldark" + fileSuffix, "-winratebypdsignallight" + fileSuffix, "-winratebypdsignaldark" + fileSuffix]
+                            );
                     List<(string path, string combinedPath, string optionSetName, string fileSuffix)> someToDo = FeeShiftingDataProcessing.GetLatexProcessPlans(launcher, extensions.ToArray(), avoidProcessingIfPDFExists || numAttempts > 1);
                     processesToLaunch.AddRange(someToDo);
                 }

@@ -105,6 +105,9 @@ namespace ACESim
         
         public override bool IsTrulyLiable(LitigGameDefinition myGameDefinition, LitigGameStandardDisputeGeneratorActions disputeGeneratorActions, GameProgress gameProgress)
         {
+            if (gameProgress is LitigGameProgress litigGameProgress && litigGameProgress.IsTrulyLiable is bool trulyLiable)
+                return trulyLiable;
+
             return disputeGeneratorActions.PostPrimaryChanceAction == 2;
         }
 

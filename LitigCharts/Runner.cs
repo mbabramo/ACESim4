@@ -18,7 +18,7 @@ namespace LitigCharts
 
         public static void ProcessLitigationGameData(DataBeingAnalyzed article)
         {
-            DataProcessingBase.singleEquilibriumOnly = article == DataBeingAnalyzed.EndogenousDisputesArticle;
+            DataProcessingBase.singleEquilibriumOnly = true; //  article == DataBeingAnalyzed.EndogenousDisputesArticle;
 
             bool useVirtualizedFileSystemForIndividualDiagrams = false; // this is for testing purposes -- it doesn't generate any diagrams
             bool buildMainReport = true; // this looks at all of the csv files containing the report outputs (e.g., Report Name.csv where there is only one equilibrium, or "-eq1", "-eq2", "-Avg", etc.), and then aggregates all of the information on the report outputs for each simulation into a CSV file, including both All cases and separate rows for various subsets of cases. Set this to false only if it has already been done. 
