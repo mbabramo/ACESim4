@@ -210,19 +210,19 @@ namespace LitigCharts
                     string fullFileName = Path.Combine(folder, csvFileName);
                     string texContents = GenerateAggregateDiagramFromCSV(fullFileName, groupName, targetVariable, targetAbbreviation, HowManyQualityLevels.Full);
                     string outputFile = Path.Combine(folder, $"{set};{groupName};{targetVariable};full.tex");
-                    File.WriteAllText(outputFile, texContents);
+                    File.WriteAllText(outputFile, DataProcessingBase.ApplyBlackAndWhiteOptionToLatex(texContents, outputFile));
 
                     texContents = GenerateAggregateDiagramFromCSV(fullFileName, groupName, targetVariable, targetAbbreviation, HowManyQualityLevels.Shorter);
                     outputFile = Path.Combine(folder, $"{set};{groupName};{targetVariable};shorter.tex");
-                    File.WriteAllText(outputFile, texContents);
+                    File.WriteAllText(outputFile, DataProcessingBase.ApplyBlackAndWhiteOptionToLatex(texContents, outputFile));
 
                     texContents = GenerateAggregateDiagramFromCSV(fullFileName, groupName, targetVariable, targetAbbreviation, HowManyQualityLevels.Shortest);
                     outputFile = Path.Combine(folder, $"{set};{groupName};{targetVariable};shortest.tex");
-                    File.WriteAllText(outputFile, texContents);
+                    File.WriteAllText(outputFile, DataProcessingBase.ApplyBlackAndWhiteOptionToLatex(texContents, outputFile));
 
                     texContents = GenerateAggregateDiagramFromCSV(fullFileName, groupName, targetVariable, targetAbbreviation, HowManyQualityLevels.Average);
                     outputFile = Path.Combine(folder, $"{set};{groupName};{targetVariable};average.tex");
-                    File.WriteAllText(outputFile, texContents);
+                    File.WriteAllText(outputFile, DataProcessingBase.ApplyBlackAndWhiteOptionToLatex(texContents, outputFile));
                 }
             }
         }
@@ -236,7 +236,7 @@ namespace LitigCharts
             {
                 string texContents = GenerateAverageAccuracyDiagramFromCSV(fullFileName2, accuracyString, "$A$");
                 string outputFile = Path.Combine(folder, $"{set};avgacc;{accuracyString}.tex");
-                File.WriteAllText(outputFile, texContents);
+                File.WriteAllText(outputFile, DataProcessingBase.ApplyBlackAndWhiteOptionToLatex(texContents, outputFile));
             }
         }
 

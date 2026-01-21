@@ -42,7 +42,7 @@ namespace LitigCharts
         public static bool UseParallel = true;
         public static int maxProcesses = UseParallel ? Environment.ProcessorCount : 1;
         public static bool avoidProcessingIfPDFExists = true; // should usually be true because when it's false, we only have one shot at getting everything launched properly
-
+        public static bool forceBlackAndWhiteForNonDarkLatexFiles = false;
         static readonly List<(string sourcePdf, string destPdf, string sourceLog, string destLog)> PendingPostCompileMoves
             = new List<(string sourcePdf, string destPdf, string sourceLog, string destLog)>();
 
@@ -465,6 +465,76 @@ namespace LitigCharts
             }
 
             return filesInFolder;
+        }
+
+        #endregion
+
+        #region Black and white changes
+
+        
+
+        private static readonly System.Text.RegularExpressions.Regex LatexNamedColorsToReplaceWithBlackRegex =
+            new System.Text.RegularExpressions.Regex(
+                @"\b(?:green|orange|yellow|blue|red)\b",
+                System.Text.RegularExpressions.RegexOptions.IgnoreCase |
+                System.Text.RegularExpressions.RegexOptions.CultureInvariant |
+                System.Text.RegularExpressions.RegexOptions.Compiled);
+
+        private static readonly System.Text.RegularExpressions.Regex LatexNamedColorDefinitionCommandRegex =
+            new System.Text.RegularExpressions.Regex(
+                @"(\\(?:definecolor|providecolor|colorlet)\s*\{\s*)(green|orange|yellow|blue|red)(\s*\})",
+                System.Text.RegularExpressions.RegexOptions.IgnoreCase |
+                System.Text.RegularExpressions.RegexOptions.CultureInvariant |
+                System.Text.RegularExpressions.RegexOptions.Compiled);
+
+        public static string ApplyBlackAndWhiteOptionToLatex(string latexContents, string latexOutputFileNameOrPath)
+        {
+            if (!forceBlackAndWhiteForNonDarkLatexFiles)
+                return latexContents;
+
+            if (string.IsNullOrEmpty(latexContents))
+                return latexContents;
+
+            if (LatexFileNameIndicatesDarkMode(latexOutputFileNameOrPath))
+                return latexContents;
+
+            return ReplaceNamedColorsWithBlack(latexContents);
+        }
+
+        private static bool LatexFileNameIndicatesDarkMode(string latexOutputFileNameOrPath)
+        {
+            if (string.IsNullOrWhiteSpace(latexOutputFileNameOrPath))
+                return false;
+
+            string fileName = Path.GetFileName(latexOutputFileNameOrPath);
+            if (string.IsNullOrEmpty(fileName))
+                fileName = latexOutputFileNameOrPath;
+
+            return fileName.IndexOf("dark", StringComparison.OrdinalIgnoreCase) >= 0;
+        }
+
+        private static string ReplaceNamedColorsWithBlack(string latexContents)
+        {
+            Dictionary<string, string> placeholdersToOriginalTokens = new Dictionary<string, string>(StringComparer.Ordinal);
+
+            string protectedColorDefinitions = LatexNamedColorDefinitionCommandRegex.Replace(
+                latexContents,
+                match =>
+                {
+                    string placeholder = $"__LITIGCHARTS_COLORNAME_PROTECT_{placeholdersToOriginalTokens.Count}__";
+                    placeholdersToOriginalTokens[placeholder] = match.Groups[2].Value;
+                    return match.Groups[1].Value + placeholder + match.Groups[3].Value;
+                });
+
+            string replaced = LatexNamedColorsToReplaceWithBlackRegex.Replace(protectedColorDefinitions, "black");
+
+            if (placeholdersToOriginalTokens.Count == 0)
+                return replaced;
+
+            foreach (var kvp in placeholdersToOriginalTokens)
+                replaced = replaced.Replace(kvp.Key, kvp.Value);
+
+            return replaced;
         }
 
         #endregion

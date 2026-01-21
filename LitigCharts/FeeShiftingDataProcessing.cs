@@ -1294,10 +1294,12 @@ namespace LitigCharts
 
         private static int shortJobCounter = 0;
 
-        private static void GenerateLatex(PlannedPath plannedPath, string outputFilename, string standaloneDocument)
+                private static void GenerateLatex(PlannedPath plannedPath, string outputFilename, string standaloneDocument)
         {
             string outputPath = plannedPath.GetPlannedPathString();
             string outputCombinedPath = plannedPath.GetCombinedPlannedPathString(outputFilename);
+
+            standaloneDocument = DataProcessingBase.ApplyBlackAndWhiteOptionToLatex(standaloneDocument, outputFilename);
 
             // Always write the .tex in the planned folder (transparency).
             TextFileManage.CreateTextFile(outputCombinedPath, standaloneDocument);
@@ -1346,6 +1348,7 @@ namespace LitigCharts
                 }
             }
         }
+
 
 
 
