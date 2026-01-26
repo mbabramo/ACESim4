@@ -67,7 +67,7 @@ namespace ACESim
         
         public override string MasterReportNameForDistributedProcessing => "CS" + "001";
 
-        public static bool UseDirectSignalExogenousDisputeGeneratorForCorrelatedSignalsArticle = false;
+        public static bool UseDirectSignalExogenousDisputeGeneratorForCorrelatedSignalsArticle = true;
 
         public override GameOptions GetDefaultSingleGameOptions()
         {
