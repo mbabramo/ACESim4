@@ -47,6 +47,8 @@ namespace ACESimBase.Games.LitigGame
         public virtual double[] DamagesMultipliers => new double[] { 1.0, 0.5, 2.0, 4.0 };
 
 
+
+
         #region Definitions
         public override string ReportPrefix => MasterReportNameForDistributedProcessing;
         
@@ -252,16 +254,108 @@ namespace ACESimBase.Games.LitigGame
             g.VariableSettings["Allow Abandon and Defaults"] = allowAbandonAndDefaults;
         });
 
+        public static bool UseDirectSignalExogenousDisputeGenerator = false;
+
+        protected static void EnsureExogenousDisputeGeneratorSelection(LitigGameOptions options)
+        {
+            if (options == null)
+                throw new ArgumentNullException(nameof(options));
+
+            bool disputeGeneratorIsExogenous =
+                options.LitigGameDisputeGenerator is LitigGameExogenousDisputeGenerator ||
+                options.LitigGameDisputeGenerator is LitigGameExogenousDirectSignalDisputeGenerator;
+
+            if (!disputeGeneratorIsExogenous)
+                return;
+
+            bool liabilityCertain = options.NumLiabilityStrengthPoints <= 1 || options.NumLiabilitySignals <= 1;
+
+            double exogenousProbabilityTrulyLiable = 0.5;
+            double stdevNoiseToProduceLiabilityStrength = GetNoiseToProduceCaseStrengthOrDefault(options);
+
+            if (options.LitigGameDisputeGenerator is LitigGameExogenousDisputeGenerator exogenous)
+            {
+                exogenousProbabilityTrulyLiable = exogenous.ExogenousProbabilityTrulyLiable;
+                stdevNoiseToProduceLiabilityStrength = exogenous.StdevNoiseToProduceLiabilityStrength;
+            }
+            else if (options.LitigGameDisputeGenerator is LitigGameExogenousDirectSignalDisputeGenerator direct)
+            {
+                exogenousProbabilityTrulyLiable = direct.ExogenousProbabilityTrulyLiable;
+            }
+
+            if (UseDirectSignalExogenousDisputeGenerator && !liabilityCertain)
+            {
+                options.NumLiabilityStrengthPoints = 2;
+
+                if (options.LitigGameDisputeGenerator is not LitigGameExogenousDirectSignalDisputeGenerator directGenerator)
+                {
+                    directGenerator = new LitigGameExogenousDirectSignalDisputeGenerator();
+                    options.LitigGameDisputeGenerator = directGenerator;
+                }
+
+                directGenerator.ExogenousProbabilityTrulyLiable = exogenousProbabilityTrulyLiable;
+                return;
+            }
+
+            if (options.LitigGameDisputeGenerator is not LitigGameExogenousDisputeGenerator exogenousGenerator)
+            {
+                exogenousGenerator = new LitigGameExogenousDisputeGenerator();
+                options.LitigGameDisputeGenerator = exogenousGenerator;
+            }
+
+            exogenousGenerator.ExogenousProbabilityTrulyLiable = exogenousProbabilityTrulyLiable;
+            exogenousGenerator.StdevNoiseToProduceLiabilityStrength = stdevNoiseToProduceLiabilityStrength;
+        }
+
+        private static double GetNoiseToProduceCaseStrengthOrDefault(LitigGameOptions options)
+        {
+            if (options?.VariableSettings != null &&
+                options.VariableSettings.TryGetValue("Noise to Produce Case Strength", out object value) &&
+                value != null)
+            {
+                if (value is double d)
+                    return d;
+                if (value is float f)
+                    return f;
+                if (value is string s && double.TryParse(s, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double parsed))
+                    return parsed;
+
+                if (value is IConvertible convertible)
+                {
+                    try
+                    {
+                        return convertible.ToDouble(System.Globalization.CultureInfo.InvariantCulture);
+                    }
+                    catch
+                    {
+                    }
+                }
+            }
+
+            return 0.35;
+        }
+
         public LitigGameOptions GetAndTransform_ProbabilityTrulyLiable(LitigGameOptions options, double probability) => GetAndTransform(options, " TLP " + probability, g =>
         {
-            ((LitigGameExogenousDisputeGenerator)g.LitigGameDisputeGenerator).ExogenousProbabilityTrulyLiable = probability;
+            EnsureExogenousDisputeGeneratorSelection(g);
+
+            if (g.LitigGameDisputeGenerator is LitigGameExogenousDisputeGenerator exogenous)
+                exogenous.ExogenousProbabilityTrulyLiable = probability;
+            else if (g.LitigGameDisputeGenerator is LitigGameExogenousDirectSignalDisputeGenerator direct)
+                direct.ExogenousProbabilityTrulyLiable = probability;
+            else
+                throw new InvalidOperationException("ProbabilityTrulyLiableTransformations requires an exogenous dispute generator.");
 
             g.VariableSettings["Probability Truly Liable"] = probability;
         });
 
         public LitigGameOptions GetAndTransform_NoiseToProduceCaseStrength(LitigGameOptions options, double noise) => GetAndTransform(options, " CSN " + noise, g =>
         {
-            ((LitigGameExogenousDisputeGenerator)g.LitigGameDisputeGenerator).StdevNoiseToProduceLiabilityStrength = noise;
+            EnsureExogenousDisputeGeneratorSelection(g);
+
+            if (g.LitigGameDisputeGenerator is LitigGameExogenousDisputeGenerator exogenous)
+                exogenous.StdevNoiseToProduceLiabilityStrength = noise;
+
             g.VariableSettings["Noise to Produce Case Strength"] = noise;
         });
 
@@ -270,6 +364,10 @@ namespace ACESimBase.Games.LitigGame
             if (!liabilityIsUncertain)
             {
                 ChangeToDamagesIssue(g);
+            }
+            else
+            {
+                EnsureExogenousDisputeGeneratorSelection(g);
             }
 
             g.VariableSettings["Issue"] = liabilityIsUncertain ? "Liability" : "Damages";
@@ -287,6 +385,7 @@ namespace ACESimBase.Games.LitigGame
                 StdevNoiseToProduceLiabilityStrength = 0,
             };
         }
+
 
         public LitigGameOptions GetAndTransform_ModeratelyRiskAverse(LitigGameOptions options) => GetAndTransform(options, " MODRA", g =>
         {

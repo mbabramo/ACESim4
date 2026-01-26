@@ -42,7 +42,7 @@ namespace LitigCharts
         public static bool UseParallel = true;
         public static int maxProcesses = UseParallel ? Environment.ProcessorCount : 1;
         public static bool avoidProcessingIfPDFExists = true; // should usually be true because when it's false, we only have one shot at getting everything launched properly
-        public static bool forceBlackAndWhiteForNonDarkLatexFiles = false;
+        public static bool forceBlackAndWhiteForNonDarkLatexFiles = true; // DEBUG
         static readonly List<(string sourcePdf, string destPdf, string sourceLog, string destLog)> PendingPostCompileMoves
             = new List<(string sourcePdf, string destPdf, string sourceLog, string destLog)>();
 

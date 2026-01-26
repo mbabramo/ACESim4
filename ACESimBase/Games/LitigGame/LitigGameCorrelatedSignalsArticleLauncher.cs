@@ -67,13 +67,21 @@ namespace ACESim
         
         public override string MasterReportNameForDistributedProcessing => "CS" + "001";
 
+        public static bool UseDirectSignalExogenousDisputeGeneratorForCorrelatedSignalsArticle = false;
+
         public override GameOptions GetDefaultSingleGameOptions()
         {
-            return LitigGameOptionsGenerator.GetLitigGameOptions();
+            UseDirectSignalExogenousDisputeGenerator = UseDirectSignalExogenousDisputeGeneratorForCorrelatedSignalsArticle;
+
+            LitigGameOptions options = LitigGameOptionsGenerator.GetLitigGameOptions();
+            EnsureExogenousDisputeGeneratorSelection(options);
+            return options;
         }
 
         public override List<GameOptions> GetOptionsSets()
         {
+            UseDirectSignalExogenousDisputeGenerator = UseDirectSignalExogenousDisputeGeneratorForCorrelatedSignalsArticle;
+
             List<GameOptions> optionSets = new List<GameOptions>();
 
             AddFeeShiftingArticleGames(optionSets);
@@ -93,10 +101,17 @@ namespace ACESim
                 optionSets = replacements;
             }
 
+            foreach (var optionSet in optionSets)
+            {
+                if (optionSet is LitigGameOptions litigGameOptions)
+                    EnsureExogenousDisputeGeneratorSelection(litigGameOptions);
+            }
+
             var optionSetNames = optionSets.Select(x => x.Name).OrderBy(x => x).Distinct().ToList();
 
             return optionSets;
         }
+
 
         #region Fee shifting article
 
