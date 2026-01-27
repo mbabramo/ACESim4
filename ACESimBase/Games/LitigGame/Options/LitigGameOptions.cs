@@ -7,6 +7,13 @@ using ACESimBase.Util.Mathematics;
 
 namespace ACESim
 {
+    public enum SignalLabelMarginalDistributionMode : byte
+    {
+        GaussianImplied = 0,
+        Equal = 1,
+        TailDecayed = 2,
+    }
+
     [Serializable]
     public class LitigGameOptions : GameOptions
     {
@@ -14,7 +21,7 @@ namespace ACESim
         /// The generator of disputes (e.g., contract, tort, etc.), determining the litigation quality. If null, then there is an equal probability of each litigation quality outcome.
         /// </summary>
         public ILitigGameDisputeGenerator LitigGameDisputeGenerator
-        { 
+        {
             get;
             set;
         }
@@ -71,6 +78,17 @@ namespace ACESim
         /// The standard deviation of the noise used to obfuscate the court's estimate of the case strength. This applies only when the action is the noise, rather than the signal itself.
         /// </summary>
         public double CourtDamagesNoiseStdev;
+
+        /// <summary>
+        /// Controls the prior-weighted (marginal/unconditional) distribution of discrete signal labels independently of the noise standard deviation.
+        /// </summary>
+        public SignalLabelMarginalDistributionMode SignalLabelMarginalDistributionMode = SignalLabelMarginalDistributionMode.GaussianImplied;
+
+        /// <summary>
+        /// Tail-decay parameter used when SignalLabelMarginalDistributionMode is TailDecayed. Higher values make extreme labels less likely in the prior-weighted marginal distribution.
+        /// </summary>
+        public double SignalLabelTailDecay = 1.0;
+
         /// <summary>
         /// If true, then plaintiff has no choice but to file and defendant has no choice but to answer
         /// </summary>
@@ -223,7 +241,7 @@ namespace ACESim
         /// <summary>
         /// The proportion of extra damages that the plaintiff buys after a failed shootout round. This strength is also multiplied by the midpoint of the settlement offers to determine the price that the plaintiff must pay for the damages.
         /// </summary>
-        public double ShootoutStrength; 
+        public double ShootoutStrength;
 
         /// <summary>
         /// Plaintiff's initial wealth.
@@ -243,8 +261,9 @@ namespace ACESim
         /// </summary>
         public double DamagesMax { get; set; }
         /// <summary>
-        /// A multiplier to be applied to damages awarded to the plaintiff. This can be used to model punitive damages or other multipliers. This does not count as the "correct" value in calculating false positive or false negative inaccuracy. 
-        public double DamagesMultiplier = 1.0; 
+        /// A multiplier to be applied to damages awarded to the plaintiff. This can be used to model punitive damages or other multipliers. This does not count as the "correct" value in calculating false positive or false negative inaccuracy.
+        /// </summary>
+        public double DamagesMultiplier = 1.0;
 
         /// <summary>
         /// The degree of regret aversion. If a party finishes with wealth w0 but could have finished with wealth w1, where w1 > w0, then the party experiences effective wealth of w0 - RegretAversion*(w1 - w0)
@@ -258,7 +277,6 @@ namespace ACESim
         /// Defendant's utility calculator (risk-neutral or specific type of risk averse)
         /// </summary>
         public UtilityCalculator DUtilityCalculator;
-
 
         public bool IncludeSignalsReport;
         public bool IncludeCourtSuccessReport;
@@ -287,7 +305,6 @@ namespace ACESim
 
         public bool IsSymmetric() => LitigGameDisputeGenerator.SupportsSymmetry() && BargainingRoundsSimultaneous && SkipFileAndAnswerDecisions /* Note: If changing this, must ensure PFilingCost == DAnswerCost */ && PLiabilityNoiseStdev == DLiabilityNoiseStdev && PDamagesNoiseStdev == DDamagesNoiseStdev && PTrialCosts == DTrialCosts && PTrialCosts_Original == DTrialCosts_Original && PInitialWealth + DamagesMax * DamagesMultiplier == DInitialWealth && (NumLiabilityStrengthPoints == 1 || NumDamagesStrengthPoints == 1) /* If BOTH liability and damages are uncertain, then suppose there is a 50% chance of liability and a 50% chance of high or zero damages; in this case, there is a 25% expectation of damages, so the game is not symmetric, as the defendant in effect has two ways to win */;
 
-
         public override string ToString()
         {
             return
@@ -297,6 +314,7 @@ NumOffers {NumOffers} {(IncludeEndpointsForOffers ? "(Includes endpoints)" : "")
 NumPotentialBargainingRounds {NumPotentialBargainingRounds}  BargainingRoundsSimultaneous {BargainingRoundsSimultaneous} SimultaneousOffersUltimatelyRevealed {SimultaneousOffersUltimatelyRevealed} 
 NumLiabilityStrengthPoints {NumLiabilityStrengthPoints} NumLiabilitySignals {NumLiabilitySignals} PLiabilityNoiseStdev {PLiabilityNoiseStdev} DLiabilityNoiseStdev {DLiabilityNoiseStdev} CourtLiabilityNoiseStdev {CourtLiabilityNoiseStdev} 
 NumDamagesStrengthPoints {NumDamagesStrengthPoints} NumDamagesSignals {NumDamagesSignals} PDamagesNoiseStdev {PDamagesNoiseStdev} DDamagesNoiseStdev {DDamagesNoiseStdev} CourtDamagesNoiseStdev {CourtDamagesNoiseStdev} 
+SignalLabelMarginalDistributionMode {SignalLabelMarginalDistributionMode} SignalLabelTailDecay {SignalLabelTailDecay}
 SkipFileAndAnswerDecisions {SkipFileAndAnswerDecisions} AllowAbandonAndDefaults {AllowAbandonAndDefaults} PredeterminedAbandonAndDefaults {PredeterminedAbandonAndDefaults} IncludeAgreementToBargainDecisions {IncludeAgreementToBargainDecisions} DeltaOffersOptions {DeltaOffersOptions} 
 CostsMultiplier {CostsMultiplier} PTrialCosts {PTrialCosts} DTrialCosts {DTrialCosts} PFilingCost {PFilingCost} DAnswerCost {DAnswerCost} {(RoundSpecificBargainingCosts == null ? $"PerPartyCostsLeadingUpToBargainingRound {PerPartyCostsLeadingUpToBargainingRound}" : $"RoundSpecificBargainingCosts {String.Join(",", RoundSpecificBargainingCosts)}")} 
 LoserPays {LoserPays} Multiple {LoserPaysMultiple} AfterAbandonment {LoserPaysAfterAbandonment} Rule68 {Rule68} Margin {LoserPaysOnlyLargeMarginOfVictory} ({LoserPaysMarginOfVictoryThreshold})

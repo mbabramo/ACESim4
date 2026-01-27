@@ -105,105 +105,84 @@ namespace ACESim
             return result;
         }
 
-        private void SetupInverted(LitigGameDefinition gameDefinition)
+        private void SetupInverted(LitigGameDefinition litigGameDefinition)
         {
-            LitigGameOptions o = gameDefinition.Options;
+            LitigGameOptions o = litigGameDefinition.Options;
             if (!o.CollapseChanceDecisions)
                 return;
 
+            double[] targetPartyLiabilitySignalMarginal = o.GetTargetSignalLabelMarginalDistributionOrNull(o.NumLiabilitySignals);
+            double[] targetCourtLiabilitySignalMarginal = o.GetTargetSignalLabelMarginalDistributionOrNull(o.NumCourtLiabilitySignals);
+
+            var pLiabilitySignalProbabilitiesGivenTrueLiability = new double[][] {
+                DiscreteValueSignal.GetProbabilitiesOfDiscreteSignals(1, PLiabilitySignalParameters),
+                DiscreteValueSignal.GetProbabilitiesOfDiscreteSignals(2, PLiabilitySignalParameters)
+            };
+            var dLiabilitySignalProbabilitiesGivenTrueLiability = new double[][] {
+                DiscreteValueSignal.GetProbabilitiesOfDiscreteSignals(1, DLiabilitySignalParameters),
+                DiscreteValueSignal.GetProbabilitiesOfDiscreteSignals(2, DLiabilitySignalParameters)
+            };
+            var cLiabilitySignalProbabilitiesGivenTrueLiability = new double[][] {
+                DiscreteValueSignal.GetProbabilitiesOfDiscreteSignals(1, CLiabilitySignalParameters),
+                DiscreteValueSignal.GetProbabilitiesOfDiscreteSignals(2, CLiabilitySignalParameters)
+            };
+
+            if (targetPartyLiabilitySignalMarginal != null)
             {
-                DiscreteValueSignalParameters pParamsFromOptions = o.PLiabilitySignalParameters ;
-                DiscreteValueSignalParameters dParamsFromOptions = o.DLiabilitySignalParameters;
-
-                DiscreteValueSignalParameters pParams = new DiscreteValueSignalParameters()
-                {
-                    NumPointsInSourceUniformDistribution = 2,
-                    NumSignals = pParamsFromOptions.NumSignals,
-                    StdevOfNormalDistribution = pParamsFromOptions.StdevOfNormalDistribution,
-                    SourcePointsIncludeExtremes = true
-                };
-
-                DiscreteValueSignalParameters dParams = new DiscreteValueSignalParameters()
-                {
-                    NumPointsInSourceUniformDistribution = 2,
-                    NumSignals = dParamsFromOptions.NumSignals,
-                    StdevOfNormalDistribution = dParamsFromOptions.StdevOfNormalDistribution,
-                    SourcePointsIncludeExtremes = true
-                };
-
-                DiscreteValueSignalParameters cParams = new DiscreteValueSignalParameters()
-                {
-                    NumPointsInSourceUniformDistribution = 2,
-                    NumSignals = o.NumCourtLiabilitySignals,
-                    StdevOfNormalDistribution = o.CourtLiabilityNoiseStdev,
-                    SourcePointsIncludeExtremes = true
-                };
-
-                double[][] pSignalGivenHidden = new double[2][];
-                double[][] dSignalGivenHidden = new double[2][];
-                double[][] cSignalGivenHidden = new double[2][];
-
-                for (byte hidden = 1; hidden <= 2; hidden++)
-                {
-                    pSignalGivenHidden[hidden - 1] = DiscreteValueSignal.GetProbabilitiesOfDiscreteSignals(hidden, pParams);
-                    dSignalGivenHidden[hidden - 1] = DiscreteValueSignal.GetProbabilitiesOfDiscreteSignals(hidden, dParams);
-                    cSignalGivenHidden[hidden - 1] = DiscreteValueSignal.GetProbabilitiesOfDiscreteSignals(hidden, cParams);
-                }
-
-                LiabilitySignalsBayes = new ThreePartyCorrelatedSignalsBayes(
-                    ProbabilityOfTrulyLiableValues,
-                    pSignalGivenHidden,
-                    dSignalGivenHidden,
-                    cSignalGivenHidden);
-
-                pLiabilitySignalProbabilitiesUnconditional = LiabilitySignalsBayes.GetParty0SignalProbabilitiesUnconditional();
-                dLiabilitySignalProbabilitiesUnconditional = ComputeUnconditionalSignalDistribution(ProbabilityOfTrulyLiableValues, dSignalGivenHidden);
+                pLiabilitySignalProbabilitiesGivenTrueLiability = SignalMarginalDistributionTransform.TransformConditionalSignalDistributionsToMatchTargetMarginal(ProbabilityOfTrulyLiableValues, pLiabilitySignalProbabilitiesGivenTrueLiability, targetPartyLiabilitySignalMarginal);
+                dLiabilitySignalProbabilitiesGivenTrueLiability = SignalMarginalDistributionTransform.TransformConditionalSignalDistributionsToMatchTargetMarginal(ProbabilityOfTrulyLiableValues, dLiabilitySignalProbabilitiesGivenTrueLiability, targetPartyLiabilitySignalMarginal);
+            }
+            if (targetCourtLiabilitySignalMarginal != null)
+            {
+                cLiabilitySignalProbabilitiesGivenTrueLiability = SignalMarginalDistributionTransform.TransformConditionalSignalDistributionsToMatchTargetMarginal(ProbabilityOfTrulyLiableValues, cLiabilitySignalProbabilitiesGivenTrueLiability, targetCourtLiabilitySignalMarginal);
             }
 
-            if (o.NumDamagesStrengthPoints <= 1)
+            _liabilitySignalsBayes = new ThreePartyCorrelatedSignalsBayes(
+                ProbabilityOfTrulyLiableValues,
+                pLiabilitySignalProbabilitiesGivenTrueLiability,
+                dLiabilitySignalProbabilitiesGivenTrueLiability,
+                cLiabilitySignalProbabilitiesGivenTrueLiability);
+
+            pLiabilitySignalProbabilitiesUnconditional = _liabilitySignalsBayes.GetParty0SignalProbabilitiesUnconditional();
+            dLiabilitySignalProbabilitiesUnconditional = ComputeUnconditionalSignalDistribution(ProbabilityOfTrulyLiableValues, dLiabilitySignalProbabilitiesGivenTrueLiability);
+
+            if (o.NumDamagesStrengthPoints > 1)
             {
-                DamagesSignalsBayes = null;
-                pDamagesSignalProbabilitiesUnconditional = new double[] { 1.0 };
-                dDamagesSignalProbabilitiesUnconditional = new double[] { 1.0 };
-            }
-            else
-            {
-                DiscreteValueSignalParameters pParams = o.PDamagesSignalParameters ;
-                DiscreteValueSignalParameters dParams = o.DDamagesSignalParameters;
+                double[] targetPartyDamagesSignalMarginal = o.GetTargetSignalLabelMarginalDistributionOrNull(o.NumDamagesSignals);
+                double[] targetCourtDamagesSignalMarginal = o.GetTargetSignalLabelMarginalDistributionOrNull(o.NumDamagesSignals);
 
-                DiscreteValueSignalParameters cParams = new DiscreteValueSignalParameters()
+                var pDamagesSignalProbabilitiesGivenDamagesStrength = new double[o.NumDamagesStrengthPoints][];
+                var dDamagesSignalProbabilitiesGivenDamagesStrength = new double[o.NumDamagesStrengthPoints][];
+                var cDamagesSignalProbabilitiesGivenDamagesStrength = new double[o.NumDamagesStrengthPoints][];
+
+                for (int i = 0; i < o.NumDamagesStrengthPoints; i++)
                 {
-                    NumPointsInSourceUniformDistribution = o.NumDamagesStrengthPoints,
-                    NumSignals = o.NumDamagesSignals,
-                    StdevOfNormalDistribution = o.CourtDamagesNoiseStdev,
-                    SourcePointsIncludeExtremes = false
-                };
-
-                int hiddenCount = o.NumDamagesStrengthPoints;
-                double[] damagesPrior = ProbabilityOfDamagesStrengthValues;
-
-                double[][] pSignalGivenHidden = new double[hiddenCount][];
-                double[][] dSignalGivenHidden = new double[hiddenCount][];
-                double[][] cSignalGivenHidden = new double[hiddenCount][];
-
-                for (byte hidden = 1; hidden <= hiddenCount; hidden++)
-                {
-                    pSignalGivenHidden[hidden - 1] = DiscreteValueSignal.GetProbabilitiesOfDiscreteSignals(hidden, pParams);
-                    dSignalGivenHidden[hidden - 1] = DiscreteValueSignal.GetProbabilitiesOfDiscreteSignals(hidden, dParams);
-                    cSignalGivenHidden[hidden - 1] = DiscreteValueSignal.GetProbabilitiesOfDiscreteSignals(hidden, cParams);
+                    int strength1Based = i + 1;
+                    pDamagesSignalProbabilitiesGivenDamagesStrength[i] = DiscreteValueSignal.GetProbabilitiesOfDiscreteSignals(strength1Based, PDamagesSignalParameters);
+                    dDamagesSignalProbabilitiesGivenDamagesStrength[i] = DiscreteValueSignal.GetProbabilitiesOfDiscreteSignals(strength1Based, DDamagesSignalParameters);
+                    cDamagesSignalProbabilitiesGivenDamagesStrength[i] = DiscreteValueSignal.GetProbabilitiesOfDiscreteSignals(strength1Based, CDamagesSignalParameters);
                 }
 
-                DamagesSignalsBayes = new ThreePartyCorrelatedSignalsBayes(
-                    damagesPrior,
-                    pSignalGivenHidden,
-                    dSignalGivenHidden,
-                    cSignalGivenHidden);
+                if (targetPartyDamagesSignalMarginal != null)
+                {
+                    pDamagesSignalProbabilitiesGivenDamagesStrength = SignalMarginalDistributionTransform.TransformConditionalSignalDistributionsToMatchTargetMarginal(ProbabilityOfDamagesStrengthValues, pDamagesSignalProbabilitiesGivenDamagesStrength, targetPartyDamagesSignalMarginal);
+                    dDamagesSignalProbabilitiesGivenDamagesStrength = SignalMarginalDistributionTransform.TransformConditionalSignalDistributionsToMatchTargetMarginal(ProbabilityOfDamagesStrengthValues, dDamagesSignalProbabilitiesGivenDamagesStrength, targetPartyDamagesSignalMarginal);
+                }
+                if (targetCourtDamagesSignalMarginal != null)
+                {
+                    cDamagesSignalProbabilitiesGivenDamagesStrength = SignalMarginalDistributionTransform.TransformConditionalSignalDistributionsToMatchTargetMarginal(ProbabilityOfDamagesStrengthValues, cDamagesSignalProbabilitiesGivenDamagesStrength, targetCourtDamagesSignalMarginal);
+                }
 
-                pDamagesSignalProbabilitiesUnconditional = DamagesSignalsBayes.GetParty0SignalProbabilitiesUnconditional();
-                dDamagesSignalProbabilitiesUnconditional = ComputeUnconditionalSignalDistribution(damagesPrior, dSignalGivenHidden);
+                _damagesSignalsBayes = new ThreePartyCorrelatedSignalsBayes(
+                    ProbabilityOfDamagesStrengthValues,
+                    pDamagesSignalProbabilitiesGivenDamagesStrength,
+                    dDamagesSignalProbabilitiesGivenDamagesStrength,
+                    cDamagesSignalProbabilitiesGivenDamagesStrength);
+
+                pDamagesSignalProbabilitiesUnconditional = _damagesSignalsBayes.GetParty0SignalProbabilitiesUnconditional();
+                dDamagesSignalProbabilitiesUnconditional = ComputeUnconditionalSignalDistribution(ProbabilityOfDamagesStrengthValues, dDamagesSignalProbabilitiesGivenDamagesStrength);
             }
         }
-
 
         public override void GetActionsSetup(
             LitigGameDefinition gameDefinition,
