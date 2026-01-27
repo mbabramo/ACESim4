@@ -25,8 +25,8 @@ namespace ACESim
         private double[] ProbabilitiesLiabilityStrength_TrulyNotLiable;
         private double[] ProbabilitiesLiabilityStrength_TrulyLiable;
 
-        private ThreePartyIndependentSignalsBayes LiabilitySignalsBayes;
-        private ThreePartyIndependentSignalsBayes DamagesSignalsBayes;
+        private ThreePartyCorrelatedSignalsBayes LiabilitySignalsBayes;
+        private ThreePartyCorrelatedSignalsBayes DamagesSignalsBayes;
 
         private double[] pLiabilitySignalProbabilitiesUnconditional;
         private double[] pDamagesSignalProbabilitiesUnconditional;
@@ -112,8 +112,8 @@ namespace ACESim
                 return;
 
             {
-                DiscreteValueSignalParameters pParamsFromOptions = o.PLiabilitySignalParameters ?? throw new InvalidOperationException($"{nameof(o.PLiabilitySignalParameters)} must be initialized.");
-                DiscreteValueSignalParameters dParamsFromOptions = o.DLiabilitySignalParameters ?? throw new InvalidOperationException($"{nameof(o.DLiabilitySignalParameters)} must be initialized.");
+                DiscreteValueSignalParameters pParamsFromOptions = o.PLiabilitySignalParameters ;
+                DiscreteValueSignalParameters dParamsFromOptions = o.DLiabilitySignalParameters;
 
                 DiscreteValueSignalParameters pParams = new DiscreteValueSignalParameters()
                 {
@@ -150,7 +150,7 @@ namespace ACESim
                     cSignalGivenHidden[hidden - 1] = DiscreteValueSignal.GetProbabilitiesOfDiscreteSignals(hidden, cParams);
                 }
 
-                LiabilitySignalsBayes = new ThreePartyIndependentSignalsBayes(
+                LiabilitySignalsBayes = new ThreePartyCorrelatedSignalsBayes(
                     ProbabilityOfTrulyLiableValues,
                     pSignalGivenHidden,
                     dSignalGivenHidden,
@@ -168,8 +168,8 @@ namespace ACESim
             }
             else
             {
-                DiscreteValueSignalParameters pParams = o.PDamagesSignalParameters ?? throw new InvalidOperationException($"{nameof(o.PDamagesSignalParameters)} must be initialized.");
-                DiscreteValueSignalParameters dParams = o.DDamagesSignalParameters ?? throw new InvalidOperationException($"{nameof(o.DDamagesSignalParameters)} must be initialized.");
+                DiscreteValueSignalParameters pParams = o.PDamagesSignalParameters ;
+                DiscreteValueSignalParameters dParams = o.DDamagesSignalParameters;
 
                 DiscreteValueSignalParameters cParams = new DiscreteValueSignalParameters()
                 {
@@ -193,7 +193,7 @@ namespace ACESim
                     cSignalGivenHidden[hidden - 1] = DiscreteValueSignal.GetProbabilitiesOfDiscreteSignals(hidden, cParams);
                 }
 
-                DamagesSignalsBayes = new ThreePartyIndependentSignalsBayes(
+                DamagesSignalsBayes = new ThreePartyCorrelatedSignalsBayes(
                     damagesPrior,
                     pSignalGivenHidden,
                     dSignalGivenHidden,

@@ -8,12 +8,12 @@ using System.Linq;
 namespace ACESimTest.GameTests
 {
     /// <summary>
-    /// Thorough MSTest + FluentAssertions tests for <see cref="ThreePartyIndependentSignalsBayes"/>.
+    /// Thorough MSTest + FluentAssertions tests for <see cref="ThreePartyCorrelatedSignalsBayes"/>.
     /// Uses 2 hidden states and 3 signal levels for each party, with mild noise.
     /// Verifies normalization, Bayes posteriors, sequential conditionals, and guard clauses.
     /// </summary>
     [TestClass]
-    public sealed class ThreePartyIndependentSignalsBayesTests
+    public sealed class ThreePartyCorrelatedSignalsBayesTests
     {
         const int HiddenCount = 2;
         const int SignalLevels = 3;
@@ -78,7 +78,7 @@ namespace ACESimTest.GameTests
                 GetConditionalSignalGivenHiddenOneBased(h, cParams).Sum().Should().BeApproximately(1.0, 1e-8);
             }
 
-            var model = ThreePartyIndependentSignalsBayes.CreateUsingDiscreteValueSignalParameters(
+            var model = ThreePartyCorrelatedSignalsBayes.CreateUsingDiscreteValueSignalParameters(
                 priorHiddenValues: prior,
                 party0SignalCount: SignalLevels, party0NoiseStdev: 0.12,
                 party1SignalCount: SignalLevels, party1NoiseStdev: 0.12,
@@ -102,7 +102,7 @@ namespace ACESimTest.GameTests
 
             var prior = new[] { 0.25, 0.75 };
 
-            var model = ThreePartyIndependentSignalsBayes.CreateUsingDiscreteValueSignalParameters(
+            var model = ThreePartyCorrelatedSignalsBayes.CreateUsingDiscreteValueSignalParameters(
                 priorHiddenValues: prior,
                 party0SignalCount: SignalLevels, party0NoiseStdev: 0.12,
                 party1SignalCount: SignalLevels, party1NoiseStdev: 0.12,
@@ -148,7 +148,7 @@ namespace ACESimTest.GameTests
 
             var prior = new[] { 0.4, 0.6 };
 
-            var model = ThreePartyIndependentSignalsBayes.CreateUsingDiscreteValueSignalParameters(
+            var model = ThreePartyCorrelatedSignalsBayes.CreateUsingDiscreteValueSignalParameters(
                 priorHiddenValues: prior,
                 party0SignalCount: SignalLevels, party0NoiseStdev: 0.12,
                 party1SignalCount: SignalLevels, party1NoiseStdev: 0.12,
@@ -194,7 +194,7 @@ namespace ACESimTest.GameTests
 
             var prior = new[] { 0.5, 0.5 };
 
-            var model = ThreePartyIndependentSignalsBayes.CreateUsingDiscreteValueSignalParameters(
+            var model = ThreePartyCorrelatedSignalsBayes.CreateUsingDiscreteValueSignalParameters(
                 priorHiddenValues: prior,
                 party0SignalCount: SignalLevels, party0NoiseStdev: 0.12,
                 party1SignalCount: SignalLevels, party1NoiseStdev: 0.12,
@@ -250,7 +250,7 @@ namespace ACESimTest.GameTests
 
             var prior = new[] { 0.2, 0.8 };
 
-            var model = ThreePartyIndependentSignalsBayes.CreateUsingDiscreteValueSignalParameters(
+            var model = ThreePartyCorrelatedSignalsBayes.CreateUsingDiscreteValueSignalParameters(
                 priorHiddenValues: prior,
                 party0SignalCount: SignalLevels, party0NoiseStdev: 0.12,
                 party1SignalCount: SignalLevels, party1NoiseStdev: 0.12,
@@ -290,7 +290,7 @@ namespace ACESimTest.GameTests
         {
             var prior = new[] { 0.5, 0.5 };
 
-            var deterministic = ThreePartyIndependentSignalsBayes.CreateUsingDiscreteValueSignalParameters(
+            var deterministic = ThreePartyCorrelatedSignalsBayes.CreateUsingDiscreteValueSignalParameters(
                 priorHiddenValues: prior,
                 party0SignalCount: 2, party0NoiseStdev: 0.0,
                 party1SignalCount: 2, party1NoiseStdev: 0.0,
@@ -317,7 +317,7 @@ namespace ACESimTest.GameTests
         {
             var prior = new[] { 0.5, 0.5 };
 
-            var model = ThreePartyIndependentSignalsBayes.CreateUsingDiscreteValueSignalParameters(
+            var model = ThreePartyCorrelatedSignalsBayes.CreateUsingDiscreteValueSignalParameters(
                 priorHiddenValues: prior,
                 party0SignalCount: SignalLevels, party0NoiseStdev: 0.12,
                 party1SignalCount: SignalLevels, party1NoiseStdev: 0.12,
@@ -360,7 +360,7 @@ namespace ACESimTest.GameTests
                 new[] { 0.2, 0.2, 0.6 }
             };
 
-            Action act = () => new ThreePartyIndependentSignalsBayes(prior, badParty0, party1, party2);
+            Action act = () => new ThreePartyCorrelatedSignalsBayes(prior, badParty0, party1, party2);
             act.Should().Throw<ArgumentException>();
         }
     }

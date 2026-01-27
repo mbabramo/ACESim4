@@ -4,7 +4,7 @@ using System;
 namespace ACESimBase.Util.DiscreteProbabilities
 {
     [Serializable]
-    public sealed class ThreePartyIndependentSignalsBayes
+    public sealed class ThreePartyCorrelatedSignalsBayes
     {
         private readonly int _hiddenValueCount;
         private readonly int _party0SignalCount;
@@ -28,7 +28,7 @@ namespace ACESimBase.Util.DiscreteProbabilities
         public int Party1SignalCount => _party1SignalCount;
         public int Party2SignalCount => _party2SignalCount;
 
-        public ThreePartyIndependentSignalsBayes(
+        public ThreePartyCorrelatedSignalsBayes(
             double[] priorHiddenValues,
             double[][] party0SignalProbabilitiesGivenHidden,
             double[][] party1SignalProbabilitiesGivenHidden,
@@ -68,7 +68,7 @@ namespace ACESimBase.Util.DiscreteProbabilities
             Precompute();
         }
 
-        public static ThreePartyIndependentSignalsBayes CreateUsingDiscreteValueSignalParameters(
+        public static ThreePartyCorrelatedSignalsBayes CreateUsingDiscreteValueSignalParameters(
             double[] priorHiddenValues,
             int party0SignalCount,
             double party0NoiseStdev,
@@ -90,7 +90,7 @@ namespace ACESimBase.Util.DiscreteProbabilities
             var party1 = BuildConditionalSignalTableFromNoise(hiddenValueCount, party1SignalCount, party1NoiseStdev, sourcePointsIncludeExtremes);
             var party2 = BuildConditionalSignalTableFromNoise(hiddenValueCount, party2SignalCount, party2NoiseStdev, sourcePointsIncludeExtremes);
 
-            return new ThreePartyIndependentSignalsBayes(priorHiddenValues, party0, party1, party2);
+            return new ThreePartyCorrelatedSignalsBayes(priorHiddenValues, party0, party1, party2);
         }
 
         public double[] GetParty0SignalProbabilitiesUnconditional()
