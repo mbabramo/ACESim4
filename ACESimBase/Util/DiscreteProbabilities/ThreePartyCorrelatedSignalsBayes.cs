@@ -98,6 +98,39 @@ namespace ACESimBase.Util.DiscreteProbabilities
             return _party0SignalProbabilitiesUnconditional;
         }
 
+
+        public double[] GetParty1SignalProbabilitiesUnconditional()
+        {
+            var result = new double[_party1SignalCount];
+            for (int s1 = 0; s1 < _party1SignalCount; s1++)
+            {
+                double unconditional = 0.0;
+                for (int h = 0; h < _hiddenValueCount; h++)
+                    unconditional += _priorHiddenValues[h] * _party1SignalProbabilitiesGivenHidden[h][s1];
+                result[s1] = Math.Max(0.0, unconditional);
+            }
+
+            NormalizeInPlaceOrUniform(result);
+            return result;
+        }
+
+
+        public double[] GetParty2SignalProbabilitiesUnconditional()
+        {
+            var result = new double[_party2SignalCount];
+            for (int s2 = 0; s2 < _party2SignalCount; s2++)
+            {
+                double unconditional = 0.0;
+                for (int h = 0; h < _hiddenValueCount; h++)
+                    unconditional += _priorHiddenValues[h] * _party2SignalProbabilitiesGivenHidden[h][s2];
+                result[s2] = Math.Max(0.0, unconditional);
+            }
+
+            NormalizeInPlaceOrUniform(result);
+            return result;
+        }
+
+
         public double[] GetParty1SignalProbabilitiesGivenParty0Signal(byte party0Signal)
         {
             int s0 = party0Signal - 1;
@@ -368,7 +401,8 @@ namespace ACESimBase.Util.DiscreteProbabilities
                 NumPointsInSourceUniformDistribution = hiddenValueCount,
                 NumSignals = signalCount,
                 StdevOfNormalDistribution = noiseStdev,
-                SourcePointsIncludeExtremes = sourcePointsIncludeExtremes
+                SourcePointsIncludeExtremes = sourcePointsIncludeExtremes,
+                SignalBoundaryMode = DiscreteSignalBoundaryMode.EqualWidth
             };
 
             var table = new double[hiddenValueCount][];
@@ -378,12 +412,10 @@ namespace ACESimBase.Util.DiscreteProbabilities
                 for (int h = 1; h <= hiddenValueCount; h++)
                 {
                     double location = parameters.MapSourceTo0To1(h);
-                    if (location < 0.0) location = 0.0;
-                    if (location > 1.0) location = 1.0;
-
-                    int zeroBasedSignalIndex = (int)Math.Floor(location * signalCount);
-                    if (zeroBasedSignalIndex < 0) zeroBasedSignalIndex = 0;
-                    if (zeroBasedSignalIndex >= signalCount) zeroBasedSignalIndex = signalCount - 1;
+                    int zeroBasedSignalIndex = DiscreteSignalBoundaries.MapLocationIn0To1ToZeroBasedSignalIndex(
+                        location,
+                        signalCount,
+                        parameters.SignalBoundaryMode);
 
                     double[] row = new double[signalCount];
                     row[zeroBasedSignalIndex] = 1.0;
@@ -397,5 +429,6 @@ namespace ACESimBase.Util.DiscreteProbabilities
 
             return table;
         }
+
     }
 }

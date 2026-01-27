@@ -227,10 +227,14 @@ namespace ACESimBase.Util.DiscreteProbabilities
 
                 if (deterministic)
                 {
-                    // Map each hidden value to one signal bucket by integer division.
+                    // Preserve legacy behavior: map each hidden index to a signal bucket by integer division.
+                    // This can intentionally leave some signal buckets unreachable when sCount > hiddenCount.
                     for (int h = 0; h < hiddenCount; h++)
                     {
                         int s = (int)((long)h * sCount / hiddenCount);
+                        if (s < 0) s = 0;
+                        if (s >= sCount) s = sCount - 1;
+
                         var dist = new double[sCount];
                         dist[s] = 1.0;
                         result[party][h] = dist;

@@ -112,52 +112,21 @@ namespace ACESim
                 return;
 
             {
-                DiscreteValueSignalParameters pParamsFromOptions = o.PLiabilitySignalParameters ;
+                DiscreteValueSignalParameters pParamsFromOptions = o.PLiabilitySignalParameters;
                 DiscreteValueSignalParameters dParamsFromOptions = o.DLiabilitySignalParameters;
 
-                DiscreteValueSignalParameters pParams = new DiscreteValueSignalParameters()
-                {
-                    NumPointsInSourceUniformDistribution = 2,
-                    NumSignals = pParamsFromOptions.NumSignals,
-                    StdevOfNormalDistribution = pParamsFromOptions.StdevOfNormalDistribution,
-                    SourcePointsIncludeExtremes = true
-                };
-
-                DiscreteValueSignalParameters dParams = new DiscreteValueSignalParameters()
-                {
-                    NumPointsInSourceUniformDistribution = 2,
-                    NumSignals = dParamsFromOptions.NumSignals,
-                    StdevOfNormalDistribution = dParamsFromOptions.StdevOfNormalDistribution,
-                    SourcePointsIncludeExtremes = true
-                };
-
-                DiscreteValueSignalParameters cParams = new DiscreteValueSignalParameters()
-                {
-                    NumPointsInSourceUniformDistribution = 2,
-                    NumSignals = o.NumCourtLiabilitySignals,
-                    StdevOfNormalDistribution = o.CourtLiabilityNoiseStdev,
-                    SourcePointsIncludeExtremes = true
-                };
-
-                double[][] pSignalGivenHidden = new double[2][];
-                double[][] dSignalGivenHidden = new double[2][];
-                double[][] cSignalGivenHidden = new double[2][];
-
-                for (byte hidden = 1; hidden <= 2; hidden++)
-                {
-                    pSignalGivenHidden[hidden - 1] = DiscreteValueSignal.GetProbabilitiesOfDiscreteSignals(hidden, pParams);
-                    dSignalGivenHidden[hidden - 1] = DiscreteValueSignal.GetProbabilitiesOfDiscreteSignals(hidden, dParams);
-                    cSignalGivenHidden[hidden - 1] = DiscreteValueSignal.GetProbabilitiesOfDiscreteSignals(hidden, cParams);
-                }
-
-                LiabilitySignalsBayes = new ThreePartyCorrelatedSignalsBayes(
+                LiabilitySignalsBayes = ThreePartyCorrelatedSignalsBayes.CreateUsingDiscreteValueSignalParameters(
                     ProbabilityOfTrulyLiableValues,
-                    pSignalGivenHidden,
-                    dSignalGivenHidden,
-                    cSignalGivenHidden);
+                    pParamsFromOptions.NumSignals,
+                    pParamsFromOptions.StdevOfNormalDistribution,
+                    dParamsFromOptions.NumSignals,
+                    dParamsFromOptions.StdevOfNormalDistribution,
+                    o.NumCourtLiabilitySignals,
+                    o.CourtLiabilityNoiseStdev,
+                    sourcePointsIncludeExtremes: true);
 
                 pLiabilitySignalProbabilitiesUnconditional = LiabilitySignalsBayes.GetParty0SignalProbabilitiesUnconditional();
-                dLiabilitySignalProbabilitiesUnconditional = ComputeUnconditionalSignalDistribution(ProbabilityOfTrulyLiableValues, dSignalGivenHidden);
+                dLiabilitySignalProbabilitiesUnconditional = LiabilitySignalsBayes.GetParty1SignalProbabilitiesUnconditional();
             }
 
             if (o.NumDamagesStrengthPoints <= 1)
@@ -168,39 +137,20 @@ namespace ACESim
             }
             else
             {
-                DiscreteValueSignalParameters pParams = o.PDamagesSignalParameters ;
-                DiscreteValueSignalParameters dParams = o.DDamagesSignalParameters;
-
-                DiscreteValueSignalParameters cParams = new DiscreteValueSignalParameters()
-                {
-                    NumPointsInSourceUniformDistribution = o.NumDamagesStrengthPoints,
-                    NumSignals = o.NumDamagesSignals,
-                    StdevOfNormalDistribution = o.CourtDamagesNoiseStdev,
-                    SourcePointsIncludeExtremes = false
-                };
-
-                int hiddenCount = o.NumDamagesStrengthPoints;
                 double[] damagesPrior = ProbabilityOfDamagesStrengthValues;
 
-                double[][] pSignalGivenHidden = new double[hiddenCount][];
-                double[][] dSignalGivenHidden = new double[hiddenCount][];
-                double[][] cSignalGivenHidden = new double[hiddenCount][];
-
-                for (byte hidden = 1; hidden <= hiddenCount; hidden++)
-                {
-                    pSignalGivenHidden[hidden - 1] = DiscreteValueSignal.GetProbabilitiesOfDiscreteSignals(hidden, pParams);
-                    dSignalGivenHidden[hidden - 1] = DiscreteValueSignal.GetProbabilitiesOfDiscreteSignals(hidden, dParams);
-                    cSignalGivenHidden[hidden - 1] = DiscreteValueSignal.GetProbabilitiesOfDiscreteSignals(hidden, cParams);
-                }
-
-                DamagesSignalsBayes = new ThreePartyCorrelatedSignalsBayes(
+                DamagesSignalsBayes = ThreePartyCorrelatedSignalsBayes.CreateUsingDiscreteValueSignalParameters(
                     damagesPrior,
-                    pSignalGivenHidden,
-                    dSignalGivenHidden,
-                    cSignalGivenHidden);
+                    o.NumDamagesSignals,
+                    o.PDamagesNoiseStdev,
+                    o.NumDamagesSignals,
+                    o.DDamagesNoiseStdev,
+                    o.NumDamagesSignals,
+                    o.CourtDamagesNoiseStdev,
+                    sourcePointsIncludeExtremes: false);
 
                 pDamagesSignalProbabilitiesUnconditional = DamagesSignalsBayes.GetParty0SignalProbabilitiesUnconditional();
-                dDamagesSignalProbabilitiesUnconditional = ComputeUnconditionalSignalDistribution(damagesPrior, dSignalGivenHidden);
+                dDamagesSignalProbabilitiesUnconditional = DamagesSignalsBayes.GetParty1SignalProbabilitiesUnconditional();
             }
         }
 
