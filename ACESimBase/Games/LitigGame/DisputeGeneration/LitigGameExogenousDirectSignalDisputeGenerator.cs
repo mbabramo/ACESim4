@@ -112,15 +112,31 @@ namespace ACESim
                 return;
 
             {
-                DiscreteValueSignalParameters pParams = o.PLiabilitySignalParameters;
-                DiscreteValueSignalParameters dParams = o.DLiabilitySignalParameters;
+                DiscreteValueSignalParameters pParamsFromOptions = o.PLiabilitySignalParameters ?? throw new InvalidOperationException($"{nameof(o.PLiabilitySignalParameters)} must be initialized.");
+                DiscreteValueSignalParameters dParamsFromOptions = o.DLiabilitySignalParameters ?? throw new InvalidOperationException($"{nameof(o.DLiabilitySignalParameters)} must be initialized.");
+
+                DiscreteValueSignalParameters pParams = new DiscreteValueSignalParameters()
+                {
+                    NumPointsInSourceUniformDistribution = 2,
+                    NumSignals = pParamsFromOptions.NumSignals,
+                    StdevOfNormalDistribution = pParamsFromOptions.StdevOfNormalDistribution,
+                    SourcePointsIncludeExtremes = true
+                };
+
+                DiscreteValueSignalParameters dParams = new DiscreteValueSignalParameters()
+                {
+                    NumPointsInSourceUniformDistribution = 2,
+                    NumSignals = dParamsFromOptions.NumSignals,
+                    StdevOfNormalDistribution = dParamsFromOptions.StdevOfNormalDistribution,
+                    SourcePointsIncludeExtremes = true
+                };
 
                 DiscreteValueSignalParameters cParams = new DiscreteValueSignalParameters()
                 {
-                    NumPointsInSourceUniformDistribution = o.NumLiabilityStrengthPoints,
+                    NumPointsInSourceUniformDistribution = 2,
                     NumSignals = o.NumCourtLiabilitySignals,
                     StdevOfNormalDistribution = o.CourtLiabilityNoiseStdev,
-                    SourcePointsIncludeExtremes = false
+                    SourcePointsIncludeExtremes = true
                 };
 
                 double[][] pSignalGivenHidden = new double[2][];
@@ -152,8 +168,8 @@ namespace ACESim
             }
             else
             {
-                DiscreteValueSignalParameters pParams = o.PDamagesSignalParameters;
-                DiscreteValueSignalParameters dParams = o.DDamagesSignalParameters;
+                DiscreteValueSignalParameters pParams = o.PDamagesSignalParameters ?? throw new InvalidOperationException($"{nameof(o.PDamagesSignalParameters)} must be initialized.");
+                DiscreteValueSignalParameters dParams = o.DDamagesSignalParameters ?? throw new InvalidOperationException($"{nameof(o.DDamagesSignalParameters)} must be initialized.");
 
                 DiscreteValueSignalParameters cParams = new DiscreteValueSignalParameters()
                 {
@@ -187,6 +203,7 @@ namespace ACESim
                 dDamagesSignalProbabilitiesUnconditional = ComputeUnconditionalSignalDistribution(damagesPrior, dSignalGivenHidden);
             }
         }
+
 
         public override void GetActionsSetup(
             LitigGameDefinition gameDefinition,
