@@ -25,8 +25,8 @@ namespace ACESim
         private double[] ProbabilitiesLiabilityStrength_TrulyNotLiable;
         private double[] ProbabilitiesLiabilityStrength_TrulyLiable;
 
-        private ThreePartyIndependentSignalsBayes LiabilitySignalsBayes;
-        private ThreePartyIndependentSignalsBayes DamagesSignalsBayes;
+        private ThreePartyCorrelatedSignalsBayes LiabilitySignalsBayes;
+        private ThreePartyCorrelatedSignalsBayes DamagesSignalsBayes;
 
         private double[] pLiabilitySignalProbabilitiesUnconditional;
         private double[] pDamagesSignalProbabilitiesUnconditional;
@@ -150,7 +150,7 @@ namespace ACESim
                     cSignalGivenHidden[hidden - 1] = DiscreteValueSignal.GetProbabilitiesOfDiscreteSignals(hidden, cParams);
                 }
 
-                LiabilitySignalsBayes = new ThreePartyIndependentSignalsBayes(
+                LiabilitySignalsBayes = new ThreePartyCorrelatedSignalsBayes(
                     ProbabilityOfTrulyLiableValues,
                     pSignalGivenHidden,
                     dSignalGivenHidden,
@@ -193,7 +193,7 @@ namespace ACESim
                     cSignalGivenHidden[hidden - 1] = DiscreteValueSignal.GetProbabilitiesOfDiscreteSignals(hidden, cParams);
                 }
 
-                DamagesSignalsBayes = new ThreePartyIndependentSignalsBayes(
+                DamagesSignalsBayes = new ThreePartyCorrelatedSignalsBayes(
                     damagesPrior,
                     pSignalGivenHidden,
                     dSignalGivenHidden,
