@@ -225,133 +225,42 @@ namespace ACESim
         {
             PLiabilitySignalsTable = ArrayFormConversionExtension.CreateJaggedArray<double[][]>(new int[] { Options.NumLiabilityStrengthPoints, Options.NumLiabilitySignals });
             DLiabilitySignalsTable = ArrayFormConversionExtension.CreateJaggedArray<double[][]>(new int[] { Options.NumLiabilityStrengthPoints, Options.NumLiabilitySignals });
-            CLiabilitySignalsTable = ArrayFormConversionExtension.CreateJaggedArray<double[][]>(new int[] { Options.NumLiabilityStrengthPoints, Options.NumCourtLiabilitySignals });
-
-            for (byte litigationQuality = 1; litigationQuality <= Options.NumLiabilityStrengthPoints; litigationQuality++)
+            CLiabilitySignalsTable = ArrayFormConversionExtension.CreateJaggedArray<double[][]>(new int[] { Options.NumLiabilityStrengthPoints, Options.NumCourtLiabilitySignals }); 
+            for (byte litigationQuality = 1;
+                litigationQuality <= Options.NumLiabilityStrengthPoints;
+                litigationQuality++)
             {
-                double[] probabilities = DiscreteValueSignal.GetProbabilitiesOfDiscreteSignals(litigationQuality, Options.PLiabilitySignalParameters);
-                for (byte signal = 1; signal <= Options.NumLiabilitySignals; signal++)
-                    PLiabilitySignalsTable[litigationQuality - 1][signal - 1] = probabilities[signal - 1];
+                double litigationQualityUniform =
+                    EquallySpaced.GetLocationOfEquallySpacedPoint(litigationQuality - 1,
+                        Options.NumLiabilityStrengthPoints, false);
 
-                probabilities = DiscreteValueSignal.GetProbabilitiesOfDiscreteSignals(litigationQuality, Options.DLiabilitySignalParameters);
-                for (byte signal = 1; signal <= Options.NumLiabilitySignals; signal++)
-                    DLiabilitySignalsTable[litigationQuality - 1][signal - 1] = probabilities[signal - 1];
-
-                var cLiabilitySignalParameters = new DiscreteValueSignalParameters()
-                {
-                    NumPointsInSourceUniformDistribution = Options.NumLiabilityStrengthPoints,
-                    NumSignals = Options.NumCourtLiabilitySignals,
-                    StdevOfNormalDistribution = Options.CourtLiabilityNoiseStdev,
-                    SourcePointsIncludeExtremes = false
-                };
-                probabilities = DiscreteValueSignal.GetProbabilitiesOfDiscreteSignals(litigationQuality, cLiabilitySignalParameters);
-                for (byte signal = 1; signal <= Options.NumCourtLiabilitySignals; signal++)
-                    CLiabilitySignalsTable[litigationQuality - 1][signal - 1] = probabilities[signal - 1];
-            }
-
-            double[] targetPartySignalMarginal = Options.GetTargetSignalLabelMarginalDistributionOrNull(Options.NumLiabilitySignals);
-            double[] targetCourtSignalMarginal = Options.GetTargetSignalLabelMarginalDistributionOrNull(Options.NumCourtLiabilitySignals);
-
-            if (targetPartySignalMarginal != null || targetCourtSignalMarginal != null)
-            {
-                double[] liabilityStrengthPriorForEqualization = null;
-
-                if (Options.LitigGameDisputeGenerator is LitigGameExogenousDisputeGenerator exogenousDisputeGenerator)
-                {
-                    double exogenousProbabilityTrulyLiable = exogenousDisputeGenerator.ExogenousProbabilityTrulyLiable;
-                    double[] truthPrior = new double[] { 1.0 - exogenousProbabilityTrulyLiable, exogenousProbabilityTrulyLiable };
-
-                    var strengthSignalParameters = new DiscreteValueSignalParameters()
-                    {
-                        NumPointsInSourceUniformDistribution = 2,
-                        NumSignals = Options.NumLiabilityStrengthPoints,
-                        StdevOfNormalDistribution = exogenousDisputeGenerator.StdevNoiseToProduceLiabilityStrength,
-                        SourcePointsIncludeExtremes = true
-                    };
-
-                    double[] strengthGivenTrulyNotLiable = DiscreteValueSignal.GetProbabilitiesOfDiscreteSignals(1, strengthSignalParameters);
-                    double[] strengthGivenTrulyLiable = DiscreteValueSignal.GetProbabilitiesOfDiscreteSignals(2, strengthSignalParameters);
-
-                    liabilityStrengthPriorForEqualization = new double[Options.NumLiabilityStrengthPoints];
-                    for (int i = 0; i < Options.NumLiabilityStrengthPoints; i++)
-                        liabilityStrengthPriorForEqualization[i] = truthPrior[0] * strengthGivenTrulyNotLiable[i] + truthPrior[1] * strengthGivenTrulyLiable[i];
-                }
-                else if (Options.LitigGameDisputeGenerator is LitigGameExogenousDirectSignalDisputeGenerator directSignalDisputeGenerator)
-                {
-                    if (Options.NumLiabilityStrengthPoints == 2)
-                    {
-                        double p = directSignalDisputeGenerator.ExogenousProbabilityTrulyLiable;
-                        liabilityStrengthPriorForEqualization = new double[] { 1.0 - p, p };
-                    }
-                }
-
-                if (liabilityStrengthPriorForEqualization != null)
-                {
-                    if (targetPartySignalMarginal != null)
-                    {
-                        PLiabilitySignalsTable = SignalMarginalDistributionTransform.TransformConditionalSignalDistributionsToMatchTargetMarginal(liabilityStrengthPriorForEqualization, PLiabilitySignalsTable, targetPartySignalMarginal);
-                        DLiabilitySignalsTable = SignalMarginalDistributionTransform.TransformConditionalSignalDistributionsToMatchTargetMarginal(liabilityStrengthPriorForEqualization, DLiabilitySignalsTable, targetPartySignalMarginal);
-                    }
-                    if (targetCourtSignalMarginal != null)
-                    {
-                        CLiabilitySignalsTable = SignalMarginalDistributionTransform.TransformConditionalSignalDistributionsToMatchTargetMarginal(liabilityStrengthPriorForEqualization, CLiabilitySignalsTable, targetCourtSignalMarginal);
-                    }
-                }
+                PLiabilitySignalsTable[litigationQuality - 1] = DiscreteValueSignal.GetProbabilitiesOfDiscreteSignals(litigationQuality, Options.PLiabilitySignalParameters);
+                DLiabilitySignalsTable[litigationQuality - 1] = DiscreteValueSignal.GetProbabilitiesOfDiscreteSignals(litigationQuality, Options.DLiabilitySignalParameters);
+                int numCourtSignals = Options.NumCourtLiabilitySignals;
+                DiscreteValueSignalParameters cParams = new DiscreteValueSignalParameters() { NumPointsInSourceUniformDistribution = Options.NumLiabilityStrengthPoints, NumSignals = Options.NumCourtLiabilitySignals, StdevOfNormalDistribution = Options.CourtLiabilityNoiseStdev, SourcePointsIncludeExtremes = false };
+                CLiabilitySignalsTable[litigationQuality - 1] = DiscreteValueSignal.GetProbabilitiesOfDiscreteSignals(litigationQuality, cParams);
             }
         }
+
         public void CreateDamagesSignalsTables()
         {
             PDamagesSignalsTable = ArrayFormConversionExtension.CreateJaggedArray<double[][]>(new int[] { Options.NumDamagesStrengthPoints, Options.NumDamagesSignals });
             DDamagesSignalsTable = ArrayFormConversionExtension.CreateJaggedArray<double[][]>(new int[] { Options.NumDamagesStrengthPoints, Options.NumDamagesSignals });
-            CDamagesSignalsTable = ArrayFormConversionExtension.CreateJaggedArray<double[][]>(new int[] { Options.NumDamagesStrengthPoints, Options.NumCourtDamagesSignals });
-
-            for (byte damagesStrength = 1; damagesStrength <= Options.NumDamagesStrengthPoints; damagesStrength++)
+            CDamagesSignalsTable = ArrayFormConversionExtension.CreateJaggedArray<double[][]>(new int[] { Options.NumDamagesStrengthPoints, Options.NumDamagesSignals });
+            for (byte litigationQuality = 1;
+                litigationQuality <= Options.NumDamagesStrengthPoints;
+                litigationQuality++)
             {
-                double[] probabilities = DiscreteValueSignal.GetProbabilitiesOfDiscreteSignals(damagesStrength, Options.PDamagesSignalParameters);
-                for (byte signal = 1; signal <= Options.NumDamagesSignals; signal++)
-                    PDamagesSignalsTable[damagesStrength - 1][signal - 1] = probabilities[signal - 1];
+                double litigationQualityUniform =
+                    EquallySpaced.GetLocationOfEquallySpacedPoint(litigationQuality - 1,
+                        Options.NumDamagesStrengthPoints, false);
 
-                probabilities = DiscreteValueSignal.GetProbabilitiesOfDiscreteSignals(damagesStrength, Options.DDamagesSignalParameters);
-                for (byte signal = 1; signal <= Options.NumDamagesSignals; signal++)
-                    DDamagesSignalsTable[damagesStrength - 1][signal - 1] = probabilities[signal - 1];
-
-                var cDamagesSignalParameters = new DiscreteValueSignalParameters()
-                {
-                    NumPointsInSourceUniformDistribution = Options.NumDamagesStrengthPoints,
-                    NumSignals = Options.NumCourtDamagesSignals,
-                    StdevOfNormalDistribution = Options.CourtDamagesNoiseStdev,
-                    SourcePointsIncludeExtremes = false
-                };
-                probabilities = DiscreteValueSignal.GetProbabilitiesOfDiscreteSignals(damagesStrength, cDamagesSignalParameters);
-                for (byte signal = 1; signal <= Options.NumCourtDamagesSignals; signal++)
-                    CDamagesSignalsTable[damagesStrength - 1][signal - 1] = probabilities[signal - 1];
-            }
-
-            double[] targetPartySignalMarginal = Options.GetTargetSignalLabelMarginalDistributionOrNull(Options.NumDamagesSignals);
-            double[] targetCourtSignalMarginal = Options.GetTargetSignalLabelMarginalDistributionOrNull(Options.NumCourtDamagesSignals);
-
-            if (targetPartySignalMarginal != null || targetCourtSignalMarginal != null)
-            {
-                if (Options.NumDamagesStrengthPoints > 0)
-                {
-                    double uniform = 1.0 / Options.NumDamagesStrengthPoints;
-                    double[] damagesStrengthPriorForEqualization = new double[Options.NumDamagesStrengthPoints];
-                    for (int i = 0; i < Options.NumDamagesStrengthPoints; i++)
-                        damagesStrengthPriorForEqualization[i] = uniform;
-
-                    if (targetPartySignalMarginal != null)
-                    {
-                        PDamagesSignalsTable = SignalMarginalDistributionTransform.TransformConditionalSignalDistributionsToMatchTargetMarginal(damagesStrengthPriorForEqualization, PDamagesSignalsTable, targetPartySignalMarginal);
-                        DDamagesSignalsTable = SignalMarginalDistributionTransform.TransformConditionalSignalDistributionsToMatchTargetMarginal(damagesStrengthPriorForEqualization, DDamagesSignalsTable, targetPartySignalMarginal);
-                    }
-                    if (targetCourtSignalMarginal != null)
-                    {
-                        CDamagesSignalsTable = SignalMarginalDistributionTransform.TransformConditionalSignalDistributionsToMatchTargetMarginal(damagesStrengthPriorForEqualization, CDamagesSignalsTable, targetCourtSignalMarginal);
-                    }
-                }
+                PDamagesSignalsTable[litigationQuality - 1] = DiscreteValueSignal.GetProbabilitiesOfDiscreteSignals(litigationQuality, Options.PDamagesSignalParameters);
+                DDamagesSignalsTable[litigationQuality - 1] = DiscreteValueSignal.GetProbabilitiesOfDiscreteSignals(litigationQuality, Options.DDamagesSignalParameters);
+                DiscreteValueSignalParameters cParams = new DiscreteValueSignalParameters() { NumPointsInSourceUniformDistribution = Options.NumDamagesStrengthPoints, NumSignals = Options.NumDamagesSignals, StdevOfNormalDistribution = Options.CourtDamagesNoiseStdev, SourcePointsIncludeExtremes = false }; // TODO: Differentiate number of court damages signals, since we might want that to be a higher number.
+                CDamagesSignalsTable[litigationQuality - 1] = DiscreteValueSignal.GetProbabilitiesOfDiscreteSignals(litigationQuality, cParams);
             }
         }
-
 
         public double[] GetPLiabilitySignalProbabilities(byte litigationQuality)
         {

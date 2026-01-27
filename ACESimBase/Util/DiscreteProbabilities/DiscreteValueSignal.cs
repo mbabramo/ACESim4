@@ -14,7 +14,7 @@ namespace ACESimBase.Util.DiscreteProbabilities
         /// <summary>
         /// Given a draw of a band from a uniform distribution, returns the probabilities that a signal consisting of the sum of the midpoint of this band and a value drawn from a truncated normal distribution would end up in each discrete band of signals, where each signal band is of equal size.
         /// </summary>
-        /// <param name="sourceValue">The discrete band of the uniform distribution (numbered 1 . dsParams.NumPointsInSourceUniformDistribution inclusive)</param>
+        /// <param name="sourceValue">The discrete band of the uniform distribution (numbered 1 .. dsParams.NumPointsInSourceUniformDistribution inclusive)</param>
         /// <param name="dsParams">The parameters specifying the noise and the number of signals</param>
         /// <returns></returns>
         public static double[] GetProbabilitiesOfDiscreteSignals(int sourceValue, DiscreteValueSignalParameters dsParams)
@@ -47,6 +47,8 @@ namespace ACESimBase.Util.DiscreteProbabilities
             double lowStdev = (range.bottomOfRange - trueValue) / stdev;
             double highStdev = (range.topOfRange - trueValue) / stdev;
             double result = NormalDistributionCalculation.PortionOfNormalDistributionBetween(lowStdev, highStdev);
+            //if (result < 1E-50)
+            //    result = 1E-50; // make sure it's not quite zero
             return result;
         }
     }

@@ -169,194 +169,55 @@ namespace ACESim
 
         public void SetupInverted(LitigGameDefinition myGameDefinition)
         {
-            LitigGameOptions o = myGameDefinition.Options;
+            var o = myGameDefinition.Options;
             if (!o.CollapseChanceDecisions)
                 return;
-
-            double[][] BuildConditionalSignalMatrix(int sourceCount, DiscreteValueSignalParameters parameters)
-            {
-                int signalCount = parameters.NumSignals;
-                double[][] result = new double[sourceCount][];
-                if (sourceCount <= 0 || signalCount <= 0)
-                    return result;
-
-                if (sourceCount == 1 || signalCount == 1)
-                {
-                    for (int i = 0; i < sourceCount; i++)
-                    {
-                        double[] row = new double[signalCount];
-                        row[0] = 1.0;
-                        result[i] = row;
-                    }
-                    return result;
-                }
-
-                for (byte s = 1; s <= sourceCount; s++)
-                    result[s - 1] = DiscreteValueSignal.GetProbabilitiesOfDiscreteSignals(s, parameters);
-
-                return result;
-            }
 
             const int numTrueLiabilityValues = 2;
             int numCourtLiabilitySignals = o.NumCourtLiabilitySignals;
             int[] liabilityDimensions = new int[] { numTrueLiabilityValues, o.NumLiabilityStrengthPoints, o.NumLiabilitySignals, o.NumLiabilitySignals, numCourtLiabilitySignals };
             double[] liabilityPrior = ProbabilityOfTrulyLiableValues;
 
-            double[] targetPartyLiabilitySignalMarginal = o.GetTargetSignalLabelMarginalDistributionOrNull(o.NumLiabilitySignals);
-            double[] targetCourtLiabilitySignalMarginal = o.GetTargetSignalLabelMarginalDistributionOrNull(numCourtLiabilitySignals);
-            bool needLiabilityTransform = targetPartyLiabilitySignalMarginal != null || targetCourtLiabilitySignalMarginal != null;
-
-            List<VariableProductionInstruction> liabilitySignalsInstructions;
-            if (!needLiabilityTransform)
-            {
-                liabilitySignalsInstructions = new List<VariableProductionInstruction>()
+            List<VariableProductionInstruction> liabilitySignalsInstructions = new List<VariableProductionInstruction>()
                 {
-                    new IndependentVariableProductionInstruction(liabilityDimensions, trueLiabilityIndex, liabilityPrior),  /* true liability */
-                    new DiscreteValueParametersVariableProductionInstruction(liabilityDimensions, trueLiabilityIndex /* true liability */, true /* from zero to one and including extremes */, StdevNoiseToProduceLiabilityStrength /* noise */, liabilityStrengthIndex), /* litigation quality (a noisy estimate of the true liability) */
-                    new DiscreteValueParametersVariableProductionInstruction(liabilityDimensions, liabilityStrengthIndex /* litigation quality */, false /* from zero to one but excluding extremes */, o.PLiabilityNoiseStdev /* noise */, pLiabilitySignalIndex), /* p liability signal */
-                    new DiscreteValueParametersVariableProductionInstruction(liabilityDimensions, liabilityStrengthIndex /* litigation quality */, false /* from zero to one but excluding extremes */, o.DLiabilityNoiseStdev /* noise */, dLiabilitySignalIndex), /* d liability signal */
-                    new DiscreteValueParametersVariableProductionInstruction(liabilityDimensions, liabilityStrengthIndex /* litigation quality */, false /* from zero to one but excluding extremes */, o.CourtLiabilityNoiseStdev /* noise */, cLiabilitySignalIndex), /* c liability signal */
+                    new IndependentVariableProductionInstruction(liabilityDimensions, 0, liabilityPrior), // true liability is given by the prior
+                    new DiscreteValueParametersVariableProductionInstruction(liabilityDimensions, trueLiabilityIndex /* taking from two initial values */, true /* which map onto extreme values of 0 and 1 */, StdevNoiseToProduceLiabilityStrength /* adding noise */, 1), /* liability strength */
+                    new DiscreteValueParametersVariableProductionInstruction(liabilityDimensions, liabilityStrengthIndex /* liability strength */, false /* from zero to one but excluding extremes */, o.PLiabilityNoiseStdev /* noise */, 2),  /* p liability signal */ 
+                    new DiscreteValueParametersVariableProductionInstruction(liabilityDimensions, liabilityStrengthIndex /* liability strength */, false /* from zero to one but excluding extremes */, o.DLiabilityNoiseStdev /* noise */, 3),  /* d liability signal */
+                    new DiscreteValueParametersVariableProductionInstruction(liabilityDimensions, liabilityStrengthIndex /* liability strength */, false /* from zero to one but excluding extremes */, o.CourtLiabilityNoiseStdev /* noise */, 4),  /* c liability signal */
                 };
-            }
-            else
-            {
-                double[][] strengthGivenTruth;
-                double[] liabilityStrengthPrior;
-
-                if (o.NumLiabilityStrengthPoints <= 1)
-                {
-                    strengthGivenTruth = new double[numTrueLiabilityValues][];
-                    strengthGivenTruth[0] = new double[] { 1.0 };
-                    strengthGivenTruth[1] = new double[] { 1.0 };
-                    liabilityStrengthPrior = new double[] { 1.0 };
-                }
-                else
-                {
-                    var strengthParameters = new DiscreteValueSignalParameters()
-                    {
-                        NumPointsInSourceUniformDistribution = numTrueLiabilityValues,
-                        NumSignals = o.NumLiabilityStrengthPoints,
-                        StdevOfNormalDistribution = StdevNoiseToProduceLiabilityStrength,
-                        SourcePointsIncludeExtremes = true
-                    };
-
-                    strengthGivenTruth = new double[numTrueLiabilityValues][];
-                    for (byte t = 1; t <= numTrueLiabilityValues; t++)
-                        strengthGivenTruth[t - 1] = DiscreteValueSignal.GetProbabilitiesOfDiscreteSignals(t, strengthParameters);
-
-                    liabilityStrengthPrior = new double[o.NumLiabilityStrengthPoints];
-                    for (int i = 0; i < o.NumLiabilityStrengthPoints; i++)
-                        liabilityStrengthPrior[i] = liabilityPrior[0] * strengthGivenTruth[0][i] + liabilityPrior[1] * strengthGivenTruth[1][i];
-                }
-
-                double[][] pGivenStrength = BuildConditionalSignalMatrix(o.NumLiabilityStrengthPoints, o.PLiabilitySignalParameters);
-                double[][] dGivenStrength = BuildConditionalSignalMatrix(o.NumLiabilityStrengthPoints, o.DLiabilitySignalParameters);
-
-                var cParameters = new DiscreteValueSignalParameters()
-                {
-                    NumPointsInSourceUniformDistribution = o.NumLiabilityStrengthPoints,
-                    NumSignals = numCourtLiabilitySignals,
-                    StdevOfNormalDistribution = o.CourtLiabilityNoiseStdev,
-                    SourcePointsIncludeExtremes = false
-                };
-                double[][] cGivenStrength = BuildConditionalSignalMatrix(o.NumLiabilityStrengthPoints, cParameters);
-
-                if (targetPartyLiabilitySignalMarginal != null)
-                {
-                    pGivenStrength = SignalMarginalDistributionTransform.TransformConditionalSignalDistributionsToMatchTargetMarginal(liabilityStrengthPrior, pGivenStrength, targetPartyLiabilitySignalMarginal);
-                    dGivenStrength = SignalMarginalDistributionTransform.TransformConditionalSignalDistributionsToMatchTargetMarginal(liabilityStrengthPrior, dGivenStrength, targetPartyLiabilitySignalMarginal);
-                }
-                if (targetCourtLiabilitySignalMarginal != null)
-                {
-                    cGivenStrength = SignalMarginalDistributionTransform.TransformConditionalSignalDistributionsToMatchTargetMarginal(liabilityStrengthPrior, cGivenStrength, targetCourtLiabilitySignalMarginal);
-                }
-
-                liabilitySignalsInstructions = new List<VariableProductionInstruction>()
-                {
-                    new IndependentVariableProductionInstruction(liabilityDimensions, trueLiabilityIndex, liabilityPrior),  /* true liability */
-                    new ConditionalProbabilityTableVariableProductionInstruction(liabilityDimensions, liabilityStrengthIndex, trueLiabilityIndex, strengthGivenTruth), /* litigation quality */
-                    new ConditionalProbabilityTableVariableProductionInstruction(liabilityDimensions, pLiabilitySignalIndex, liabilityStrengthIndex, pGivenStrength), /* p liability signal */
-                    new ConditionalProbabilityTableVariableProductionInstruction(liabilityDimensions, dLiabilitySignalIndex, liabilityStrengthIndex, dGivenStrength), /* d liability signal */
-                    new ConditionalProbabilityTableVariableProductionInstruction(liabilityDimensions, cLiabilitySignalIndex, liabilityStrengthIndex, cGivenStrength), /* c liability signal */
-                };
-            }
-
             pLiabilitySignalProbabilitiesUnconditional = DiscreteProbabilityDistribution.GetUnconditionalProbabilities(liabilityDimensions, liabilitySignalsInstructions, pLiabilitySignalIndex);
-
             var liabilityCalculatorsToProduce = new List<(int distributionVariableIndex, List<int> fixedVariableIndices)>()
-            {
-                (dLiabilitySignalIndex, new List<int>() { pLiabilitySignalIndex }), // defendant's signal based on plaintiff's signal
-                (cLiabilitySignalIndex, new List<int>() { pLiabilitySignalIndex, dLiabilitySignalIndex}), // court liability based on plaintiff's and defendant's signals
-                (liabilityStrengthIndex, new List<int>() { pLiabilitySignalIndex, dLiabilitySignalIndex, cLiabilitySignalIndex }), // liability strength based on all of above
-                (trueLiabilityIndex, new List<int>() { pLiabilitySignalIndex, dLiabilitySignalIndex, cLiabilitySignalIndex }), // true liability based on all of above
-                (liabilityStrengthIndex, new List<int>() { pLiabilitySignalIndex, dLiabilitySignalIndex }), // liability strength when no trial has occurred
-                (trueLiabilityIndex, new List<int>() { pLiabilitySignalIndex, dLiabilitySignalIndex }), // true liability when no trial has occurred
-            };
+                {
+                    (dLiabilitySignalIndex, new List<int>() { pLiabilitySignalIndex }), // defendant's signal based on plaintiff's signal
+                    (cLiabilitySignalIndex, new List<int>() { pLiabilitySignalIndex, dLiabilitySignalIndex}), // court liability based on plaintiff's and defendant's signals
+                    (liabilityStrengthIndex, new List<int>() { pLiabilitySignalIndex, dLiabilitySignalIndex, cLiabilitySignalIndex }), // liability strength based on all of above
+                    (trueLiabilityIndex, new List<int>() { pLiabilitySignalIndex, dLiabilitySignalIndex, cLiabilitySignalIndex, liabilityStrengthIndex, }), // true value based on all of the above
+                    (liabilityStrengthIndex, new List<int>() { pLiabilitySignalIndex, dLiabilitySignalIndex, }), // liability strength based on everything but court info
+                    (trueLiabilityIndex, new List<int>() { pLiabilitySignalIndex, dLiabilitySignalIndex, liabilityStrengthIndex, }) // true value based on everything but court info
+                };
             LiabilityCalculators = DiscreteProbabilityDistribution.GetProbabilityMapCalculators(liabilityDimensions, liabilitySignalsInstructions, liabilityCalculatorsToProduce);
 
             int[] damagesDimensions = new int[] { o.NumDamagesStrengthPoints, o.NumDamagesSignals, o.NumDamagesSignals, o.NumDamagesSignals };
-            double[] damagesPrior = ProbabilityOfDamagesStrengthValues;
+            double[] damagesPrior = Enumerable.Range(0, o.NumDamagesStrengthPoints).Select(x => 1.0 / o.NumDamagesStrengthPoints).ToArray();
 
-            double[] targetPartyDamagesSignalMarginal = o.GetTargetSignalLabelMarginalDistributionOrNull(o.NumDamagesSignals);
-            double[] targetCourtDamagesSignalMarginal = o.GetTargetSignalLabelMarginalDistributionOrNull(o.NumDamagesSignals);
-            bool needDamagesTransform = targetPartyDamagesSignalMarginal != null || targetCourtDamagesSignalMarginal != null;
-
-            List<VariableProductionInstruction> damagesSignalsInstructions;
-            if (!needDamagesTransform)
-            {
-                damagesSignalsInstructions = new List<VariableProductionInstruction>()
+            List<VariableProductionInstruction> damagesSignalsInstructions = new List<VariableProductionInstruction>()
                 {
-                    new IndependentVariableProductionInstruction(damagesDimensions, damagesStrengthIndex, damagesPrior), /* damages strength */
-                    new DiscreteValueParametersVariableProductionInstruction(damagesDimensions, damagesStrengthIndex /* damages strength */, false /* from zero to one but excluding extremes */, o.PDamagesNoiseStdev /* noise */, pDamagesSignalIndex),  /* p damages signal */
-                    new DiscreteValueParametersVariableProductionInstruction(damagesDimensions, damagesStrengthIndex /* damages strength */, false /* from zero to one but excluding extremes */, o.DDamagesNoiseStdev /* noise */, dDamagesSignalIndex),  /* d damages signal */
-                    new DiscreteValueParametersVariableProductionInstruction(damagesDimensions, damagesStrengthIndex /* damages strength */, false /* from zero to one but excluding extremes */, o.CourtDamagesNoiseStdev /* noise */, cDamagesSignalIndex),  /* c damages signal */
+                    new IndependentVariableProductionInstruction(damagesDimensions, 0, damagesPrior), // damages strength is given by the prior
+                    new DiscreteValueParametersVariableProductionInstruction(damagesDimensions, damagesStrengthIndex /* damages strength */, false /* from zero to one but excluding extremes */, o.PDamagesNoiseStdev /* noise */, 1),  /* p damages signal */ 
+                    new DiscreteValueParametersVariableProductionInstruction(damagesDimensions, damagesStrengthIndex /* damages strength */, false /* from zero to one but excluding extremes */, o.DDamagesNoiseStdev /* noise */, 2),  /* d damages signal */
+                    new DiscreteValueParametersVariableProductionInstruction(damagesDimensions, damagesStrengthIndex /* damages strength */, false /* from zero to one but excluding extremes */, o.CourtDamagesNoiseStdev /* noise */, 3),  /* c damages signal */
                 };
-            }
-            else
-            {
-                double[][] pGivenStrength = BuildConditionalSignalMatrix(o.NumDamagesStrengthPoints, o.PDamagesSignalParameters);
-                double[][] dGivenStrength = BuildConditionalSignalMatrix(o.NumDamagesStrengthPoints, o.DDamagesSignalParameters);
-
-                var cParameters = new DiscreteValueSignalParameters()
-                {
-                    NumPointsInSourceUniformDistribution = o.NumDamagesStrengthPoints,
-                    NumSignals = o.NumDamagesSignals,
-                    StdevOfNormalDistribution = o.CourtDamagesNoiseStdev,
-                    SourcePointsIncludeExtremes = false
-                };
-                double[][] cGivenStrength = BuildConditionalSignalMatrix(o.NumDamagesStrengthPoints, cParameters);
-
-                if (targetPartyDamagesSignalMarginal != null)
-                {
-                    pGivenStrength = SignalMarginalDistributionTransform.TransformConditionalSignalDistributionsToMatchTargetMarginal(damagesPrior, pGivenStrength, targetPartyDamagesSignalMarginal);
-                    dGivenStrength = SignalMarginalDistributionTransform.TransformConditionalSignalDistributionsToMatchTargetMarginal(damagesPrior, dGivenStrength, targetPartyDamagesSignalMarginal);
-                }
-                if (targetCourtDamagesSignalMarginal != null)
-                {
-                    cGivenStrength = SignalMarginalDistributionTransform.TransformConditionalSignalDistributionsToMatchTargetMarginal(damagesPrior, cGivenStrength, targetCourtDamagesSignalMarginal);
-                }
-
-                damagesSignalsInstructions = new List<VariableProductionInstruction>()
-                {
-                    new IndependentVariableProductionInstruction(damagesDimensions, damagesStrengthIndex, damagesPrior), /* damages strength */
-                    new ConditionalProbabilityTableVariableProductionInstruction(damagesDimensions, pDamagesSignalIndex, damagesStrengthIndex, pGivenStrength),  /* p damages signal */
-                    new ConditionalProbabilityTableVariableProductionInstruction(damagesDimensions, dDamagesSignalIndex, damagesStrengthIndex, dGivenStrength),  /* d damages signal */
-                    new ConditionalProbabilityTableVariableProductionInstruction(damagesDimensions, cDamagesSignalIndex, damagesStrengthIndex, cGivenStrength),  /* c damages signal */
-                };
-            }
-
             pDamagesSignalProbabilitiesUnconditional = DiscreteProbabilityDistribution.GetUnconditionalProbabilities(damagesDimensions, damagesSignalsInstructions, pDamagesSignalIndex);
-
             var damagesCalculatorsToProduce = new List<(int distributionVariableIndex, List<int> fixedVariableIndices)>()
-            {
-                (dDamagesSignalIndex, new List<int>() { pDamagesSignalIndex }), // defendant's signal based on plaintiff's signal
-                (cDamagesSignalIndex, new List<int>() { pDamagesSignalIndex, dDamagesSignalIndex}), // court damages based on plaintiff's and defendant's signals
-                (damagesStrengthIndex, new List<int>() { pDamagesSignalIndex, dDamagesSignalIndex, cDamagesSignalIndex }), // damages strength based on all of above
-                (damagesStrengthIndex, new List<int>() { pDamagesSignalIndex, dDamagesSignalIndex }), // damages strength when no trial has occurred
-            };
+                {
+                    (dDamagesSignalIndex, new List<int>() { pDamagesSignalIndex }), // defendant's signal based on plaintiff's signal
+                    (cDamagesSignalIndex, new List<int>() { pDamagesSignalIndex, dDamagesSignalIndex}), // court damages based on plaintiff's and defendant's signals
+                    (damagesStrengthIndex, new List<int>() { pDamagesSignalIndex, dDamagesSignalIndex, cDamagesSignalIndex }), // damages strength based on all of above
+                    (damagesStrengthIndex, new List<int>() { pDamagesSignalIndex, dDamagesSignalIndex }), // damages strength when no trial has occurred
+                };
             DamagesCalculators = DiscreteProbabilityDistribution.GetProbabilityMapCalculators(damagesDimensions, damagesSignalsInstructions, damagesCalculatorsToProduce);
         }
-
 
         // Interface implementations
         public override double[] BayesianCalculations_GetPLiabilitySignalProbabilities(byte? dLiabilitySignal) => pLiabilitySignalProbabilitiesUnconditional;
