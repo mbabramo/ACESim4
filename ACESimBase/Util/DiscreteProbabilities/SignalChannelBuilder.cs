@@ -196,8 +196,14 @@ namespace ACESimBase.Util.DiscreteProbabilities
             switch (signalShapeParameters.Mode)
             {
                 case SignalShapeMode.Identity:
+                    return IdentitySignalShapeTransformer.Instance;
+
                 case SignalShapeMode.EqualMarginal:
+                    return EqualMarginalSignalShapeTransformer.Instance;
+
                 case SignalShapeMode.TailDecay:
+                    return new TailDecaySignalShapeTransformer(signalShapeParameters.TailDecay);
+
                 default:
                     return IdentitySignalShapeTransformer.Instance;
             }
