@@ -71,6 +71,19 @@ namespace ACESim
         /// The standard deviation of the noise used to obfuscate the court's estimate of the case strength. This applies only when the action is the noise, rather than the signal itself.
         /// </summary>
         public double CourtDamagesNoiseStdev;
+
+        /// <summary>
+        /// Placeholder settings for optional prior-weighted marginal (unconditional) signal-shape transformations.
+        /// Defaults to identity/no-op unless explicitly set.
+        /// </summary>
+        public SignalShapeParameters LiabilitySignalShapeParameters;
+
+        /// <summary>
+        /// Placeholder settings for optional prior-weighted marginal (unconditional) signal-shape transformations.
+        /// Defaults to identity/no-op unless explicitly set.
+        /// </summary>
+        public SignalShapeParameters DamagesSignalShapeParameters;
+
         /// <summary>
         /// If true, then plaintiff has no choice but to file and defendant has no choice but to answer
         /// </summary>

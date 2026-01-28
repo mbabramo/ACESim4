@@ -199,7 +199,8 @@ namespace ACESim
                     liabilityStrengthPrior,
                     o.PLiabilitySignalParameters,
                     o.DLiabilitySignalParameters,
-                    cLiabilityParams);
+                    cLiabilityParams,
+                    signalShapeParameters: o.LiabilitySignalShapeParameters);
 
             double[][] liabilityStrengthConditionalProbabilitiesGivenTrueLiability = new double[numTrueLiabilityValues][]
             {
@@ -264,7 +265,8 @@ namespace ACESim
                     damagesPrior,
                     o.PDamagesSignalParameters,
                     o.DDamagesSignalParameters,
-                    cDamagesParams);
+                    cDamagesParams,
+                    signalShapeParameters: o.DamagesSignalShapeParameters);
 
             List<VariableProductionInstruction> damagesSignalsInstructions = new List<VariableProductionInstruction>()
     {
@@ -367,7 +369,6 @@ namespace ACESim
 
             return withDamagesStrength;
         }
-
         public SignalChannelModel GetLiabilitySignalChannelModelForForwardPlay()
         {
             if (LitigGameDefinition == null)
@@ -403,9 +404,10 @@ namespace ACESim
                 liabilityStrengthPrior,
                 o.PLiabilitySignalParameters,
                 o.DLiabilitySignalParameters,
-                cLiabilityParams);
+                cLiabilityParams,
+                signalShapeParameters: o.LiabilitySignalShapeParameters);
         }
-        public SignalChannelModel GetDamagesSignalChannelModelForForwardPlay()
+                public SignalChannelModel GetDamagesSignalChannelModelForForwardPlay()
         {
             if (LitigGameDefinition == null)
                 throw new InvalidOperationException("Dispute generator has not been set up.");
@@ -427,8 +429,10 @@ namespace ACESim
                 ProbabilityOfDamagesStrengthValues,
                 o.PDamagesSignalParameters,
                 o.DDamagesSignalParameters,
-                cDamagesParams);
+                cDamagesParams,
+                signalShapeParameters: o.DamagesSignalShapeParameters);
         }
+
 
 
     }

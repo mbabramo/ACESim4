@@ -123,7 +123,8 @@ namespace ACESim
                     dParamsFromOptions.StdevOfNormalDistribution,
                     o.NumCourtLiabilitySignals,
                     o.CourtLiabilityNoiseStdev,
-                    sourcePointsIncludeExtremes: true);
+                    sourcePointsIncludeExtremes: true,
+                    signalShapeParameters: o.LiabilitySignalShapeParameters);
 
                 LiabilitySignalsBayes = new ThreePartyCorrelatedSignalsBayes(
                     liabilitySignalChannel.PriorHiddenValues,
@@ -153,7 +154,8 @@ namespace ACESim
                     o.DDamagesNoiseStdev,
                     o.NumDamagesSignals,
                     o.CourtDamagesNoiseStdev,
-                    sourcePointsIncludeExtremes: false);
+                    sourcePointsIncludeExtremes: false,
+                    signalShapeParameters: o.DamagesSignalShapeParameters);
 
                 DamagesSignalsBayes = new ThreePartyCorrelatedSignalsBayes(
                     damagesSignalChannel.PriorHiddenValues,
@@ -165,7 +167,6 @@ namespace ACESim
                 dDamagesSignalProbabilitiesUnconditional = DamagesSignalsBayes.GetParty1SignalProbabilitiesUnconditional();
             }
         }
-
 
         public override void GetActionsSetup(
             LitigGameDefinition gameDefinition,
@@ -455,8 +456,10 @@ namespace ACESim
                 ProbabilityOfTrulyLiableValues,
                 o.PLiabilitySignalParameters,
                 o.DLiabilitySignalParameters,
-                cLiabilityParams);
+                cLiabilityParams,
+                signalShapeParameters: o.LiabilitySignalShapeParameters);
         }
+
         public SignalChannelModel GetDamagesSignalChannelModelForForwardPlay()
         {
             if (LitigGameDefinition == null)
@@ -479,7 +482,8 @@ namespace ACESim
                 ProbabilityOfDamagesStrengthValues,
                 o.PDamagesSignalParameters,
                 o.DDamagesSignalParameters,
-                cDamagesParams);
+                cDamagesParams,
+                signalShapeParameters: o.DamagesSignalShapeParameters);
         }
 
 

@@ -10,7 +10,44 @@ namespace ACESimBase.Util.DiscreteProbabilities
             DiscreteValueSignalParameters plaintiffSignalParameters,
             DiscreteValueSignalParameters defendantSignalParameters,
             DiscreteValueSignalParameters courtSignalParameters,
+            SignalShapeParameters signalShapeParameters)
+        {
+            ISignalShapeTransformer transformerToUse = SelectSignalShapeTransformer(signalShapeParameters);
+
+            return BuildUsingDiscreteValueSignalParameters(
+                hiddenPrior,
+                plaintiffSignalParameters,
+                defendantSignalParameters,
+                courtSignalParameters,
+                transformerToUse);
+        }
+
+        public static SignalChannelModel BuildUsingDiscreteValueSignalParameters(
+            double[] hiddenPrior,
+            DiscreteValueSignalParameters plaintiffSignalParameters,
+            DiscreteValueSignalParameters defendantSignalParameters,
+            DiscreteValueSignalParameters courtSignalParameters,
             Func<double[], double[][], double[][]> signalShapeTransformer = null)
+        {
+            ISignalShapeTransformer transformerToUse =
+                signalShapeTransformer == null
+                    ? (ISignalShapeTransformer)IdentitySignalShapeTransformer.Instance
+                    : new DelegateSignalShapeTransformer(signalShapeTransformer);
+
+            return BuildUsingDiscreteValueSignalParameters(
+                hiddenPrior,
+                plaintiffSignalParameters,
+                defendantSignalParameters,
+                courtSignalParameters,
+                transformerToUse);
+        }
+
+        private static SignalChannelModel BuildUsingDiscreteValueSignalParameters(
+            double[] hiddenPrior,
+            DiscreteValueSignalParameters plaintiffSignalParameters,
+            DiscreteValueSignalParameters defendantSignalParameters,
+            DiscreteValueSignalParameters courtSignalParameters,
+            ISignalShapeTransformer transformerToUse)
         {
             if (hiddenPrior == null)
                 throw new ArgumentNullException(nameof(hiddenPrior));
@@ -30,11 +67,11 @@ namespace ACESimBase.Util.DiscreteProbabilities
             double[][] defendantRaw = BuildConditionalSignalTableUsingDiscreteValueSignalParameters(defendantSignalParameters);
             double[][] courtRaw = BuildConditionalSignalTableUsingDiscreteValueSignalParameters(courtSignalParameters);
 
-            Func<double[], double[][], double[][]> transformerToUse = signalShapeTransformer ?? IdentityConditionalTableTransformer;
+            ISignalShapeTransformer transformer = transformerToUse ?? IdentitySignalShapeTransformer.Instance;
 
-            double[][] plaintiffTransformed = transformerToUse(hiddenPrior, plaintiffRaw);
-            double[][] defendantTransformed = transformerToUse(hiddenPrior, defendantRaw);
-            double[][] courtTransformed = transformerToUse(hiddenPrior, courtRaw);
+            double[][] plaintiffTransformed = transformer.Transform(hiddenPrior, plaintiffRaw);
+            double[][] defendantTransformed = transformer.Transform(hiddenPrior, defendantRaw);
+            double[][] courtTransformed = transformer.Transform(hiddenPrior, courtRaw);
 
             ValidateConditionalTableShapeOrThrow(hiddenValueCount, plaintiffSignalParameters.NumSignals, plaintiffTransformed, nameof(plaintiffTransformed));
             ValidateConditionalTableShapeOrThrow(hiddenValueCount, defendantSignalParameters.NumSignals, defendantTransformed, nameof(defendantTransformed));
@@ -60,7 +97,60 @@ namespace ACESimBase.Util.DiscreteProbabilities
             int courtSignalCount,
             double courtNoiseStdev,
             bool sourcePointsIncludeExtremes,
+            SignalShapeParameters signalShapeParameters)
+        {
+            ISignalShapeTransformer transformerToUse = SelectSignalShapeTransformer(signalShapeParameters);
+
+            return BuildFromNoise(
+                hiddenPrior,
+                plaintiffSignalCount,
+                plaintiffNoiseStdev,
+                defendantSignalCount,
+                defendantNoiseStdev,
+                courtSignalCount,
+                courtNoiseStdev,
+                sourcePointsIncludeExtremes,
+                transformerToUse);
+        }
+
+        public static SignalChannelModel BuildFromNoise(
+            double[] hiddenPrior,
+            int plaintiffSignalCount,
+            double plaintiffNoiseStdev,
+            int defendantSignalCount,
+            double defendantNoiseStdev,
+            int courtSignalCount,
+            double courtNoiseStdev,
+            bool sourcePointsIncludeExtremes,
             Func<double[], double[][], double[][]> signalShapeTransformer = null)
+        {
+            ISignalShapeTransformer transformerToUse =
+                signalShapeTransformer == null
+                    ? (ISignalShapeTransformer)IdentitySignalShapeTransformer.Instance
+                    : new DelegateSignalShapeTransformer(signalShapeTransformer);
+
+            return BuildFromNoise(
+                hiddenPrior,
+                plaintiffSignalCount,
+                plaintiffNoiseStdev,
+                defendantSignalCount,
+                defendantNoiseStdev,
+                courtSignalCount,
+                courtNoiseStdev,
+                sourcePointsIncludeExtremes,
+                transformerToUse);
+        }
+
+        private static SignalChannelModel BuildFromNoise(
+            double[] hiddenPrior,
+            int plaintiffSignalCount,
+            double plaintiffNoiseStdev,
+            int defendantSignalCount,
+            double defendantNoiseStdev,
+            int courtSignalCount,
+            double courtNoiseStdev,
+            bool sourcePointsIncludeExtremes,
+            ISignalShapeTransformer transformerToUse)
         {
             if (hiddenPrior == null)
                 throw new ArgumentNullException(nameof(hiddenPrior));
@@ -80,11 +170,11 @@ namespace ACESimBase.Util.DiscreteProbabilities
             double[][] defendantRaw = BuildConditionalSignalTableFromNoise(hiddenValueCount, defendantSignalCount, defendantNoiseStdev, sourcePointsIncludeExtremes);
             double[][] courtRaw = BuildConditionalSignalTableFromNoise(hiddenValueCount, courtSignalCount, courtNoiseStdev, sourcePointsIncludeExtremes);
 
-            Func<double[], double[][], double[][]> transformerToUse = signalShapeTransformer ?? IdentityConditionalTableTransformer;
+            ISignalShapeTransformer transformer = transformerToUse ?? IdentitySignalShapeTransformer.Instance;
 
-            double[][] plaintiffTransformed = transformerToUse(hiddenPrior, plaintiffRaw);
-            double[][] defendantTransformed = transformerToUse(hiddenPrior, defendantRaw);
-            double[][] courtTransformed = transformerToUse(hiddenPrior, courtRaw);
+            double[][] plaintiffTransformed = transformer.Transform(hiddenPrior, plaintiffRaw);
+            double[][] defendantTransformed = transformer.Transform(hiddenPrior, defendantRaw);
+            double[][] courtTransformed = transformer.Transform(hiddenPrior, courtRaw);
 
             ValidateConditionalTableShapeOrThrow(hiddenValueCount, plaintiffSignalCount, plaintiffTransformed, nameof(plaintiffTransformed));
             ValidateConditionalTableShapeOrThrow(hiddenValueCount, defendantSignalCount, defendantTransformed, nameof(defendantTransformed));
@@ -101,9 +191,31 @@ namespace ACESimBase.Util.DiscreteProbabilities
                 courtTransformed);
         }
 
-        private static double[][] IdentityConditionalTableTransformer(double[] hiddenPrior, double[][] probabilitiesSignalGivenHidden)
+        private static ISignalShapeTransformer SelectSignalShapeTransformer(SignalShapeParameters signalShapeParameters)
         {
-            return probabilitiesSignalGivenHidden;
+            switch (signalShapeParameters.Mode)
+            {
+                case SignalShapeMode.Identity:
+                case SignalShapeMode.EqualMarginal:
+                case SignalShapeMode.TailDecay:
+                default:
+                    return IdentitySignalShapeTransformer.Instance;
+            }
+        }
+
+        private sealed class DelegateSignalShapeTransformer : ISignalShapeTransformer
+        {
+            private readonly Func<double[], double[][], double[][]> transformer;
+
+            public DelegateSignalShapeTransformer(Func<double[], double[][], double[][]> transformer)
+            {
+                this.transformer = transformer ?? throw new ArgumentNullException(nameof(transformer));
+            }
+
+            public double[][] Transform(double[] hiddenPrior, double[][] signalProbabilitiesGivenHidden)
+            {
+                return transformer(hiddenPrior, signalProbabilitiesGivenHidden);
+            }
         }
 
         private static double[][] BuildConditionalSignalTableUsingDiscreteValueSignalParameters(DiscreteValueSignalParameters parameters)

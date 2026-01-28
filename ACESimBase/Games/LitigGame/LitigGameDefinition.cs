@@ -254,7 +254,8 @@ namespace ACESim
                         hiddenPrior,
                         Options.PLiabilitySignalParameters,
                         Options.DLiabilitySignalParameters,
-                        cParams);
+                        cParams,
+                        signalShapeParameters: Options.LiabilitySignalShapeParameters);
             }
 
             if (signalChannelModel == null)
@@ -264,7 +265,6 @@ namespace ACESim
             DLiabilitySignalsTable = signalChannelModel.DefendantSignalProbabilitiesGivenHidden;
             CLiabilitySignalsTable = signalChannelModel.CourtSignalProbabilitiesGivenHidden;
         }
-
 
         public void CreateDamagesSignalsTables()
         {
@@ -299,7 +299,8 @@ namespace ACESim
                         hiddenPrior,
                         Options.PDamagesSignalParameters,
                         Options.DDamagesSignalParameters,
-                        cParams);
+                        cParams,
+                        signalShapeParameters: Options.DamagesSignalShapeParameters);
             }
 
             if (signalChannelModel == null)
