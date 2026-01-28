@@ -358,6 +358,68 @@ namespace ACESim
             return withDamagesStrength;
         }
 
+        public SignalChannelModel GetLiabilitySignalChannelModelForForwardPlay()
+        {
+            if (LitigGameDefinition == null)
+                throw new InvalidOperationException("Dispute generator has not been set up.");
+            if (ProbabilityOfTrulyLiableValues == null)
+                throw new InvalidOperationException("Liability prior has not been initialized.");
+            if (ProbabilitiesLiabilityStrength_TrulyNotLiable == null || ProbabilitiesLiabilityStrength_TrulyLiable == null)
+                throw new InvalidOperationException("Liability strength conditional distributions have not been initialized.");
+
+            var o = LitigGameDefinition.Options;
+
+            double[] liabilityStrengthPrior = new double[o.NumLiabilityStrengthPoints];
+            double probabilityTrulyNotLiable = ProbabilityOfTrulyLiableValues[0];
+            double probabilityTrulyLiable = ProbabilityOfTrulyLiableValues[1];
+
+            for (int i = 0; i < o.NumLiabilityStrengthPoints; i++)
+            {
+                liabilityStrengthPrior[i] =
+                    probabilityTrulyNotLiable * ProbabilitiesLiabilityStrength_TrulyNotLiable[i]
+                    + probabilityTrulyLiable * ProbabilitiesLiabilityStrength_TrulyLiable[i];
+            }
+
+            DiscreteValueSignalParameters cLiabilityParams = new DiscreteValueSignalParameters()
+            {
+                NumPointsInSourceUniformDistribution = o.NumLiabilityStrengthPoints,
+                NumSignals = o.NumCourtLiabilitySignals,
+                StdevOfNormalDistribution = o.CourtLiabilityNoiseStdev,
+                SourcePointsIncludeExtremes = false,
+                SignalBoundaryMode = o.PLiabilitySignalParameters.SignalBoundaryMode
+            };
+
+            return SignalChannelBuilder.BuildUsingDiscreteValueSignalParameters(
+                liabilityStrengthPrior,
+                o.PLiabilitySignalParameters,
+                o.DLiabilitySignalParameters,
+                cLiabilityParams);
+        }
+        public SignalChannelModel GetDamagesSignalChannelModelForForwardPlay()
+        {
+            if (LitigGameDefinition == null)
+                throw new InvalidOperationException("Dispute generator has not been set up.");
+            if (ProbabilityOfDamagesStrengthValues == null)
+                throw new InvalidOperationException("Damages prior has not been initialized.");
+
+            var o = LitigGameDefinition.Options;
+
+            DiscreteValueSignalParameters cDamagesParams = new DiscreteValueSignalParameters()
+            {
+                NumPointsInSourceUniformDistribution = o.NumDamagesStrengthPoints,
+                NumSignals = o.NumDamagesSignals,
+                StdevOfNormalDistribution = o.CourtDamagesNoiseStdev,
+                SourcePointsIncludeExtremes = false,
+                SignalBoundaryMode = o.PDamagesSignalParameters.SignalBoundaryMode
+            };
+
+            return SignalChannelBuilder.BuildUsingDiscreteValueSignalParameters(
+                ProbabilityOfDamagesStrengthValues,
+                o.PDamagesSignalParameters,
+                o.DDamagesSignalParameters,
+                cDamagesParams);
+        }
+
 
     }
 }

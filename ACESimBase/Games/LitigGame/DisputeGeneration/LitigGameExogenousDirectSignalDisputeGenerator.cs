@@ -432,5 +432,56 @@ namespace ACESim
 
             return results;
         }
+
+        public SignalChannelModel GetLiabilitySignalChannelModelForForwardPlay()
+        {
+            if (LitigGameDefinition == null)
+                throw new InvalidOperationException("Dispute generator has not been set up.");
+            if (ProbabilityOfTrulyLiableValues == null)
+                throw new InvalidOperationException("Liability prior has not been initialized.");
+
+            var o = LitigGameDefinition.Options;
+
+            DiscreteValueSignalParameters cLiabilityParams = new DiscreteValueSignalParameters()
+            {
+                NumPointsInSourceUniformDistribution = o.NumLiabilityStrengthPoints,
+                NumSignals = o.NumCourtLiabilitySignals,
+                StdevOfNormalDistribution = o.CourtLiabilityNoiseStdev,
+                SourcePointsIncludeExtremes = false,
+                SignalBoundaryMode = o.PLiabilitySignalParameters.SignalBoundaryMode
+            };
+
+            return SignalChannelBuilder.BuildUsingDiscreteValueSignalParameters(
+                ProbabilityOfTrulyLiableValues,
+                o.PLiabilitySignalParameters,
+                o.DLiabilitySignalParameters,
+                cLiabilityParams);
+        }
+        public SignalChannelModel GetDamagesSignalChannelModelForForwardPlay()
+        {
+            if (LitigGameDefinition == null)
+                throw new InvalidOperationException("Dispute generator has not been set up.");
+            if (ProbabilityOfDamagesStrengthValues == null)
+                throw new InvalidOperationException("Damages prior has not been initialized.");
+
+            var o = LitigGameDefinition.Options;
+
+            DiscreteValueSignalParameters cDamagesParams = new DiscreteValueSignalParameters()
+            {
+                NumPointsInSourceUniformDistribution = o.NumDamagesStrengthPoints,
+                NumSignals = o.NumDamagesSignals,
+                StdevOfNormalDistribution = o.CourtDamagesNoiseStdev,
+                SourcePointsIncludeExtremes = false,
+                SignalBoundaryMode = o.PDamagesSignalParameters.SignalBoundaryMode
+            };
+
+            return SignalChannelBuilder.BuildUsingDiscreteValueSignalParameters(
+                ProbabilityOfDamagesStrengthValues,
+                o.PDamagesSignalParameters,
+                o.DDamagesSignalParameters,
+                cDamagesParams);
+        }
+
+
     }
 }

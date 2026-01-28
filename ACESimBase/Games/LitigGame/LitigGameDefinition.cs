@@ -223,44 +223,93 @@ namespace ACESim
         private double[][] PLiabilitySignalsTable, DLiabilitySignalsTable, CLiabilitySignalsTable, PDamagesSignalsTable, DDamagesSignalsTable, CDamagesSignalsTable;
         public void CreateLiabilitySignalsTables()
         {
-            PLiabilitySignalsTable = ArrayFormConversionExtension.CreateJaggedArray<double[][]>(new int[] { Options.NumLiabilityStrengthPoints, Options.NumLiabilitySignals });
-            DLiabilitySignalsTable = ArrayFormConversionExtension.CreateJaggedArray<double[][]>(new int[] { Options.NumLiabilityStrengthPoints, Options.NumLiabilitySignals });
-            CLiabilitySignalsTable = ArrayFormConversionExtension.CreateJaggedArray<double[][]>(new int[] { Options.NumLiabilityStrengthPoints, Options.NumCourtLiabilitySignals }); 
-            for (byte litigationQuality = 1;
-                litigationQuality <= Options.NumLiabilityStrengthPoints;
-                litigationQuality++)
-            {
-                double litigationQualityUniform =
-                    EquallySpaced.GetLocationOfEquallySpacedPoint(litigationQuality - 1,
-                        Options.NumLiabilityStrengthPoints, false);
+            SignalChannelModel signalChannelModel;
 
-                PLiabilitySignalsTable[litigationQuality - 1] = DiscreteValueSignal.GetProbabilitiesOfDiscreteSignals(litigationQuality, Options.PLiabilitySignalParameters);
-                DLiabilitySignalsTable[litigationQuality - 1] = DiscreteValueSignal.GetProbabilitiesOfDiscreteSignals(litigationQuality, Options.DLiabilitySignalParameters);
-                int numCourtSignals = Options.NumCourtLiabilitySignals;
-                DiscreteValueSignalParameters cParams = new DiscreteValueSignalParameters() { NumPointsInSourceUniformDistribution = Options.NumLiabilityStrengthPoints, NumSignals = Options.NumCourtLiabilitySignals, StdevOfNormalDistribution = Options.CourtLiabilityNoiseStdev, SourcePointsIncludeExtremes = false };
-                CLiabilitySignalsTable[litigationQuality - 1] = DiscreteValueSignal.GetProbabilitiesOfDiscreteSignals(litigationQuality, cParams);
+            if (Options?.LitigGameDisputeGenerator is LitigGameExogenousDisputeGenerator exogenousDisputeGenerator)
+            {
+                signalChannelModel = exogenousDisputeGenerator.GetLiabilitySignalChannelModelForForwardPlay();
             }
+            else if (Options?.LitigGameDisputeGenerator is LitigGameExogenousDirectSignalDisputeGenerator exogenousDirectSignalDisputeGenerator)
+            {
+                signalChannelModel = exogenousDirectSignalDisputeGenerator.GetLiabilitySignalChannelModelForForwardPlay();
+            }
+            else
+            {
+                double[] hiddenPrior =
+                    Enumerable.Range(0, Options.NumLiabilityStrengthPoints)
+                        .Select(x => 1.0 / (double)Options.NumLiabilityStrengthPoints)
+                        .ToArray();
+
+                DiscreteValueSignalParameters cParams = new DiscreteValueSignalParameters()
+                {
+                    NumPointsInSourceUniformDistribution = Options.NumLiabilityStrengthPoints,
+                    NumSignals = Options.NumCourtLiabilitySignals,
+                    StdevOfNormalDistribution = Options.CourtLiabilityNoiseStdev,
+                    SourcePointsIncludeExtremes = false,
+                    SignalBoundaryMode = Options.PLiabilitySignalParameters.SignalBoundaryMode
+                };
+
+                signalChannelModel =
+                    SignalChannelBuilder.BuildUsingDiscreteValueSignalParameters(
+                        hiddenPrior,
+                        Options.PLiabilitySignalParameters,
+                        Options.DLiabilitySignalParameters,
+                        cParams);
+            }
+
+            if (signalChannelModel == null)
+                throw new InvalidOperationException("Liability signal channel model was null.");
+
+            PLiabilitySignalsTable = signalChannelModel.PlaintiffSignalProbabilitiesGivenHidden;
+            DLiabilitySignalsTable = signalChannelModel.DefendantSignalProbabilitiesGivenHidden;
+            CLiabilitySignalsTable = signalChannelModel.CourtSignalProbabilitiesGivenHidden;
         }
+
 
         public void CreateDamagesSignalsTables()
         {
-            PDamagesSignalsTable = ArrayFormConversionExtension.CreateJaggedArray<double[][]>(new int[] { Options.NumDamagesStrengthPoints, Options.NumDamagesSignals });
-            DDamagesSignalsTable = ArrayFormConversionExtension.CreateJaggedArray<double[][]>(new int[] { Options.NumDamagesStrengthPoints, Options.NumDamagesSignals });
-            CDamagesSignalsTable = ArrayFormConversionExtension.CreateJaggedArray<double[][]>(new int[] { Options.NumDamagesStrengthPoints, Options.NumDamagesSignals });
-            for (byte litigationQuality = 1;
-                litigationQuality <= Options.NumDamagesStrengthPoints;
-                litigationQuality++)
-            {
-                double litigationQualityUniform =
-                    EquallySpaced.GetLocationOfEquallySpacedPoint(litigationQuality - 1,
-                        Options.NumDamagesStrengthPoints, false);
+            SignalChannelModel signalChannelModel;
 
-                PDamagesSignalsTable[litigationQuality - 1] = DiscreteValueSignal.GetProbabilitiesOfDiscreteSignals(litigationQuality, Options.PDamagesSignalParameters);
-                DDamagesSignalsTable[litigationQuality - 1] = DiscreteValueSignal.GetProbabilitiesOfDiscreteSignals(litigationQuality, Options.DDamagesSignalParameters);
-                DiscreteValueSignalParameters cParams = new DiscreteValueSignalParameters() { NumPointsInSourceUniformDistribution = Options.NumDamagesStrengthPoints, NumSignals = Options.NumDamagesSignals, StdevOfNormalDistribution = Options.CourtDamagesNoiseStdev, SourcePointsIncludeExtremes = false }; // TODO: Differentiate number of court damages signals, since we might want that to be a higher number.
-                CDamagesSignalsTable[litigationQuality - 1] = DiscreteValueSignal.GetProbabilitiesOfDiscreteSignals(litigationQuality, cParams);
+            if (Options?.LitigGameDisputeGenerator is LitigGameExogenousDisputeGenerator exogenousDisputeGenerator)
+            {
+                signalChannelModel = exogenousDisputeGenerator.GetDamagesSignalChannelModelForForwardPlay();
             }
+            else if (Options?.LitigGameDisputeGenerator is LitigGameExogenousDirectSignalDisputeGenerator exogenousDirectSignalDisputeGenerator)
+            {
+                signalChannelModel = exogenousDirectSignalDisputeGenerator.GetDamagesSignalChannelModelForForwardPlay();
+            }
+            else
+            {
+                double[] hiddenPrior =
+                    Enumerable.Range(0, Options.NumDamagesStrengthPoints)
+                        .Select(x => 1.0 / (double)Options.NumDamagesStrengthPoints)
+                        .ToArray();
+
+                DiscreteValueSignalParameters cParams = new DiscreteValueSignalParameters()
+                {
+                    NumPointsInSourceUniformDistribution = Options.NumDamagesStrengthPoints,
+                    NumSignals = Options.NumDamagesSignals,
+                    StdevOfNormalDistribution = Options.CourtDamagesNoiseStdev,
+                    SourcePointsIncludeExtremes = false,
+                    SignalBoundaryMode = Options.PDamagesSignalParameters.SignalBoundaryMode
+                }; // TODO: Differentiate number of court damages signals, since we might want that to be a higher number.
+
+                signalChannelModel =
+                    SignalChannelBuilder.BuildUsingDiscreteValueSignalParameters(
+                        hiddenPrior,
+                        Options.PDamagesSignalParameters,
+                        Options.DDamagesSignalParameters,
+                        cParams);
+            }
+
+            if (signalChannelModel == null)
+                throw new InvalidOperationException("Damages signal channel model was null.");
+
+            PDamagesSignalsTable = signalChannelModel.PlaintiffSignalProbabilitiesGivenHidden;
+            DDamagesSignalsTable = signalChannelModel.DefendantSignalProbabilitiesGivenHidden;
+            CDamagesSignalsTable = signalChannelModel.CourtSignalProbabilitiesGivenHidden;
         }
+
 
         public double[] GetPLiabilitySignalProbabilities(byte litigationQuality)
         {
