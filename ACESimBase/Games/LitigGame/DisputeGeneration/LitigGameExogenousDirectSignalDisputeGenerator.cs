@@ -115,7 +115,7 @@ namespace ACESim
                 DiscreteValueSignalParameters pParamsFromOptions = o.PLiabilitySignalParameters;
                 DiscreteValueSignalParameters dParamsFromOptions = o.DLiabilitySignalParameters;
 
-                LiabilitySignalsBayes = ThreePartyCorrelatedSignalsBayes.CreateUsingDiscreteValueSignalParameters(
+                SignalChannelModel liabilitySignalChannel = SignalChannelBuilder.BuildFromNoise(
                     ProbabilityOfTrulyLiableValues,
                     pParamsFromOptions.NumSignals,
                     pParamsFromOptions.StdevOfNormalDistribution,
@@ -124,6 +124,12 @@ namespace ACESim
                     o.NumCourtLiabilitySignals,
                     o.CourtLiabilityNoiseStdev,
                     sourcePointsIncludeExtremes: true);
+
+                LiabilitySignalsBayes = new ThreePartyCorrelatedSignalsBayes(
+                    liabilitySignalChannel.PriorHiddenValues,
+                    liabilitySignalChannel.PlaintiffSignalProbabilitiesGivenHidden,
+                    liabilitySignalChannel.DefendantSignalProbabilitiesGivenHidden,
+                    liabilitySignalChannel.CourtSignalProbabilitiesGivenHidden);
 
                 pLiabilitySignalProbabilitiesUnconditional = LiabilitySignalsBayes.GetParty0SignalProbabilitiesUnconditional();
                 dLiabilitySignalProbabilitiesUnconditional = LiabilitySignalsBayes.GetParty1SignalProbabilitiesUnconditional();
@@ -139,7 +145,7 @@ namespace ACESim
             {
                 double[] damagesPrior = ProbabilityOfDamagesStrengthValues;
 
-                DamagesSignalsBayes = ThreePartyCorrelatedSignalsBayes.CreateUsingDiscreteValueSignalParameters(
+                SignalChannelModel damagesSignalChannel = SignalChannelBuilder.BuildFromNoise(
                     damagesPrior,
                     o.NumDamagesSignals,
                     o.PDamagesNoiseStdev,
@@ -148,6 +154,12 @@ namespace ACESim
                     o.NumDamagesSignals,
                     o.CourtDamagesNoiseStdev,
                     sourcePointsIncludeExtremes: false);
+
+                DamagesSignalsBayes = new ThreePartyCorrelatedSignalsBayes(
+                    damagesSignalChannel.PriorHiddenValues,
+                    damagesSignalChannel.PlaintiffSignalProbabilitiesGivenHidden,
+                    damagesSignalChannel.DefendantSignalProbabilitiesGivenHidden,
+                    damagesSignalChannel.CourtSignalProbabilitiesGivenHidden);
 
                 pDamagesSignalProbabilitiesUnconditional = DamagesSignalsBayes.GetParty0SignalProbabilitiesUnconditional();
                 dDamagesSignalProbabilitiesUnconditional = DamagesSignalsBayes.GetParty1SignalProbabilitiesUnconditional();
