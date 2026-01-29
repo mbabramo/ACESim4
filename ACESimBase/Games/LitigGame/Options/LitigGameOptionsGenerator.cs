@@ -76,8 +76,8 @@ namespace ACESim
             options.NumLiabilitySignals = numOfEach;
             options.IncludeEndpointsForOffers = false;
 
-            options.PLiabilityNoiseStdev = 0.2;
-            options.DLiabilityNoiseStdev = 0.2;
+            options.PLiabilityNoiseStdev = 0.35; // 0.2;
+            options.DLiabilityNoiseStdev = 0.35; // 0.2;
             options.CourtLiabilityNoiseStdev = Math.Min(options.PLiabilityNoiseStdev, options.DLiabilityNoiseStdev);
 
             options.NumDamagesSignals = 1;
