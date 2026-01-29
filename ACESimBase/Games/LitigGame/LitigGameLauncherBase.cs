@@ -256,55 +256,14 @@ namespace ACESimBase.Games.LitigGame
 
         public static bool UseDirectSignalExogenousDisputeGenerator = false;
 
+        // DEBUG -- delete this
         protected static void EnsureExogenousDisputeGeneratorSelection(LitigGameOptions options)
         {
             if (options == null)
                 throw new ArgumentNullException(nameof(options));
 
-            bool disputeGeneratorIsExogenous =
-                options.LitigGameDisputeGenerator is LitigGameExogenousDisputeGenerator ||
-                options.LitigGameDisputeGenerator is LitigGameExogenousDirectSignalDisputeGenerator;
-
-            if (!disputeGeneratorIsExogenous)
-                return;
-
-            bool liabilityCertain = options.NumLiabilityStrengthPoints <= 1 || options.NumLiabilitySignals <= 1;
-
-            double exogenousProbabilityTrulyLiable = 0.5;
-            double stdevNoiseToProduceLiabilityStrength = GetNoiseToProduceCaseStrengthOrDefault(options);
-
-            if (options.LitigGameDisputeGenerator is LitigGameExogenousDisputeGenerator exogenous)
-            {
-                exogenousProbabilityTrulyLiable = exogenous.ExogenousProbabilityTrulyLiable;
-                stdevNoiseToProduceLiabilityStrength = exogenous.StdevNoiseToProduceLiabilityStrength;
-            }
-            else if (options.LitigGameDisputeGenerator is LitigGameExogenousDirectSignalDisputeGenerator direct)
-            {
-                exogenousProbabilityTrulyLiable = direct.ExogenousProbabilityTrulyLiable;
-            }
-
-            if (UseDirectSignalExogenousDisputeGenerator && !liabilityCertain)
-            {
-                options.NumLiabilityStrengthPoints = 2;
-
-                if (options.LitigGameDisputeGenerator is not LitigGameExogenousDirectSignalDisputeGenerator directGenerator)
-                {
-                    directGenerator = new LitigGameExogenousDirectSignalDisputeGenerator();
-                    options.LitigGameDisputeGenerator = directGenerator;
-                }
-
-                directGenerator.ExogenousProbabilityTrulyLiable = exogenousProbabilityTrulyLiable;
-                return;
-            }
-
-            if (options.LitigGameDisputeGenerator is not LitigGameExogenousDisputeGenerator exogenousGenerator)
-            {
-                exogenousGenerator = new LitigGameExogenousDisputeGenerator();
-                options.LitigGameDisputeGenerator = exogenousGenerator;
-            }
-
-            exogenousGenerator.ExogenousProbabilityTrulyLiable = exogenousProbabilityTrulyLiable;
-            exogenousGenerator.StdevNoiseToProduceLiabilityStrength = stdevNoiseToProduceLiabilityStrength;
+            // Generator selection is now performed during options construction (e.g., in GetLitigGameOptions and its helpers).
+            // This method is intentionally a no-op to avoid post-construction generator swapping.
         }
 
         private static double GetNoiseToProduceCaseStrengthOrDefault(LitigGameOptions options)
@@ -337,8 +296,6 @@ namespace ACESimBase.Games.LitigGame
 
         public LitigGameOptions GetAndTransform_ProbabilityTrulyLiable(LitigGameOptions options, double probability) => GetAndTransform(options, " TLP " + probability, g =>
         {
-            EnsureExogenousDisputeGeneratorSelection(g);
-
             if (g.LitigGameDisputeGenerator is LitigGameExogenousDisputeGenerator exogenous)
                 exogenous.ExogenousProbabilityTrulyLiable = probability;
             else if (g.LitigGameDisputeGenerator is LitigGameExogenousDirectSignalDisputeGenerator direct)
@@ -351,8 +308,6 @@ namespace ACESimBase.Games.LitigGame
 
         public LitigGameOptions GetAndTransform_NoiseToProduceCaseStrength(LitigGameOptions options, double noise) => GetAndTransform(options, " CSN " + noise, g =>
         {
-            EnsureExogenousDisputeGeneratorSelection(g);
-
             if (g.LitigGameDisputeGenerator is LitigGameExogenousDisputeGenerator exogenous)
                 exogenous.StdevNoiseToProduceLiabilityStrength = noise;
 
@@ -364,10 +319,6 @@ namespace ACESimBase.Games.LitigGame
             if (!liabilityIsUncertain)
             {
                 ChangeToDamagesIssue(g);
-            }
-            else
-            {
-                EnsureExogenousDisputeGeneratorSelection(g);
             }
 
             g.VariableSettings["Issue"] = liabilityIsUncertain ? "Liability" : "Damages";

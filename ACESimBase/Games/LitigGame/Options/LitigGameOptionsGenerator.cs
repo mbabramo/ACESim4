@@ -41,7 +41,7 @@ namespace ACESim
             return options;
         }
 
-        private static LitigGameOptions BaseBeforeApplyingEndogenousGenerator()
+        private static LitigGameOptions BaseBeforeApplyingEndogenousGenerator(bool useDirectSignalExogenousDisputeGenerator = false)
         {
             var options = new LitigGameOptions();
 
@@ -112,23 +112,42 @@ namespace ACESim
             options.WarmStartThroughIteration = null;
             options.WarmStartOptions = LitigGameWarmStartOptions.NoWarmStart;
 
-            options.LitigGameDisputeGenerator = new LitigGameExogenousDisputeGenerator()
+            bool liabilityCertain = options.NumLiabilityStrengthPoints <= 1 || options.NumLiabilitySignals <= 1;
+
+            if (useDirectSignalExogenousDisputeGenerator && !liabilityCertain)
             {
-                ExogenousProbabilityTrulyLiable = 0.5,
-                StdevNoiseToProduceLiabilityStrength = 0.35,
-            };
+                options.NumLiabilityStrengthPoints = 2;
+
+                options.LitigGameDisputeGenerator = new LitigGameExogenousDirectSignalDisputeGenerator()
+                {
+                    ExogenousProbabilityTrulyLiable = 0.5,
+                };
+            }
+            else
+            {
+                options.LitigGameDisputeGenerator = new LitigGameExogenousDisputeGenerator()
+                {
+                    ExogenousProbabilityTrulyLiable = 0.5,
+                    StdevNoiseToProduceLiabilityStrength = 0.35,
+                };
+            }
 
             return options;
         }
+
 
         public static LitigGameOptions CorrelatedSignalsBase(bool smallerTree)
         {
-            var options = BaseBeforeApplyingEndogenousGenerator();
+            var options = BaseBeforeApplyingEndogenousGenerator(useDirectSignalExogenousDisputeGenerator: true);
             options.CollapseAlternativeEndings = true; // can't do this where we're really using endogenous disputes
             options.CollapseChanceDecisions = true;
-            options.NumLiabilitySignals = options.NumLiabilityStrengthPoints = options.NumOffers = smallerTree ? (byte) 5 : (byte) 10;
+
+            options.NumLiabilitySignals = options.NumOffers = smallerTree ? (byte) 5 : (byte) 10;
+            options.NumLiabilityStrengthPoints = 2;
+
             return options;
         }
+
 
         public static LitigGameOptions SmallGame()
         {

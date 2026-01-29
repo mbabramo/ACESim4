@@ -69,19 +69,8 @@ namespace ACESim
 
         public static bool UseDirectSignalExogenousDisputeGeneratorForCorrelatedSignalsArticle = true;
 
-        public override GameOptions GetDefaultSingleGameOptions()
-        {
-            UseDirectSignalExogenousDisputeGenerator = UseDirectSignalExogenousDisputeGeneratorForCorrelatedSignalsArticle;
-
-            LitigGameOptions options = LitigGameOptionsGenerator.GetLitigGameOptions();
-            EnsureExogenousDisputeGeneratorSelection(options);
-            return options;
-        }
-
         public override List<GameOptions> GetOptionsSets()
         {
-            UseDirectSignalExogenousDisputeGenerator = UseDirectSignalExogenousDisputeGeneratorForCorrelatedSignalsArticle;
-
             List<GameOptions> optionSets = new List<GameOptions>();
 
             AddFeeShiftingArticleGames(optionSets);
@@ -99,12 +88,6 @@ namespace ACESim
                 foreach (int idToKeep in LimitToTaskIDs)
                     replacements.Add(optionSets[idToKeep]);
                 optionSets = replacements;
-            }
-
-            foreach (var optionSet in optionSets)
-            {
-                if (optionSet is LitigGameOptions litigGameOptions)
-                    EnsureExogenousDisputeGeneratorSelection(litigGameOptions);
             }
 
             var optionSetNames = optionSets.Select(x => x.Name).OrderBy(x => x).Distinct().ToList();
