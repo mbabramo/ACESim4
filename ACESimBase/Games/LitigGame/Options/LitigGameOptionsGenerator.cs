@@ -16,15 +16,15 @@ namespace ACESim
         public enum LitigGameOptionSetChoices
         {
             EndogenousArticleBase,
-            FeeShiftingBaseSmallTree,
-            FeeShiftingBaseLargeTree,
+            CorrelatedSignalsSmallTree,
+            CorrelatedSignalsLargeTree,
             AppropriationGame, 
             PrecautionNegligenceGame,
             SmallGame,
         }
 
         // This choice has an effect only when in ACESimConsole mode (playing a single game). 
-        static LitigGameOptionSetChoices LitigGameChoice => LitigGameOptionSetChoices.FeeShiftingBaseSmallTree; // DEBUG
+        static LitigGameOptionSetChoices LitigGameChoice => LitigGameOptionSetChoices.CorrelatedSignalsSmallTree; // DEBUG
 
         public static LitigGameOptions GetLitigGameOptions()
         {
@@ -33,8 +33,8 @@ namespace ACESim
                 LitigGameOptionSetChoices.EndogenousArticleBase => BaseBeforeApplyingEndogenousGenerator(),
                 LitigGameOptionSetChoices.AppropriationGame => AppropriationGame(),
                 LitigGameOptionSetChoices.PrecautionNegligenceGame => PrecautionNegligenceGame(),
-                LitigGameOptionSetChoices.FeeShiftingBaseSmallTree => FeeShiftingBase(true),
-                LitigGameOptionSetChoices.FeeShiftingBaseLargeTree => FeeShiftingBase(false),
+                LitigGameOptionSetChoices.CorrelatedSignalsSmallTree => CorrelatedSignalsBase(true),
+                LitigGameOptionSetChoices.CorrelatedSignalsLargeTree => CorrelatedSignalsBase(false),
                 LitigGameOptionSetChoices.SmallGame => SmallGame(),
                 _ => throw new Exception()
             };
@@ -121,7 +121,7 @@ namespace ACESim
             return options;
         }
 
-        public static LitigGameOptions FeeShiftingBase(bool smallerTree)
+        public static LitigGameOptions CorrelatedSignalsBase(bool smallerTree)
         {
             var options = BaseBeforeApplyingEndogenousGenerator();
             options.CollapseAlternativeEndings = true; // can't do this where we're really using endogenous disputes

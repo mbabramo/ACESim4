@@ -147,7 +147,7 @@ namespace ACESim
             {
                 EssentialFeeShiftingMultiplierTransformations(),
             };
-            List<LitigGameOptions> gameOptions = ApplyPermutationsOfTransformations(() => (LitigGameOptions)LitigGameOptionsGenerator.FeeShiftingBase(smallerTree).WithName("FSA"), allTransformations);
+            List<LitigGameOptions> gameOptions = ApplyPermutationsOfTransformations(() => (LitigGameOptions)LitigGameOptionsGenerator.CorrelatedSignalsBase(smallerTree).WithName("FSA"), allTransformations);
             result.Add(gameOptions);
             return result;
         }
