@@ -134,18 +134,21 @@ namespace ACESim
         }
 
 
-        public static LitigGameOptions CorrelatedSignalsBase()
+        public static LitigGameOptions CorrelatedSignalsBase(bool smallerTree = false)
         {
             var options = BaseBeforeApplyingEndogenousGenerator(useDirectSignalExogenousDisputeGenerator: true);
             options.CollapseAlternativeEndings = true; // can't do this where we're really using endogenous disputes
             options.CollapseChanceDecisions = true;
 
-            bool smallerTree = false;
-            options.NumLiabilitySignals = options.NumOffers = smallerTree ? (byte) 5 : (byte) 10;
+            byte numOfEach = smallerTree ? (byte)5 : (byte)10;
+
+            options.NumLiabilitySignals = numOfEach;
+            options.NumOffers = numOfEach;
             options.NumLiabilityStrengthPoints = 2;
 
             return options;
         }
+
 
 
         public static LitigGameOptions SmallGame()

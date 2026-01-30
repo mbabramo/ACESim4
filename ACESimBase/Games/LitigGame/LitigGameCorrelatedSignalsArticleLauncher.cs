@@ -20,14 +20,14 @@ namespace ACESim
     public class LitigGameCorrelatedSignalsArticleLauncher : LitigGameLauncherBase
     {
 
-        public bool TestDisputeGeneratorVariations = false;
-        public bool IncludeRunningSideBetVariations = false;
-        public bool LimitToAmerican = true;
-        public bool UseSmallerTree = false;
+        public bool UseSmallerTree = true; // DEBUG
+
+        public override string MasterReportNameForDistributedProcessing => "CS" + "001";
+
+        public bool UseDirectSignalExogenousDisputeGeneratorForCorrelatedSignalsArticle = true;
         public SignalShapeMode LiabilitySignalShapeMode = SignalShapeMode.EqualMarginal;
         public SignalShapeMode DamagesSignalShapeMode = SignalShapeMode.EqualMarginal;
         public double SignalShapeTailDecay = 0.0;
-
 
         public override List<(string, string)> DefaultVariableValues
         {
@@ -69,16 +69,18 @@ namespace ACESim
         }
 
         public override GameDefinition GetGameDefinition() => new LitigGameDefinition();
-        
-        public override string MasterReportNameForDistributedProcessing => "CS" + "001";
 
-        public static bool UseDirectSignalExogenousDisputeGeneratorForCorrelatedSignalsArticle = true;
+        public override GameOptions GetDefaultSingleGameOptions()
+        {
+            return LitigGameOptionsGenerator.CorrelatedSignalsBase(smallerTree: UseSmallerTree);
+        }
+
 
         public override List<GameOptions> GetOptionsSets()
         {
             List<GameOptions> optionSets = new List<GameOptions>();
 
-            AddCorrelatedSignalsArticleGames(optionSets);
+            AddToOptionsSets(optionSets);
 
             foreach (var optionSet in optionSets)
             {
@@ -118,52 +120,8 @@ namespace ACESim
             return optionSets;
         }
 
-        #region Fee shifting article
 
-        protected override void PostProcessAddedOptionsSets(List<GameOptions> options, int indexOfFirstNewOption)
-        {
-            if (!UseSmallerTree)
-                return;
-
-            const int bigTreeNumber = 10;
-            const int littleTreeNumber = 5;
-
-            foreach (var option in options)
-            {
-                // Note -- some of this is redundant, but we need to do this because of transformations to the original options that may affect damages and liability strength points.
-                if (option is not LitigGameOptions o)
-                    continue;
-
-                if (o.NumLiabilitySignals == bigTreeNumber)
-                    o.NumLiabilitySignals = littleTreeNumber;
-                if (o.NumLiabilityStrengthPoints == bigTreeNumber)
-                    o.NumLiabilityStrengthPoints = littleTreeNumber;
-                if (o.NumDamagesSignals == bigTreeNumber)
-                    o.NumDamagesSignals = littleTreeNumber;
-                if (o.NumDamagesStrengthPoints == bigTreeNumber)
-                    o.NumDamagesStrengthPoints = littleTreeNumber;
-                if (o.NumOffers == bigTreeNumber)
-                    o.NumOffers = littleTreeNumber;
-            }
-        }
-
-        public void AddCorrelatedSignalsArticleGames(List<GameOptions> options)
-        {
-            AddToOptionsSets(options);
-        }
-
-
-        public List<List<LitigGameOptions>> GetCorrelatedSignalsArticleBaselineGamesSets()
-        {
-            List<List<LitigGameOptions>> result = new List<List<LitigGameOptions>>();
-            List<List<Func<LitigGameOptions, LitigGameOptions>>> allTransformations = new List<List<Func<LitigGameOptions, LitigGameOptions>>>()
-            {
-                EssentialFeeShiftingMultiplierTransformations(),
-            };
-            List<LitigGameOptions> gameOptions = ApplyPermutationsOfTransformations(() => (LitigGameOptions)LitigGameOptionsGenerator.CorrelatedSignalsBase().WithName("FSA"), allTransformations);
-            result.Add(gameOptions);
-            return result;
-        }
+        #region Correlated signals article
 
         public override List<VariableCombinationGenerator.Dimension<LitigGameOptions>> GetVariationSetsInfo()
         {

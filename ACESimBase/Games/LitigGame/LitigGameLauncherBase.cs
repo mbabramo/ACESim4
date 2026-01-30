@@ -88,11 +88,8 @@ namespace ACESimBase.Games.LitigGame
         public List<Func<LitigGameOptions, LitigGameOptions>> AdditionalFeeShiftingMultiplierTransformations()
             => Transform(GetAndTransform_FeeShiftingMultiplier, AdditionalFeeShiftingMultipliers);
 
-        public List<Func<LitigGameOptions, LitigGameOptions>> EssentialFeeShiftingMultiplierTransformations()
-            => Transform(GetAndTransform_FeeShiftingMultiplier, new double[] { 0, 1 });
-
-        public List<Func<LitigGameOptions, LitigGameOptions>> DamagesMultiplierTransformations()
-            => Transform(GetAndTransform_DamagesMultiplier, DamagesMultipliers);
+        //public List<Func<LitigGameOptions, LitigGameOptions>> DamagesMultiplierTransformations()
+        //    => Transform(GetAndTransform_DamagesMultiplier, DamagesMultipliers); 
 
         public List<Func<LitigGameOptions, LitigGameOptions>> PRelativeCostsTransformations()
             => Transform(GetAndTransform_PRelativeCosts, RelativeCostsMultipliers);
