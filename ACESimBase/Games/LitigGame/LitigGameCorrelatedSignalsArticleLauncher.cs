@@ -1,4 +1,5 @@
 ﻿using ACESim.Util;
+using ACESim.Util.DiscreteProbabilities;
 using ACESimBase;
 using ACESimBase.Games.LitigGame;
 using ACESimBase.GameSolvingSupport;
@@ -22,7 +23,11 @@ namespace ACESim
         public bool TestDisputeGeneratorVariations = false;
         public bool IncludeRunningSideBetVariations = false;
         public bool LimitToAmerican = true;
-        public bool UseSmallerTree = true;
+        public bool UseSmallerTree = false;
+        public SignalShapeMode LiabilitySignalShapeMode = SignalShapeMode.EqualMarginal;
+        public SignalShapeMode DamagesSignalShapeMode = SignalShapeMode.EqualMarginal;
+        public double SignalShapeTailDecay = 0.0;
+
 
         public override List<(string, string)> DefaultVariableValues
         {
@@ -75,6 +80,24 @@ namespace ACESim
 
             AddCorrelatedSignalsArticleGames(optionSets);
 
+            foreach (var optionSet in optionSets)
+            {
+                if (optionSet is LitigGameOptions litigGameOptions)
+                {
+                    litigGameOptions.LiabilitySignalShapeParameters = new SignalShapeParameters()
+                    {
+                        Mode = LiabilitySignalShapeMode,
+                        TailDecay = SignalShapeTailDecay
+                    };
+
+                    litigGameOptions.DamagesSignalShapeParameters = new SignalShapeParameters()
+                    {
+                        Mode = DamagesSignalShapeMode,
+                        TailDecay = SignalShapeTailDecay
+                    };
+                }
+            }
+
             optionSets = optionSets.OrderBy(x => x.Name).ToList();
 
             bool simplify = false; // Enable for debugging purposes to speed up execution without going all the way to "fast" option
@@ -94,7 +117,6 @@ namespace ACESim
 
             return optionSets;
         }
-
 
         #region Fee shifting article
 
@@ -123,7 +145,7 @@ namespace ACESim
             }
         }
 
-        public List<List<LitigGameOptions>> GetFeeShiftingArticleBaselineGamesSets(bool smallerTree)
+        public List<List<LitigGameOptions>> GetCorrelatedSignalsArticleBaselineGamesSets(bool smallerTree)
         {
             List<List<LitigGameOptions>> result = new List<List<LitigGameOptions>>();
             List<List<Func<LitigGameOptions, LitigGameOptions>>> allTransformations = new List<List<Func<LitigGameOptions, LitigGameOptions>>>()

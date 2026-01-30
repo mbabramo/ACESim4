@@ -11,7 +11,8 @@ namespace ACESim.Util.DiscreteProbabilities
     public enum SignalShapeMode
     {
         /// <summary>
-        /// No shaping; preserves legacy behavior exactly.
+        /// No shaping. With the exogenous dispute generator, this means that five signals will be centered at 0.1, 0.3, 0.5, 0.7, and 0.9, 
+        /// but there will not be an equal probability of each.
         /// </summary>
         Identity = 0,
 

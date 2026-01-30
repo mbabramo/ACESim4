@@ -49,17 +49,11 @@ namespace ACESimBase.Games.LitigGame.ManualReports
 
         public static List<string> GenerateReport(LitigGameDefinition gameDefinition, List<(GameProgress theProgress, double weight)> gameProgresses, TypeOfReport reportType)
         {
-            List<(LitigGameProgress theProgress, double weight)> litigProgresses = gameProgresses.Select(x => ((LitigGameProgress)x.theProgress, x.weight)).ToList();
             List<(ISignalOfferReportGameProgress theProgress, double weight)> signalOfferReportGameProgresses = gameProgresses.Select(x => ((ISignalOfferReportGameProgress)x.theProgress, x.weight)).ToList();
             Func<ISignalOfferReportGameProgress, double> pLiabilitySignalFunc = x => ((LitigGameProgress)x).PLiabilitySignalUniform;
             Func<ISignalOfferReportGameProgress, double> dLiabilitySignalFunc = x => ((LitigGameProgress)x).DLiabilitySignalUniform;
             Func<ISignalOfferReportGameProgress, double> pDamagesSignalFunc = x => ((LitigGameProgress)x).PDamagesSignalUniform;
             Func<ISignalOfferReportGameProgress, double> dDamagesSignalFunc = x => ((LitigGameProgress)x).DDamagesSignalUniform;
-
-            List<double> pLiabilitySignals = litigProgresses.Select(x => x.theProgress.PLiabilitySignalUniform).Distinct().OrderByDescending(x => x).ToList();
-            List<double> dLiabilitySignals = litigProgresses.Select(x => x.theProgress.DLiabilitySignalUniform).Distinct().OrderByDescending(x => x).ToList();
-            List<double> pDamagesSignals = litigProgresses.Select(x => x.theProgress.PDamagesSignalUniform).Distinct().OrderByDescending(x => x).ToList();
-            List<double> dDamagesSignals = litigProgresses.Select(x => x.theProgress.DDamagesSignalUniform).Distinct().OrderByDescending(x => x).ToList();
 
             LitigGameOptions options = gameDefinition.Options;
             bool useLiabilitySignals = options.NumLiabilitySignals > 1;
@@ -67,8 +61,25 @@ namespace ACESimBase.Games.LitigGame.ManualReports
             int numOffers = options.NumOffers;
             bool includeEndpointsForOffers = options.IncludeEndpointsForOffers;
 
+            int numLiabilitySignals = options.NumLiabilitySignals;
+            List<double> pLiabilitySignals =
+                Enumerable.Range(1, numLiabilitySignals)
+                    .Select(action => Game.ConvertActionToUniformDistributionDraw(action, numLiabilitySignals, false))
+                    .OrderByDescending(x => x)
+                    .ToList();
+            List<double> dLiabilitySignals = new List<double>(pLiabilitySignals);
+
+            int numDamagesSignals = options.NumDamagesSignals;
+            List<double> pDamagesSignals =
+                Enumerable.Range(1, numDamagesSignals)
+                    .Select(action => numDamagesSignals == 1 ? 0.5 : (double)action / (double)numDamagesSignals)
+                    .OrderByDescending(x => x)
+                    .ToList();
+            List<double> dDamagesSignals = new List<double>(pDamagesSignals);
+
             return CompleteReport(reportType, signalOfferReportGameProgresses, pLiabilitySignalFunc, dLiabilitySignalFunc, pDamagesSignalFunc, dDamagesSignalFunc, pLiabilitySignals, dLiabilitySignals, pDamagesSignals, dDamagesSignals, useLiabilitySignals, numSignals, numOffers, includeEndpointsForOffers, null, 0, 1);
         }
+
 
         private static List<string> CompleteReport(TypeOfReport reportType, List<(ISignalOfferReportGameProgress theProgress, double weight)> litigProgresses, Func<ISignalOfferReportGameProgress, double> pLiabilitySignalFunc, Func<ISignalOfferReportGameProgress, double> dLiabilitySignalFunc, Func<ISignalOfferReportGameProgress, double> pDamagesSignalFunc, Func<ISignalOfferReportGameProgress, double> dDamagesSignalFunc, List<double> pLiabilitySignals, List<double> dLiabilitySignals, List<double> pDamagesSignals, List<double> dDamagesSignals, bool useLiabilitySignals, int numSignals, int numOffers, bool includeEndpointsForOffers, List<(double p, double d)> superimposedLines, double minOffer, double maxOffer)
         {
@@ -95,14 +106,24 @@ namespace ACESimBase.Games.LitigGame.ManualReports
             (var pFunction, var pSignals) = useLiabilitySignals ? (pLiabilitySignalFunc, pLiabilitySignals) : (pDamagesSignalFunc, pDamagesSignals);
             (var dFunction, var dSignals) = useLiabilitySignals ? (dLiabilitySignalFunc, dLiabilitySignals) : (dDamagesSignalFunc, dDamagesSignals);
 
-            // Fallback for missing / invalid plaintiff-side signals
-            if (pSignals == null || pSignals.Count == 0 || pSignals.All(x => x < 0))
-                pSignals = dSignals != null ? new List<double>(dSignals) : new List<double>();
-            if (pSignals.Count < numSignals && pSignals.Count > 0)
+            if (pSignals == null)
+                pSignals = new List<double>();
+            if (dSignals == null)
+                dSignals = new List<double>();
+
+            bool pSignalsInvalid = pSignals.Count == 0 || pSignals.All(x => x < 0);
+            bool dSignalsInvalid = dSignals.Count == 0 || dSignals.All(x => x < 0);
+
+            if (pSignalsInvalid && !dSignalsInvalid)
+                pSignals = new List<double>(dSignals);
+            if (dSignalsInvalid && !pSignalsInvalid)
+                dSignals = new List<double>(pSignals);
+
+            double GetSignalValueOrNaN(List<double> signals, int index)
             {
-                double lastValue = pSignals[pSignals.Count - 1];
-                while (pSignals.Count < numSignals)
-                    pSignals.Add(lastValue);
+                if (signals == null || index < 0 || index >= signals.Count)
+                    return double.NaN;
+                return signals[index];
             }
 
             List<List<(string text, double darkness)>> pContents = new List<List<(string text, double darkness)>>(), dContents = new List<List<(string text, double darkness)>>();
@@ -133,11 +154,14 @@ namespace ACESimBase.Games.LitigGame.ManualReports
             // body rows
             for (int signalIndex = 0; signalIndex < numSignals; signalIndex++)
             {
-                // header column
-                pRow = new List<(string text, double darkness)>() { (pSignals[signalIndex].ToSignificantFigures(2), 0) };
-                dRow = new List<(string text, double darkness)>() { (dSignals[signalIndex].ToSignificantFigures(2), 0) };
-                double pSignal = pSignals[signalIndex];
-                double dSignal = dSignals[signalIndex];
+                int signalLabel = transpose ? (signalIndex + 1) : (numSignals - signalIndex);
+
+                // header column: raw signal label (1, 2, ...)
+                pRow = new List<(string text, double darkness)>() { (signalLabel.ToString(), 0) };
+                dRow = new List<(string text, double darkness)>() { (signalLabel.ToString(), 0) };
+
+                double pSignal = GetSignalValueOrNaN(pSignals, signalIndex);
+                double dSignal = GetSignalValueOrNaN(dSignals, signalIndex);
 
                 (string representation, double darknessValue) GetProportionString(Func<ISignalOfferReportGameProgress, bool> numeratorFunction, Func<ISignalOfferReportGameProgress, bool> denominatorFunction)
                 {
@@ -156,9 +180,9 @@ namespace ACESimBase.Games.LitigGame.ManualReports
                     {
                         double offerValue = offers[offerIndex];
                         Func<ISignalOfferReportGameProgress, bool> pNumeratorFn = x => (x.POffers?.Any() ?? false) && x.PFirstOffer == offerValue;
-                        Func<ISignalOfferReportGameProgress, bool> pDenominatorFn = x => pFunction(x) == pSignal && (x.POffers?.Any() ?? false);
+                        Func<ISignalOfferReportGameProgress, bool> pDenominatorFn = x => pFunction != null && pFunction(x) == pSignal && (x.POffers?.Any() ?? false);
                         Func<ISignalOfferReportGameProgress, bool> dNumeratorFn = x => (x.DOffers?.Any() ?? false) && x.DFirstOffer == offerValue;
-                        Func<ISignalOfferReportGameProgress, bool> dDenominatorFn = x => dFunction(x) == dSignal && (x.DOffers?.Any() ?? false);
+                        Func<ISignalOfferReportGameProgress, bool> dDenominatorFn = x => dFunction != null && dFunction(x) == dSignal && (x.DOffers?.Any() ?? false);
 
                         pRow.Add(GetProportionString(pNumeratorFn, pDenominatorFn));
                         dRow.Add(GetProportionString(dNumeratorFn, dDenominatorFn));
@@ -166,8 +190,8 @@ namespace ACESimBase.Games.LitigGame.ManualReports
                 }
                 else
                 {
-                    Func<ISignalOfferReportGameProgress, bool> pDenominatorFn = x => pFunction(x) == pSignal;
-                    Func<ISignalOfferReportGameProgress, bool> dDenominatorFn = x => dFunction(x) == dSignal && x.PFiles;
+                    Func<ISignalOfferReportGameProgress, bool> pDenominatorFn = x => pFunction != null && pFunction(x) == pSignal;
+                    Func<ISignalOfferReportGameProgress, bool> dDenominatorFn = x => dFunction != null && dFunction(x) == dSignal && x.PFiles;
                     Func<ISignalOfferReportGameProgress, bool> pFilesFn = x => x.PFiles;
                     Func<ISignalOfferReportGameProgress, bool> pNoSuitFn = x => !x.PFiles;
                     Func<ISignalOfferReportGameProgress, bool> dAnswersFn = x => x.DAnswers;
@@ -245,6 +269,7 @@ namespace ACESimBase.Games.LitigGame.ManualReports
             string doc = TikzHelper.GetStandaloneDocument(b.ToString(), new List<string>() { "xcolor" });
             return new List<string>() { doc };
         }
+
 
 
 
