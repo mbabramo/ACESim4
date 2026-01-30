@@ -25,9 +25,9 @@ namespace ACESim
         public override string MasterReportNameForDistributedProcessing => "CS" + "001";
 
         public bool UseDirectSignalExogenousDisputeGeneratorForCorrelatedSignalsArticle = true;
-        public SignalShapeMode LiabilitySignalShapeMode = SignalShapeMode.EqualMarginal;
+        public SignalShapeMode LiabilitySignalShapeMode = SignalShapeMode.TailDecay;
         public SignalShapeMode DamagesSignalShapeMode = SignalShapeMode.EqualMarginal;
-        public double SignalShapeTailDecay = 0.0;
+        public double SignalShapeTailDecay = 4.0; // see output from LiabilitySignalShapeMode_PrintsUnconditionalSignalProbabilities_VaryingTailDecay to model effect of tail decay
 
         public override List<(string, string)> DefaultVariableValues
         {

@@ -254,11 +254,17 @@ namespace ACESimBase.GameSolvingSupport.Settings
 
         private LitigGameOptions GetLitigGameOptions_InitializedVariableSettings()
         {
-            var options = LitigGameOptionsGenerator.GetLitigGameOptions();
+            var baseOptions = GetDefaultSingleGameOptions();
+            if (baseOptions is not LitigGameOptions options)
+                throw new InvalidOperationException(
+                    $"{GetType().Name}.{nameof(GetDefaultSingleGameOptions)} must return a {nameof(LitigGameOptions)} for {nameof(PermutationalLauncher)}.");
+
             foreach (var keyValue in DefaultVariableValues)
                 options.VariableSettings[keyValue.Item1] = keyValue.Item2.ToString();
+
             return options;
         }
+
 
         /// <summary>
         /// Add variation sets to existing list.
