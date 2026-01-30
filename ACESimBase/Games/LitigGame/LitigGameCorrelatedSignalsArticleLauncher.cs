@@ -73,7 +73,7 @@ namespace ACESim
         {
             List<GameOptions> optionSets = new List<GameOptions>();
 
-            AddFeeShiftingArticleGames(optionSets);
+            AddCorrelatedSignalsArticleGames(optionSets);
 
             optionSets = optionSets.OrderBy(x => x.Name).ToList();
 
@@ -98,7 +98,7 @@ namespace ACESim
 
         #region Fee shifting article
 
-        public void AddFeeShiftingArticleGames(List<GameOptions> options)
+        public void AddCorrelatedSignalsArticleGames(List<GameOptions> options)
         {
             AddToOptionsSets(options);
             if (UseSmallerTree)

@@ -234,11 +234,15 @@ namespace LitigCharts
                             combinedPath = combinedPath.Replace("-Eq1", "");
                         else
                         {
-                            bool throwIfNotFound = true;
+                            bool throwIfNotFound = true; // DEBUG
+                            bool reportIfNotFound = true;
                             if (throwIfNotFound)
                                 throw new Exception("File not found: " + combinedPath + ". Check whether a failure occurred running some simulations by looking for a Failure file in the report directory.");
-                            else
+                            else if (reportIfNotFound)
+                            {
+                                Debug.WriteLine("File not found: " + combinedPath + ". Check whether a failure occurred running some simulations by looking for a Failure file in the report directory.");
                                 return result;
+                            }
                         }
                     }
                     result.Add((path, combinedPath, gameOptionsSet.Name, fileSuffix));
