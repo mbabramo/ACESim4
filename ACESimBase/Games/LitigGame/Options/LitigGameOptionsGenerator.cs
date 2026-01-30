@@ -16,15 +16,14 @@ namespace ACESim
         public enum LitigGameOptionSetChoices
         {
             EndogenousArticleBase,
-            CorrelatedSignalsSmallTree,
-            CorrelatedSignalsLargeTree,
+            CorrelatedSignals,
             AppropriationGame, 
             PrecautionNegligenceGame,
             SmallGame,
         }
 
         // This choice has an effect only when in ACESimConsole mode (playing a single game). 
-        static LitigGameOptionSetChoices LitigGameChoice => LitigGameOptionSetChoices.CorrelatedSignalsSmallTree; // DEBUG
+        static LitigGameOptionSetChoices LitigGameChoice => LitigGameOptionSetChoices.CorrelatedSignals; // DEBUG
 
         public static LitigGameOptions GetLitigGameOptions()
         {
@@ -33,8 +32,7 @@ namespace ACESim
                 LitigGameOptionSetChoices.EndogenousArticleBase => BaseBeforeApplyingEndogenousGenerator(),
                 LitigGameOptionSetChoices.AppropriationGame => AppropriationGame(),
                 LitigGameOptionSetChoices.PrecautionNegligenceGame => PrecautionNegligenceGame(),
-                LitigGameOptionSetChoices.CorrelatedSignalsSmallTree => CorrelatedSignalsBase(true),
-                LitigGameOptionSetChoices.CorrelatedSignalsLargeTree => CorrelatedSignalsBase(false),
+                LitigGameOptionSetChoices.CorrelatedSignals => CorrelatedSignalsBase(),
                 LitigGameOptionSetChoices.SmallGame => SmallGame(),
                 _ => throw new Exception()
             };
@@ -136,12 +134,13 @@ namespace ACESim
         }
 
 
-        public static LitigGameOptions CorrelatedSignalsBase(bool smallerTree)
+        public static LitigGameOptions CorrelatedSignalsBase()
         {
             var options = BaseBeforeApplyingEndogenousGenerator(useDirectSignalExogenousDisputeGenerator: true);
             options.CollapseAlternativeEndings = true; // can't do this where we're really using endogenous disputes
             options.CollapseChanceDecisions = true;
 
+            bool smallerTree = false;
             options.NumLiabilitySignals = options.NumOffers = smallerTree ? (byte) 5 : (byte) 10;
             options.NumLiabilityStrengthPoints = 2;
 

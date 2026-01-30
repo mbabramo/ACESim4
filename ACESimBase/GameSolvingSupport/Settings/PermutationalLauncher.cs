@@ -263,11 +263,21 @@ namespace ACESimBase.GameSolvingSupport.Settings
         /// <summary>
         /// Add variation sets to existing list.
         /// </summary>
+        protected virtual void PostProcessAddedOptionsSets(List<GameOptions> options, int indexOfFirstNewOption)
+        {
+        }
+
+        /// <summary>
+        /// Add variation sets to existing list.
+        /// </summary>
         public void AddToOptionsSets(List<GameOptions> options)
         {
+            int indexOfFirstNewOption = options.Count;
             var gamesSets = GetVariationSets();
             options.AddRange(gamesSets);
+            PostProcessAddedOptionsSets(options, indexOfFirstNewOption);
         }
+
 
         /// <summary>
         /// Convenience projection: returns, for every option set, the list of
