@@ -20,7 +20,7 @@ namespace ACESim
     public class LitigGameCorrelatedSignalsArticleLauncher : LitigGameLauncherBase
     {
 
-        public bool UseSmallerTree = true; // DEBUG
+        public bool UseSmallerTree = false;
 
         public override string MasterReportNameForDistributedProcessing => "CS" + "001";
 

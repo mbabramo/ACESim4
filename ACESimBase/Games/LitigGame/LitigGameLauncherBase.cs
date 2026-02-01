@@ -253,44 +253,6 @@ namespace ACESimBase.Games.LitigGame
 
         public static bool UseDirectSignalExogenousDisputeGenerator = false;
 
-        // DEBUG -- delete this
-        protected static void EnsureExogenousDisputeGeneratorSelection(LitigGameOptions options)
-        {
-            if (options == null)
-                throw new ArgumentNullException(nameof(options));
-
-            // Generator selection is now performed during options construction (e.g., in GetLitigGameOptions and its helpers).
-            // This method is intentionally a no-op to avoid post-construction generator swapping.
-        }
-
-        private static double GetNoiseToProduceCaseStrengthOrDefault(LitigGameOptions options)
-        {
-            if (options?.VariableSettings != null &&
-                options.VariableSettings.TryGetValue("Noise to Produce Case Strength", out object value) &&
-                value != null)
-            {
-                if (value is double d)
-                    return d;
-                if (value is float f)
-                    return f;
-                if (value is string s && double.TryParse(s, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double parsed))
-                    return parsed;
-
-                if (value is IConvertible convertible)
-                {
-                    try
-                    {
-                        return convertible.ToDouble(System.Globalization.CultureInfo.InvariantCulture);
-                    }
-                    catch
-                    {
-                    }
-                }
-            }
-
-            return 0.35;
-        }
-
         public LitigGameOptions GetAndTransform_ProbabilityTrulyLiable(LitigGameOptions options, double probability) => GetAndTransform(options, " TLP " + probability, g =>
         {
             if (g.LitigGameDisputeGenerator is LitigGameExogenousDisputeGenerator exogenous)

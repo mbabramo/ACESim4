@@ -42,7 +42,7 @@ namespace LitigCharts
         public static bool UseParallel = true;
         public static int maxProcesses = UseParallel ? Environment.ProcessorCount : 1;
         public static bool avoidProcessingIfPDFExists = true; // should usually be true because when it's false, we only have one shot at getting everything launched properly
-        public static bool forceBlackAndWhiteForNonDarkLatexFiles = true; // DEBUG
+        public static bool forceBlackAndWhiteForNonDarkLatexFiles = true; 
         static readonly List<(string sourcePdf, string destPdf, string sourceLog, string destLog)> PendingPostCompileMoves
             = new List<(string sourcePdf, string destPdf, string sourceLog, string destLog)>();
 
@@ -234,11 +234,11 @@ namespace LitigCharts
                             combinedPath = combinedPath.Replace("-Eq1", "");
                         else
                         {
-                            bool throwIfNotFound = true; // DEBUG
-                            bool reportIfNotFound = true;
+                            bool throwIfNotFound = true;
+                            bool reportIfNotFoundIfNotThrowing = true;
                             if (throwIfNotFound)
                                 throw new Exception("File not found: " + combinedPath + ". Check whether a failure occurred running some simulations by looking for a Failure file in the report directory.");
-                            else if (reportIfNotFound)
+                            else if (reportIfNotFoundIfNotThrowing)
                             {
                                 Debug.WriteLine("File not found: " + combinedPath + ". Check whether a failure occurred running some simulations by looking for a Failure file in the report directory.");
                                 return result;

@@ -23,7 +23,7 @@ namespace ACESim
         }
 
         // This choice has an effect only when in ACESimConsole mode (playing a single game). 
-        static LitigGameOptionSetChoices LitigGameChoice => LitigGameOptionSetChoices.CorrelatedSignals; // DEBUG
+        static LitigGameOptionSetChoices LitigGameChoice => LitigGameOptionSetChoices.CorrelatedSignals;
 
         public static LitigGameOptions GetLitigGameOptions()
         {
