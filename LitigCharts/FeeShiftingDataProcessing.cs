@@ -48,6 +48,15 @@ namespace LitigCharts
                 }
             }
             BuildReportHelper(launcher, rowsToGet, replacementRowNames, columnsToGet, replacementColumnNames, "output");
+            if (article == DataBeingAnalyzed.CorrelatedSignalsArticle)
+            {
+                if (launcher is not LitigGameCorrelatedSignalsArticleLauncher correlatedLauncher)
+                    throw new InvalidOperationException("Correlated-signals reporting requires its article launcher.");
+                CorrelatedSignalsPairedReport.BuildAndValidate(
+                    correlatedLauncher,
+                    correlatedLauncher.GetReportFullPath("output", ".csv"),
+                    correlatedLauncher.GetReportFullPath("paired signal structures", ".csv"));
+            }
         }
 
         private static void BuildReportHelper(LitigGameLauncherBase launcher, List<string> rowsToGet, List<string> replacementRowNames, List<string> columnsToGet, List<string> replacementColumnNames, string filenameCore)
@@ -387,7 +396,10 @@ namespace LitigCharts
             if (!VirtualizableFileSystem.Directory.GetDirectories(reportFolder).Any(x => x == outputFolderName))
                 VirtualizableFileSystem.Directory.CreateDirectory(outputFolderPath);
 
-            foreach (bool useRiskAversionForNonRiskReports in new bool[] { false, true })
+            IEnumerable<bool> riskModes = article == DataBeingAnalyzed.CorrelatedSignalsArticle
+                ? new[] { false }
+                : new[] { false, true };
+            foreach (bool useRiskAversionForNonRiskReports in riskModes)
             {
                 var variations = launcher.GetSimulationSetsIdentifiers(useRiskAversionForNonRiskReports ? LitigGameLauncherBase.RequireModerateRiskAversion : null);
 
@@ -595,11 +607,11 @@ namespace LitigCharts
                 {
                     // When we get here, we've identified the rows to pull out of the CSV for all equilibria that we need data for.
                     // We're just copying data from the CSV right now. We're not creating the graph yet (that will be in the second step within this method).
-                    bool validate = false; // validation is time consuming but can help identify mistakes
-                    if (validate)
-                        valuesFromCSVAllRows = CSVData.GetCSVData_MultiPassValidated(sourceDataPathAndFilename, collectedRowsToFind.ToArray(), aggregatedGraphInfo.columnsToGet.ToArray(), cacheFile: true);
-                    else
-                        valuesFromCSVAllRows = CSVData.GetCSVData_SinglePass(sourceDataPathAndFilename, collectedRowsToFind.ToArray(), aggregatedGraphInfo.columnsToGet.ToArray(), cacheFile: true);
+                    valuesFromCSVAllRows = CSVData.GetCSVData_SinglePassStrict(
+                        sourceDataPathAndFilename,
+                        collectedRowsToFind.ToArray(),
+                        aggregatedGraphInfo.columnsToGet.ToArray(),
+                        cacheFile: true);
                         
                 }
             }
@@ -751,6 +763,8 @@ namespace LitigCharts
 
             StringBuilder csv = new StringBuilder();
             bool wroteHeader = false;
+            var missingInputs = new List<string>();
+            string expectedSourceHeader = null;
 
             foreach (var opt in optionSets)
             {
@@ -758,13 +772,20 @@ namespace LitigCharts
                 string inputPath = Launcher.ReportFullPath(filePrefix(launcher), coreName, "-costbreakdowndata.csv");
                 
                 if (!VirtualizableFileSystem.File.Exists(inputPath))
-                    continue;                             // option-set had no cost-breakdown file
+                {
+                    missingInputs.Add(inputPath);
+                    continue;
+                }
 
                 using var reader = new StreamReader(inputPath);
 
                 string localHeader = reader.ReadLine();   // first row of the source file
                 if (localHeader is null)
-                    continue;
+                    throw new InvalidDataException($"Cost-breakdown file has no header: {inputPath}");
+                if (expectedSourceHeader == null)
+                    expectedSourceHeader = localHeader;
+                else if (!string.Equals(expectedSourceHeader, localHeader, StringComparison.Ordinal))
+                    throw new InvalidDataException($"Cost-breakdown header mismatch: {inputPath}");
 
                 // write the combined header once (variable columns + group + option + original header)
                 if (!wroteHeader)
@@ -789,7 +810,7 @@ namespace LitigCharts
 
                     var varValues = opt.VariableSettings
                                        .OrderBy(kv => kv.Key.ToString())
-                                       .Select(kv => (kv.Value?.ToString() ?? "").Replace(",", "-"));
+                                       .Select(kv => (Convert.ToString(kv.Value, CultureInfo.InvariantCulture) ?? "").Replace(",", "-"));
 
                     IEnumerable<string> combinedRow = varValues
                         .Concat(new[]
@@ -802,6 +823,11 @@ namespace LitigCharts
                     csv.AppendLine(string.Join(",", combinedRow));
                 }
             }
+
+            if (missingInputs.Count > 0)
+                throw new InvalidDataException(
+                    $"Missing {missingInputs.Count} cost-breakdown inputs:" + Environment.NewLine +
+                    string.Join(Environment.NewLine, missingInputs));
 
             TextFileManage.CreateTextFile(outputFile, csv.ToString());
         }

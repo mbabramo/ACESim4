@@ -1,164 +1,284 @@
-﻿using System;
-using System.Collections;
+using System;
 using System.Collections.Generic;
+using System.Globalization;
+using System.IO;
 using System.Linq;
+using System.Security.Cryptography;
 using System.Text;
-using System.Threading.Tasks;
 using static ACESimBase.Util.ArrayManipulation.ByteArrayCompression;
 
 namespace ACESimBase.Util.TaskManagement
 {
-
     [Serializable]
     public class TaskCoordinator
     {
+        private const int StatusMagic = 0x41434553; // "ACES"
+        private const int StatusVersion = 2;
+
         public List<TaskStage> Stages;
 
         public TaskCoordinator(List<TaskStage> stages)
         {
-            Stages = stages;
+            Stages = stages ?? throw new ArgumentNullException(nameof(stages));
+            ValidateUniqueTaskIdentities();
         }
 
-        DateTime referenceTime = new DateTime(2022, 1, 1);
+        private IEnumerable<RepeatedTask> RepeatedTasks =>
+            Stages.SelectMany(x => x.RepeatedTasks);
+
+        private IEnumerable<IndividualTask> IndividualTasks =>
+            RepeatedTasks.SelectMany(x => x.IndividualTasks);
+
+        public IReadOnlyList<IndividualTask> Tasks => IndividualTasks.ToList();
+
+        public int NumIndividualTasks => IndividualTasks.Count();
+        public int NumTasksComplete => IndividualTasks.Count(x => x.Complete);
+        public int NumTasksStarted => IndividualTasks.Count(x => x.Started != null);
+        public int NumTasksPending => IndividualTasks.Count(x => x.Started != null && !x.Complete && !x.Failed);
+        public int NumTasksFailed => IndividualTasks.Count(x => x.Failed);
+        public int NumTasksUnstarted => IndividualTasks.Count(x => x.Started == null && !x.Complete && !x.Failed);
+        public bool HasFailures => NumTasksFailed > 0;
+        public bool AllComplete => IndividualTasks.All(x => x.Complete);
+        public bool AllTerminal => IndividualTasks.All(x => x.Complete || x.Failed);
+        public double ProportionComplete => NumIndividualTasks == 0
+            ? 1.0
+            : NumTasksComplete / (double)NumIndividualTasks;
+        public string PlanFingerprint => Convert.ToHexString(CalculatePlanFingerprint());
 
         public void StatusFromByteArray(byte[] bytes)
         {
-            bytes = Decompress(bytes);
-            // 1 bit for each individual task indicating whether it has started;
-            // 1 bit for each started task indicating whether it is complete;
-            // 4 bytes = 32 bits for each pending task indicating when it was started, measured in minutes from some reference point 
-            BitArray bits = new BitArray(bytes);
-            BitArray scratch = new BitArray(32);
-            int i = 0;
-            foreach (var individualTask in IndividualTasks)
+            if (bytes == null || bytes.Length == 0)
+                throw new InvalidDataException("Task coordinator status is empty.");
+
+            using var memoryStream = new MemoryStream(Decompress(bytes));
+            using var reader = new BinaryReader(memoryStream, Encoding.UTF8, leaveOpen: false);
+
+            int magic = reader.ReadInt32();
+            int version = reader.ReadInt32();
+            int taskCount = reader.ReadInt32();
+            byte[] storedFingerprint = reader.ReadBytes(32);
+
+            if (magic != StatusMagic)
+                throw new InvalidDataException("Task coordinator status has an unknown format.");
+            if (version != StatusVersion)
+                throw new InvalidDataException(
+                    $"Task coordinator version {version} does not match expected version {StatusVersion}.");
+            if (taskCount != NumIndividualTasks)
+                throw new InvalidDataException(
+                    $"Task coordinator contains {taskCount} tasks but this launcher defines {NumIndividualTasks}.");
+            if (!storedFingerprint.SequenceEqual(CalculatePlanFingerprint()))
+                throw new InvalidDataException(
+                    "Task coordinator plan fingerprint does not match the current production matrix. " +
+                    "Do not combine outputs from different launcher configurations.");
+
+            foreach (IndividualTask task in IndividualTasks)
             {
-                bool started;
-                bool complete = false;
-                int minutesFromReferenceTimeToStartIfPending = 0;
-                started = bits[i++];
-                if (started)
+                byte state = reader.ReadByte();
+                task.Started = null;
+                task.Complete = false;
+                task.Failed = false;
+
+                switch (state)
                 {
-                    complete = bits[i++];
-                    if (!complete)
-                    { // time is included only if task is pending
-                        for (int j = 0; j < 32; j++)
-                            scratch[j] = bits[i++];
-                        byte[] fourBytes = ConvertToByteArray(scratch);
-                        minutesFromReferenceTimeToStartIfPending = BitConverter.ToInt32(fourBytes, 0);
-                    }
+                    case 0: // unstarted
+                        break;
+                    case 1: // pending
+                        task.Started = DateTime.FromBinary(reader.ReadInt64());
+                        break;
+                    case 2: // complete
+                        task.Started = DateTime.UnixEpoch;
+                        task.Complete = true;
+                        break;
+                    case 3: // failed
+                        task.Started = DateTime.UnixEpoch;
+                        task.Failed = true;
+                        break;
+                    default:
+                        throw new InvalidDataException($"Unknown task state {state} for {task.Identity}.");
                 }
-                individualTask.Started = (started, complete) switch
-                {
-                    (true, true) => referenceTime, // it doesn't matter
-                    (true, false) => referenceTime.AddMinutes(minutesFromReferenceTimeToStartIfPending),
-                    (false, _) => null,
-                };
-                individualTask.Complete = complete;
             }
+
+            if (memoryStream.Position != memoryStream.Length)
+                throw new InvalidDataException("Task coordinator status contains unexpected trailing data.");
         }
 
         public byte[] StatusAsByteArray()
         {
-            int numBits = NumIndividualTasks + NumTasksStarted + 32 * NumTasksPending;
-            BitArray bits = new BitArray(numBits);
-            int i = 0;
-            foreach (var individualTask in IndividualTasks)
+            using var memoryStream = new MemoryStream();
+            using (var writer = new BinaryWriter(memoryStream, Encoding.UTF8, leaveOpen: true))
             {
-                bool hasStarted = individualTask.Started != null;
-                bits[i++] = hasStarted;
-                if (hasStarted)
+                writer.Write(StatusMagic);
+                writer.Write(StatusVersion);
+                writer.Write(NumIndividualTasks);
+                writer.Write(CalculatePlanFingerprint());
+
+                foreach (IndividualTask task in IndividualTasks)
                 {
-                    bits[i++] = individualTask.Complete;
-                    if (individualTask.Complete == false)
-                    {
-                        int minutesFromReferenceTimeToStartIfPending = (int)(individualTask.Started.Value - referenceTime).TotalMinutes;
-                        byte[] bytes = BitConverter.GetBytes(minutesFromReferenceTimeToStartIfPending);
-                        BitArray scratch = new BitArray(bytes);
-                        for (int j = 0; j < 32; j++)
-                            bits[i++] = scratch[j];
-                    }
+                    byte state = task.Complete ? (byte)2
+                        : task.Failed ? (byte)3
+                        : task.Started != null ? (byte)1
+                        : (byte)0;
+                    writer.Write(state);
+                    if (state == 1)
+                        writer.Write(task.Started.Value.ToBinary());
                 }
             }
-            return Compress(ConvertToByteArray(bits));
+
+            return Compress(memoryStream.ToArray());
         }
 
-        static byte[] ConvertToByteArray(BitArray bits)
+        public void Update(
+            IReadOnlyCollection<IndividualTask> tasksCompleted,
+            IReadOnlyCollection<IndividualTask> tasksFailed,
+            bool readyForAnotherTask,
+            int numTasksToRequest,
+            out List<IndividualTask> tasksToDo,
+            out bool allComplete)
         {
-            // Make sure we have enough space allocated even when number of bits is not a multiple of 8
-            var bytes = new byte[(bits.Length - 1) / 8 + 1];
-            bits.CopyTo(bytes, 0);
-            return bytes;
-        }
+            if (numTasksToRequest <= 0)
+                throw new ArgumentOutOfRangeException(nameof(numTasksToRequest));
 
-        private IEnumerable<RepeatedTask> RepeatedTasks => Stages.SelectMany(x => x.RepeatedTasks);
-        private IEnumerable<IndividualTask> IndividualTasks => RepeatedTasks.SelectMany(x => x.IndividualTasks);
+            ApplyTaskResults(tasksCompleted, completed: true);
+            ApplyTaskResults(tasksFailed, completed: false);
 
-        private List<IndividualTask> FirstIncompleteTasks(int numToRequest)
-        {
-            var firstIncompleteStage = Stages.FirstOrDefault(x => !x.Complete);
-            if (firstIncompleteStage == null)
-                return new List<IndividualTask>();
-            else
-                return firstIncompleteStage.FirstIncompleteTasks(numToRequest);
-        }
-
-        public int NumIndividualTasks => IndividualTasks.Count();
-        public int NumTasksStarted => IndividualTasks.Where(x => x.Started != null).Count();
-        public int NumTasksPending => IndividualTasks.Where(x => x.Started != null && !x.Complete).Count();
-        public bool AllComplete => IndividualTasks.All(x => x.Complete);
-        public double ProportionComplete => IndividualTasks.Count(x => x.Complete) / (double)IndividualTasks.Count();
-
-        public void Update(List<IndividualTask> tasksCompleted, bool readyForAnotherTask, int numTasksToRequest, out List<IndividualTask> tasksToDo, out bool allComplete)
-        {
-            TimeSpan minSpanBeforeStartingAlreadyStartedJob = TimeSpan.FromSeconds(0); // ALTERNATIVE: LongestDuration;
-            RepeatedTask repeatedTask = null;
+            allComplete = AllComplete;
             tasksToDo = null;
-            if (tasksCompleted != null)
+            // A terminal failure stops the stage immediately. Recovery must explicitly reset
+            // failed tasks before any worker can receive more work, so a bad result set cannot
+            // continue growing after its first detected failure.
+            if (allComplete || HasFailures || !readyForAnotherTask)
+                return;
+
+            TaskStage firstIncompleteStage = Stages.FirstOrDefault(x => !x.Complete);
+            if (firstIncompleteStage == null)
             {
-                foreach (var taskCompleted in tasksCompleted)
-                {
-                    // mark the completed task as complete
-                    repeatedTask = RepeatedTasks.First(x => x.TaskType == taskCompleted.TaskType && x.ID == taskCompleted.ID); // repeatedtask has same name and id as each individualtask within it
-                    var individualTask = repeatedTask.IndividualTasks.First(x => x.Repetition == taskCompleted.Repetition && x.RestrictToScenarioIndex == taskCompleted.RestrictToScenarioIndex);
-                    individualTask.Complete = true;
-                }
-                if (!readyForAnotherTask)
-                {
-                    tasksToDo = null;
-                    allComplete = false; // assume all are not complete
-                    return;
-                }
-            }
-            var taskStage = Stages.FirstOrDefault(x => !x.Complete);
-            if (taskStage == null)
-            { // all stages complete
-                tasksToDo = null;
                 allComplete = true;
                 return;
             }
-            repeatedTask = taskStage.IncompleteRepeatedTask;
-            if (repeatedTask == null)
-            {
-                allComplete = false;
-                tasksToDo = null;
-                return;
-            }
-            tasksToDo = FirstIncompleteTasks(numTasksToRequest);
-            allComplete = false;
-            foreach (var taskToDo in tasksToDo.ToList())
-            {
-                if (taskToDo.Started != null && (taskToDo.Started + minSpanBeforeStartingAlreadyStartedJob > DateTime.Now || repeatedTask.AvoidRedundantExecution))
-                    tasksToDo.Remove(taskToDo);
-                else
-                    taskToDo.Started = DateTime.Now;
-            }
-            if (!tasksToDo.Any())
+
+            // Never reassign a pending task automatically. This makes output ownership unique.
+            // A crashed worker's pending task is reset only through an explicit recovery action.
+            tasksToDo = firstIncompleteStage.RepeatedTasks
+                .SelectMany(x => x.IndividualTasks)
+                .Where(x => x.Started == null && !x.Complete && !x.Failed)
+                .OrderBy(x => x.ID)
+                .ThenBy(x => x.Repetition)
+                .ThenBy(x => x.RestrictToScenarioIndex)
+                .Take(numTasksToRequest)
+                .ToList();
+
+            foreach (IndividualTask task in tasksToDo)
+                task.Started = DateTime.UtcNow;
+
+            if (tasksToDo.Count == 0)
                 tasksToDo = null;
         }
 
-        public override string ToString()
+        public int ResetFailedTasks()
         {
-            return string.Join("\n\n", Stages.Select(x => x.ToString()));
+            var failed = IndividualTasks.Where(x => x.Failed).ToList();
+            foreach (IndividualTask task in failed)
+                ResetTask(task);
+            return failed.Count;
+        }
+
+        public int ResetPendingTasks()
+        {
+            var pending = IndividualTasks
+                .Where(x => x.Started != null && !x.Complete && !x.Failed)
+                .ToList();
+            foreach (IndividualTask task in pending)
+                ResetTask(task);
+            return pending.Count;
+        }
+
+        public override string ToString() =>
+            $"Tasks: {NumIndividualTasks}; complete: {NumTasksComplete}; pending: {NumTasksPending}; " +
+            $"failed: {NumTasksFailed}; unstarted: {NumTasksUnstarted}; plan: {PlanFingerprint}";
+
+        private void ApplyTaskResults(
+            IReadOnlyCollection<IndividualTask> reportedTasks,
+            bool completed)
+        {
+            if (reportedTasks == null)
+                return;
+
+            var duplicateReports = reportedTasks
+                .GroupBy(x => x.Identity, StringComparer.Ordinal)
+                .Where(g => g.Count() > 1)
+                .Select(g => g.Key)
+                .ToList();
+            if (duplicateReports.Count > 0)
+                throw new InvalidOperationException(
+                    "Duplicate task result reports: " + string.Join(", ", duplicateReports));
+
+            foreach (IndividualTask reported in reportedTasks)
+            {
+                IndividualTask actual = FindTask(reported);
+                if (actual.Started == null)
+                    throw new InvalidOperationException($"Task was reported before it was claimed: {actual.Identity}.");
+                if (actual.Complete || actual.Failed)
+                    throw new InvalidOperationException($"Duplicate terminal result for task: {actual.Identity}.");
+
+                actual.Complete = completed;
+                actual.Failed = !completed;
+            }
+        }
+
+        private IndividualTask FindTask(IndividualTask task)
+        {
+            var matches = IndividualTasks.Where(x =>
+                x.TaskType == task.TaskType &&
+                x.ID == task.ID &&
+                x.Repetition == task.Repetition &&
+                x.RestrictToScenarioIndex == task.RestrictToScenarioIndex).ToList();
+            if (matches.Count != 1)
+                throw new InvalidOperationException(
+                    $"Task result identity '{task.Identity}' matched {matches.Count} coordinator tasks.");
+            return matches[0];
+        }
+
+        private static void ResetTask(IndividualTask task)
+        {
+            task.Started = null;
+            task.Complete = false;
+            task.Failed = false;
+        }
+
+        private byte[] CalculatePlanFingerprint()
+        {
+            var builder = new StringBuilder();
+            for (int stageIndex = 0; stageIndex < Stages.Count; stageIndex++)
+            {
+                foreach (RepeatedTask repeated in Stages[stageIndex].RepeatedTasks.OrderBy(x => x.TaskType).ThenBy(x => x.ID))
+                {
+                    foreach (IndividualTask task in repeated.IndividualTasks
+                        .OrderBy(x => x.Repetition)
+                        .ThenBy(x => x.RestrictToScenarioIndex))
+                    {
+                        builder.Append(stageIndex.ToString(CultureInfo.InvariantCulture)).Append('|')
+                            .Append(task.TaskType).Append('|')
+                            .Append(task.ID.ToString(CultureInfo.InvariantCulture)).Append('|')
+                            .Append(task.Repetition.ToString(CultureInfo.InvariantCulture)).Append('|')
+                            .Append(task.RestrictToScenarioIndex?.ToString(CultureInfo.InvariantCulture) ?? "-").Append('|')
+                            .Append(task.PlanLabel).Append('\n');
+                    }
+                }
+            }
+
+            return SHA256.HashData(Encoding.UTF8.GetBytes(builder.ToString()));
+        }
+
+        private void ValidateUniqueTaskIdentities()
+        {
+            var duplicates = IndividualTasks
+                .GroupBy(x => x.Identity, StringComparer.Ordinal)
+                .Where(g => g.Count() > 1)
+                .Select(g => g.Key)
+                .ToList();
+            if (duplicates.Count > 0)
+                throw new InvalidOperationException(
+                    "Task plan contains duplicate identities: " + string.Join(", ", duplicates));
         }
     }
 }

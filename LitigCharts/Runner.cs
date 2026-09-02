@@ -38,6 +38,9 @@ namespace LitigCharts
                 _ => throw new NotImplementedException()
             };
 
+            if (launcher is LitigGameCorrelatedSignalsArticleLauncher correlatedLauncher)
+                correlatedLauncher.EnsureDistributedRunReadyForAggregation();
+
             DataProcessingBase.VirtualizableFileSystem = new ACESimBase.Util.Serialization.VirtualizableFileSystem(launcher.GetReportFolder(), !useVirtualizedFileSystemForIndividualDiagrams);
 
             if (buildMainReport)

@@ -12,7 +12,12 @@ namespace ACESimBase.Util.TaskManagement
         public bool AvoidRedundantExecution; // use AvoidRedundantExecution for very long tasks at the end of a series of tasks, so other processes do not try to do them simultaneously when they see that it has been some time before the task was started
         public IndividualTask[] IndividualTasks;
 
-        public RepeatedTask(string taskType, int id, int repetitions, int? scenarios)
+        public RepeatedTask(
+            string taskType,
+            int id,
+            int repetitions,
+            int? scenarios,
+            string planLabel = null)
         {
             TaskType = taskType;
             ID = id;
@@ -29,13 +34,19 @@ namespace ACESimBase.Util.TaskManagement
             {
                 for (int repetition = 0; repetition < repetitions; repetition++)
                 {
-                    IndividualTasks[individualTasksIndex++] = new IndividualTask(taskType, ID, repetition, scenarioIndex);
+                    IndividualTasks[individualTasksIndex++] = new IndividualTask(
+                        taskType,
+                        ID,
+                        repetition,
+                        scenarioIndex,
+                        planLabel);
                 }
             }
         }
 
         public bool AllStarted => IndividualTasks.All(x => x.Started != null);
         public bool Complete => IndividualTasks.All(x => x.Complete);
+        public bool HasFailures => IndividualTasks.Any(x => x.Failed);
         public int? IndexOfFirstIncomplete()
         {
             var firstIncomplete = FirstIncomplete();
@@ -47,6 +58,7 @@ namespace ACESimBase.Util.TaskManagement
 
         public IndividualTask FirstIncomplete() => Complete ? null :
             IndividualTasks
+            .Where(x => !x.Failed)
             .OrderBy(x => x.Complete) // incomplete first
             .ThenBy(x => x.Started != null) // not started first
             .ThenBy(x => x.Started) // oldest started first
@@ -54,6 +66,7 @@ namespace ACESimBase.Util.TaskManagement
 
         public List<IndividualTask> FirstIncompleteTasks(int n) => Complete ? null :
             IndividualTasks
+            .Where(x => !x.Failed)
             .OrderBy(x => x.Complete) // incomplete first
             .ThenBy(x => x.Started != null) // not started first
             .ThenBy(x => x.Started) // oldest started first

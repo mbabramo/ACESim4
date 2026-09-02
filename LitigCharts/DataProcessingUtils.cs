@@ -4,6 +4,7 @@ using ACESimBase.Util.ArrayManipulation;
 using ACESimBase.Util.Serialization;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -56,7 +57,9 @@ namespace LitigCharts
             bool exists;
             GetFileInfo(filePrefix, ".csv", ref fileSuffix, path, gameOptionsSet, out filenameCore, out combinedPath, out exists);
             if (!exists)
-                return;
+                throw new FileNotFoundException(
+                    $"Missing report for option set '{gameOptionsSet.Name}'.",
+                    combinedPath);
             (string columnName, string expectedText)[][] rowsToFind = new (string columnName, string expectedText)[rowsToGet.Count()][];
             for (int f = 0; f < rowsToGet.Count(); f++)
             {
@@ -65,15 +68,22 @@ namespace LitigCharts
                 rowsToFind[f][1] = ("Filter", rowsToGet[f]);
             }
             // string[] columnsToGet = new string[] { "Trial", "AccSq", "POffer", "DOffer" };
-            resultsAllRows = CSVData.GetCSVData(combinedPath, rowsToFind.ToArray(), columnsToGet.ToArray(), true);
+            resultsAllRows = CSVData.GetCSVData_SinglePassStrict(
+                combinedPath,
+                rowsToFind.ToArray(),
+                columnsToGet.ToArray(),
+                cacheFile: true);
             for (int f = 0; f < rowsToGet.Count(); f++)
             {
                 List<string> bodyRow = new List<string>();
-                bodyRow.AddRange(gameOptionsSet.VariableSettings.OrderBy(x => x.Key.ToString()).Select(x => x.Value?.ToString().Replace(",", "-")));
+                bodyRow.AddRange(gameOptionsSet.VariableSettings
+                    .OrderBy(x => x.Key.ToString())
+                    .Select(x => Convert.ToString(x.Value, System.Globalization.CultureInfo.InvariantCulture)?.Replace(",", "-")));
                 bodyRow.Add(replacementRowNames[f]?.Replace(",", "-"));
                 bodyRow.Add(gameOptionsSet.GroupName?.Replace(",", "-"));
                 bodyRow.Add(filenameCore?.Replace(",", "-")); // option set name 
-                bodyRow.AddRange(resultsAllRows.GetRow(f).Select(x => x?.ToString()));
+                bodyRow.AddRange(resultsAllRows.GetRow(f).Select(x =>
+                    x?.ToString("G17", CultureInfo.InvariantCulture)));
                 outputLines.Add(bodyRow);
             }
         }

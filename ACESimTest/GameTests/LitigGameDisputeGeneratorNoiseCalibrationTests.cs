@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+using System;
 using System.Linq;
 using ACESim.Util.DiscreteProbabilities;
 using ACESimBase.Util.DiscreteProbabilities;
@@ -13,129 +12,188 @@ namespace ACESimTest.GameTests
     {
         public TestContext TestContext { get; set; }
 
+        /// <summary>
+        /// Calibrates the identity-shaped binary-truth signal model separately at each retained
+        /// symmetric information level. The target is the unconditional 10-by-10 joint
+        /// distribution of the parties' signals in the intermediate-case-quality model.
+        /// The objective is D_KL(target case-quality distribution || binary-truth distribution).
+        /// </summary>
         [TestMethod]
-        public void Find_DirectSignal_LiabilityNoiseStdev_That_Matches_IntermediateStrengthBaseline_ByPartyAgreementRate()
+        public void Find_DirectSignal_NoiseStdevs_That_Minimize_JointPartySignal_KLDivergence()
         {
-            const int baselineNumLiabilityStrengthPoints = 10;
-            const int baselineNumLiabilitySignals = 10;
-            const int baselineNumCourtSignals = 2;
+            const int numLiabilityStrengthPoints = 10;
+            const int numPartyLiabilitySignals = 10;
+            const int numCourtSignals = 2;
 
-            const double baselineProbabilityTrulyLiable = 0.5;
-            const double baselineStdevNoiseToProduceLiabilityStrength = 0.35;
-
+            const double probabilityTrulyLiable = 0.5;
+            const double stdevNoiseToProduceLiabilityStrength = 0.35;
             const double baselinePartyLiabilityNoiseStdev = 0.2;
-            const double baselineCourtLiabilityNoiseStdev = 0.2;
 
-            Func<int, bool> courtDecisionRule = courtSignalActionOneBased => courtSignalActionOneBased == 2;
+            var targets = new[]
+            {
+                new CalibrationTarget(0.5, 0.2964025888),
+                new CalibrationTarget(1.0, 0.3498283040),
+                new CalibrationTarget(2.0, 0.5507929452),
+            };
 
-            SignalChannelModel baselineIntermediateStrengthModel = BuildIntermediateStrengthExogenousLiabilitySignalChannelModel(
-                probabilityTrulyLiable: baselineProbabilityTrulyLiable,
-                numLiabilityStrengthPoints: baselineNumLiabilityStrengthPoints,
-                numPartyLiabilitySignals: baselineNumLiabilitySignals,
-                partyLiabilityNoiseStdev: baselinePartyLiabilityNoiseStdev,
-                numCourtLiabilitySignals: baselineNumCourtSignals,
-                courtLiabilityNoiseStdev: baselineCourtLiabilityNoiseStdev,
-                stdevNoiseToProduceLiabilityStrength: baselineStdevNoiseToProduceLiabilityStrength);
+            foreach (CalibrationTarget target in targets)
+            {
+                double caseQualityPartyNoiseStdev = baselinePartyLiabilityNoiseStdev * target.NoiseMultiplier;
 
-            double baselineAgreementRate = CalculateExpectedPartyAgreementRate(
-                baselineIntermediateStrengthModel,
-                courtDecisionRule);
+                SignalChannelModel intermediateCaseQualityModel =
+                    BuildIntermediateCaseQualityLiabilitySignalChannelModel(
+                        probabilityTrulyLiable,
+                        numLiabilityStrengthPoints,
+                        numPartyLiabilitySignals,
+                        caseQualityPartyNoiseStdev,
+                        numCourtSignals,
+                        caseQualityPartyNoiseStdev,
+                        stdevNoiseToProduceLiabilityStrength);
 
-            TestContext?.WriteLine($"Baseline (intermediate-strength exogenous) agreement rate = {baselineAgreementRate:0.000000}");
+                double[][] targetJointDistribution =
+                    CalculateUnconditionalJointPartySignalDistribution(intermediateCaseQualityModel);
 
-            CalibrationSummary extremesMappingSummary = CalibrateDirectSignalModelToMatchAgreementRate(
-                targetAgreementRate: baselineAgreementRate,
-                probabilityTrulyLiable: baselineProbabilityTrulyLiable,
-                numPartyLiabilitySignals: baselineNumLiabilitySignals,
-                numCourtLiabilitySignals: baselineNumCourtSignals,
-                sourcePointsIncludeExtremes: true,
-                courtDecisionRule: courtDecisionRule,
-                coarseMinStdev: 0.01,
-                coarseMaxStdev: 1.50,
-                coarseStepSize: 0.001,
-                refineHalfWindow: 0.005,
-                refineStepSize: 0.0001);
+                CalibrationSummary summary = CalibrateBinaryTruthSignalModel(
+                    targetJointDistribution,
+                    probabilityTrulyLiable,
+                    numPartyLiabilitySignals,
+                    numCourtSignals,
+                    coarseMinStdev: 0.01,
+                    coarseMaxStdev: 1.50,
+                    coarseStepSize: 0.001);
 
-            CalibrationSummary midpointsMappingSummary = CalibrateDirectSignalModelToMatchAgreementRate(
-                targetAgreementRate: baselineAgreementRate,
-                probabilityTrulyLiable: baselineProbabilityTrulyLiable,
-                numPartyLiabilitySignals: baselineNumLiabilitySignals,
-                numCourtLiabilitySignals: baselineNumCourtSignals,
-                sourcePointsIncludeExtremes: false,
-                courtDecisionRule: courtDecisionRule,
-                coarseMinStdev: 0.01,
-                coarseMaxStdev: 1.50,
-                coarseStepSize: 0.001,
-                refineHalfWindow: 0.005,
-                refineStepSize: 0.0001);
+                PrintCalibrationSummary(
+                    target.NoiseMultiplier,
+                    caseQualityPartyNoiseStdev,
+                    summary);
 
-            PrintCalibrationSummary("Direct-signal calibration (sourcePointsIncludeExtremes: true)", extremesMappingSummary);
-            PrintCalibrationSummary("Direct-signal calibration (sourcePointsIncludeExtremes: false)", midpointsMappingSummary);
-
-            baselineAgreementRate.Should().BeInRange(0.0, 1.0);
-            extremesMappingSummary.BestCandidateAgreementRate.Should().BeInRange(0.0, 1.0);
-            midpointsMappingSummary.BestCandidateAgreementRate.Should().BeInRange(0.0, 1.0);
+                summary.BestCandidatePartyNoiseStdev.Should()
+                    .BeApproximately(target.ExpectedBinaryTruthNoiseStdev, 0.00001);
+                summary.KullbackLeiblerDivergence.Should().BeGreaterThanOrEqualTo(0.0);
+                summary.TargetDistributionSum.Should().BeApproximately(1.0, 1E-12);
+                summary.CandidateDistributionSum.Should().BeApproximately(1.0, 1E-12);
+            }
         }
 
-        private static SignalChannelModel BuildIntermediateStrengthExogenousLiabilitySignalChannelModel(
+        /// <summary>
+        /// With the calibrated party sigma held fixed, calibrates the binary-truth court sigma
+        /// against the full unconditional plaintiff-by-defendant-by-court joint distribution.
+        /// A court-marginal calibration would be unidentified here because both symmetric models
+        /// give the two court signals equal unconditional probability.
+        /// </summary>
+        [TestMethod]
+        public void Find_DirectSignal_CourtNoiseStdevs_That_Minimize_JointThreeSignal_KLDivergence()
+        {
+            const int numLiabilityStrengthPoints = 10;
+            const int numPartyLiabilitySignals = 10;
+            const int numCourtSignals = 2;
+            const double probabilityTrulyLiable = 0.5;
+            const double stdevNoiseToProduceLiabilityStrength = 0.35;
+
+            var targets = new[]
+            {
+                (caseQualitySigma: 0.1000000000, binaryTruthPartySigma: 0.2964025888, binaryTruthCourtSigma: 0.1947624474),
+                (caseQualitySigma: 0.2000000000, binaryTruthPartySigma: 0.3498283040, binaryTruthCourtSigma: 0.3060453855),
+                (caseQualitySigma: 0.4000000000, binaryTruthPartySigma: 0.5507929452, binaryTruthCourtSigma: 0.5210455266),
+            };
+
+            foreach (var target in targets)
+            {
+                SignalChannelModel caseQualityModel =
+                    BuildIntermediateCaseQualityLiabilitySignalChannelModel(
+                        probabilityTrulyLiable,
+                        numLiabilityStrengthPoints,
+                        numPartyLiabilitySignals,
+                        target.caseQualitySigma,
+                        numCourtSignals,
+                        target.caseQualitySigma,
+                        stdevNoiseToProduceLiabilityStrength);
+
+                double[][][] targetJointDistribution =
+                    CalculateUnconditionalJointThreeSignalDistribution(caseQualityModel);
+
+                double calibratedCourtSigma = CalibrateBinaryTruthCourtSignalModel(
+                    targetJointDistribution,
+                    probabilityTrulyLiable,
+                    numPartyLiabilitySignals,
+                    numCourtSignals,
+                    target.binaryTruthPartySigma,
+                    coarseMinStdev: 0.01,
+                    coarseMaxStdev: 1.50,
+                    coarseStepSize: 0.001);
+
+                SignalChannelModel candidateModel = BuildBinaryTruthSignalChannelModel(
+                    probabilityTrulyLiable,
+                    numPartyLiabilitySignals,
+                    numCourtSignals,
+                    target.binaryTruthPartySigma,
+                    calibratedCourtSigma);
+                double[][][] candidateJointDistribution =
+                    CalculateUnconditionalJointThreeSignalDistribution(candidateModel);
+
+                TestContext?.WriteLine(
+                    $"Case-quality sigma {target.caseQualitySigma:0.0000000000}; " +
+                    $"binary-truth party sigma {target.binaryTruthPartySigma:0.0000000000}; " +
+                    $"calibrated binary-truth court sigma {calibratedCourtSigma:0.0000000000}; " +
+                    $"joint D_KL {CalculateKullbackLeiblerDivergence(targetJointDistribution, candidateJointDistribution):0.0000000000}");
+
+                calibratedCourtSigma.Should().BeApproximately(target.binaryTruthCourtSigma, 1E-8);
+                Sum(targetJointDistribution).Should().BeApproximately(1.0, 1E-12);
+                Sum(candidateJointDistribution).Should().BeApproximately(1.0, 1E-12);
+            }
+        }
+
+        private static SignalChannelModel BuildIntermediateCaseQualityLiabilitySignalChannelModel(
             double probabilityTrulyLiable,
             int numLiabilityStrengthPoints,
             int numPartyLiabilitySignals,
             double partyLiabilityNoiseStdev,
-            int numCourtLiabilitySignals,
+            int numCourtSignals,
             double courtLiabilityNoiseStdev,
             double stdevNoiseToProduceLiabilityStrength)
         {
-            double[] priorTrueLiability = new[] { 1.0 - probabilityTrulyLiable, probabilityTrulyLiable };
+            double[] priorTrueLiability = { 1.0 - probabilityTrulyLiable, probabilityTrulyLiable };
 
-            DiscreteValueSignalParameters liabilityStrengthGenerationParameters = new DiscreteValueSignalParameters()
+            var liabilityStrengthGenerationParameters = new DiscreteValueSignalParameters
             {
                 NumPointsInSourceUniformDistribution = 2,
                 NumSignals = numLiabilityStrengthPoints,
                 StdevOfNormalDistribution = stdevNoiseToProduceLiabilityStrength,
                 SourcePointsIncludeExtremes = true,
-                SignalBoundaryMode = DiscreteSignalBoundaryMode.EqualWidth
+                SignalBoundaryMode = DiscreteSignalBoundaryMode.EqualWidth,
             };
 
-            double[] probabilitiesLiabilityStrengthGivenTrulyNotLiable =
+            double[] liabilityStrengthGivenNotLiable =
                 DiscreteValueSignal.GetProbabilitiesOfDiscreteSignals(1, liabilityStrengthGenerationParameters);
-
-            double[] probabilitiesLiabilityStrengthGivenTrulyLiable =
+            double[] liabilityStrengthGivenLiable =
                 DiscreteValueSignal.GetProbabilitiesOfDiscreteSignals(2, liabilityStrengthGenerationParameters);
 
             double[] liabilityStrengthPrior = new double[numLiabilityStrengthPoints];
             for (int i = 0; i < numLiabilityStrengthPoints; i++)
             {
                 liabilityStrengthPrior[i] =
-                    priorTrueLiability[0] * probabilitiesLiabilityStrengthGivenTrulyNotLiable[i]
-                    + priorTrueLiability[1] * probabilitiesLiabilityStrengthGivenTrulyLiable[i];
+                    priorTrueLiability[0] * liabilityStrengthGivenNotLiable[i]
+                    + priorTrueLiability[1] * liabilityStrengthGivenLiable[i];
             }
 
-            DiscreteValueSignalParameters plaintiffSignalParameters = new DiscreteValueSignalParameters()
+            var plaintiffSignalParameters = new DiscreteValueSignalParameters
             {
                 NumPointsInSourceUniformDistribution = numLiabilityStrengthPoints,
                 NumSignals = numPartyLiabilitySignals,
                 StdevOfNormalDistribution = partyLiabilityNoiseStdev,
                 SourcePointsIncludeExtremes = false,
-                SignalBoundaryMode = DiscreteSignalBoundaryMode.EqualWidth
+                SignalBoundaryMode = DiscreteSignalBoundaryMode.EqualWidth,
             };
 
-            DiscreteValueSignalParameters defendantSignalParameters = new DiscreteValueSignalParameters()
-            {
-                NumPointsInSourceUniformDistribution = numLiabilityStrengthPoints,
-                NumSignals = numPartyLiabilitySignals,
-                StdevOfNormalDistribution = partyLiabilityNoiseStdev,
-                SourcePointsIncludeExtremes = false,
-                SignalBoundaryMode = DiscreteSignalBoundaryMode.EqualWidth
-            };
+            var defendantSignalParameters = plaintiffSignalParameters;
 
-            DiscreteValueSignalParameters courtSignalParameters = new DiscreteValueSignalParameters()
+            var courtSignalParameters = new DiscreteValueSignalParameters
             {
                 NumPointsInSourceUniformDistribution = numLiabilityStrengthPoints,
-                NumSignals = numCourtLiabilitySignals,
+                NumSignals = numCourtSignals,
                 StdevOfNormalDistribution = courtLiabilityNoiseStdev,
                 SourcePointsIncludeExtremes = false,
-                SignalBoundaryMode = DiscreteSignalBoundaryMode.EqualWidth
+                SignalBoundaryMode = DiscreteSignalBoundaryMode.EqualWidth,
             };
 
             return SignalChannelBuilder.BuildUsingDiscreteValueSignalParameters(
@@ -143,327 +201,467 @@ namespace ACESimTest.GameTests
                 plaintiffSignalParameters,
                 defendantSignalParameters,
                 courtSignalParameters,
-                signalShapeParameters: default(SignalShapeParameters));
+                IdentitySignalShapeParameters());
         }
 
-        private static CalibrationSummary CalibrateDirectSignalModelToMatchAgreementRate(
-            double targetAgreementRate,
+        private static SignalChannelModel BuildBinaryTruthSignalChannelModel(
             double probabilityTrulyLiable,
             int numPartyLiabilitySignals,
-            int numCourtLiabilitySignals,
-            bool sourcePointsIncludeExtremes,
-            Func<int, bool> courtDecisionRule,
-            double coarseMinStdev,
-            double coarseMaxStdev,
-            double coarseStepSize,
-            double refineHalfWindow,
-            double refineStepSize)
-        {
-            IReadOnlyList<CalibrationCandidate> coarseCandidates = EvaluateDirectSignalCandidates(
-                targetAgreementRate,
+            int numCourtSignals,
+            double partyNoiseStdev)
+            => BuildBinaryTruthSignalChannelModel(
                 probabilityTrulyLiable,
                 numPartyLiabilitySignals,
-                numCourtLiabilitySignals,
-                sourcePointsIncludeExtremes,
-                courtDecisionRule,
+                numCourtSignals,
+                partyNoiseStdev,
+                partyNoiseStdev);
+
+        private static SignalChannelModel BuildBinaryTruthSignalChannelModel(
+            double probabilityTrulyLiable,
+            int numPartyLiabilitySignals,
+            int numCourtSignals,
+            double partyNoiseStdev,
+            double courtNoiseStdev)
+        {
+            double[] trueLiabilityPrior = { 1.0 - probabilityTrulyLiable, probabilityTrulyLiable };
+
+            return SignalChannelBuilder.BuildFromNoise(
+                trueLiabilityPrior,
+                numPartyLiabilitySignals,
+                partyNoiseStdev,
+                numPartyLiabilitySignals,
+                partyNoiseStdev,
+                numCourtSignals,
+                courtNoiseStdev,
+                sourcePointsIncludeExtremes: true,
+                signalShapeParameters: IdentitySignalShapeParameters());
+        }
+
+        private static double CalibrateBinaryTruthCourtSignalModel(
+            double[][][] targetJointDistribution,
+            double probabilityTrulyLiable,
+            int numPartyLiabilitySignals,
+            int numCourtSignals,
+            double calibratedPartyNoiseStdev,
+            double coarseMinStdev,
+            double coarseMaxStdev,
+            double coarseStepSize)
+        {
+            double Objective(double courtNoiseStdev)
+            {
+                SignalChannelModel candidateModel = BuildBinaryTruthSignalChannelModel(
+                    probabilityTrulyLiable,
+                    numPartyLiabilitySignals,
+                    numCourtSignals,
+                    calibratedPartyNoiseStdev,
+                    courtNoiseStdev);
+                return CalculateKullbackLeiblerDivergence(
+                    targetJointDistribution,
+                    CalculateUnconditionalJointThreeSignalDistribution(candidateModel));
+            }
+
+            return MinimizeOneDimensional(
+                Objective,
                 coarseMinStdev,
                 coarseMaxStdev,
                 coarseStepSize);
-
-            CalibrationCandidate coarseBest = coarseCandidates
-                .OrderBy(c => c.AbsoluteDifferenceFromTarget)
-                .ThenBy(c => c.PartyNoiseStdev)
-                .First();
-
-            double refineMin = Math.Max(coarseMinStdev, coarseBest.PartyNoiseStdev - refineHalfWindow);
-            double refineMax = Math.Min(coarseMaxStdev, coarseBest.PartyNoiseStdev + refineHalfWindow);
-
-            IReadOnlyList<CalibrationCandidate> refinedCandidates = EvaluateDirectSignalCandidates(
-                targetAgreementRate,
-                probabilityTrulyLiable,
-                numPartyLiabilitySignals,
-                numCourtLiabilitySignals,
-                sourcePointsIncludeExtremes,
-                courtDecisionRule,
-                refineMin,
-                refineMax,
-                refineStepSize);
-
-            CalibrationCandidate refinedBest = refinedCandidates
-                .OrderBy(c => c.AbsoluteDifferenceFromTarget)
-                .ThenBy(c => c.PartyNoiseStdev)
-                .First();
-
-            List<CalibrationCandidate> topCandidates = refinedCandidates
-                .OrderBy(c => c.AbsoluteDifferenceFromTarget)
-                .ThenBy(c => c.PartyNoiseStdev)
-                .Take(10)
-                .ToList();
-
-            return new CalibrationSummary(
-                targetAgreementRate,
-                sourcePointsIncludeExtremes,
-                refinedBest.PartyNoiseStdev,
-                refinedBest.CourtNoiseStdev,
-                refinedBest.AgreementRate,
-                refinedBest.AbsoluteDifferenceFromTarget,
-                topCandidates);
         }
 
-        private static IReadOnlyList<CalibrationCandidate> EvaluateDirectSignalCandidates(
-            double targetAgreementRate,
+        private static double MinimizeOneDimensional(
+            Func<double, double> objective,
+            double coarseMin,
+            double coarseMax,
+            double coarseStep)
+        {
+            if (coarseStep <= 0.0)
+                throw new ArgumentOutOfRangeException(nameof(coarseStep));
+            if (coarseMax <= coarseMin)
+                throw new ArgumentOutOfRangeException(nameof(coarseMax));
+
+            int stepCount = (int)Math.Floor((coarseMax - coarseMin) / coarseStep) + 1;
+            int bestStep = Enumerable.Range(0, stepCount)
+                .Select(step => (step, value: objective(coarseMin + step * coarseStep)))
+                .OrderBy(x => x.value)
+                .ThenBy(x => x.step)
+                .First().step;
+
+            double left = Math.Max(coarseMin, coarseMin + (bestStep - 1) * coarseStep);
+            double right = Math.Min(coarseMax, coarseMin + (bestStep + 1) * coarseStep);
+            const double goldenSectionRatio = 0.6180339887498948482;
+            double c = right - goldenSectionRatio * (right - left);
+            double d = left + goldenSectionRatio * (right - left);
+            double valueAtC = objective(c);
+            double valueAtD = objective(d);
+
+            for (int iteration = 0; iteration < 100; iteration++)
+            {
+                if (valueAtC < valueAtD)
+                {
+                    right = d;
+                    d = c;
+                    valueAtD = valueAtC;
+                    c = right - goldenSectionRatio * (right - left);
+                    valueAtC = objective(c);
+                }
+                else
+                {
+                    left = c;
+                    c = d;
+                    valueAtC = valueAtD;
+                    d = left + goldenSectionRatio * (right - left);
+                    valueAtD = objective(d);
+                }
+            }
+
+            return (left + right) / 2.0;
+        }
+
+        private static SignalShapeParameters IdentitySignalShapeParameters() =>
+            new SignalShapeParameters { Mode = SignalShapeMode.Identity };
+
+        private static CalibrationSummary CalibrateBinaryTruthSignalModel(
+            double[][] targetJointDistribution,
             double probabilityTrulyLiable,
             int numPartyLiabilitySignals,
-            int numCourtLiabilitySignals,
-            bool sourcePointsIncludeExtremes,
-            Func<int, bool> courtDecisionRule,
-            double minStdev,
-            double maxStdev,
-            double stepSize)
+            int numCourtSignals,
+            double coarseMinStdev,
+            double coarseMaxStdev,
+            double coarseStepSize)
         {
-            if (stepSize <= 0)
-                throw new ArgumentOutOfRangeException(nameof(stepSize));
+            if (coarseStepSize <= 0.0)
+                throw new ArgumentOutOfRangeException(nameof(coarseStepSize));
+            if (coarseMaxStdev <= coarseMinStdev)
+                throw new ArgumentOutOfRangeException(nameof(coarseMaxStdev));
 
-            if (maxStdev < minStdev)
-                throw new ArgumentOutOfRangeException(nameof(maxStdev));
+            int stepCount = (int)Math.Floor((coarseMaxStdev - coarseMinStdev) / coarseStepSize) + 1;
+            int bestStep = 0;
+            double bestDivergence = double.PositiveInfinity;
 
-            double[] trueLiabilityPrior = new[] { 1.0 - probabilityTrulyLiable, probabilityTrulyLiable };
-
-            int stepCount = (int)Math.Floor((maxStdev - minStdev) / stepSize) + 1;
-
-            List<CalibrationCandidate> candidates = new List<CalibrationCandidate>(stepCount);
-
-            for (int i = 0; i < stepCount; i++)
+            for (int step = 0; step < stepCount; step++)
             {
-                double partyNoiseStdev = minStdev + i * stepSize;
-                double courtNoiseStdev = partyNoiseStdev;
+                double candidateStdev = coarseMinStdev + step * coarseStepSize;
+                double divergence = EvaluateKullbackLeiblerDivergence(
+                    targetJointDistribution,
+                    probabilityTrulyLiable,
+                    numPartyLiabilitySignals,
+                    numCourtSignals,
+                    candidateStdev);
 
-                SignalChannelModel directSignalModel = SignalChannelBuilder.BuildFromNoise(
-                    hiddenPrior: trueLiabilityPrior,
-                    plaintiffSignalCount: numPartyLiabilitySignals,
-                    plaintiffNoiseStdev: partyNoiseStdev,
-                    defendantSignalCount: numPartyLiabilitySignals,
-                    defendantNoiseStdev: partyNoiseStdev,
-                    courtSignalCount: numCourtLiabilitySignals,
-                    courtNoiseStdev: courtNoiseStdev,
-                    sourcePointsIncludeExtremes: sourcePointsIncludeExtremes,
-                    signalShapeParameters: default(SignalShapeParameters));
-
-                double agreementRate = CalculateExpectedPartyAgreementRate(directSignalModel, courtDecisionRule);
-                double absoluteDifference = Math.Abs(agreementRate - targetAgreementRate);
-
-                candidates.Add(new CalibrationCandidate(
-                    partyNoiseStdev,
-                    courtNoiseStdev,
-                    agreementRate,
-                    absoluteDifference));
-            }
-
-            return candidates;
-        }
-
-        private static double CalculateExpectedPartyAgreementRate(
-            SignalChannelModel signalChannelModel,
-            Func<int, bool> plaintiffWinsGivenCourtSignalActionOneBased)
-        {
-            if (signalChannelModel == null)
-                throw new ArgumentNullException(nameof(signalChannelModel));
-
-            if (plaintiffWinsGivenCourtSignalActionOneBased == null)
-                throw new ArgumentNullException(nameof(plaintiffWinsGivenCourtSignalActionOneBased));
-
-            double[] priorHiddenValues = signalChannelModel.PriorHiddenValues
-                ?? throw new InvalidOperationException("SignalChannelModel.PriorHiddenValues is null.");
-
-            double[][] plaintiffSignalProbabilitiesGivenHidden = signalChannelModel.PlaintiffSignalProbabilitiesGivenHidden
-                ?? throw new InvalidOperationException("SignalChannelModel.PlaintiffSignalProbabilitiesGivenHidden is null.");
-
-            double[][] defendantSignalProbabilitiesGivenHidden = signalChannelModel.DefendantSignalProbabilitiesGivenHidden
-                ?? throw new InvalidOperationException("SignalChannelModel.DefendantSignalProbabilitiesGivenHidden is null.");
-
-            double[][] courtSignalProbabilitiesGivenHidden = signalChannelModel.CourtSignalProbabilitiesGivenHidden
-                ?? throw new InvalidOperationException("SignalChannelModel.CourtSignalProbabilitiesGivenHidden is null.");
-
-            int hiddenCount = priorHiddenValues.Length;
-            if (hiddenCount == 0)
-                throw new InvalidOperationException("Hidden state count is 0.");
-
-            int plaintiffSignalCount = plaintiffSignalProbabilitiesGivenHidden[0].Length;
-            int defendantSignalCount = defendantSignalProbabilitiesGivenHidden[0].Length;
-            int courtSignalCount = courtSignalProbabilitiesGivenHidden[0].Length;
-
-            double[] probabilityPlaintiffWinsGivenHidden = new double[hiddenCount];
-            for (int h = 0; h < hiddenCount; h++)
-            {
-                double sum = 0.0;
-                for (int c = 0; c < courtSignalCount; c++)
+                if (divergence < bestDivergence)
                 {
-                    int courtSignalActionOneBased = c + 1;
-                    if (plaintiffWinsGivenCourtSignalActionOneBased(courtSignalActionOneBased))
-                        sum += courtSignalProbabilitiesGivenHidden[h][c];
-                }
-                probabilityPlaintiffWinsGivenHidden[h] = sum;
-            }
-
-            double[] probabilityGuessPlaintiff_Plaintiff = CalculateProbabilityGuessPlaintiffGivenOwnSignal(
-                priorHiddenValues,
-                plaintiffSignalProbabilitiesGivenHidden,
-                probabilityPlaintiffWinsGivenHidden);
-
-            double[] probabilityGuessPlaintiff_Defendant = CalculateProbabilityGuessPlaintiffGivenOwnSignal(
-                priorHiddenValues,
-                defendantSignalProbabilitiesGivenHidden,
-                probabilityPlaintiffWinsGivenHidden);
-
-            double agreement = 0.0;
-
-            for (int h = 0; h < hiddenCount; h++)
-            {
-                double priorH = priorHiddenValues[h];
-
-                for (int pSignal = 0; pSignal < plaintiffSignalCount; pSignal++)
-                {
-                    double pSignalGivenH = plaintiffSignalProbabilitiesGivenHidden[h][pSignal];
-                    double pGuess = probabilityGuessPlaintiff_Plaintiff[pSignal];
-
-                    for (int dSignal = 0; dSignal < defendantSignalCount; dSignal++)
-                    {
-                        double dSignalGivenH = defendantSignalProbabilitiesGivenHidden[h][dSignal];
-                        double dGuess = probabilityGuessPlaintiff_Defendant[dSignal];
-
-                        double jointProbability = priorH * pSignalGivenH * dSignalGivenH;
-
-                        double probabilityAgree =
-                            (pGuess * dGuess)
-                            + ((1.0 - pGuess) * (1.0 - dGuess));
-
-                        agreement += jointProbability * probabilityAgree;
-                    }
+                    bestDivergence = divergence;
+                    bestStep = step;
                 }
             }
 
-            return agreement;
-        }
+            double left = Math.Max(coarseMinStdev, coarseMinStdev + (bestStep - 1) * coarseStepSize);
+            double right = Math.Min(coarseMaxStdev, coarseMinStdev + (bestStep + 1) * coarseStepSize);
 
-        private static double[] CalculateProbabilityGuessPlaintiffGivenOwnSignal(
-            double[] priorHiddenValues,
-            double[][] partySignalProbabilitiesGivenHidden,
-            double[] probabilityPlaintiffWinsGivenHidden)
-        {
-            const double tieTolerance = 1e-12;
+            const double goldenSectionRatio = 0.6180339887498948482;
+            double c = right - goldenSectionRatio * (right - left);
+            double d = left + goldenSectionRatio * (right - left);
+            double divergenceAtC = EvaluateKullbackLeiblerDivergence(
+                targetJointDistribution,
+                probabilityTrulyLiable,
+                numPartyLiabilitySignals,
+                numCourtSignals,
+                c);
+            double divergenceAtD = EvaluateKullbackLeiblerDivergence(
+                targetJointDistribution,
+                probabilityTrulyLiable,
+                numPartyLiabilitySignals,
+                numCourtSignals,
+                d);
 
-            int hiddenCount = priorHiddenValues.Length;
-            int signalCount = partySignalProbabilitiesGivenHidden[0].Length;
-
-            double[] probabilityGuessPlaintiff = new double[signalCount];
-
-            for (int signal = 0; signal < signalCount; signal++)
+            for (int iteration = 0; iteration < 100; iteration++)
             {
-                double denominator = 0.0;
-                for (int h = 0; h < hiddenCount; h++)
-                    denominator += priorHiddenValues[h] * partySignalProbabilitiesGivenHidden[h][signal];
-
-                double probabilityPlaintiffWinsGivenSignal;
-
-                if (denominator <= 0.0)
+                if (divergenceAtC < divergenceAtD)
                 {
-                    double priorSum = priorHiddenValues.Sum();
-                    if (priorSum <= 0.0)
-                        probabilityPlaintiffWinsGivenSignal = 0.5;
-                    else
-                    {
-                        double value = 0.0;
-                        for (int h = 0; h < hiddenCount; h++)
-                            value += (priorHiddenValues[h] / priorSum) * probabilityPlaintiffWinsGivenHidden[h];
-                        probabilityPlaintiffWinsGivenSignal = value;
-                    }
+                    right = d;
+                    d = c;
+                    divergenceAtD = divergenceAtC;
+                    c = right - goldenSectionRatio * (right - left);
+                    divergenceAtC = EvaluateKullbackLeiblerDivergence(
+                        targetJointDistribution,
+                        probabilityTrulyLiable,
+                        numPartyLiabilitySignals,
+                        numCourtSignals,
+                        c);
                 }
                 else
                 {
-                    double value = 0.0;
-                    for (int h = 0; h < hiddenCount; h++)
-                    {
-                        double posteriorH = (priorHiddenValues[h] * partySignalProbabilitiesGivenHidden[h][signal]) / denominator;
-                        value += posteriorH * probabilityPlaintiffWinsGivenHidden[h];
-                    }
-                    probabilityPlaintiffWinsGivenSignal = value;
+                    left = c;
+                    c = d;
+                    divergenceAtC = divergenceAtD;
+                    d = left + goldenSectionRatio * (right - left);
+                    divergenceAtD = EvaluateKullbackLeiblerDivergence(
+                        targetJointDistribution,
+                        probabilityTrulyLiable,
+                        numPartyLiabilitySignals,
+                        numCourtSignals,
+                        d);
                 }
-
-                if (probabilityPlaintiffWinsGivenSignal > 0.5 + tieTolerance)
-                    probabilityGuessPlaintiff[signal] = 1.0;
-                else if (probabilityPlaintiffWinsGivenSignal < 0.5 - tieTolerance)
-                    probabilityGuessPlaintiff[signal] = 0.0;
-                else
-                    probabilityGuessPlaintiff[signal] = 0.5;
             }
 
-            return probabilityGuessPlaintiff;
+            double bestCandidateStdev = (left + right) / 2.0;
+            SignalChannelModel bestCandidateModel = BuildBinaryTruthSignalChannelModel(
+                probabilityTrulyLiable,
+                numPartyLiabilitySignals,
+                numCourtSignals,
+                bestCandidateStdev);
+            double[][] candidateJointDistribution =
+                CalculateUnconditionalJointPartySignalDistribution(bestCandidateModel);
+
+            return new CalibrationSummary(
+                bestCandidateStdev,
+                CalculateKullbackLeiblerDivergence(targetJointDistribution, candidateJointDistribution),
+                CalculateTotalVariationDistance(targetJointDistribution, candidateJointDistribution),
+                CalculateSignalCorrelation(targetJointDistribution),
+                CalculateSignalCorrelation(candidateJointDistribution),
+                Sum(targetJointDistribution),
+                Sum(candidateJointDistribution));
         }
 
-        private void PrintCalibrationSummary(string label, CalibrationSummary summary)
+        private static double EvaluateKullbackLeiblerDivergence(
+            double[][] targetJointDistribution,
+            double probabilityTrulyLiable,
+            int numPartyLiabilitySignals,
+            int numCourtSignals,
+            double candidateStdev)
         {
-            TestContext?.WriteLine(label);
-            TestContext?.WriteLine($"  Target agreement rate: {summary.TargetAgreementRate:0.000000}");
-            TestContext?.WriteLine($"  Best stdev (party):    {summary.BestCandidatePartyNoiseStdev:0.000000}");
-            TestContext?.WriteLine($"  Best stdev (court):    {summary.BestCandidateCourtNoiseStdev:0.000000}");
-            TestContext?.WriteLine($"  Agreement at best:     {summary.BestCandidateAgreementRate:0.000000}");
-            TestContext?.WriteLine($"  Absolute difference:   {summary.BestCandidateAbsoluteDifference:0.000000}");
-            TestContext?.WriteLine("  Top candidates:");
+            SignalChannelModel candidateModel = BuildBinaryTruthSignalChannelModel(
+                probabilityTrulyLiable,
+                numPartyLiabilitySignals,
+                numCourtSignals,
+                candidateStdev);
+            double[][] candidateJointDistribution =
+                CalculateUnconditionalJointPartySignalDistribution(candidateModel);
 
-            foreach (CalibrationCandidate candidate in summary.TopCandidates)
-            {
-                TestContext?.WriteLine(
-                    $"    stdev={candidate.PartyNoiseStdev:0.000000}  agree={candidate.AgreementRate:0.000000}  diff={candidate.AbsoluteDifferenceFromTarget:0.000000}");
-            }
+            return CalculateKullbackLeiblerDivergence(
+                targetJointDistribution,
+                candidateJointDistribution);
         }
 
-        private sealed class CalibrationCandidate
+        private static double[][] CalculateUnconditionalJointPartySignalDistribution(
+            SignalChannelModel signalChannelModel)
         {
-            public CalibrationCandidate(
-                double partyNoiseStdev,
-                double courtNoiseStdev,
-                double agreementRate,
-                double absoluteDifferenceFromTarget)
+            double[] hiddenPrior = signalChannelModel.PriorHiddenValues;
+            double[][] plaintiffSignalsGivenHidden = signalChannelModel.PlaintiffSignalProbabilitiesGivenHidden;
+            double[][] defendantSignalsGivenHidden = signalChannelModel.DefendantSignalProbabilitiesGivenHidden;
+
+            int plaintiffSignalCount = plaintiffSignalsGivenHidden[0].Length;
+            int defendantSignalCount = defendantSignalsGivenHidden[0].Length;
+            double[][] jointDistribution = Enumerable.Range(0, plaintiffSignalCount)
+                .Select(_ => new double[defendantSignalCount])
+                .ToArray();
+
+            for (int hidden = 0; hidden < hiddenPrior.Length; hidden++)
             {
-                PartyNoiseStdev = partyNoiseStdev;
-                CourtNoiseStdev = courtNoiseStdev;
-                AgreementRate = agreementRate;
-                AbsoluteDifferenceFromTarget = absoluteDifferenceFromTarget;
+                for (int plaintiffSignal = 0; plaintiffSignal < plaintiffSignalCount; plaintiffSignal++)
+                {
+                    for (int defendantSignal = 0; defendantSignal < defendantSignalCount; defendantSignal++)
+                    {
+                        jointDistribution[plaintiffSignal][defendantSignal] +=
+                            hiddenPrior[hidden]
+                            * plaintiffSignalsGivenHidden[hidden][plaintiffSignal]
+                            * defendantSignalsGivenHidden[hidden][defendantSignal];
+                    }
+                }
             }
 
-            public double PartyNoiseStdev { get; }
-            public double CourtNoiseStdev { get; }
-            public double AgreementRate { get; }
-            public double AbsoluteDifferenceFromTarget { get; }
+            return jointDistribution;
+        }
+
+        private static double[][][] CalculateUnconditionalJointThreeSignalDistribution(
+            SignalChannelModel signalChannelModel)
+        {
+            double[] hiddenPrior = signalChannelModel.PriorHiddenValues;
+            double[][] plaintiffSignalsGivenHidden = signalChannelModel.PlaintiffSignalProbabilitiesGivenHidden;
+            double[][] defendantSignalsGivenHidden = signalChannelModel.DefendantSignalProbabilitiesGivenHidden;
+            double[][] courtSignalsGivenHidden = signalChannelModel.CourtSignalProbabilitiesGivenHidden;
+
+            int plaintiffSignalCount = plaintiffSignalsGivenHidden[0].Length;
+            int defendantSignalCount = defendantSignalsGivenHidden[0].Length;
+            int courtSignalCount = courtSignalsGivenHidden[0].Length;
+            double[][][] jointDistribution = Enumerable.Range(0, plaintiffSignalCount)
+                .Select(_ => Enumerable.Range(0, defendantSignalCount)
+                    .Select(_ => new double[courtSignalCount])
+                    .ToArray())
+                .ToArray();
+
+            for (int hidden = 0; hidden < hiddenPrior.Length; hidden++)
+            {
+                for (int plaintiffSignal = 0; plaintiffSignal < plaintiffSignalCount; plaintiffSignal++)
+                {
+                    for (int defendantSignal = 0; defendantSignal < defendantSignalCount; defendantSignal++)
+                    {
+                        for (int courtSignal = 0; courtSignal < courtSignalCount; courtSignal++)
+                        {
+                            jointDistribution[plaintiffSignal][defendantSignal][courtSignal] +=
+                                hiddenPrior[hidden]
+                                * plaintiffSignalsGivenHidden[hidden][plaintiffSignal]
+                                * defendantSignalsGivenHidden[hidden][defendantSignal]
+                                * courtSignalsGivenHidden[hidden][courtSignal];
+                        }
+                    }
+                }
+            }
+
+            return jointDistribution;
+        }
+
+        private static double CalculateKullbackLeiblerDivergence(
+            double[][] targetDistribution,
+            double[][] candidateDistribution)
+        {
+            double divergence = 0.0;
+
+            for (int p = 0; p < targetDistribution.Length; p++)
+            {
+                for (int d = 0; d < targetDistribution[p].Length; d++)
+                {
+                    double targetProbability = targetDistribution[p][d];
+                    double candidateProbability = candidateDistribution[p][d];
+
+                    if (targetProbability <= 0.0)
+                        continue;
+                    if (candidateProbability <= 0.0)
+                        return double.PositiveInfinity;
+
+                    divergence += targetProbability * Math.Log(targetProbability / candidateProbability);
+                }
+            }
+
+            return divergence;
+        }
+
+        private static double CalculateKullbackLeiblerDivergence(
+            double[][][] targetDistribution,
+            double[][][] candidateDistribution)
+        {
+            double divergence = 0.0;
+            for (int p = 0; p < targetDistribution.Length; p++)
+            {
+                for (int d = 0; d < targetDistribution[p].Length; d++)
+                {
+                    for (int c = 0; c < targetDistribution[p][d].Length; c++)
+                    {
+                        double targetProbability = targetDistribution[p][d][c];
+                        double candidateProbability = candidateDistribution[p][d][c];
+                        if (targetProbability <= 0.0)
+                            continue;
+                        if (candidateProbability <= 0.0)
+                            return double.PositiveInfinity;
+                        divergence += targetProbability * Math.Log(targetProbability / candidateProbability);
+                    }
+                }
+            }
+
+            return divergence;
+        }
+
+        private static double CalculateTotalVariationDistance(
+            double[][] targetDistribution,
+            double[][] candidateDistribution)
+        {
+            double absoluteDifference = 0.0;
+            for (int p = 0; p < targetDistribution.Length; p++)
+            {
+                for (int d = 0; d < targetDistribution[p].Length; d++)
+                    absoluteDifference += Math.Abs(targetDistribution[p][d] - candidateDistribution[p][d]);
+            }
+
+            return 0.5 * absoluteDifference;
+        }
+
+        private static double CalculateSignalCorrelation(double[][] jointDistribution)
+        {
+            double expectedP = 0.0;
+            double expectedD = 0.0;
+            double expectedPD = 0.0;
+            double expectedPSquared = 0.0;
+            double expectedDSquared = 0.0;
+
+            for (int p = 0; p < jointDistribution.Length; p++)
+            {
+                for (int d = 0; d < jointDistribution[p].Length; d++)
+                {
+                    double probability = jointDistribution[p][d];
+                    double pSignal = p + 1.0;
+                    double dSignal = d + 1.0;
+
+                    expectedP += probability * pSignal;
+                    expectedD += probability * dSignal;
+                    expectedPD += probability * pSignal * dSignal;
+                    expectedPSquared += probability * pSignal * pSignal;
+                    expectedDSquared += probability * dSignal * dSignal;
+                }
+            }
+
+            double covariance = expectedPD - expectedP * expectedD;
+            double pVariance = expectedPSquared - expectedP * expectedP;
+            double dVariance = expectedDSquared - expectedD * expectedD;
+            return covariance / Math.Sqrt(pVariance * dVariance);
+        }
+
+        private static double Sum(double[][] distribution) => distribution.Sum(row => row.Sum());
+
+        private static double Sum(double[][][] distribution) =>
+            distribution.Sum(plane => plane.Sum(row => row.Sum()));
+
+        private void PrintCalibrationSummary(
+            double noiseMultiplier,
+            double caseQualityPartyNoiseStdev,
+            CalibrationSummary summary)
+        {
+            TestContext?.WriteLine($"Symmetric noise multiplier:       {noiseMultiplier:0.0###}x");
+            TestContext?.WriteLine($"  Case-quality party stdev:       {caseQualityPartyNoiseStdev:0.000000}");
+            TestContext?.WriteLine($"  Calibrated binary-truth stdev:  {summary.BestCandidatePartyNoiseStdev:0.000000}");
+            TestContext?.WriteLine($"  D_KL(quality || truth):         {summary.KullbackLeiblerDivergence:0.000000}");
+            TestContext?.WriteLine($"  Total variation distance:       {summary.TotalVariationDistance:0.000000}");
+            TestContext?.WriteLine($"  Signal correlation (quality):   {summary.TargetSignalCorrelation:0.000000}");
+            TestContext?.WriteLine($"  Signal correlation (truth):     {summary.CandidateSignalCorrelation:0.000000}");
+        }
+
+        private sealed class CalibrationTarget
+        {
+            public CalibrationTarget(double noiseMultiplier, double expectedBinaryTruthNoiseStdev)
+            {
+                NoiseMultiplier = noiseMultiplier;
+                ExpectedBinaryTruthNoiseStdev = expectedBinaryTruthNoiseStdev;
+            }
+
+            public double NoiseMultiplier { get; }
+            public double ExpectedBinaryTruthNoiseStdev { get; }
         }
 
         private sealed class CalibrationSummary
         {
             public CalibrationSummary(
-                double targetAgreementRate,
-                bool sourcePointsIncludeExtremes,
                 double bestCandidatePartyNoiseStdev,
-                double bestCandidateCourtNoiseStdev,
-                double bestCandidateAgreementRate,
-                double bestCandidateAbsoluteDifference,
-                IReadOnlyList<CalibrationCandidate> topCandidates)
+                double kullbackLeiblerDivergence,
+                double totalVariationDistance,
+                double targetSignalCorrelation,
+                double candidateSignalCorrelation,
+                double targetDistributionSum,
+                double candidateDistributionSum)
             {
-                TargetAgreementRate = targetAgreementRate;
-                SourcePointsIncludeExtremes = sourcePointsIncludeExtremes;
                 BestCandidatePartyNoiseStdev = bestCandidatePartyNoiseStdev;
-                BestCandidateCourtNoiseStdev = bestCandidateCourtNoiseStdev;
-                BestCandidateAgreementRate = bestCandidateAgreementRate;
-                BestCandidateAbsoluteDifference = bestCandidateAbsoluteDifference;
-                TopCandidates = topCandidates ?? Array.Empty<CalibrationCandidate>();
+                KullbackLeiblerDivergence = kullbackLeiblerDivergence;
+                TotalVariationDistance = totalVariationDistance;
+                TargetSignalCorrelation = targetSignalCorrelation;
+                CandidateSignalCorrelation = candidateSignalCorrelation;
+                TargetDistributionSum = targetDistributionSum;
+                CandidateDistributionSum = candidateDistributionSum;
             }
 
-            public double TargetAgreementRate { get; }
-            public bool SourcePointsIncludeExtremes { get; }
             public double BestCandidatePartyNoiseStdev { get; }
-            public double BestCandidateCourtNoiseStdev { get; }
-            public double BestCandidateAgreementRate { get; }
-            public double BestCandidateAbsoluteDifference { get; }
-            public IReadOnlyList<CalibrationCandidate> TopCandidates { get; }
+            public double KullbackLeiblerDivergence { get; }
+            public double TotalVariationDistance { get; }
+            public double TargetSignalCorrelation { get; }
+            public double CandidateSignalCorrelation { get; }
+            public double TargetDistributionSum { get; }
+            public double CandidateDistributionSum { get; }
         }
     }
 }

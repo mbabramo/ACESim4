@@ -1,87 +1,128 @@
-using ACESimBase.Games.AdditiveEvidenceGame;
 using ACESimBase.GameSolvingSupport.Settings;
 using ACESimBase.Util.Debugging;
 using ACESimBase.Util.Serialization;
 using System;
 using System.Diagnostics;
+using System.Globalization;
+using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace ACESimDistributed
 {
-    class Program
+    internal static class Program
     {
-
-        public async static Task Main(string[] args)
+        public static async Task<int> Main(string[] args)
         {
-            // set processor affinity via argument
-            if (args != null && args.Length > 0)
+            int workerId = ReadIntArgument(args, "--worker-id") ?? 0;
+            int? processorAffinity = ReadIntArgument(args, "--processor-affinity");
+            if (processorAffinity != null)
+                ApplyProcessorAffinity(processorAffinity.Value);
+
+            using var cancellationSource = new CancellationTokenSource();
+            Console.CancelKeyPress += (_, eventArgs) =>
             {
-                string arg = args[0];
-                int processorNumber = Convert.ToInt32(arg);
-#pragma warning disable CA1416
-                Process.GetCurrentProcess().ProcessorAffinity = (IntPtr)(1L << processorNumber);
-                Console.WriteLine($"Process ID {Process.GetCurrentProcess().Id} set to processor {processorNumber}");
+                eventArgs.Cancel = true;
+                cancellationSource.Cancel();
+            };
+
+            Launcher launcher = Launcher.GetLauncher();
+            string timestamp = DateTime.UtcNow.ToString("yyyyMMdd'T'HHmmssfff'Z'", CultureInfo.InvariantCulture);
+            string logFileName =
+                $"{launcher.MasterReportNameForDistributedProcessing} worker-{workerId:D3} pid-{Environment.ProcessId} {timestamp}.log.txt";
+            string processLogDirectory = Path.Combine(Launcher.ReportFolder(), "Process Logs");
+            string localLogPath = Path.Combine(processLogDirectory, logFileName);
+            string activeMarkerPath = null;
+
+            if (!launcher.SaveToAzureBlob)
+            {
+                Directory.CreateDirectory(processLogDirectory);
+                activeMarkerPath = Path.Combine(
+                    processLogDirectory,
+                    Path.ChangeExtension(logFileName, ".active"));
+                using Process currentProcess = Process.GetCurrentProcess();
+                File.WriteAllText(
+                    activeMarkerPath,
+                    $"{Environment.ProcessId}|{currentProcess.StartTime.ToUniversalTime().Ticks}");
             }
-
-            long iterations = 0;
-            string dateTimeString = DateTime.Now.ToString("yyyy-mm-dd-hh-mm");
-            string processID = "p" + Process.GetCurrentProcess().Id;
-            CancellationToken cancellationToken = new CancellationToken();
-            var launcher = Launcher.GetLauncher();
-            bool useAzure = launcher.SaveToAzureBlob;
-            string containerName = "results"; // for azure
-            string path = useAzure ? null : Launcher.ReportFolder();
-            string fileName = "log" + "-" + processID + "-" + dateTimeString;
-
-            
-            AzureBlob.SerializeToFileOrAzure("Starting", path, containerName, fileName, useAzure);
 
             void LogMessage(string text)
             {
-                string original = AzureBlob.GetSerializedObjectFromFileOrAzure(path, containerName, fileName, useAzure) as string ?? "";
-                string revised = original + "\r\n" + text;
-                AzureBlob.SerializeToFileOrAzure(revised, path, containerName, fileName, useAzure);
+                string line = $"{DateTime.UtcNow:O} {text}{Environment.NewLine}";
+                if (launcher.SaveToAzureBlob)
+                {
+                    AzureBlob.WriteTextToFileOrAzure(
+                        "results",
+                        null,
+                        logFileName,
+                        true,
+                        line,
+                        useAzure: true);
+                }
+                else
+                {
+                    File.AppendAllText(localLogPath, line);
+                }
                 TabbedText.WriteLine(text);
             }
 
-            while (iterations < 10)
+            try
             {
-                try
-                {
-                    cancellationToken.ThrowIfCancellationRequested();
+                LogMessage(
+                    $"Worker {workerId} starting; PID {Environment.ProcessId}; " +
+                    $"plan {launcher.GetUninitializedTaskList().PlanFingerprint}.");
+                if (launcher.LaunchSingleOptionsSetOnly)
+                    throw new InvalidOperationException(
+                        "LaunchSingleOptionsSetOnly is not valid for a distributed worker.");
 
-                    launcher = Launcher.GetLauncher(); // relaunch
-
-                    if (launcher.LaunchSingleOptionsSetOnly)
-                        throw new Exception("LaunchSingleOptionsSetOnly should only be used with ACESimConsole.");
-
-                    //Console.Beep();
-
-                    await launcher.ParticipateInDistributedProcessing(
-                        launcher.MasterReportNameForDistributedProcessing,
-                        cancellationToken,
-                        message => LogMessage(message)
-                        );
-                    return;
-                }
-                catch (OperationCanceledException)
-                {
-                }
-                catch (Exception ex)
-                {
-                    try
-                    {
-                        LogMessage(ex.Message + ex.StackTrace);
-                        iterations++;
-                    }
-                    catch
-                    {
-
-                    }
-                }
-
+                await launcher.ParticipateInDistributedProcessing(
+                    launcher.MasterReportNameForDistributedProcessing,
+                    cancellationSource.Token,
+                    LogMessage);
+                LogMessage($"Worker {workerId} completed normally.");
+                return 0;
             }
+            catch (OperationCanceledException)
+            {
+                LogMessage($"Worker {workerId} cancelled.");
+                return 2;
+            }
+            catch (Exception ex)
+            {
+                LogMessage($"Worker {workerId} failed: {ex}");
+                return 1;
+            }
+            finally
+            {
+                if (activeMarkerPath != null && File.Exists(activeMarkerPath))
+                    File.Delete(activeMarkerPath);
+            }
+        }
+
+        private static int? ReadIntArgument(string[] args, string name)
+        {
+            for (int index = 0; index < args.Length; index++)
+            {
+                if (!string.Equals(args[index], name, StringComparison.OrdinalIgnoreCase))
+                    continue;
+                if (index + 1 >= args.Length || !int.TryParse(args[index + 1], out int value))
+                    throw new ArgumentException($"{name} requires an integer value.");
+                return value;
+            }
+
+            return null;
+        }
+
+        private static void ApplyProcessorAffinity(int processorNumber)
+        {
+            if (processorNumber < 0 || processorNumber >= Math.Min(Environment.ProcessorCount, 64))
+                throw new ArgumentOutOfRangeException(
+                    nameof(processorNumber),
+                    $"Processor affinity must be between 0 and {Math.Min(Environment.ProcessorCount, 64) - 1}.");
+
+#pragma warning disable CA1416
+            Process.GetCurrentProcess().ProcessorAffinity = (IntPtr)(1L << processorNumber);
+#pragma warning restore CA1416
         }
     }
 }

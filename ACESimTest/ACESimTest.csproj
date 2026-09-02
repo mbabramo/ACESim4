@@ -18,6 +18,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\ACESimBase\ACESimBase.csproj" />
+    <ProjectReference Include="..\LitigCharts\LitigCharts.csproj" />
   </ItemGroup>
 
 </Project>

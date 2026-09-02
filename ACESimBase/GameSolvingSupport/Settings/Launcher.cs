@@ -354,7 +354,7 @@ namespace ACESimBase.GameSolvingSupport.Settings
         public async Task ParticipateInDistributedProcessing(string masterReportName, CancellationToken cancellationToken, Action<string> logAction = null)
         {
             InitializeTaskCoordinatorIfNecessary(masterReportName);
-            List<IndividualTask> tasksToDo = null, tasksCompleted = null;
+            List<IndividualTask> tasksToDo = null, tasksCompleted = null, tasksFailed = null;
             bool complete = false;
             if (logAction == null)
                 logAction = s => Debug.WriteLine(s);
@@ -363,7 +363,11 @@ namespace ACESimBase.GameSolvingSupport.Settings
             while (!complete)
             {
                 List<IndividualTask> theCompletedTasks = tasksCompleted; // avoid problem with closure
+                List<IndividualTask> theFailedTasks = tasksFailed;
+                tasksCompleted = null;
+                tasksFailed = null;
                 bool readyForAnotherTask = !cancellationToken.IsCancellationRequested;
+                bool coordinatorHasFailures = false;
                 Stopwatch s = new Stopwatch();
                 s.Start();
                 // We are serializing the TaskCoordinator to synchronize information. Thus, we need to update the task coordinator to report that this job is complete. 
@@ -378,23 +382,20 @@ namespace ACESimBase.GameSolvingSupport.Settings
                     //    if (taskToChange.TaskType == "CompletePCA")
                     //        taskToChange.Complete = false;
 
-                    Random r = new Random(TaskList.ProportionComplete.GetHashCode());
                     int numTasksToRequest = 1; // 20 + r.Next(5); // NOTE: This should only be used if the simulations are quite short and there are a very large number of them (in which case modifying the TaskCoordinator file may take a while, given that each process will be waiting to get access often). The exact number is randomized so that processes are on different schedules.
-                    TaskList.Update(theCompletedTasks, readyForAnotherTask, numTasksToRequest, out tasksToDo, out complete);
+                    TaskList.Update(theCompletedTasks, theFailedTasks, readyForAnotherTask, numTasksToRequest, out tasksToDo, out complete);
+                    coordinatorHasFailures = TaskList.HasFailures;
                     TabbedText.WriteLineEvenIfDisabled($"");
-                    TabbedText.WriteLineEvenIfDisabled($"Percentage Complete {100.0 * TaskList.ProportionComplete:F2}% of {TaskList.NumIndividualTasks}");
-                    if (tasksToDo != null)
-                    {
-                        if (AlwaysDoTaskID is int ID)
-                        {
-                            if (numTasksToRequest != 1)
-                                throw new Exception();
-                            tasksToDo.First().ID = ID;
-                        }
-                    }
+                    TabbedText.WriteLineEvenIfDisabled(
+                        $"Percentage Complete {100.0 * TaskList.ProportionComplete:F2}% of {TaskList.NumIndividualTasks}; " +
+                        $"pending {TaskList.NumTasksPending}; failed {TaskList.NumTasksFailed}; unstarted {TaskList.NumTasksUnstarted}");
                     return TaskList.StatusAsByteArray();
                 }, SaveToAzureBlob);
                 TabbedText.WriteLine($"Updated status (total {s.ElapsedMilliseconds} milliseconds)");
+                if (coordinatorHasFailures)
+                    throw new InvalidOperationException(
+                        "Distributed processing stopped because the coordinator contains failed tasks. " +
+                        "Inspect failure logs and use the documented recovery command before restarting.");
                 if (!complete)
                 {
                     if (tasksToDo == null)
@@ -420,13 +421,26 @@ namespace ACESimBase.GameSolvingSupport.Settings
                             }
                             catch (Exception ex)
                             {
-                                AzureBlob.WriteTextToFileOrAzure("results", ReportFolder(), $"FAILURE {taskToDo.TaskType} ID {taskToDo.ID}.txt", true, ex + "\n" + TabbedText.AccumulatedText.ToString(), SaveToAzureBlob);
+                                AzureBlob.WriteTextToFileOrAzure(
+                                    "results",
+                                    ReportFolder(),
+                                    GetFailureFilename(taskToDo),
+                                    true,
+                                    ex + "\n" + TabbedText.AccumulatedText,
+                                    SaveToAzureBlob);
+                                if (tasksFailed == null)
+                                    tasksFailed = new List<IndividualTask>();
+                                tasksFailed.Add(taskToDo);
                             }
-                            logAction($"Completed task {taskToDo.TaskType} (ID {taskToDo.ID}) time {DateTime.Now} total seconds {st.ElapsedMilliseconds / 1000}");
+                            bool succeeded = tasksFailed?.Contains(taskToDo) != true;
+                            logAction($"{(succeeded ? "Completed" : "Failed")} task {taskToDo.TaskType} (ID {taskToDo.ID}) time {DateTime.Now} total seconds {st.ElapsedMilliseconds / 1000}");
                             tasksToDo.Remove(taskToDo);
-                            if (tasksCompleted == null)
-                                tasksCompleted = new List<IndividualTask>();
-                            tasksCompleted.Add(taskToDo);
+                            if (succeeded)
+                            {
+                                if (tasksCompleted == null)
+                                    tasksCompleted = new List<IndividualTask>();
+                                tasksCompleted.Add(taskToDo);
+                            }
                         }
                     }
                 }
@@ -462,9 +476,28 @@ namespace ACESimBase.GameSolvingSupport.Settings
             }
             else
                 throw new NotImplementedException();
-            AzureBlob.WriteTextToFileOrAzure("results", ReportFolder(), GetReportFilename((optionSetName != null ? optionSetName + taskToDo.RestrictToScenarioIndex?.ToString() : taskToDo.TaskType), "-log.txt"), true, TabbedText.AccumulatedText.ToString(), SaveToAzureBlob);
+            string logOwner = optionSetName ?? taskToDo.TaskType;
+            string taskQualifier = $" task-{taskToDo.TaskType}-id{taskToDo.ID}-rep{taskToDo.Repetition}-scenario{taskToDo.RestrictToScenarioIndex?.ToString() ?? "none"}";
+            AzureBlob.WriteTextToFileOrAzure(
+                "results",
+                ReportFolder(),
+                GetReportFilename(logOwner, taskQualifier + "-log.txt"),
+                true,
+                TabbedText.AccumulatedText.ToString(),
+                SaveToAzureBlob);
+            if (!SaveToAzureBlob)
+            {
+                string recoveredFailurePath = Path.Combine(ReportFolder(), GetFailureFilename(taskToDo));
+                if (File.Exists(recoveredFailurePath))
+                    File.Delete(recoveredFailurePath);
+            }
             TabbedText.ResetAccumulated();
         }
+
+        public string GetFailureFilename(IndividualTask task) =>
+            GetReportFilename(
+                null,
+                $"FAILURE {task.TaskType} ID {task.ID} Rep {task.Repetition} Scenario {task.RestrictToScenarioIndex?.ToString() ?? "none"}.txt");
 
         private async Task CompletePCATask(IndividualTask taskToDo)
         {
@@ -512,16 +545,109 @@ namespace ACESimBase.GameSolvingSupport.Settings
                 scenarios = GetGameDefinition().NumScenarioPermutations;
             var taskStages = new List<TaskStage>()
             {
-                new TaskStage(Enumerable.Range(0, optionSetsCount).Select(x => new RepeatedTask("Optimize", x, NumRepetitions, scenarios)).ToList())
+                new TaskStage(Enumerable.Range(0, optionSetsCount).Select(x =>
+                    new RepeatedTask("Optimize", x, NumRepetitions, scenarios, optionSets[x].Name)).ToList())
             };
             if (DistributedProcessing && SeparateScenariosWhenUsingDistributedProcessing)
-                taskStages.Add(new TaskStage(Enumerable.Range(0, optionSetsCount).Select(x => new RepeatedTask("CompletePCA", x, 1, null)).ToList()));
+                taskStages.Add(new TaskStage(Enumerable.Range(0, optionSetsCount).Select(x =>
+                    new RepeatedTask("CompletePCA", x, 1, null, optionSets[x].Name)).ToList()));
             if (NumRepetitions > 1)
-                taskStages.Add(new TaskStage(Enumerable.Range(0, optionSetsCount).Select(x => new RepeatedTask("CombineRepetitions", x, 1, null)).ToList()));
-            if (optionSetsCount > 1)
-                taskStages.Add(new TaskStage(Enumerable.Range(0, 1).Select(x => new RepeatedTask("CombineOptionSets", x, 1, null) { AvoidRedundantExecution = true }).ToList()));
+                taskStages.Add(new TaskStage(Enumerable.Range(0, optionSetsCount).Select(x =>
+                    new RepeatedTask("CombineRepetitions", x, 1, null, optionSets[x].Name)).ToList()));
+            if (optionSetsCount > 1 && CombineResultsOfAllOptionSetsAfterExecution)
+                taskStages.Add(new TaskStage(new List<RepeatedTask>
+                {
+                    new RepeatedTask(
+                        "CombineOptionSets",
+                        0,
+                        1,
+                        null,
+                        string.Join("\n", optionSets.Select(x => x.Name)))
+                    {
+                        AvoidRedundantExecution = true,
+                    },
+                }));
             var uninitialized = new TaskCoordinator(taskStages);
             return uninitialized;
+        }
+
+        public TaskCoordinator LoadTaskCoordinatorStatus()
+        {
+            TaskCoordinator coordinator = GetUninitializedTaskList();
+            byte[] bytes = AzureBlob.GetByteArrayFromFileOrAzure(
+                ReportFolder(),
+                "results",
+                GetReportFilename(null, "Coordinator"),
+                SaveToAzureBlob);
+            coordinator.StatusFromByteArray(bytes);
+            return coordinator;
+        }
+
+        public (int failedReset, int pendingReset, TaskCoordinator coordinator) ResetIncompleteDistributedTasks(
+            bool resetFailed,
+            bool resetPending)
+        {
+            int failedReset = 0;
+            int pendingReset = 0;
+            TaskCoordinator coordinator = GetUninitializedTaskList();
+
+            AzureBlob.TransformSharedBlobOrFileByteArray(
+                ReportFolder(),
+                "results",
+                GetReportFilename(null, "Coordinator"),
+                byteArray =>
+                {
+                    if (byteArray == null || byteArray.Length == 0)
+                        throw new InvalidOperationException("Task coordinator does not exist; there is nothing to recover.");
+                    coordinator.StatusFromByteArray(byteArray);
+                    if (resetFailed)
+                        failedReset = coordinator.ResetFailedTasks();
+                    if (resetPending)
+                        pendingReset = coordinator.ResetPendingTasks();
+                    return coordinator.StatusAsByteArray();
+                },
+                SaveToAzureBlob);
+
+            return (failedReset, pendingReset, coordinator);
+        }
+
+        public IReadOnlyList<string> GetExpectedPrimaryResultPaths() =>
+            GetOptionsSets()
+                .Select(optionSet => GetReportFullPath(optionSet.Name, ".csv"))
+                .OrderBy(path => path, StringComparer.Ordinal)
+                .ToList();
+
+        public TaskCoordinator EnsureDistributedRunReadyForAggregation()
+        {
+            TaskCoordinator coordinator = LoadTaskCoordinatorStatus();
+            if (!coordinator.AllComplete || coordinator.HasFailures || coordinator.NumTasksPending != 0 || coordinator.NumTasksUnstarted != 0)
+                throw new InvalidOperationException(
+                    "Aggregation requires a completely successful coordinator state. Current status: " + coordinator);
+
+            IReadOnlyList<string> expectedPaths = GetExpectedPrimaryResultPaths();
+            var duplicatePaths = expectedPaths
+                .GroupBy(path => path, StringComparer.OrdinalIgnoreCase)
+                .Where(group => group.Count() > 1)
+                .Select(group => group.Key)
+                .ToList();
+            if (duplicatePaths.Count > 0)
+                throw new InvalidOperationException(
+                    "Multiple tasks map to the same primary result path: " + string.Join(", ", duplicatePaths));
+
+            if (!SaveToAzureBlob)
+            {
+                var missing = expectedPaths.Where(path => !File.Exists(path)).ToList();
+                var empty = expectedPaths.Where(path => File.Exists(path) && new FileInfo(path).Length == 0).ToList();
+                if (missing.Count > 0 || empty.Count > 0)
+                {
+                    throw new InvalidOperationException(
+                        $"Primary result validation failed: missing {missing.Count}, empty {empty.Count}." +
+                        (missing.Count > 0 ? Environment.NewLine + string.Join(Environment.NewLine, missing) : "") +
+                        (empty.Count > 0 ? Environment.NewLine + string.Join(Environment.NewLine, empty) : ""));
+                }
+            }
+
+            return coordinator;
         }
 
         private bool SaveLastDeveloperOnThread = false; // NOTE: If true, we get memory leaks
@@ -678,6 +804,9 @@ namespace ACESimBase.GameSolvingSupport.Settings
         private async Task<ReportCollection> GetSingleRepetitionReportAndSave(string masterReportName, GameOptions options, string optionSetName, int repetition, bool addOptionSetColumns, IStrategiesDeveloper developer, int? restrictToScenarioIndex, Action<string> logAction = null)
         {
             string suffix = $"";
+            string taskDisambiguator = repetition == 0 && restrictToScenarioIndex == null
+                ? ""
+                : $"-rep{repetition}-scenario{restrictToScenarioIndex?.ToString() ?? "all"}";
             if (logAction == null)
                 logAction = s => Debug.WriteLine(s);
             if (developer == null)
@@ -697,7 +826,7 @@ namespace ACESimBase.GameSolvingSupport.Settings
                         if (result.ReportSuffixes.Count() > c && result.ReportSuffixes[c] is not null and string suffix2 && suffix2 is not null && suffix2 is not "")
                             suffix += "-" + suffix2;
 
-                        AzureBlob.WriteTextToFileOrAzure("results", ReportFolder(), GetReportFilename(optionSetName, suffix + ".csv"), true, result.csvReports[c], SaveToAzureBlob); // we write to a blob in case this times out and also to allow individual report to be taken out
+                        AzureBlob.WriteTextToFileOrAzure("results", ReportFolder(), GetReportFilename(optionSetName, suffix + taskDisambiguator + ".csv"), true, result.csvReports[c], SaveToAzureBlob); // task qualifier prevents repetitions or scenarios from colliding
                     }
                 }
                 logAction("Report written to blob");

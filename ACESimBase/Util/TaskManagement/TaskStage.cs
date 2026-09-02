@@ -13,8 +13,9 @@ namespace ACESimBase.Util.TaskManagement
         }
         public List<RepeatedTask> RepeatedTasks = null;
         public bool Complete => RepeatedTasks.All(x => x.Complete);
+        public bool HasFailures => RepeatedTasks.Any(x => x.HasFailures);
         public RepeatedTask IncompleteRepeatedTask => RepeatedTasks
-            .Where(x => !x.Complete)
+            .Where(x => !x.Complete && !x.HasFailures)
             .OrderBy(x => x.AllStarted) // put repeated tasks where not all have been started first
             .ThenBy(x => x.IndividualTasks.OrderBy(y => y.Started).FirstOrDefault()?.Started ?? DateTime.Now)
             .ThenBy(x => x.ID)
@@ -22,6 +23,7 @@ namespace ACESimBase.Util.TaskManagement
 
         public List<IndividualTask> FirstIncompleteTasks(int n) => Complete ? null :
             RepeatedTasks.SelectMany(x => x.IndividualTasks)
+            .Where(x => !x.Failed)
             .OrderBy(x => x.Complete) // incomplete first
             .ThenBy(x => x.Started != null) // not started first
             .ThenBy(x => x.Started) // oldest started first

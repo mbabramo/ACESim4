@@ -14,6 +14,16 @@ namespace ACESimBase.Util.Serialization
 
         public static double?[,] GetCSVData_SinglePass(string fullFilename, (string columnName, string expectedText)[][] rowsToFind, string[] columnsToGet, bool cacheFile = false) => GetCSVData_SinglePass(rowsToFind, columnsToGet, GetStreamReader(fullFilename, cacheFile));
 
+        public static double?[,] GetCSVData_SinglePassStrict(
+            string fullFilename,
+            (string columnName, string expectedText)[][] rowsToFind,
+            string[] columnsToGet,
+            bool cacheFile = false)
+        {
+            using StreamReader reader = GetStreamReader(fullFilename, cacheFile);
+            return GetCSVData_SinglePassStrict(rowsToFind, columnsToGet, reader, fullFilename);
+        }
+
         // TODO: Try eliminating some of the non-single pass methods, at least where there are multiple rows to find.
 
         public static double? GetCSVData(string fullFilename, (string columnName, string expectedText)[] rowToFind, string columnToGet, bool cacheFile = false) => GetCSVData(fullFilename, new (string columnName, string expectedText)[][] { rowToFind }, new string[] { columnToGet }, cacheFile)[0, 0];
@@ -101,6 +111,71 @@ namespace ACESimBase.Util.Serialization
                     }
                 }
             }
+            return results;
+        }
+
+        public static double?[,] GetCSVData_SinglePassStrict(
+            (string columnName, string expectedText)[][] rowsToFind,
+            string[] columnsToGet,
+            StreamReader reader,
+            string sourceDescription = "CSV input")
+        {
+            if (rowsToFind == null || rowsToFind.Length == 0)
+                throw new ArgumentException("At least one row criterion is required.", nameof(rowsToFind));
+            if (columnsToGet == null || columnsToGet.Length == 0)
+                throw new ArgumentException("At least one output column is required.", nameof(columnsToGet));
+
+            double?[,] results = new double?[rowsToFind.Length, columnsToGet.Length];
+            int[] matchCounts = new int[rowsToFind.Length];
+            var config = new CsvConfiguration(CultureInfo.InvariantCulture) { MissingFieldFound = null };
+            using (var csv = new CsvReader(reader, config))
+            {
+                if (!csv.Read() || !csv.ReadHeader())
+                    throw new InvalidDataException($"{sourceDescription}: CSV header row is missing.");
+
+                string[] requiredColumns = rowsToFind.SelectMany(x => x).Select(x => x.columnName)
+                    .Concat(columnsToGet)
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .ToArray();
+                var missingColumns = requiredColumns
+                    .Where(column => !csv.HeaderRecord.Contains(column, StringComparer.OrdinalIgnoreCase))
+                    .ToList();
+                if (missingColumns.Count > 0)
+                    throw new InvalidDataException(
+                        $"{sourceDescription}: missing required columns: {string.Join(", ", missingColumns)}.");
+
+                while (csv.Read())
+                {
+                    for (int rowIndex = 0; rowIndex < rowsToFind.Length; rowIndex++)
+                    {
+                        if (!MeetsRowRequirements(csv, rowsToFind[rowIndex]))
+                            continue;
+
+                        matchCounts[rowIndex]++;
+                        for (int columnIndex = 0; columnIndex < columnsToGet.Length; columnIndex++)
+                        {
+                            string contents = csv.GetField<string>(columnsToGet[columnIndex]);
+                            results[rowIndex, columnIndex] = string.IsNullOrWhiteSpace(contents)
+                                ? null
+                                : csv.GetField<double>(columnsToGet[columnIndex]);
+                        }
+                    }
+                }
+            }
+
+            var badMatches = matchCounts
+                .Select((count, index) => (count, index))
+                .Where(x => x.count != 1)
+                .ToList();
+            if (badMatches.Count > 0)
+            {
+                string details = string.Join(Environment.NewLine, badMatches.Select(match =>
+                    $"  matches={match.count}: " +
+                    string.Join(", ", rowsToFind[match.index].Select(x => $"{x.columnName}='{x.expectedText}'"))));
+                throw new InvalidDataException(
+                    $"{sourceDescription}: every requested row must match exactly once.{Environment.NewLine}{details}");
+            }
+
             return results;
         }
 
