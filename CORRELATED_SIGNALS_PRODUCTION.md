@@ -44,6 +44,12 @@ offer count, unique identifiers, and production restrictions.
 
 ## Start production on all available processors
 
+The usual Visual Studio workflow is preserved: select the Release configuration, make
+`ACESimDistributedSaturate` the startup project, and press Ctrl+F5. With no command-line
+arguments, the project starts production using all processors available to the process.
+
+The command-line equivalent is:
+
 ```powershell
 dotnet run --project .\ACESimDistributedSaturate\ACESimDistributedSaturate.csproj -c Release --no-build -- run --processors all
 ```

@@ -22,7 +22,9 @@ namespace ACESimDistributedSaturate
 
         public static async Task<int> Main(string[] args)
         {
-            string command = args.FirstOrDefault()?.ToLowerInvariant() ?? "help";
+            // Preserve the established Visual Studio workflow: Ctrl+F5 supplies no arguments,
+            // which starts production using every processor available to this process.
+            string command = args.FirstOrDefault()?.ToLowerInvariant() ?? "run";
             try
             {
                 return command switch
@@ -460,6 +462,7 @@ namespace ACESimDistributedSaturate
         private static int ShowHelp()
         {
             Console.WriteLine("ACESim4 correlated-signals production commands:");
+            Console.WriteLine("  <no arguments>              (production on all processors; normal Ctrl+F5 path)");
             Console.WriteLine("  preflight");
             Console.WriteLine("  run --processors all|N");
             Console.WriteLine("  status");
