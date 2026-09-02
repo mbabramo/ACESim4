@@ -111,19 +111,21 @@ namespace ACESimDistributedSaturate
             LitigGameCorrelatedSignalsArticleLauncher launcher = CreateLauncher();
             launcher.ValidateProductionMatrix(launcher.GetOptionsSets());
             int processorCount = ParseProcessorCount(args);
-            string workerAssembly = Path.Combine(AppContext.BaseDirectory, "ACESimDistributed.dll");
-            if (!File.Exists(workerAssembly))
-                throw new FileNotFoundException("Distributed worker assembly was not found. Build the Release configuration first.", workerAssembly);
+            string workerExecutable = Path.Combine(AppContext.BaseDirectory, "ACESimDistributed.exe");
+            if (!File.Exists(workerExecutable))
+                throw new FileNotFoundException(
+                    "Distributed worker executable was not found. Build the Release configuration first.",
+                    workerExecutable);
 
             Console.WriteLine(
-                $"Launching {processorCount} workers for {launcher.GetUninitializedTaskList().NumIndividualTasks} tasks " +
+                $"Launching {processorCount} visible worker windows for {launcher.GetUninitializedTaskList().NumIndividualTasks} tasks " +
                 $"using Environment.ProcessorCount={Environment.ProcessorCount}.");
 
             var workers = new List<Process>();
             try
             {
                 for (int workerId = 0; workerId < processorCount; workerId++)
-                    workers.Add(StartDotnetProcess(workerAssembly, "--worker-id", workerId.ToString(CultureInfo.InvariantCulture)));
+                    workers.Add(StartVisibleWorkerProcess(workerExecutable, workerId));
 
                 string lastStatus = null;
                 while (true)
@@ -423,6 +425,22 @@ namespace ACESimDistributedSaturate
             foreach (string argument in arguments)
                 startInfo.ArgumentList.Add(argument);
             return Process.Start(startInfo) ?? throw new InvalidOperationException("Unable to start child process.");
+        }
+
+        private static Process StartVisibleWorkerProcess(string executablePath, int workerId)
+        {
+            // This intentionally mirrors the established ACESimDistributedSaturate interface:
+            // ShellExecute opens each console application in its own visible window so the user
+            // can watch and stop workers individually.
+            var startInfo = new ProcessStartInfo(executablePath)
+            {
+                UseShellExecute = true,
+                CreateNoWindow = false,
+                WindowStyle = ProcessWindowStyle.Normal,
+                Arguments = $"--worker-id {workerId.ToString(CultureInfo.InvariantCulture)}",
+            };
+            return Process.Start(startInfo) ?? throw new InvalidOperationException(
+                $"Unable to start visible worker {workerId}.");
         }
 
         private static int ParseProcessorCount(string[] args)
