@@ -479,14 +479,14 @@ namespace LitigCharts
 
         private static readonly System.Text.RegularExpressions.Regex LatexNamedColorsToReplaceWithBlackRegex =
             new System.Text.RegularExpressions.Regex(
-                @"\b(?:green|orange|yellow|blue|red)\b",
+                @"\b(?:violet|magenta|green|orange|yellow|blue|red)\b",
                 System.Text.RegularExpressions.RegexOptions.IgnoreCase |
                 System.Text.RegularExpressions.RegexOptions.CultureInvariant |
                 System.Text.RegularExpressions.RegexOptions.Compiled);
 
         private static readonly System.Text.RegularExpressions.Regex LatexNamedColorDefinitionCommandRegex =
             new System.Text.RegularExpressions.Regex(
-                @"(\\(?:definecolor|providecolor|colorlet)\s*\{\s*)(green|orange|yellow|blue|red)(\s*\})",
+                @"(\\(?:definecolor|providecolor|colorlet)\s*\{\s*)(violet|magenta|green|orange|yellow|blue|red)(\s*\})",
                 System.Text.RegularExpressions.RegexOptions.IgnoreCase |
                 System.Text.RegularExpressions.RegexOptions.CultureInvariant |
                 System.Text.RegularExpressions.RegexOptions.Compiled);
