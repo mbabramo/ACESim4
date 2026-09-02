@@ -293,12 +293,14 @@ namespace LitigCharts
             string pairKey,
             string outcomeMeasure)
         {
-            if (string.IsNullOrWhiteSpace(caseQualityText) && string.IsNullOrWhiteSpace(binaryTruthText))
+            bool caseQualityIsBlank = string.IsNullOrWhiteSpace(caseQualityText);
+            bool binaryTruthIsBlank = string.IsNullOrWhiteSpace(binaryTruthText);
+            if (caseQualityIsBlank || binaryTruthIsBlank)
                 return "";
             if (!double.TryParse(caseQualityText, NumberStyles.Float, CultureInfo.InvariantCulture, out double caseQuality) ||
                 !double.TryParse(binaryTruthText, NumberStyles.Float, CultureInfo.InvariantCulture, out double binaryTruth))
                 throw new InvalidDataException(
-                    $"Pair '{pairKey}' has a non-numeric or one-sided value for '{outcomeMeasure}'.");
+                    $"Pair '{pairKey}' has a non-numeric value for '{outcomeMeasure}'.");
             return (binaryTruth - caseQuality).ToString("G17", CultureInfo.InvariantCulture);
         }
     }

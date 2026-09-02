@@ -88,9 +88,51 @@ namespace ACESimTest
             }
         }
 
+        [TestMethod]
+        public void OneSidedConditionalOutcome_IsPreservedWithBlankDifference()
+        {
+            string temporaryDirectory = Path.Combine(
+                Path.GetTempPath(),
+                "ACESim-correlated-report-conditional-test-" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(temporaryDirectory);
+            try
+            {
+                var launcher = new LitigGameCorrelatedSignalsArticleLauncher();
+                string source = Path.Combine(temporaryDirectory, "source.csv");
+                string paired = Path.Combine(temporaryDirectory, "paired.csv");
+                WriteSyntheticCombinedReport(
+                    source,
+                    launcher.GetOptionsSets(),
+                    blankBinaryTruthTrialForAllFilter: true);
+
+                CorrelatedSignalsPairedReport.BuildAndValidate(launcher, source, paired);
+
+                using var reader = new StreamReader(paired);
+                using var csv = new CsvReader(reader, CultureInfo.InvariantCulture);
+                csv.Read();
+                csv.ReadHeader();
+                int checkedRows = 0;
+                while (csv.Read())
+                {
+                    if (csv.GetField<string>("Filter") != "All")
+                        continue;
+                    csv.GetField<string>("Trial — Case quality").Should().NotBeNullOrWhiteSpace();
+                    csv.GetField<string>("Trial — Binary truth").Should().BeEmpty();
+                    csv.GetField<string>("Trial — Difference (Binary truth - Case quality)").Should().BeEmpty();
+                    checkedRows++;
+                }
+                checkedRows.Should().Be(LitigGameCorrelatedSignalsArticleLauncher.ProductionPairedComparisonCount);
+            }
+            finally
+            {
+                Directory.Delete(temporaryDirectory, recursive: true);
+            }
+        }
+
         private static void WriteSyntheticCombinedReport(
             string path,
-            IReadOnlyList<GameOptions> optionSets)
+            IReadOnlyList<GameOptions> optionSets,
+            bool blankBinaryTruthTrialForAllFilter = false)
         {
             string[] variableHeaders = optionSets[0].VariableSettings.Keys
                 .OrderBy(x => x, StringComparer.Ordinal)
@@ -126,7 +168,15 @@ namespace ACESimTest
                     csv.WriteField(optionSet.GroupName ?? "");
                     csv.WriteField(optionSet.Name);
                     csv.WriteField((optionValue + filterIndex) / 100000.0);
-                    csv.WriteField((optionValue + 2 * filterIndex) / 100000.0);
+                    bool blankTrial = blankBinaryTruthTrialForAllFilter &&
+                        filter == "All" &&
+                        Convert.ToString(
+                            optionSet.VariableSettings["Signal Structure"],
+                            CultureInfo.InvariantCulture) == LitigGameCorrelatedSignalsArticleLauncher.BinaryTruthLabel;
+                    if (blankTrial)
+                        csv.WriteField("");
+                    else
+                        csv.WriteField((optionValue + 2 * filterIndex) / 100000.0);
                     csv.WriteField(100.0 + (optionValue + filterIndex) / 100000.0);
                     csv.NextRecord();
                 }
