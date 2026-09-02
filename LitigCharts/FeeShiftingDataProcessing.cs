@@ -52,10 +52,30 @@ namespace LitigCharts
             {
                 if (launcher is not LitigGameCorrelatedSignalsArticleLauncher correlatedLauncher)
                     throw new InvalidOperationException("Correlated-signals reporting requires its article launcher.");
-                CorrelatedSignalsPairedReport.BuildAndValidate(
-                    correlatedLauncher,
-                    correlatedLauncher.GetReportFullPath("output", ".csv"),
-                    correlatedLauncher.GetReportFullPath("paired signal structures", ".csv"));
+                if (correlatedLauncher.RunPlan ==
+                    LitigGameCorrelatedSignalsArticleLauncher.ProductionRunPlan.LegacyTwoStructure)
+                {
+                    CorrelatedSignalsPairedReport.BuildAndValidate(
+                        correlatedLauncher,
+                        correlatedLauncher.GetReportFullPath("output", ".csv"),
+                        correlatedLauncher.GetReportFullPath("paired signal structures", ".csv"));
+                }
+                else
+                {
+                    string legacySource = correlatedLauncher.RunPlan ==
+                        LitigGameCorrelatedSignalsArticleLauncher.ProductionRunPlan.UniformBaselineSupplement
+                            ? Launcher.ReportFullPath("CS001", "output", ".csv")
+                            : null;
+                    string comparisonName = correlatedLauncher.RunPlan ==
+                        LitigGameCorrelatedSignalsArticleLauncher.ProductionRunPlan.UniformBaselineSupplement
+                            ? "three-way baseline comparison"
+                            : "three-way signal structures";
+                    CorrelatedSignalsThreeStructureReport.BuildAndValidate(
+                        correlatedLauncher,
+                        correlatedLauncher.GetReportFullPath("output", ".csv"),
+                        correlatedLauncher.GetReportFullPath(comparisonName, ".csv"),
+                        legacySource);
+                }
             }
         }
 

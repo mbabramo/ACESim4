@@ -1,4 +1,5 @@
 using ACESimBase.GameSolvingSupport.Settings;
+using ACESim;
 using ACESimBase.Util.Debugging;
 using ACESimBase.Util.Serialization;
 using System;
@@ -26,7 +27,9 @@ namespace ACESimDistributed
                 cancellationSource.Cancel();
             };
 
-            Launcher launcher = Launcher.GetLauncher();
+            string plan = ReadStringArgument(args, "--plan") ?? "unified";
+            Launcher launcher = new LitigGameCorrelatedSignalsArticleLauncher(
+                LitigGameCorrelatedSignalsArticleLauncher.ParseProductionRunPlan(plan));
             string timestamp = DateTime.UtcNow.ToString("yyyyMMdd'T'HHmmssfff'Z'", CultureInfo.InvariantCulture);
             string logFileName =
                 $"{launcher.MasterReportNameForDistributedProcessing} worker-{workerId:D3} pid-{Environment.ProcessId} {timestamp}.log.txt";
@@ -110,6 +113,19 @@ namespace ACESimDistributed
                 return value;
             }
 
+            return null;
+        }
+
+        private static string ReadStringArgument(string[] args, string name)
+        {
+            for (int index = 0; index < args.Length; index++)
+            {
+                if (!string.Equals(args[index], name, StringComparison.OrdinalIgnoreCase))
+                    continue;
+                if (index + 1 >= args.Length)
+                    throw new ArgumentException($"{name} requires a value.");
+                return args[index + 1];
+            }
             return null;
         }
 

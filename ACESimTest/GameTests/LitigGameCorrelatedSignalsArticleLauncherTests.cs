@@ -132,6 +132,63 @@ namespace ACESimTest.GameTests
             }
         }
 
+        [TestMethod]
+        public void SupplementalPlan_ContainsOnlyTheTwentyFiveUniformBaselineRuns()
+        {
+            var launcher = new LitigGameCorrelatedSignalsArticleLauncher(
+                LitigGameCorrelatedSignalsArticleLauncher.ProductionRunPlan.UniformBaselineSupplement);
+            var options = launcher.GetOptionsSets().Cast<LitigGameOptions>().ToList();
+            var audit = launcher.ValidateProductionMatrix(options.Cast<GameOptions>().ToList());
+
+            launcher.MasterReportNameForDistributedProcessing.Should().Be("CS002U");
+            audit.OptionSetCount.Should().Be(25);
+            audit.CoreCombinationCount.Should().Be(25);
+            options.Should().OnlyContain(option =>
+                Setting(option, "Signal Structure") == LitigGameCorrelatedSignalsArticleLauncher.UniformQualityLabel &&
+                Setting(option, "Information Level") == "1x" &&
+                Setting(option, "Risk Aversion") == "Risk Neutral" &&
+                option.LitigGameDisputeGenerator is LitigGameUniformQualityDisputeGenerator);
+            options.Select(option => Setting(option, "Costs Multiplier")).Distinct().Should().HaveCount(5);
+            options.Select(option => Setting(option, "Fee Shifting Multiplier")).Distinct().Should().HaveCount(5);
+            EveryReportIdentifierShouldSelectOneOption(launcher);
+        }
+
+        [TestMethod]
+        public void UnifiedPlan_ContainsAllThreeStructuresWithFullRobustnessParity()
+        {
+            var launcher = new LitigGameCorrelatedSignalsArticleLauncher(
+                LitigGameCorrelatedSignalsArticleLauncher.ProductionRunPlan.UnifiedThreeStructure);
+            var options = launcher.GetOptionsSets().Cast<LitigGameOptions>().ToList();
+            var audit = launcher.ValidateProductionMatrix(options.Cast<GameOptions>().ToList());
+
+            launcher.MasterReportNameForDistributedProcessing.Should().Be("CS002");
+            audit.OptionSetCount.Should().Be(300);
+            audit.CoreCombinationCount.Should().Be(75);
+            audit.PairedComparisonCount.Should().Be(100);
+            options.GroupBy(option => Setting(option, "Signal Structure"))
+                .Should().HaveCount(3).And.OnlyContain(group => group.Count() == 100);
+            options.Count(option => option.LitigGameDisputeGenerator is LitigGameUniformQualityDisputeGenerator)
+                .Should().Be(100);
+            options.Should().OnlyContain(option => option.VariableSettings.ContainsKey("Integration Method"));
+            EveryReportIdentifierShouldSelectOneOption(launcher);
+        }
+
+        private static void EveryReportIdentifierShouldSelectOneOption(
+            LitigGameCorrelatedSignalsArticleLauncher launcher)
+        {
+            var optionSets = launcher.GetOptionsSets();
+            foreach (var set in launcher.GetSimulationSetsIdentifiers())
+            foreach (var identifier in set.simulationIdentifiers)
+                optionSets.Count(option => identifier.columnMatches.All(match =>
+                    option.VariableSettings.TryGetValue(match.columnName, out object actual) &&
+                    string.Equals(
+                        Convert.ToString(actual, CultureInfo.InvariantCulture),
+                        match.expectedValue,
+                        StringComparison.Ordinal))).Should().Be(
+                    1,
+                    $"identifier {set.nameOfSet} / {identifier.nameForSimulation} should be unique");
+        }
+
         private static string Setting(GameOptions options, string name) =>
             Convert.ToString(options.VariableSettings[name], CultureInfo.InvariantCulture);
     }

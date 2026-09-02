@@ -19,10 +19,18 @@ namespace ACESim
     /// </summary>
     public class LitigGameCorrelatedSignalsArticleLauncher : LitigGameLauncherBase
     {
+        public enum ProductionRunPlan
+        {
+            LegacyTwoStructure,
+            UniformBaselineSupplement,
+            UnifiedThreeStructure,
+        }
+
         public enum ArticleSignalStructure
         {
             CaseQuality,
             BinaryTruth,
+            UniformQuality,
         }
 
         public sealed record InformationLevel(
@@ -39,10 +47,17 @@ namespace ACESim
 
         public const string CaseQualityLabel = "Case quality";
         public const string BinaryTruthLabel = "Binary truth";
+        public const string UniformQualityLabel = "Uniform quality";
         public const string BaselineInformationLevelLabel = "1x";
         public const int ProductionOptionSetCount = 200;
         public const int ProductionCoreCombinationCount = 50;
         public const int ProductionPairedComparisonCount = 100;
+        public const int SupplementalOptionSetCount = 25;
+        public const int SupplementalCoreCombinationCount = 25;
+        public const int SupplementalComparisonGroupCount = 25;
+        public const int UnifiedOptionSetCount = 300;
+        public const int UnifiedCoreCombinationCount = 75;
+        public const int UnifiedComparisonGroupCount = 100;
 
         public static readonly IReadOnlyList<InformationLevel> ProductionInformationLevels =
             new[]
@@ -52,44 +67,124 @@ namespace ACESim
                 new InformationLevel("2x",   0.4000000000, 0.5507929452, 0.5210455266),
             };
 
-        public override string MasterReportNameForDistributedProcessing => "CS001";
+        public ProductionRunPlan RunPlan { get; }
+
+        public override string MasterReportNameForDistributedProcessing => RunPlan switch
+        {
+            ProductionRunPlan.LegacyTwoStructure => "CS001",
+            ProductionRunPlan.UniformBaselineSupplement => "CS002U",
+            ProductionRunPlan.UnifiedThreeStructure => "CS002",
+            _ => throw new NotSupportedException(),
+        };
 
         public LitigGameCorrelatedSignalsArticleLauncher()
+            : this(ProductionRunPlan.LegacyTwoStructure)
         {
+        }
+
+        public LitigGameCorrelatedSignalsArticleLauncher(ProductionRunPlan runPlan)
+        {
+            RunPlan = runPlan;
             UseDistributedProcessingForMultipleOptionsSets = true;
             SeparateScenariosWhenUsingDistributedProcessing = false;
             CombineResultsOfAllOptionSetsAfterExecution = false;
         }
 
+        public static ProductionRunPlan ParseProductionRunPlan(string value) =>
+            (value ?? "unified").Trim().ToLowerInvariant() switch
+            {
+                "legacy" or "cs001" => ProductionRunPlan.LegacyTwoStructure,
+                "supplemental" or "supplement" or "uniform" or "cs002u" => ProductionRunPlan.UniformBaselineSupplement,
+                "unified" or "all" or "cs002" => ProductionRunPlan.UnifiedThreeStructure,
+                _ => throw new ArgumentException(
+                    $"Unknown correlated-signals plan '{value}'. Expected legacy, supplemental, or unified."),
+            };
+
+        public IReadOnlyList<ArticleSignalStructure> IncludedSignalStructures => RunPlan switch
+        {
+            ProductionRunPlan.LegacyTwoStructure =>
+                new[] { ArticleSignalStructure.CaseQuality, ArticleSignalStructure.BinaryTruth },
+            ProductionRunPlan.UniformBaselineSupplement =>
+                new[] { ArticleSignalStructure.UniformQuality },
+            ProductionRunPlan.UnifiedThreeStructure =>
+                new[]
+                {
+                    ArticleSignalStructure.CaseQuality,
+                    ArticleSignalStructure.BinaryTruth,
+                    ArticleSignalStructure.UniformQuality,
+                },
+            _ => throw new NotSupportedException(),
+        };
+
+        private int ExpectedOptionSetCount => RunPlan switch
+        {
+            ProductionRunPlan.LegacyTwoStructure => ProductionOptionSetCount,
+            ProductionRunPlan.UniformBaselineSupplement => SupplementalOptionSetCount,
+            ProductionRunPlan.UnifiedThreeStructure => UnifiedOptionSetCount,
+            _ => throw new NotSupportedException(),
+        };
+
+        private int ExpectedCoreCombinationCount => RunPlan switch
+        {
+            ProductionRunPlan.LegacyTwoStructure => ProductionCoreCombinationCount,
+            ProductionRunPlan.UniformBaselineSupplement => SupplementalCoreCombinationCount,
+            ProductionRunPlan.UnifiedThreeStructure => UnifiedCoreCombinationCount,
+            _ => throw new NotSupportedException(),
+        };
+
+        private int ExpectedComparisonGroupCount => RunPlan switch
+        {
+            ProductionRunPlan.LegacyTwoStructure => ProductionPairedComparisonCount,
+            ProductionRunPlan.UniformBaselineSupplement => SupplementalComparisonGroupCount,
+            ProductionRunPlan.UnifiedThreeStructure => UnifiedComparisonGroupCount,
+            _ => throw new NotSupportedException(),
+        };
+
         public override double[] AdditionalCostsMultipliers => Array.Empty<double>();
         public override double[] AdditionalFeeShiftingMultipliers => Array.Empty<double>();
 
-        public override List<(string, string)> DefaultVariableValues =>
-            new()
+        public override List<(string, string)> DefaultVariableValues
+        {
+            get
             {
-                ("Signal Structure", CaseQualityLabel),
-                ("Information Level", BaselineInformationLevelLabel),
-                ("Party Signal Sigma", FormatSigma(GetInformationLevel(BaselineInformationLevelLabel).CaseQualityPartySigma)),
-                ("Court Signal Sigma", FormatSigma(GetInformationLevel(BaselineInformationLevelLabel).CaseQualityPartySigma)),
-                ("Costs Multiplier", "1"),
-                ("Fee Shifting Multiplier", "0"),
-                ("Risk Aversion", "Risk Neutral"),
-                ("Fee Shifting Rule", "English"),
-                ("Relative Costs", "1"),
-                ("Allow Abandon and Defaults", "true"),
-                ("Probability Truly Liable", "0.5"),
-                ("Noise to Produce Case Strength", "0.35"),
-                ("Issue", "Liability"),
-                ("Proportion of Costs at Beginning", "0.5"),
-                ("Liability Signal Shaping", "Identity"),
-                ("Damages Signal Shaping", "Identity"),
-                ("Number of Offers", "10"),
-            };
+                var values = new List<(string, string)>
+                {
+                    ("Signal Structure", CaseQualityLabel),
+                    ("Information Level", BaselineInformationLevelLabel),
+                    ("Party Signal Sigma", FormatSigma(GetInformationLevel(BaselineInformationLevelLabel).CaseQualityPartySigma)),
+                    ("Court Signal Sigma", FormatSigma(GetInformationLevel(BaselineInformationLevelLabel).CaseQualityPartySigma)),
+                    ("Costs Multiplier", "1"),
+                    ("Fee Shifting Multiplier", "0"),
+                    ("Risk Aversion", "Risk Neutral"),
+                    ("Fee Shifting Rule", "English"),
+                    ("Relative Costs", "1"),
+                    ("Allow Abandon and Defaults", "true"),
+                    ("Probability Truly Liable", "0.5"),
+                    ("Noise to Produce Case Strength", "0.35"),
+                    ("Issue", "Liability"),
+                    ("Proportion of Costs at Beginning", "0.5"),
+                    ("Liability Signal Shaping", "Identity"),
+                    ("Damages Signal Shaping", "Identity"),
+                    ("Number of Offers", "10"),
+                };
+                if (RunPlan != ProductionRunPlan.LegacyTwoStructure)
+                {
+                    values.AddRange(new[]
+                    {
+                        ("Quality Distribution", "Truth-conditioned 10-point quality"),
+                        ("Quality-Truth Link", "T -> Q"),
+                        ("Integration Method", "Finite sum"),
+                        ("Quadrature Order", "N/A"),
+                    });
+                }
+                return values;
+            }
+        }
 
         public override List<(string criticalValueName, string[] criticalValueValues)> CriticalVariableValues =>
             new()
             {
-                ("Signal Structure", new[] { CaseQualityLabel, BinaryTruthLabel }),
+                ("Signal Structure", IncludedSignalStructures.Select(GetSignalStructureLabel).ToArray()),
                 ("Costs Multiplier", CriticalCostsMultipliers.Select(FormatNumber).ToArray()),
                 ("Fee Shifting Multiplier", CriticalFeeShiftingMultipliers.Select(FormatNumber).ToArray()),
             };
@@ -105,7 +200,7 @@ namespace ACESim
             options.DamagesSignalShapeParameters = IdentitySignalShapeParameters();
             ConfigureSignalStructureAndInformation(
                 options,
-                ArticleSignalStructure.CaseQuality,
+                IncludedSignalStructures.First(),
                 GetInformationLevel(BaselineInformationLevelLabel));
             return options;
         }
@@ -152,12 +247,17 @@ namespace ACESim
                 new(
                     "RiskAversion",
                     null,
-                    new List<Func<LitigGameOptions, LitigGameOptions>>
-                    {
-                        GetAndTransform_RiskNeutral,
-                        GetAndTransform_ModeratelyRiskAverse,
-                    }),
+                    RiskAversionTransformations()),
             };
+
+        private List<Func<LitigGameOptions, LitigGameOptions>> RiskAversionTransformations() =>
+            RunPlan == ProductionRunPlan.UniformBaselineSupplement
+                ? new List<Func<LitigGameOptions, LitigGameOptions>> { GetAndTransform_RiskNeutral }
+                : new List<Func<LitigGameOptions, LitigGameOptions>>
+                {
+                    GetAndTransform_RiskNeutral,
+                    GetAndTransform_ModeratelyRiskAverse,
+                };
 
         public ProductionMatrixAudit ValidateProductionMatrix(IReadOnlyList<GameOptions> optionSets = null)
         {
@@ -175,8 +275,8 @@ namespace ACESim
                 errors.Add($"{nameof(SeparateScenariosWhenUsingDistributedProcessing)} must be false for production.");
             if (CombineResultsOfAllOptionSetsAfterExecution)
                 errors.Add($"{nameof(CombineResultsOfAllOptionSetsAfterExecution)} must be false; aggregation is a separate validated step.");
-            if (litigOptions.Count != ProductionOptionSetCount)
-                errors.Add($"Expected {ProductionOptionSetCount} option sets but found {litigOptions.Count}.");
+            if (litigOptions.Count != ExpectedOptionSetCount)
+                errors.Add($"Expected {ExpectedOptionSetCount} option sets but found {litigOptions.Count}.");
 
             var duplicateNames = litigOptions
                 .GroupBy(x => x.Name, StringComparer.OrdinalIgnoreCase)
@@ -190,15 +290,18 @@ namespace ACESim
                 ValidateOptionSet(options, errors);
 
             var coreGroups = litigOptions.GroupBy(CoreCombinationKey).ToList();
-            if (coreGroups.Count != ProductionCoreCombinationCount)
-                errors.Add($"Expected {ProductionCoreCombinationCount} core combinations but found {coreGroups.Count}.");
+            if (coreGroups.Count != ExpectedCoreCombinationCount)
+                errors.Add($"Expected {ExpectedCoreCombinationCount} core combinations but found {coreGroups.Count}.");
 
             foreach (var coreGroup in coreGroups)
             {
                 RequireExactlyOne(coreGroup, BaselineInformationLevelLabel, "Risk Neutral", errors);
-                RequireExactlyOne(coreGroup, "0.5x", "Risk Neutral", errors);
-                RequireExactlyOne(coreGroup, "2x", "Risk Neutral", errors);
-                RequireExactlyOne(coreGroup, BaselineInformationLevelLabel, "Moderately Risk Averse", errors);
+                if (RunPlan != ProductionRunPlan.UniformBaselineSupplement)
+                {
+                    RequireExactlyOne(coreGroup, "0.5x", "Risk Neutral", errors);
+                    RequireExactlyOne(coreGroup, "2x", "Risk Neutral", errors);
+                    RequireExactlyOne(coreGroup, BaselineInformationLevelLabel, "Moderately Risk Averse", errors);
+                }
 
                 var unexpected = coreGroup.Where(x =>
                     GetSetting(x, "Risk Aversion") == "Moderately Risk Averse" &&
@@ -206,15 +309,21 @@ namespace ACESim
                 if (unexpected.Count > 0)
                     errors.Add($"Core combination {coreGroup.Key} crosses risk aversion with non-baseline information.");
 
-                if (coreGroup.Count() != 4)
-                    errors.Add($"Core combination {coreGroup.Key} contains {coreGroup.Count()} rows instead of 4.");
+                int expectedRowsPerCoreGroup =
+                    RunPlan == ProductionRunPlan.UniformBaselineSupplement ? 1 : 4;
+                if (coreGroup.Count() != expectedRowsPerCoreGroup)
+                    errors.Add(
+                        $"Core combination {coreGroup.Key} contains {coreGroup.Count()} rows instead of {expectedRowsPerCoreGroup}.");
             }
 
             int pairedComparisonCount = litigOptions
                 .GroupBy(PairedComparisonKey)
-                .Count(g => g.Select(x => GetSetting(x, "Signal Structure")).Distinct().Count() == 2 && g.Count() == 2);
-            if (pairedComparisonCount != ProductionPairedComparisonCount)
-                errors.Add($"Expected {ProductionPairedComparisonCount} structure pairs but found {pairedComparisonCount}.");
+                .Count(g =>
+                    g.Select(x => GetSetting(x, "Signal Structure")).Distinct().Count() == IncludedSignalStructures.Count &&
+                    g.Count() == IncludedSignalStructures.Count);
+            if (pairedComparisonCount != ExpectedComparisonGroupCount)
+                errors.Add(
+                    $"Expected {ExpectedComparisonGroupCount} complete structure comparison groups but found {pairedComparisonCount}.");
 
             if (errors.Count > 0)
                 throw new InvalidOperationException(
@@ -235,6 +344,24 @@ namespace ACESim
 
         public override List<SimulationSetsIdentifier> GetSimulationSetsIdentifiers(SimulationSetsTransformer transformer = null)
         {
+            if (RunPlan == ProductionRunPlan.UniformBaselineSupplement)
+            {
+                var supplementalResults = new List<SimulationSetsIdentifier>
+                {
+                    new(
+                        "Uniform Quality Baseline",
+                        new List<SimulationIdentifier>
+                        {
+                            CreateSimulationIdentifier(
+                                UniformQualityLabel,
+                                ArticleSignalStructure.UniformQuality,
+                                BaselineInformationLevelLabel,
+                                "Risk Neutral"),
+                        }),
+                };
+                return PerformArticleVariationInfoSetsTransformation(transformer, supplementalResults);
+            }
+
             var results = new List<SimulationSetsIdentifier>
             {
                 StructureComparison("0.5x"),
@@ -246,6 +373,12 @@ namespace ACESim
                 RiskComparison(ArticleSignalStructure.BinaryTruth),
             };
 
+            if (RunPlan == ProductionRunPlan.UnifiedThreeStructure)
+            {
+                results.Add(InformationComparison(ArticleSignalStructure.UniformQuality));
+                results.Add(RiskComparison(ArticleSignalStructure.UniformQuality));
+            }
+
             return PerformArticleVariationInfoSetsTransformation(transformer, results);
         }
 
@@ -255,33 +388,47 @@ namespace ACESim
         public static double GetPartySigma(ArticleSignalStructure structure, string informationLevelLabel)
         {
             InformationLevel level = GetInformationLevel(informationLevelLabel);
-            return structure == ArticleSignalStructure.CaseQuality
-                ? level.CaseQualityPartySigma
-                : level.BinaryTruthPartySigma;
+            return structure switch
+            {
+                ArticleSignalStructure.CaseQuality => level.CaseQualityPartySigma,
+                ArticleSignalStructure.BinaryTruth => level.BinaryTruthPartySigma,
+                ArticleSignalStructure.UniformQuality => level.CaseQualityPartySigma,
+                _ => throw new NotSupportedException(),
+            };
         }
 
         public static double GetCourtSigma(ArticleSignalStructure structure, string informationLevelLabel)
         {
             InformationLevel level = GetInformationLevel(informationLevelLabel);
-            return structure == ArticleSignalStructure.CaseQuality
-                ? level.CaseQualityPartySigma
-                : level.BinaryTruthCourtSigma;
+            return structure switch
+            {
+                ArticleSignalStructure.CaseQuality => level.CaseQualityPartySigma,
+                ArticleSignalStructure.BinaryTruth => level.BinaryTruthCourtSigma,
+                ArticleSignalStructure.UniformQuality => level.CaseQualityPartySigma,
+                _ => throw new NotSupportedException(),
+            };
         }
 
-        public static string GetSignalStructureLabel(ArticleSignalStructure structure) =>
-            structure == ArticleSignalStructure.CaseQuality ? CaseQualityLabel : BinaryTruthLabel;
+        public static string GetSignalStructureLabel(ArticleSignalStructure structure) => structure switch
+        {
+            ArticleSignalStructure.CaseQuality => CaseQualityLabel,
+            ArticleSignalStructure.BinaryTruth => BinaryTruthLabel,
+            ArticleSignalStructure.UniformQuality => UniformQualityLabel,
+            _ => throw new NotSupportedException(),
+        };
 
         private List<Func<LitigGameOptions, LitigGameOptions>> SignalStructureTransformations() =>
-            new()
-            {
-                options => GetAndTransform_SignalStructure(options, ArticleSignalStructure.CaseQuality),
-                options => GetAndTransform_SignalStructure(options, ArticleSignalStructure.BinaryTruth),
-            };
+            IncludedSignalStructures
+                .Select(structure => (Func<LitigGameOptions, LitigGameOptions>)(options =>
+                    GetAndTransform_SignalStructure(options, structure)))
+                .ToList();
 
         private List<Func<LitigGameOptions, LitigGameOptions>> InformationLevelTransformations()
         {
             // Index zero is the baseline and is intentionally skipped by the non-core generator.
-            InformationLevel[] orderedLevels =
+            InformationLevel[] orderedLevels = RunPlan == ProductionRunPlan.UniformBaselineSupplement
+                ? new[] { GetInformationLevel(BaselineInformationLevelLabel) }
+                : new[]
             {
                 GetInformationLevel(BaselineInformationLevelLabel),
                 GetInformationLevel("0.5x"),
@@ -311,17 +458,13 @@ namespace ACESim
                 ConfigureSignalStructureAndInformation(g, structure, level);
             });
 
-        private static void ConfigureSignalStructureAndInformation(
+        private void ConfigureSignalStructureAndInformation(
             LitigGameOptions options,
             ArticleSignalStructure structure,
             InformationLevel level)
         {
-            double partySigma = structure == ArticleSignalStructure.CaseQuality
-                ? level.CaseQualityPartySigma
-                : level.BinaryTruthPartySigma;
-            double courtSigma = structure == ArticleSignalStructure.CaseQuality
-                ? level.CaseQualityPartySigma
-                : level.BinaryTruthCourtSigma;
+            double partySigma = GetPartySigma(structure, level.Label);
+            double courtSigma = GetCourtSigma(structure, level.Label);
 
             options.NumOffers = 10;
             options.NumLiabilitySignals = 10;
@@ -344,13 +487,25 @@ namespace ACESim
                     StdevNoiseToProduceLiabilityStrength = 0.35,
                 };
             }
-            else
+            else if (structure == ArticleSignalStructure.BinaryTruth)
             {
                 options.NumLiabilityStrengthPoints = 2;
                 options.LitigGameDisputeGenerator = new LitigGameExogenousDirectSignalDisputeGenerator
                 {
                     ExogenousProbabilityTrulyLiable = 0.5,
                 };
+            }
+            else if (structure == ArticleSignalStructure.UniformQuality)
+            {
+                options.NumLiabilityStrengthPoints = 2;
+                options.LitigGameDisputeGenerator = new LitigGameUniformQualityDisputeGenerator
+                {
+                    QuadratureOrder = LitigGameUniformQualityDisputeGenerator.DefaultQuadratureOrder,
+                };
+            }
+            else
+            {
+                throw new NotSupportedException();
             }
 
             options.VariableSettings["Signal Structure"] = GetSignalStructureLabel(structure);
@@ -360,6 +515,29 @@ namespace ACESim
             options.VariableSettings["Liability Signal Shaping"] = "Identity";
             options.VariableSettings["Damages Signal Shaping"] = "Identity";
             options.VariableSettings["Number of Offers"] = "10";
+
+            if (RunPlan != ProductionRunPlan.LegacyTwoStructure)
+                SetModelMetadata(options, structure);
+        }
+
+        private static void SetModelMetadata(
+            LitigGameOptions options,
+            ArticleSignalStructure structure)
+        {
+            (string distribution, string truthLink, string integration, string order) = structure switch
+            {
+                ArticleSignalStructure.CaseQuality =>
+                    ("Truth-conditioned 10-point quality", "T -> Q", "Finite sum", "N/A"),
+                ArticleSignalStructure.BinaryTruth =>
+                    ("Binary truth", "Q = T", "Finite sum", "N/A"),
+                ArticleSignalStructure.UniformQuality =>
+                    ("Uniform [0..1] continuous quality", "T | Q ~ Bernoulli(Q)", "Gauss-Legendre", LitigGameUniformQualityDisputeGenerator.DefaultQuadratureOrder.ToString(CultureInfo.InvariantCulture)),
+                _ => throw new NotSupportedException(),
+            };
+            options.VariableSettings["Quality Distribution"] = distribution;
+            options.VariableSettings["Quality-Truth Link"] = truthLink;
+            options.VariableSettings["Integration Method"] = integration;
+            options.VariableSettings["Quadrature Order"] = order;
         }
 
         private static SignalShapeParameters IdentitySignalShapeParameters() =>
@@ -383,7 +561,7 @@ namespace ACESim
             });
         }
 
-        private static void ValidateOptionSet(LitigGameOptions options, ICollection<string> errors)
+        private void ValidateOptionSet(LitigGameOptions options, ICollection<string> errors)
         {
             string prefix = options.Name + ": ";
             ArticleSignalStructure structure;
@@ -425,10 +603,35 @@ namespace ACESim
                 ArticleSignalStructure.BinaryTruth =>
                     options.LitigGameDisputeGenerator is LitigGameExogenousDirectSignalDisputeGenerator &&
                     options.NumLiabilityStrengthPoints == 2,
+                ArticleSignalStructure.UniformQuality =>
+                    options.LitigGameDisputeGenerator is LitigGameUniformQualityDisputeGenerator uniform &&
+                    uniform.QuadratureOrder == LitigGameUniformQualityDisputeGenerator.DefaultQuadratureOrder &&
+                    options.NumLiabilityStrengthPoints == 2,
                 _ => false,
             };
             if (!correctGenerator)
                 errors.Add(prefix + "uses the wrong dispute generator or latent-state count.");
+
+            if (RunPlan != ProductionRunPlan.LegacyTwoStructure)
+            {
+                var expectedMetadata = new LitigGameOptions();
+                SetModelMetadata(expectedMetadata, structure);
+                foreach (string key in new[]
+                {
+                    "Quality Distribution",
+                    "Quality-Truth Link",
+                    "Integration Method",
+                    "Quadrature Order",
+                })
+                {
+                    if (!options.VariableSettings.TryGetValue(key, out object actual) ||
+                        !string.Equals(
+                            Convert.ToString(actual, CultureInfo.InvariantCulture),
+                            Convert.ToString(expectedMetadata.VariableSettings[key], CultureInfo.InvariantCulture),
+                            StringComparison.Ordinal))
+                        errors.Add(prefix + $"has incorrect model metadata for '{key}'.");
+                }
+            }
 
             string risk = GetSetting(options, "Risk Aversion");
             if (risk is not "Risk Neutral" and not "Moderately Risk Averse")
@@ -470,11 +673,12 @@ namespace ACESim
         private SimulationSetsIdentifier StructureComparison(string informationLevel) =>
             new(
                 $"Signal Structure ({informationLevel})",
-                new List<SimulationIdentifier>
-                {
-                    CreateSimulationIdentifier(CaseQualityLabel, ArticleSignalStructure.CaseQuality, informationLevel, "Risk Neutral"),
-                    CreateSimulationIdentifier(BinaryTruthLabel, ArticleSignalStructure.BinaryTruth, informationLevel, "Risk Neutral"),
-                });
+                IncludedSignalStructures.Select(structure =>
+                    CreateSimulationIdentifier(
+                        GetSignalStructureLabel(structure),
+                        structure,
+                        informationLevel,
+                        "Risk Neutral")).ToList());
 
         private SimulationSetsIdentifier InformationComparison(ArticleSignalStructure structure) =>
             new(
@@ -499,12 +703,29 @@ namespace ACESim
         {
             double sigma = GetPartySigma(structure, informationLevel);
             double courtSigma = GetCourtSigma(structure, informationLevel);
-            var matches = DefaultVariableValues
+            List<(string, string)> matches = DefaultVariableValues
                 .WithReplacement("Signal Structure", GetSignalStructureLabel(structure))
                 .WithReplacement("Information Level", informationLevel)
                 .WithReplacement("Party Signal Sigma", FormatSigma(sigma))
                 .WithReplacement("Court Signal Sigma", FormatSigma(courtSigma))
                 .WithReplacement("Risk Aversion", riskAversion);
+            if (RunPlan != ProductionRunPlan.LegacyTwoStructure)
+            {
+                var metadata = new LitigGameOptions();
+                SetModelMetadata(metadata, structure);
+                foreach (string key in new[]
+                {
+                    "Quality Distribution",
+                    "Quality-Truth Link",
+                    "Integration Method",
+                    "Quadrature Order",
+                })
+                {
+                    matches = matches.WithReplacement(
+                        key,
+                        Convert.ToString(metadata.VariableSettings[key], CultureInfo.InvariantCulture));
+                }
+            }
             return new SimulationIdentifier(name, matches);
         }
 
@@ -512,11 +733,17 @@ namespace ACESim
         {
             CaseQualityLabel => ArticleSignalStructure.CaseQuality,
             BinaryTruthLabel => ArticleSignalStructure.BinaryTruth,
+            UniformQualityLabel => ArticleSignalStructure.UniformQuality,
             _ => throw new InvalidOperationException($"Unknown signal structure '{label}'."),
         };
 
-        private static string GetIdentifierLabel(ArticleSignalStructure structure) =>
-            structure == ArticleSignalStructure.CaseQuality ? "CaseQuality" : "BinaryTruth";
+        private static string GetIdentifierLabel(ArticleSignalStructure structure) => structure switch
+        {
+            ArticleSignalStructure.CaseQuality => "CaseQuality",
+            ArticleSignalStructure.BinaryTruth => "BinaryTruth",
+            ArticleSignalStructure.UniformQuality => "UniformQuality",
+            _ => throw new NotSupportedException(),
+        };
 
         private static string GetSetting(GameOptions options, string key) =>
             options.VariableSettings.TryGetValue(key, out object value)

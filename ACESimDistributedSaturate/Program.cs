@@ -29,11 +29,11 @@ namespace ACESimDistributedSaturate
             {
                 return command switch
                 {
-                    "preflight" => RunPreflight(),
+                    "preflight" => RunPreflight(args.Skip(1).ToArray()),
                     "run" => await RunProductionAsync(args.Skip(1).ToArray()),
-                    "status" => ShowStatus(),
+                    "status" => ShowStatus(args.Skip(1).ToArray()),
                     "recover" => Recover(args.Skip(1).ToArray()),
-                    "aggregate" => AggregateAndReport(),
+                    "aggregate" => AggregateAndReport(args.Skip(1).ToArray()),
                     "smoke-test" => await RunSmokeTestAsync(),
                     "smoke-worker" => await RunSmokeWorkerAsync(args.Skip(1).ToArray()),
                     "help" or "--help" or "-h" => ShowHelp(),
@@ -47,20 +47,23 @@ namespace ACESimDistributedSaturate
             }
         }
 
-        private static LitigGameCorrelatedSignalsArticleLauncher CreateLauncher() => new();
+        private static LitigGameCorrelatedSignalsArticleLauncher CreateLauncher(string[] args) =>
+            new(LitigGameCorrelatedSignalsArticleLauncher.ParseProductionRunPlan(
+                OptionalArgument(args, "--plan") ?? "unified"));
 
-        private static int RunPreflight()
+        private static int RunPreflight(string[] args)
         {
-            LitigGameCorrelatedSignalsArticleLauncher launcher = CreateLauncher();
+            LitigGameCorrelatedSignalsArticleLauncher launcher = CreateLauncher(args);
             List<GameOptions> optionSets = launcher.GetOptionsSets();
             LitigGameCorrelatedSignalsArticleLauncher.ProductionMatrixAudit audit =
                 launcher.ValidateProductionMatrix(optionSets);
             TaskCoordinator coordinator = launcher.GetUninitializedTaskList();
 
             Console.WriteLine("Correlated-signals production preflight passed.");
+            Console.WriteLine($"Plan: {launcher.RunPlan} ({launcher.MasterReportNameForDistributedProcessing})");
             Console.WriteLine($"Option sets: {audit.OptionSetCount}");
             Console.WriteLine($"Core combinations: {audit.CoreCombinationCount}");
-            Console.WriteLine($"Matched structure pairs: {audit.PairedComparisonCount}");
+            Console.WriteLine($"Complete structure comparison groups: {audit.PairedComparisonCount}");
             Console.WriteLine($"Worker tasks: {coordinator.NumIndividualTasks}");
             Console.WriteLine($"Task-plan fingerprint: {coordinator.PlanFingerprint}");
             foreach (var count in audit.CountsByInformationAndRisk)
@@ -78,6 +81,7 @@ namespace ACESimDistributedSaturate
                 {
                     LitigGameExogenousDisputeGenerator => "CaseQuality",
                     LitigGameExogenousDirectSignalDisputeGenerator => "BinaryTruth",
+                    LitigGameUniformQualityDisputeGenerator => "UniformQuality",
                     _ => options.LitigGameDisputeGenerator.GetType().Name,
                 };
                 Console.WriteLine(string.Join(",", new[]
@@ -108,7 +112,7 @@ namespace ACESimDistributedSaturate
 #if DEBUG
             throw new InvalidOperationException("Production must be launched from a Release build.");
 #endif
-            LitigGameCorrelatedSignalsArticleLauncher launcher = CreateLauncher();
+            LitigGameCorrelatedSignalsArticleLauncher launcher = CreateLauncher(args);
             launcher.ValidateProductionMatrix(launcher.GetOptionsSets());
             int processorCount = ParseProcessorCount(args);
             string workerExecutable = Path.Combine(AppContext.BaseDirectory, "ACESimDistributed.exe");
@@ -125,7 +129,7 @@ namespace ACESimDistributedSaturate
             try
             {
                 for (int workerId = 0; workerId < processorCount; workerId++)
-                    workers.Add(StartVisibleWorkerProcess(workerExecutable, workerId));
+                    workers.Add(StartVisibleWorkerProcess(workerExecutable, workerId, launcher.RunPlan));
 
                 string lastStatus = null;
                 while (true)
@@ -181,9 +185,9 @@ namespace ACESimDistributedSaturate
             }
         }
 
-        private static int ShowStatus()
+        private static int ShowStatus(string[] args)
         {
-            LitigGameCorrelatedSignalsArticleLauncher launcher = CreateLauncher();
+            LitigGameCorrelatedSignalsArticleLauncher launcher = CreateLauncher(args);
             try
             {
                 TaskCoordinator coordinator = launcher.LoadTaskCoordinatorStatus();
@@ -192,7 +196,8 @@ namespace ACESimDistributedSaturate
                     Console.WriteLine(task);
                 Console.WriteLine($"Coordinator: {launcher.GetReportFullPath(null, "Coordinator")}");
                 Console.WriteLine($"Process logs: {Path.Combine(launcher.GetReportFolder(), "Process Logs")}");
-                Console.WriteLine($"Failure logs: {Path.Combine(launcher.GetReportFolder(), "CS001 FAILURE *.txt")}");
+                Console.WriteLine(
+                    $"Failure logs: {Path.Combine(launcher.GetReportFolder(), launcher.MasterReportNameForDistributedProcessing + " FAILURE *.txt")}");
                 return coordinator.HasFailures ? 1 : 0;
             }
             catch (FileNotFoundException)
@@ -209,7 +214,7 @@ namespace ACESimDistributedSaturate
             if (!resetFailed && !resetPending)
                 throw new ArgumentException("Recovery requires --failed and/or --include-pending.");
 
-            LitigGameCorrelatedSignalsArticleLauncher launcher = CreateLauncher();
+            LitigGameCorrelatedSignalsArticleLauncher launcher = CreateLauncher(args);
             IReadOnlyList<string> activeWorkers = FindActiveWorkers(launcher);
             if (activeWorkers.Count > 0)
                 throw new InvalidOperationException(
@@ -231,7 +236,9 @@ namespace ACESimDistributedSaturate
                 return Array.Empty<string>();
 
             var active = new List<string>();
-            foreach (string markerPath in Directory.GetFiles(processLogDirectory, "CS001 worker-*.active"))
+            foreach (string markerPath in Directory.GetFiles(
+                processLogDirectory,
+                launcher.MasterReportNameForDistributedProcessing + " worker-*.active"))
             {
                 string[] fields;
                 try
@@ -264,12 +271,15 @@ namespace ACESimDistributedSaturate
             return active;
         }
 
-        private static int AggregateAndReport()
+        private static int AggregateAndReport(string[] args)
         {
-            LitigGameCorrelatedSignalsArticleLauncher launcher = CreateLauncher();
+            LitigGameCorrelatedSignalsArticleLauncher launcher = CreateLauncher(args);
             TaskCoordinator coordinator = launcher.EnsureDistributedRunReadyForAggregation();
             Console.WriteLine("Coordinator and all primary result files validated: " + coordinator);
-            Runner.ProcessLitigationGameData(Runner.DataBeingAnalyzed.CorrelatedSignalsArticle);
+            Runner.ProcessLitigationGameData(
+                Runner.DataBeingAnalyzed.CorrelatedSignalsArticle,
+                launcher,
+                preserveExistingResults: true);
             return 0;
         }
 
@@ -425,7 +435,10 @@ namespace ACESimDistributedSaturate
             return Process.Start(startInfo) ?? throw new InvalidOperationException("Unable to start child process.");
         }
 
-        private static Process StartVisibleWorkerProcess(string executablePath, int workerId)
+        private static Process StartVisibleWorkerProcess(
+            string executablePath,
+            int workerId,
+            LitigGameCorrelatedSignalsArticleLauncher.ProductionRunPlan runPlan)
         {
             // This intentionally mirrors the established ACESimDistributedSaturate interface:
             // ShellExecute opens each console application in its own visible window so the user
@@ -435,11 +448,21 @@ namespace ACESimDistributedSaturate
                 UseShellExecute = true,
                 CreateNoWindow = false,
                 WindowStyle = ProcessWindowStyle.Normal,
-                Arguments = $"--worker-id {workerId.ToString(CultureInfo.InvariantCulture)}",
+                Arguments =
+                    $"--worker-id {workerId.ToString(CultureInfo.InvariantCulture)} --plan {PlanArgument(runPlan)}",
             };
             return Process.Start(startInfo) ?? throw new InvalidOperationException(
                 $"Unable to start visible worker {workerId}.");
         }
+
+        private static string PlanArgument(
+            LitigGameCorrelatedSignalsArticleLauncher.ProductionRunPlan runPlan) => runPlan switch
+        {
+            LitigGameCorrelatedSignalsArticleLauncher.ProductionRunPlan.LegacyTwoStructure => "legacy",
+            LitigGameCorrelatedSignalsArticleLauncher.ProductionRunPlan.UniformBaselineSupplement => "supplemental",
+            LitigGameCorrelatedSignalsArticleLauncher.ProductionRunPlan.UnifiedThreeStructure => "unified",
+            _ => throw new NotSupportedException(),
+        };
 
         private static int ParseProcessorCount(string[] args)
         {
@@ -478,12 +501,12 @@ namespace ACESimDistributedSaturate
         private static int ShowHelp()
         {
             Console.WriteLine("ACESim4 correlated-signals production commands:");
-            Console.WriteLine("  <no arguments>              (production on all processors; normal Ctrl+F5 path)");
-            Console.WriteLine("  preflight");
-            Console.WriteLine("  run --processors all|N");
-            Console.WriteLine("  status");
-            Console.WriteLine("  recover --failed [--include-pending]");
-            Console.WriteLine("  aggregate");
+            Console.WriteLine("  <no arguments>              (unified CS002 production on all processors)");
+            Console.WriteLine("  preflight [--plan supplemental|unified|legacy]");
+            Console.WriteLine("  run --processors all|N [--plan supplemental|unified|legacy]");
+            Console.WriteLine("  status [--plan supplemental|unified|legacy]");
+            Console.WriteLine("  recover --failed [--include-pending] [--plan supplemental|unified|legacy]");
+            Console.WriteLine("  aggregate [--plan supplemental|unified|legacy]");
             Console.WriteLine("  smoke-test");
             return 0;
         }
