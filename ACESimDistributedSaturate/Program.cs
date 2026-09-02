@@ -142,6 +142,16 @@ namespace ACESimDistributedSaturate
                             throw new InvalidOperationException("All workers exited before creating the coordinator.");
                         continue;
                     }
+                    catch (IOException exception)
+                    {
+                        if (workers.All(x => x.HasExited))
+                            throw new InvalidOperationException(
+                                "The coordinator could not be read after all workers exited.",
+                                exception);
+                        Console.WriteLine(
+                            $"{DateTime.Now:O} Coordinator file is temporarily busy; workers are continuing and status will be retried.");
+                        continue;
+                    }
 
                     string status = coordinator.ToString();
                     if (!string.Equals(status, lastStatus, StringComparison.Ordinal))
@@ -166,18 +176,6 @@ namespace ACESimDistributedSaturate
             }
             finally
             {
-                foreach (Process worker in workers.Where(x => !x.HasExited))
-                {
-                    try
-                    {
-                        worker.Kill(entireProcessTree: true);
-                        worker.WaitForExit(10_000);
-                    }
-                    catch
-                    {
-                        // Best effort during coordinator shutdown.
-                    }
-                }
                 foreach (Process worker in workers)
                     worker.Dispose();
             }
