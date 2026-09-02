@@ -27,7 +27,7 @@ namespace ACESimDistributed
                 cancellationSource.Cancel();
             };
 
-            string plan = ReadStringArgument(args, "--plan") ?? "unified";
+            string plan = ReadStringArgument(args, "--plan") ?? "focused";
             Launcher launcher = new LitigGameCorrelatedSignalsArticleLauncher(
                 LitigGameCorrelatedSignalsArticleLauncher.ParseProductionRunPlan(plan));
             string timestamp = DateTime.UtcNow.ToString("yyyyMMdd'T'HHmmssfff'Z'", CultureInfo.InvariantCulture);

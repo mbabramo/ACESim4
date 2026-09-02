@@ -108,6 +108,44 @@ namespace ACESimTest.GameTests
                     1E-8);
         }
 
+        [TestMethod]
+        public void BetaQualityDistributions_AreStableSymmetricAndIntegratedOutsideTheGameTree()
+        {
+            double[] extremeMass = new double[3];
+            double[] centerMass = new double[3];
+            foreach (ContinuousQualityDistribution distribution in
+                Enum.GetValues<ContinuousQualityDistribution>())
+            {
+                LitigGameOptions options = GetUniformOptions(64);
+                var generator = (LitigGameUniformQualityDisputeGenerator)
+                    options.LitigGameDisputeGenerator;
+                generator.QualityDistribution = distribution;
+                var definition = new LitigGameDefinition();
+                definition.Setup(options);
+
+                double[] pSignals = generator.BayesianCalculations_GetPLiabilitySignalProbabilities(null);
+                pSignals.Should().OnlyContain(probability =>
+                    !double.IsNaN(probability) && !double.IsInfinity(probability) && probability >= 0.0);
+                pSignals.Sum().Should().BeApproximately(1.0, 1E-12);
+                generator.GetPosteriorMeanQuality(1, 1, null).Should().BeLessThan(0.5);
+                generator.GetPosteriorMeanQuality(10, 10, null).Should().BeGreaterThan(0.5);
+                (generator.GetPosteriorMeanQuality(1, 1, null) +
+                    generator.GetPosteriorMeanQuality(10, 10, null))
+                    .Should().BeApproximately(1.0, 1E-11);
+                definition.DecisionsExecutionOrder.Any(decision =>
+                    decision.Name.Contains("quality", StringComparison.OrdinalIgnoreCase)).Should().BeFalse();
+
+                int index = (int)distribution;
+                extremeMass[index] = pSignals[0] + pSignals[9];
+                centerMass[index] = pSignals[4] + pSignals[5];
+            }
+
+            extremeMass[(int)ContinuousQualityDistribution.BetaHalfHalf]
+                .Should().BeGreaterThan(extremeMass[(int)ContinuousQualityDistribution.BetaTwoTwo]);
+            centerMass[(int)ContinuousQualityDistribution.BetaTwoTwo]
+                .Should().BeGreaterThan(centerMass[(int)ContinuousQualityDistribution.BetaHalfHalf]);
+        }
+
         private static LitigGameOptions GetUniformOptions(int quadratureOrder)
         {
             var launcher = new LitigGameCorrelatedSignalsArticleLauncher(

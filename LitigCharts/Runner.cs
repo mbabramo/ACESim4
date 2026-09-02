@@ -37,7 +37,7 @@ namespace LitigCharts
             LitigGameLauncherBase launcher = launcherOverride ?? article switch
             {
                 DataBeingAnalyzed.CorrelatedSignalsArticle => new LitigGameCorrelatedSignalsArticleLauncher(
-                    LitigGameCorrelatedSignalsArticleLauncher.ProductionRunPlan.UnifiedThreeStructure),
+                    LitigGameCorrelatedSignalsArticleLauncher.ProductionRunPlan.FocusedContinuousMerits),
                 DataBeingAnalyzed.EndogenousDisputesArticle => new LitigGameEndogenousDisputesLauncher(),
                 _ => throw new NotImplementedException()
             };

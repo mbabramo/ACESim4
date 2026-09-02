@@ -53,6 +53,61 @@ namespace LitigCharts
                 if (launcher is not LitigGameCorrelatedSignalsArticleLauncher correlatedLauncher)
                     throw new InvalidOperationException("Correlated-signals reporting requires its article launcher.");
                 if (correlatedLauncher.RunPlan ==
+                    LitigGameCorrelatedSignalsArticleLauncher.ProductionRunPlan.FocusedContinuousMerits)
+                {
+                    List<string> signalRows = CorrelatedSignalsFocusedReport.SignalFilters.ToList();
+                    List<string> signalColumns = new()
+                    {
+                        "All",
+                        "PFiles",
+                        "DAnswers",
+                        "POffer1",
+                        "DOffer1",
+                        "SettlesBR1",
+                        "PAbandonsBR1",
+                        "DDefaultsBR1",
+                        "Trial",
+                        "P Loses",
+                        "P Wins",
+                    };
+                    List<string> signalColumnNames = new()
+                    {
+                        "Signal Probability",
+                        "P Files",
+                        "D Answers",
+                        "P Offer",
+                        "D Offer",
+                        "Settles",
+                        "P Abandons",
+                        "D Defaults",
+                        "Trial",
+                        "P Loses",
+                        "P Wins",
+                    };
+                    for (int action = 1; action <= 10; action++)
+                    {
+                        signalColumns.Add($"POffer1Action{action}");
+                        signalColumns.Add($"DOffer1Action{action}");
+                        signalColumnNames.Add($"P Offer 1 Action {action}");
+                        signalColumnNames.Add($"D Offer 1 Action {action}");
+                    }
+                    BuildReportHelper(
+                        launcher,
+                        signalRows,
+                        signalRows,
+                        signalColumns,
+                        signalColumnNames,
+                        "signal output");
+                    CorrelatedSignalsFocusedReport.BuildAndValidate(
+                        correlatedLauncher,
+                        correlatedLauncher.GetReportFullPath("output", ".csv"),
+                        correlatedLauncher.GetReportFullPath("signal output", ".csv"),
+                        correlatedLauncher.GetReportFullPath("numerical results", ".csv"),
+                        correlatedLauncher.GetReportFullPath("specification comparisons", ".csv"),
+                        correlatedLauncher.GetReportFullPath("fee regime comparisons", ".csv"),
+                        correlatedLauncher.GetReportFullPath("signal strategies", ".csv"));
+                }
+                else if (correlatedLauncher.RunPlan ==
                     LitigGameCorrelatedSignalsArticleLauncher.ProductionRunPlan.LegacyTwoStructure)
                 {
                     CorrelatedSignalsPairedReport.BuildAndValidate(

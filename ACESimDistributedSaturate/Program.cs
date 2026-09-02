@@ -49,7 +49,7 @@ namespace ACESimDistributedSaturate
 
         private static LitigGameCorrelatedSignalsArticleLauncher CreateLauncher(string[] args) =>
             new(LitigGameCorrelatedSignalsArticleLauncher.ParseProductionRunPlan(
-                OptionalArgument(args, "--plan") ?? "unified"));
+                OptionalArgument(args, "--plan") ?? "focused"));
 
         private static int RunPreflight(string[] args)
         {
@@ -63,7 +63,14 @@ namespace ACESimDistributedSaturate
             Console.WriteLine($"Plan: {launcher.RunPlan} ({launcher.MasterReportNameForDistributedProcessing})");
             Console.WriteLine($"Option sets: {audit.OptionSetCount}");
             Console.WriteLine($"Core combinations: {audit.CoreCombinationCount}");
-            Console.WriteLine($"Complete structure comparison groups: {audit.PairedComparisonCount}");
+            string comparisonLabel = launcher.RunPlan ==
+                LitigGameCorrelatedSignalsArticleLauncher.ProductionRunPlan.FocusedContinuousMerits
+                    ? "Baseline specification comparisons"
+                    : "Complete structure comparison groups";
+            Console.WriteLine($"{comparisonLabel}: {audit.PairedComparisonCount}");
+            if (launcher.RunPlan ==
+                LitigGameCorrelatedSignalsArticleLauncher.ProductionRunPlan.FocusedContinuousMerits)
+                Console.WriteLine($"American/British comparisons: {audit.FeeRegimeComparisonCount}");
             Console.WriteLine($"Worker tasks: {coordinator.NumIndividualTasks}");
             Console.WriteLine($"Task-plan fingerprint: {coordinator.PlanFingerprint}");
             foreach (var count in audit.CountsByInformationAndRisk)
@@ -461,6 +468,7 @@ namespace ACESimDistributedSaturate
             LitigGameCorrelatedSignalsArticleLauncher.ProductionRunPlan.LegacyTwoStructure => "legacy",
             LitigGameCorrelatedSignalsArticleLauncher.ProductionRunPlan.UniformBaselineSupplement => "supplemental",
             LitigGameCorrelatedSignalsArticleLauncher.ProductionRunPlan.UnifiedThreeStructure => "unified",
+            LitigGameCorrelatedSignalsArticleLauncher.ProductionRunPlan.FocusedContinuousMerits => "focused",
             _ => throw new NotSupportedException(),
         };
 
@@ -501,12 +509,12 @@ namespace ACESimDistributedSaturate
         private static int ShowHelp()
         {
             Console.WriteLine("ACESim4 correlated-signals production commands:");
-            Console.WriteLine("  <no arguments>              (unified CS002 production on all processors)");
-            Console.WriteLine("  preflight [--plan supplemental|unified|legacy]");
-            Console.WriteLine("  run --processors all|N [--plan supplemental|unified|legacy]");
-            Console.WriteLine("  status [--plan supplemental|unified|legacy]");
-            Console.WriteLine("  recover --failed [--include-pending] [--plan supplemental|unified|legacy]");
-            Console.WriteLine("  aggregate [--plan supplemental|unified|legacy]");
+            Console.WriteLine("  <no arguments>              (focused CS003 production on all processors)");
+            Console.WriteLine("  preflight [--plan focused|unified|supplemental|legacy]");
+            Console.WriteLine("  run --processors all|N [--plan focused|unified|supplemental|legacy]");
+            Console.WriteLine("  status [--plan focused|unified|supplemental|legacy]");
+            Console.WriteLine("  recover --failed [--include-pending] [--plan focused|unified|supplemental|legacy]");
+            Console.WriteLine("  aggregate [--plan focused|unified|supplemental|legacy]");
             Console.WriteLine("  smoke-test");
             return 0;
         }

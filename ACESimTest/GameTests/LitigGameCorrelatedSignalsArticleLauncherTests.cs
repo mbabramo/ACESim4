@@ -173,6 +173,73 @@ namespace ACESimTest.GameTests
             EveryReportIdentifierShouldSelectOneOption(launcher);
         }
 
+        [TestMethod]
+        public void FocusedPlan_CrossesExactlyThirteenAtomicSpecificationsWithFiveCostsAndTwoFees()
+        {
+            var launcher = new LitigGameCorrelatedSignalsArticleLauncher(
+                LitigGameCorrelatedSignalsArticleLauncher.ProductionRunPlan.FocusedContinuousMerits);
+            var options = launcher.GetOptionsSets().Cast<LitigGameOptions>().ToList();
+            var audit = launcher.ValidateProductionMatrix(options.Cast<GameOptions>().ToList());
+
+            launcher.MasterReportNameForDistributedProcessing.Should().Be("CS003");
+            audit.OptionSetCount.Should().Be(130);
+            audit.CoreCombinationCount.Should().Be(10);
+            audit.PairedComparisonCount.Should().Be(120);
+            audit.FeeRegimeComparisonCount.Should().Be(65);
+            audit.CountsByInformationAndRisk.Should().HaveCount(13)
+                .And.OnlyContain(pair => pair.Value == 10);
+            options.Select(option => Setting(option, "Costs Multiplier"))
+                .Distinct().Should().BeEquivalentTo("0.25", "0.5", "1", "2", "4");
+            options.Select(option => Setting(option, "Fee Regime"))
+                .Distinct().Should().BeEquivalentTo("American", "British");
+            options.GroupBy(option => new
+                {
+                    Cost = Setting(option, "Costs Multiplier"),
+                    Fee = Setting(option, "Fee Regime"),
+                })
+                .Should().HaveCount(10)
+                .And.OnlyContain(group =>
+                    group.Count() == 13 &&
+                    group.Select(option => Setting(option, "Specification")).Distinct().Count() == 13);
+
+            options.Count(option =>
+                Setting(option, "Information Level") == "0.5x" &&
+                Setting(option, "Risk Aversion") == "Moderately Risk Averse")
+                .Should().Be(10, "only the expressly combined specification has both changes");
+            options.Where(option => Setting(option, "Risk Aversion") == "Moderately Risk Averse")
+                .Select(option => Setting(option, "Specification")).Distinct()
+                .Should().BeEquivalentTo(
+                    "Moderate symmetric risk aversion",
+                    "Low noise plus moderate risk aversion");
+            EveryReportIdentifierShouldSelectOneOption(launcher);
+        }
+
+        [TestMethod]
+        public void FocusedPlan_EverySpecificationSetsUpAndIncludesDetailedOfferActions()
+        {
+            var launcher = new LitigGameCorrelatedSignalsArticleLauncher(
+                LitigGameCorrelatedSignalsArticleLauncher.ProductionRunPlan.FocusedContinuousMerits);
+            var representativeOptions = launcher.GetOptionsSets().Cast<LitigGameOptions>()
+                .Where(option =>
+                    Setting(option, "Costs Multiplier") == "1" &&
+                    Setting(option, "Fee Regime") == "American")
+                .ToList();
+
+            representativeOptions.Should().HaveCount(13);
+            foreach (LitigGameOptions options in representativeOptions)
+            {
+                var definition = new LitigGameDefinition();
+                Action setup = () => definition.Setup(options);
+                setup.Should().NotThrow(Setting(options, "Specification"));
+                var columns = definition.GetSimpleReportDefinitions().Single().ColumnItems
+                    .Select(column => column.Name)
+                    .ToList();
+                columns.Should().Contain("POffer1Action1").And.Contain("DOffer1Action10");
+                definition.DecisionsExecutionOrder.Count(decision =>
+                    decision.Name.Contains("Offer", StringComparison.OrdinalIgnoreCase)).Should().Be(2);
+            }
+        }
+
         private static void EveryReportIdentifierShouldSelectOneOption(
             LitigGameCorrelatedSignalsArticleLauncher launcher)
         {

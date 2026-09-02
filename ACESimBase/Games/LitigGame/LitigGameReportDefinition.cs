@@ -113,6 +113,32 @@ namespace ACESim
                     new SimpleReportColumnVariable($"DOfferMixedness{b}",
                         (GameProgress gp) => MyGP(gp).GetOfferMixedness(false, bargainingRoundNum))
                 );
+                if (Options.VariableSettings.TryGetValue("Detailed Signal Reporting", out object detailedValue) &&
+                    string.Equals(Convert.ToString(detailedValue), "true", StringComparison.OrdinalIgnoreCase))
+                {
+                    for (byte offerAction = 1; offerAction <= Options.NumOffers; offerAction++)
+                    {
+                        byte action = offerAction;
+                        double offerValue = Game.ConvertActionToUniformDistributionDraw(
+                            action,
+                            Options.NumOffers,
+                            Options.IncludeEndpointsForOffers);
+                        colItems.Add(
+                            new SimpleReportColumnFilter(
+                                $"POffer{b}Action{action}",
+                                (GameProgress gp) => MyGP(gp).GetOffer(true, bargainingRoundNum) is double offer
+                                    ? Math.Abs(offer - offerValue) < 1E-12
+                                    : null,
+                                SimpleReportColumnFilterOptions.ProportionOfRow));
+                        colItems.Add(
+                            new SimpleReportColumnFilter(
+                                $"DOffer{b}Action{action}",
+                                (GameProgress gp) => MyGP(gp).GetOffer(false, bargainingRoundNum) is double offer
+                                    ? Math.Abs(offer - offerValue) < 1E-12
+                                    : null,
+                                SimpleReportColumnFilterOptions.ProportionOfRow));
+                    }
+                }
                 colItems.Add(
                     new SimpleReportColumnFilter($"Settles{b}",
                         (GameProgress gp) => MyGP(gp).SettlementValue != null &&

@@ -9,6 +9,13 @@ using System.Linq;
 
 namespace ACESim
 {
+    public enum ContinuousQualityDistribution
+    {
+        Uniform,
+        BetaTwoTwo,
+        BetaHalfHalf,
+    }
+
     /// <summary>
     /// Correlated evidentiary signals generated from continuous case quality Q ~ Uniform(0, 1),
     /// with true liability T | Q=q ~ Bernoulli(q). Integration over Q is performed during setup;
@@ -20,6 +27,8 @@ namespace ACESim
         public const int DefaultQuadratureOrder = 64;
 
         public int QuadratureOrder { get; set; } = DefaultQuadratureOrder;
+        public ContinuousQualityDistribution QualityDistribution { get; set; } =
+            ContinuousQualityDistribution.Uniform;
 
         private double[] qualityNodes;
         private double[] qualityWeights;
@@ -28,10 +37,17 @@ namespace ACESim
         private double[] pLiabilitySignalProbabilitiesUnconditional;
         private double[] dLiabilitySignalProbabilitiesUnconditional;
 
-        public override string GetGeneratorName() => "UniformQuality";
+        public override string GetGeneratorName() => QualityDistribution switch
+        {
+            ContinuousQualityDistribution.Uniform => "UniformQuality",
+            ContinuousQualityDistribution.BetaTwoTwo => "BetaTwoTwoQuality",
+            ContinuousQualityDistribution.BetaHalfHalf => "BetaHalfHalfQuality",
+            _ => throw new NotSupportedException(),
+        };
 
         public override string OptionsString =>
-            $"QualityDistribution=Uniform(0,1);TruthGivenQuality=Bernoulli(q);GaussLegendreOrder={QuadratureOrder}";
+            $"QualityDistribution={GetDistributionLabel(QualityDistribution)};" +
+            $"TruthGivenQuality=Bernoulli(q);GaussLegendreOrder={QuadratureOrder}";
 
         public override void Setup(LitigGameDefinition litigGameDefinition)
         {
@@ -55,10 +71,9 @@ namespace ACESim
             if (QuadratureOrder < 2)
                 throw new InvalidOperationException($"{nameof(QuadratureOrder)} must be at least 2.");
 
-            var quadrature = new GaussLegendreRule(0.0, 1.0, QuadratureOrder);
-            qualityNodes = quadrature.Abscissas;
-            qualityWeights = quadrature.Weights;
-            NormalizeInPlace(qualityWeights);
+            (qualityNodes, qualityWeights) = BuildQualityQuadrature(
+                QualityDistribution,
+                QuadratureOrder);
 
             DiscreteValueSignalParameters pParameters = options.PLiabilitySignalParameters;
             DiscreteValueSignalParameters dParameters = options.DLiabilitySignalParameters;
@@ -96,6 +111,59 @@ namespace ACESim
             IEnumerable<double> nodes,
             DiscreteValueSignalParameters parameters) =>
             nodes.Select(q => DiscreteValueSignal.GetProbabilitiesOfDiscreteSignals(q, parameters)).ToArray();
+
+        private static (double[] nodes, double[] weights) BuildQualityQuadrature(
+            ContinuousQualityDistribution distribution,
+            int order)
+        {
+            GaussLegendreRule quadrature;
+            double[] nodes;
+            double[] weights;
+            switch (distribution)
+            {
+                case ContinuousQualityDistribution.Uniform:
+                    quadrature = new GaussLegendreRule(0.0, 1.0, order);
+                    nodes = quadrature.Abscissas;
+                    weights = quadrature.Weights;
+                    break;
+
+                case ContinuousQualityDistribution.BetaTwoTwo:
+                    quadrature = new GaussLegendreRule(0.0, 1.0, order);
+                    nodes = quadrature.Abscissas;
+                    weights = quadrature.Weights
+                        .Select((weight, index) =>
+                            weight * 6.0 * nodes[index] * (1.0 - nodes[index]))
+                        .ToArray();
+                    break;
+
+                case ContinuousQualityDistribution.BetaHalfHalf:
+                    // If Q ~ Beta(1/2, 1/2), then Q = sin(theta)^2 for
+                    // theta ~ Uniform(0, pi/2). Integrating in theta avoids direct
+                    // evaluation of the beta density, which is singular at both endpoints.
+                    quadrature = new GaussLegendreRule(0.0, Math.PI / 2.0, order);
+                    nodes = quadrature.Abscissas
+                        .Select(theta => Math.Pow(Math.Sin(theta), 2.0))
+                        .ToArray();
+                    weights = quadrature.Weights;
+                    break;
+
+                default:
+                    throw new NotSupportedException(
+                        $"Unsupported continuous-quality distribution '{distribution}'.");
+            }
+
+            NormalizeInPlace(weights);
+            return (nodes, weights);
+        }
+
+        public static string GetDistributionLabel(ContinuousQualityDistribution distribution) =>
+            distribution switch
+            {
+                ContinuousQualityDistribution.Uniform => "Uniform(0,1)",
+                ContinuousQualityDistribution.BetaTwoTwo => "Beta(2,2)",
+                ContinuousQualityDistribution.BetaHalfHalf => "Beta(0.5,0.5)",
+                _ => throw new NotSupportedException(),
+            };
 
         private static void NormalizeInPlace(double[] values)
         {
