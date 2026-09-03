@@ -471,9 +471,10 @@ namespace LitigCharts
                         throw new InvalidDataException($"Report is missing '{identity}'.");
                     foreach (string settingHeader in settingHeaders)
                     {
-                        string expected = Convert.ToString(
+                        string expected = (Convert.ToString(
                             optionSet.VariableSettings[settingHeader],
-                            CultureInfo.InvariantCulture);
+                            CultureInfo.InvariantCulture) ?? string.Empty)
+                            .Replace(",", "-");
                         if (!string.Equals(row[settingHeader], expected, StringComparison.Ordinal))
                             throw new InvalidDataException(
                                 $"Option set '{optionSet.Name}' reports {settingHeader}=" +

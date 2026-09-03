@@ -201,9 +201,9 @@ namespace ACESimTest
         {
             csv.WriteField("Only Eq");
             foreach (string setting in settings)
-                csv.WriteField(Convert.ToString(
+                csv.WriteField((Convert.ToString(
                     option.VariableSettings[setting],
-                    CultureInfo.InvariantCulture));
+                    CultureInfo.InvariantCulture) ?? string.Empty).Replace(",", "-"));
             csv.WriteField(filter);
             csv.WriteField(option.Name);
             csv.WriteField(option.Name);

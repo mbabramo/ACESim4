@@ -612,7 +612,11 @@ namespace LitigCharts
                                 {
                                     if (stepDefiningRowsToFind)
                                     {
-                                        var modifiedRowsToFind = columnsToMatch.WithReplacement(aggregatedGraphInfo.minorXAxisLabel, microXValue.ToString()).WithReplacement(aggregatedGraphInfo.majorYAxisLabel, macroYValue).Select(x => (x.Item1, x.Item2.ToString())).ToArray();
+                                        var modifiedRowsToFind = columnsToMatch
+                                            .WithReplacement(aggregatedGraphInfo.minorXAxisLabel, microXValue.ToString())
+                                            .WithReplacement(aggregatedGraphInfo.majorYAxisLabel, macroYValue)
+                                            .Select(x => (x.Item1, x.Item2.ToString().Replace(",", "-")))
+                                            .ToArray();
                                         collectedRowsToFind.Add(modifiedRowsToFind);
                                     }
                                     else

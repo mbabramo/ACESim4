@@ -211,6 +211,11 @@ namespace ACESimTest.GameTests
                 .Should().BeEquivalentTo(
                     "Moderate symmetric risk aversion",
                     "Low noise plus moderate risk aversion");
+            launcher.GetSimulationSetsIdentifiers()
+                .SelectMany(set => set.simulationIdentifiers)
+                .Should().OnlyContain(identifier => identifier.columnMatches.All(match =>
+                    match.columnName != "Fee Regime"),
+                    "the fee multiplier already uniquely identifies the focused American/British regime");
             EveryReportIdentifierShouldSelectOneOption(launcher);
         }
 

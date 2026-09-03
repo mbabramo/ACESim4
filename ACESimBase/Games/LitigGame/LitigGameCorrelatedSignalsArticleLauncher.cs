@@ -849,6 +849,7 @@ namespace ACESim
             ConfigureFocusedSpecification(metadata, specification);
 
             List<(string, string)> matches = DefaultVariableValues
+                .Where(setting => setting.Item1 != "Fee Regime")
                 .Select(setting =>
                     (
                         setting.Item1,
