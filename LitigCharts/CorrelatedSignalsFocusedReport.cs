@@ -12,7 +12,7 @@ using System.Linq;
 namespace LitigCharts
 {
     /// <summary>
-    /// Validates and reports the focused CS003 continuous-merits production design.
+    /// Validates and reports the focused CS004 continuous-merits production design.
     /// Generated files are deliberately separate from simulation inputs and are not committed.
     /// </summary>
     public static class CorrelatedSignalsFocusedReport
@@ -79,7 +79,7 @@ namespace LitigCharts
                 throw new ArgumentNullException(nameof(launcher));
             if (launcher.RunPlan !=
                 LitigGameCorrelatedSignalsArticleLauncher.ProductionRunPlan.FocusedContinuousMerits)
-                throw new ArgumentException("Focused reporting requires the CS003 launcher.", nameof(launcher));
+                throw new ArgumentException("Focused reporting requires the CS004 launcher.", nameof(launcher));
 
             List<GameOptions> optionSets = launcher.GetOptionsSets();
             launcher.ValidateProductionMatrix(optionSets);
@@ -139,7 +139,7 @@ namespace LitigCharts
                 .Where(header => !metadataHeaders.Contains(header))
                 .ToArray();
             if (outcomeMeasures.Length == 0)
-                throw new InvalidDataException("CS003 numerical results contain no outcome measures.");
+                throw new InvalidDataException("CS004 numerical results contain no outcome measures.");
 
             int specificationComparisonCount = WriteSpecificationComparisons(
                 specificationComparisonsCsvPath,
@@ -164,23 +164,23 @@ namespace LitigCharts
 
             if (numericalRows.Count != LitigGameCorrelatedSignalsArticleLauncher.FocusedOptionSetCount)
                 throw new InvalidDataException(
-                    $"CS003 contains {numericalRows.Count} numerical result rows; expected " +
+                    $"CS004 contains {numericalRows.Count} numerical result rows; expected " +
                     $"{LitigGameCorrelatedSignalsArticleLauncher.FocusedOptionSetCount}.");
             if (specificationComparisonCount !=
                 LitigGameCorrelatedSignalsArticleLauncher.FocusedSpecificationComparisonCount)
                 throw new InvalidDataException(
-                    $"CS003 contains {specificationComparisonCount} specification comparisons; expected " +
+                    $"CS004 contains {specificationComparisonCount} specification comparisons; expected " +
                     $"{LitigGameCorrelatedSignalsArticleLauncher.FocusedSpecificationComparisonCount}.");
             if (feeComparisonCount !=
                 LitigGameCorrelatedSignalsArticleLauncher.FocusedFeeRegimeComparisonCount)
                 throw new InvalidDataException(
-                    $"CS003 contains {feeComparisonCount} fee-regime comparisons; expected " +
+                    $"CS004 contains {feeComparisonCount} fee-regime comparisons; expected " +
                     $"{LitigGameCorrelatedSignalsArticleLauncher.FocusedFeeRegimeComparisonCount}.");
             int expectedSignalStrategies =
                 LitigGameCorrelatedSignalsArticleLauncher.FocusedOptionSetCount * SignalFilters.Count;
             if (signalStrategyCount != expectedSignalStrategies)
                 throw new InvalidDataException(
-                    $"CS003 contains {signalStrategyCount} signal-strategy rows; expected " +
+                    $"CS004 contains {signalStrategyCount} signal-strategy rows; expected " +
                     $"{expectedSignalStrategies}.");
 
             return new ValidationSummary(
@@ -693,7 +693,7 @@ namespace LitigCharts
                 throw new InvalidDataException(
                     $"Report contains {table.Rows.Count} rows; expected exactly {expectedRows}.");
             if (table.Rows.Any(row => row["Equilibrium Type"] != "Only Eq"))
-                throw new InvalidDataException("CS003 reporting requires one 'Only Eq' result per option set.");
+                throw new InvalidDataException("CS004 reporting requires one 'Only Eq' result per option set.");
 
             var duplicateRows = table.Rows
                 .GroupBy(row => $"{row["OptionSetName"]}|{row["Filter"]}", StringComparer.Ordinal)
@@ -760,7 +760,7 @@ namespace LitigCharts
         private static CsvTable ReadRows(string path)
         {
             if (!File.Exists(path))
-                throw new FileNotFoundException("A required CS003 report was not found.", path);
+                throw new FileNotFoundException("A required CS004 report was not found.", path);
             using var reader = new StreamReader(path);
             using var csv = new CsvReader(reader, new CsvConfiguration(CultureInfo.InvariantCulture)
             {

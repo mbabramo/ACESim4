@@ -145,7 +145,7 @@ namespace ACESim
             ProductionRunPlan.LegacyTwoStructure => "CS001",
             ProductionRunPlan.UniformBaselineSupplement => "CS002U",
             ProductionRunPlan.UnifiedThreeStructure => "CS002",
-            ProductionRunPlan.FocusedContinuousMerits => "CS003",
+            ProductionRunPlan.FocusedContinuousMerits => "CS004",
             ProductionRunPlan.MultipleEquilibriaRobustness => "CS004ME",
             ProductionRunPlan.IncreasedOfferGridRobustness => "CS005O15",
             _ => throw new NotSupportedException(),
@@ -497,6 +497,8 @@ namespace ACESim
             {
                 existingModifier?.Invoke(settings);
                 settings.GenerateInformationSetActionReport = true;
+                if (options.NumOffers == IncreasedOfferGridOfferCount)
+                    settings.UseExistingEquilibriaIfAvailable = true;
                 if (RunPlan == ProductionRunPlan.MultipleEquilibriaRobustness)
                 {
                     settings.SequenceFormNumPriorsToUseToGenerateEquilibria =
@@ -905,7 +907,7 @@ namespace ACESim
                 .Where(option => option.NumOffers == IncreasedOfferGridOfferCount)
                 .ToList();
             if (options.Count != coreOptions.Count + finerOfferOptions.Count)
-                errors.Add("CS003 contains an offer count outside the planned 10- and 15-offer grids.");
+                errors.Add("CS004 contains an offer count outside the planned 10- and 15-offer grids.");
             if (finerOfferOptions.Count != IncreasedOfferGridOptionSetCount)
                 errors.Add(
                     $"Expected {IncreasedOfferGridOptionSetCount} integrated 15-offer rows " +
@@ -994,7 +996,7 @@ namespace ACESim
 
             if (errors.Count > 0)
                 throw new InvalidOperationException(
-                    "CS003 production matrix validation failed:" + Environment.NewLine +
+                    "CS004 production matrix validation failed:" + Environment.NewLine +
                     string.Join(Environment.NewLine, errors.Select(error => "- " + error)));
 
             var counts = options
@@ -1426,7 +1428,7 @@ namespace ACESim
 
         private static FocusedSpecification ParseFocusedSpecification(string label) =>
             FocusedSpecifications.SingleOrDefault(definition => definition.Label == label)?.Specification
-            ?? throw new InvalidOperationException($"Unknown CS003 specification '{label}'.");
+            ?? throw new InvalidOperationException($"Unknown CS004 specification '{label}'.");
 
         private static void ValidateFocusedOptionSet(
             LitigGameOptions options,
@@ -1464,6 +1466,13 @@ namespace ACESim
                 GetSetting(options, "Number of Court Signals") != "2" ||
                 GetSetting(options, "Number of Offers") != expectedOffers.ToString(CultureInfo.InvariantCulture))
                 errors.Add(prefix + "signal/offer count metadata does not match the configured game.");
+            var evolutionSettings = new EvolutionSettings();
+            options.ModifyEvolutionSettings?.Invoke(evolutionSettings);
+            if (!evolutionSettings.GenerateInformationSetActionReport)
+                errors.Add(prefix + "does not enable information-set/action reporting.");
+            if (evolutionSettings.UseExistingEquilibriaIfAvailable !=
+                    (expectedOffers == IncreasedOfferGridOfferCount))
+                errors.Add(prefix + "does not apply pre-existing-equilibrium reuse exclusively to the 15-offer grid.");
             if (options.NumPotentialBargainingRounds != 1 || !options.BargainingRoundsSimultaneous)
                 errors.Add(prefix + "does not retain the one-round simultaneous-offer bargaining model.");
             if (options.LiabilitySignalShapeParameters.Mode != SignalShapeMode.Identity ||

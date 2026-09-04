@@ -86,7 +86,7 @@ namespace ACESimDistributedSaturate
                     $"plan {coordinator.PlanFingerprint}");
             }
             Console.WriteLine(
-                "The four required 15-offer cases are integrated into CS003; " +
+                "The four required 15-offer cases are integrated into CS004; " +
                 "CS005O15 is not required by the suite.");
             return 0;
         }
@@ -665,6 +665,14 @@ namespace ACESimDistributedSaturate
             public string OperatingSystem { get; set; }
             public string ProcessArchitecture { get; set; }
             public List<string> ReproductionCommands { get; set; }
+            public List<ReusedEquilibriumArtifact> ReusedEquilibria { get; set; }
+        }
+
+        private sealed class ReusedEquilibriumArtifact
+        {
+            public string OptionSetName { get; set; }
+            public string FileName { get; set; }
+            public string Sha256BeforeRun { get; set; }
         }
 
         private sealed record SourceState(
@@ -738,10 +746,13 @@ namespace ACESimDistributedSaturate
                 }
             }
 
+            bool creatingManifest = manifest == null;
             manifest ??= new ProductionRunManifest
             {
                 RunStartedUtc = DateTime.UtcNow.ToString("O", CultureInfo.InvariantCulture),
             };
+            if (creatingManifest)
+                manifest.ReusedEquilibria = FindPreexistingEquilibria(launcher);
             manifest.LastUpdatedUtc = DateTime.UtcNow.ToString("O", CultureInfo.InvariantCulture);
             manifest.ManifestSchemaVersion = 1;
             manifest.Status = status;
@@ -789,6 +800,29 @@ namespace ACESimDistributedSaturate
                 $"ACESimDistributedSaturate aggregate --plan {planArgument} --results-directory {resultsArgument}",
             };
             WriteJsonAtomically(path, manifest);
+        }
+
+        private static List<ReusedEquilibriumArtifact> FindPreexistingEquilibria(
+            LitigGameCorrelatedSignalsArticleLauncher launcher)
+        {
+            var artifacts = new List<ReusedEquilibriumArtifact>();
+            foreach (GameOptions option in launcher.GetOptionsSets())
+            {
+                var settings = new EvolutionSettings();
+                option.ModifyEvolutionSettings?.Invoke(settings);
+                if (!settings.UseExistingEquilibriaIfAvailable)
+                    continue;
+                string path = launcher.GetReportFullPath(option.Name, "-equ.csv");
+                if (!File.Exists(path))
+                    continue;
+                artifacts.Add(new ReusedEquilibriumArtifact
+                {
+                    OptionSetName = option.Name,
+                    FileName = Path.GetFileName(path),
+                    Sha256BeforeRun = HashFile(path),
+                });
+            }
+            return artifacts;
         }
 
         private static void RequireManifestMatch(
@@ -1098,7 +1132,9 @@ namespace ACESimDistributedSaturate
 
         private static int ParseProcessorCount(string[] args)
         {
-            string text = OptionalArgument(args, "--processors") ?? "all";
+            // DEBUG: Temporarily default to 16 workers so this production run leaves capacity
+            // for interactive computer use. Revisit before the next unattended saturation run.
+            string text = OptionalArgument(args, "--processors") ?? "16";
             if (string.Equals(text, "all", StringComparison.OrdinalIgnoreCase))
                 return Environment.ProcessorCount;
             if (!int.TryParse(text, NumberStyles.None, CultureInfo.InvariantCulture, out int count) || count <= 0)
@@ -1133,7 +1169,7 @@ namespace ACESimDistributedSaturate
         private static int ShowHelp()
         {
             Console.WriteLine("ACESim4 correlated-signals production commands:");
-            Console.WriteLine("  <no arguments>              (required CS003 + CS004ME suite; aggregate and validate)");
+            Console.WriteLine("  <no arguments>              (required CS004 + CS004ME suite; 16 workers; aggregate and validate)");
             Console.WriteLine("  preflight-suite [--results-directory PATH]");
             Console.WriteLine("  run-suite [--processors all|N] [--results-directory PATH]");
             Console.WriteLine("  preflight [--plan focused|multiple-equilibria|offers-15|unified|supplemental|legacy]");

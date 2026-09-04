@@ -240,7 +240,7 @@ namespace ACESimTest.GameTests
             var options = launcher.GetOptionsSets().Cast<LitigGameOptions>().ToList();
             var audit = launcher.ValidateProductionMatrix(options.Cast<GameOptions>().ToList());
 
-            launcher.MasterReportNameForDistributedProcessing.Should().Be("CS003");
+            launcher.MasterReportNameForDistributedProcessing.Should().Be("CS004");
             audit.OptionSetCount.Should().Be(134);
             audit.CoreCombinationCount.Should().Be(10);
             audit.PairedComparisonCount.Should().Be(122);
@@ -290,6 +290,7 @@ namespace ACESimTest.GameTests
                 option.ModifyEvolutionSettings.Should().NotBeNull();
                 option.ModifyEvolutionSettings(settings);
                 settings.GenerateInformationSetActionReport.Should().BeTrue();
+                settings.UseExistingEquilibriaIfAvailable.Should().Be(option.NumOffers == 15);
             }
 
             options.Count(option =>

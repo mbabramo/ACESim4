@@ -283,6 +283,24 @@ namespace ACESimBase.GameSolvingAlgorithms
             {
                 equilibria = LoadEquilibriaFile().Select(x => (x, 1)).ToList();
                 equilibria = NarrowDownToUniqueEquilibria(equilibria);
+                List<(IMaybeExact<InexactValue>[] equilibrium, int frequency)> loadedForValidation =
+                    equilibria.Select(item => (
+                        item.equilibrium.Select(InexactValue.FromDouble).ToArray(),
+                        item.frequency))
+                    .ToList();
+                int loadedCount = loadedForValidation.Count;
+                NarrowDownToValidEquilibria(loadedForValidation);
+                if (loadedForValidation.Count != loadedCount)
+                    throw new InvalidDataException(
+                        $"One or more pre-existing equilibria for '{GameDefinition.OptionSetName}' " +
+                        "failed current-game equilibrium validation.");
+                equilibria = loadedForValidation
+                    .Select(item => (
+                        item.equilibrium.Select(value => value.AsDouble).ToArray(),
+                        item.frequency))
+                    .ToList();
+                TabbedText.WriteLine(
+                    $"Validated {equilibria.Count} pre-existing equilibrium profile(s) for {GameDefinition.OptionSetName}.");
             }
             else if (useManuallyDefinedEquilibria)
             {
