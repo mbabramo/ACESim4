@@ -43,7 +43,18 @@ namespace LitigCharts
             };
 
             if (launcher is LitigGameCorrelatedSignalsArticleLauncher correlatedLauncher)
+            {
                 correlatedLauncher.EnsureDistributedRunReadyForAggregation();
+                if (correlatedLauncher.RunPlan ==
+                    LitigGameCorrelatedSignalsArticleLauncher.ProductionRunPlan.MultipleEquilibriaRobustness)
+                {
+                    CorrelatedSignalsMultipleEquilibriaReport.BuildAndValidate(
+                        correlatedLauncher,
+                        correlatedLauncher.GetReportFullPath("equilibrium outcomes", ".csv"),
+                        correlatedLauncher.GetReportFullPath("equilibrium ranges", ".csv"));
+                    return;
+                }
+            }
 
             DataProcessingBase.VirtualizableFileSystem = new ACESimBase.Util.Serialization.VirtualizableFileSystem(launcher.GetReportFolder(), !useVirtualizedFileSystemForIndividualDiagrams);
 

@@ -1,10 +1,12 @@
 using ACESim;
 using ACESim.Util.DiscreteProbabilities;
 using ACESimBase.GameSolvingSupport.Settings;
+using ACESimBase.GameSolvingAlgorithms;
 using ACESimBase.Util.Mathematics;
 using FluentAssertions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 
@@ -13,6 +15,62 @@ namespace ACESimTest.GameTests
     [TestClass]
     public class LitigGameCorrelatedSignalsArticleLauncherTests
     {
+        [TestMethod]
+        public void DistributedCsvSuffixes_AreIndependentNormalizedAndCollisionSafe()
+        {
+            var reports = new ReportCollection(string.Empty, new System.Collections.Generic.List<string>
+            {
+                "first",
+                "second",
+                "third",
+                "fourth",
+            });
+            reports.AddReportSuffix("-Eq1");
+            reports.AddReportSuffix("-Eq2");
+            reports.AddReportSuffix("Eq1-InformationSetActions");
+
+            Launcher.GetCsvReportSuffix(reports, 0, "Option", string.Empty).Should().Be("-Eq1");
+            Launcher.GetCsvReportSuffix(reports, 1, "Option", string.Empty).Should().Be("-Eq2");
+            Launcher.GetCsvReportSuffix(reports, 2, "Option", string.Empty)
+                .Should().Be("-Eq1-InformationSetActions");
+            Launcher.GetCsvReportSuffix(reports, 3, "Option", "-rep1-scenarioall")
+                .Should().Be("-Report4-rep1-scenarioall");
+
+            var singleRecoveredEquilibrium = new ReportCollection(string.Empty, "first");
+            singleRecoveredEquilibrium.AddReportSuffix(string.Empty);
+            Launcher.GetCsvReportSuffix(
+                    singleRecoveredEquilibrium,
+                    0,
+                    "Option",
+                    string.Empty,
+                    labelFirstReportAsFirstEquilibrium: true)
+                .Should().Be("-Eq1");
+        }
+
+        [TestMethod]
+        public void EquilibriumRecoveryReport_DistinguishesAttemptsRecoveriesAndDistinctProfiles()
+        {
+            string csv = SequenceForm.BuildEquilibriumRecoveryCsv(
+                "Multiple Starts",
+                new List<(double[] equilibrium, int frequency)>
+                {
+                    (new[] { 0.25, 0.75 }, 30),
+                    (new[] { 0.50, 0.50 }, 20),
+                },
+                requestedPriors: 50,
+                exactSolverAttempts: 7,
+                inexactSolverAttempts: 49);
+
+            string[] rows = csv.Split(
+                new[] { "\r\n", "\n" },
+                StringSplitOptions.RemoveEmptyEntries);
+            rows.Should().HaveCount(3);
+            rows[0].Should().Contain("Requested Priors").And.Contain("Attempted Solves")
+                .And.Contain("Verified Recoveries").And.Contain("Recovery Count");
+            rows[1].Should().Contain(",50,56,49,7,50,2,1,30,0.59999999999999998,");
+            rows[2].Should().Contain(",50,56,49,7,50,2,2,20,0.40000000000000002,");
+        }
+
         [TestMethod]
         public void ProductionMatrix_IsCompleteLeanUniqueAndCalibrated()
         {
@@ -305,8 +363,20 @@ namespace ACESimTest.GameTests
                 settings.SequenceFormNumPriorsToUseToGenerateEquilibria.Should().Be(50);
                 settings.TryInexactArithmeticForAdditionalEquilibria.Should().BeTrue();
                 settings.ThrowIfNotPerfectEquilibrium.Should().BeFalse();
+                settings.GenerateInformationSetActionReport.Should().BeTrue();
             }
+            launcher.GetExpectedPrimaryResultPaths().Should().OnlyContain(path =>
+                path.EndsWith("-Eq1.csv", StringComparison.Ordinal));
             EveryReportIdentifierShouldSelectOneOption(launcher);
+        }
+
+        [TestMethod]
+        public void RequiredArticleProductionPlans_IncludeFocusedAndMultipleEquilibriaOnly()
+        {
+            LitigGameCorrelatedSignalsArticleLauncher.RequiredArticleProductionPlans.Should()
+                .Equal(
+                    LitigGameCorrelatedSignalsArticleLauncher.ProductionRunPlan.FocusedContinuousMerits,
+                    LitigGameCorrelatedSignalsArticleLauncher.ProductionRunPlan.MultipleEquilibriaRobustness);
         }
 
         [TestMethod]

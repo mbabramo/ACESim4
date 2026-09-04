@@ -98,6 +98,13 @@ namespace ACESim
         private const double PublishedTotalPerPartyLitigationCosts = 0.30;
         private const double PublishedProportionOfCostsAtBeginning = 0.5;
 
+        public static readonly IReadOnlyList<ProductionRunPlan> RequiredArticleProductionPlans =
+            new[]
+            {
+                ProductionRunPlan.FocusedContinuousMerits,
+                ProductionRunPlan.MultipleEquilibriaRobustness,
+            };
+
         public static readonly IReadOnlyList<FocusedSpecificationDefinition> FocusedSpecifications =
             new[]
             {
@@ -390,6 +397,17 @@ namespace ACESim
             optionSets = optionSets.OrderBy(x => x.Name, StringComparer.Ordinal).ToList();
             ValidateProductionMatrix(optionSets);
             return optionSets;
+        }
+
+        public override IReadOnlyList<string> GetExpectedPrimaryResultPaths()
+        {
+            string suffix = RunPlan == ProductionRunPlan.MultipleEquilibriaRobustness
+                ? "-Eq1.csv"
+                : ".csv";
+            return GetOptionsSets()
+                .Select(optionSet => GetReportFullPath(optionSet.Name, suffix))
+                .OrderBy(path => path, StringComparer.Ordinal)
+                .ToList();
         }
 
         private IEnumerable<GameOptions> CreateIntegratedFinerOfferOptionSets()

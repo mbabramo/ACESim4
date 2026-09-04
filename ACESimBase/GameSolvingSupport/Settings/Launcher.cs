@@ -611,7 +611,7 @@ namespace ACESimBase.GameSolvingSupport.Settings
             return (failedReset, pendingReset, coordinator);
         }
 
-        public IReadOnlyList<string> GetExpectedPrimaryResultPaths() =>
+        public virtual IReadOnlyList<string> GetExpectedPrimaryResultPaths() =>
             GetOptionsSets()
                 .Select(optionSet => GetReportFullPath(optionSet.Name, ".csv"))
                 .OrderBy(path => path, StringComparer.Ordinal)
@@ -803,7 +803,6 @@ namespace ACESimBase.GameSolvingSupport.Settings
 
         private async Task<ReportCollection> GetSingleRepetitionReportAndSave(string masterReportName, GameOptions options, string optionSetName, int repetition, bool addOptionSetColumns, IStrategiesDeveloper developer, int? restrictToScenarioIndex, Action<string> logAction = null)
         {
-            string suffix = $"";
             string taskDisambiguator = repetition == 0 && restrictToScenarioIndex == null
                 ? ""
                 : $"-rep{repetition}-scenario{restrictToScenarioIndex?.ToString() ?? "all"}";
@@ -821,12 +820,19 @@ namespace ACESimBase.GameSolvingSupport.Settings
                 {
                     for (int c = 0; c < result.csvReports.Count; c++)
                     {
-                        if (c == 0 && result.ReportSuffixes != null && result.ReportSuffixes.Count() > c && result.ReportSuffixes[c].Contains(optionSetName))
-                            suffix = ""; // remove the redundancy
-                        if (result.ReportSuffixes.Count() > c && result.ReportSuffixes[c] is not null and string suffix2 && suffix2 is not null && suffix2 is not "")
-                            suffix += "-" + suffix2;
-
-                        AzureBlob.WriteTextToFileOrAzure("results", ReportFolder(), GetReportFilename(optionSetName, suffix + taskDisambiguator + ".csv"), true, result.csvReports[c], SaveToAzureBlob); // task qualifier prevents repetitions or scenarios from colliding
+                        string reportSuffix = GetCsvReportSuffix(
+                            result,
+                            c,
+                            optionSetName,
+                            taskDisambiguator,
+                            masterReportName == "CS004ME");
+                        AzureBlob.WriteTextToFileOrAzure(
+                            "results",
+                            ReportFolder(),
+                            GetReportFilename(optionSetName, reportSuffix + ".csv"),
+                            true,
+                            result.csvReports[c],
+                            SaveToAzureBlob); // task qualifier prevents repetitions or scenarios from colliding
                     }
                 }
                 logAction("Report written to blob");
@@ -837,6 +843,30 @@ namespace ACESimBase.GameSolvingSupport.Settings
                 logAction(ex.Message + ex.StackTrace);
                 throw;
             }
+        }
+
+        internal static string GetCsvReportSuffix(
+            ReportCollection result,
+            int reportIndex,
+            string optionSetName,
+            string taskDisambiguator,
+            bool labelFirstReportAsFirstEquilibrium = false)
+        {
+            string suffix = reportIndex < result.ReportSuffixes.Count
+                ? result.ReportSuffixes[reportIndex]
+                : reportIndex == 0
+                    ? string.Empty
+                    : $"Report{reportIndex + 1}";
+            if (reportIndex == 0 &&
+                !string.IsNullOrWhiteSpace(suffix) &&
+                suffix.Contains(optionSetName, StringComparison.Ordinal))
+                suffix = string.Empty;
+
+            suffix = (suffix ?? string.Empty).Trim().TrimStart('-');
+            if (reportIndex == 0 && labelFirstReportAsFirstEquilibrium && suffix.Length == 0)
+                suffix = "Eq1";
+            string normalizedSuffix = suffix.Length == 0 ? string.Empty : "-" + suffix;
+            return normalizedSuffix + taskDisambiguator;
         }
 
         private async Task<ReportCollection> GetSingleRepetitionReport(string optionSetName, int i, bool addOptionSetColumns, IStrategiesDeveloper developer, int? restrictToScenarioIndex, Action<string> logAction = null)
