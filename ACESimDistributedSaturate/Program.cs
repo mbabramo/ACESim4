@@ -47,9 +47,17 @@ namespace ACESimDistributedSaturate
             }
         }
 
-        private static LitigGameCorrelatedSignalsArticleLauncher CreateLauncher(string[] args) =>
-            new(LitigGameCorrelatedSignalsArticleLauncher.ParseProductionRunPlan(
-                OptionalArgument(args, "--plan") ?? "focused"));
+        private static LitigGameCorrelatedSignalsArticleLauncher CreateLauncher(string[] args)
+        {
+            string resultsDirectory = OptionalArgument(args, "--results-directory");
+            if (!string.IsNullOrWhiteSpace(resultsDirectory))
+                Environment.SetEnvironmentVariable(
+                    FolderFinder.ReportResultsDirectoryEnvironmentVariable,
+                    Path.GetFullPath(resultsDirectory));
+            return new LitigGameCorrelatedSignalsArticleLauncher(
+                LitigGameCorrelatedSignalsArticleLauncher.ParseProductionRunPlan(
+                    OptionalArgument(args, "--plan") ?? "focused"));
+        }
 
         private static int RunPreflight(string[] args)
         {
@@ -80,7 +88,7 @@ namespace ACESimDistributedSaturate
             Console.WriteLine(
                 "TaskID,OptionSetName,SignalStructure,InformationLevel,PartySignalSigma,CourtSignalSigma," +
                 "CostsMultiplier,FeeShiftingMultiplier,RiskAversion,Generator,Offers,LiabilitySignals," +
-                "LiabilityStrengthPoints,LiabilityShaping,DamagesShaping");
+                "CourtLiabilitySignals,LiabilityStrengthPoints,LiabilityShaping,DamagesShaping");
             for (int taskId = 0; taskId < optionSets.Count; taskId++)
             {
                 var options = (LitigGameOptions)optionSets[taskId];
@@ -105,6 +113,7 @@ namespace ACESimDistributedSaturate
                     generator,
                     options.NumOffers.ToString(CultureInfo.InvariantCulture),
                     options.NumLiabilitySignals.ToString(CultureInfo.InvariantCulture),
+                    options.NumCourtLiabilitySignals.ToString(CultureInfo.InvariantCulture),
                     options.NumLiabilityStrengthPoints.ToString(CultureInfo.InvariantCulture),
                     options.LiabilitySignalShapeParameters.Mode.ToString(),
                     options.DamagesSignalShapeParameters.Mode.ToString(),
@@ -469,6 +478,8 @@ namespace ACESimDistributedSaturate
             LitigGameCorrelatedSignalsArticleLauncher.ProductionRunPlan.UniformBaselineSupplement => "supplemental",
             LitigGameCorrelatedSignalsArticleLauncher.ProductionRunPlan.UnifiedThreeStructure => "unified",
             LitigGameCorrelatedSignalsArticleLauncher.ProductionRunPlan.FocusedContinuousMerits => "focused",
+            LitigGameCorrelatedSignalsArticleLauncher.ProductionRunPlan.MultipleEquilibriaRobustness => "multiple-equilibria",
+            LitigGameCorrelatedSignalsArticleLauncher.ProductionRunPlan.IncreasedOfferGridRobustness => "offers-15",
             _ => throw new NotSupportedException(),
         };
 
@@ -510,12 +521,13 @@ namespace ACESimDistributedSaturate
         {
             Console.WriteLine("ACESim4 correlated-signals production commands:");
             Console.WriteLine("  <no arguments>              (focused CS003 production on all processors)");
-            Console.WriteLine("  preflight [--plan focused|unified|supplemental|legacy]");
-            Console.WriteLine("  run --processors all|N [--plan focused|unified|supplemental|legacy]");
-            Console.WriteLine("  status [--plan focused|unified|supplemental|legacy]");
-            Console.WriteLine("  recover --failed [--include-pending] [--plan focused|unified|supplemental|legacy]");
-            Console.WriteLine("  aggregate [--plan focused|unified|supplemental|legacy]");
+            Console.WriteLine("  preflight [--plan focused|multiple-equilibria|offers-15|unified|supplemental|legacy]");
+            Console.WriteLine("  run --processors all|N [--plan focused|multiple-equilibria|offers-15|unified|supplemental|legacy]");
+            Console.WriteLine("  status [--plan focused|multiple-equilibria|offers-15|unified|supplemental|legacy]");
+            Console.WriteLine("  recover --failed [--include-pending] [--plan focused|multiple-equilibria|offers-15|unified|supplemental|legacy]");
+            Console.WriteLine("  aggregate [--plan focused|multiple-equilibria|offers-15|unified|supplemental|legacy]");
             Console.WriteLine("  smoke-test");
+            Console.WriteLine("  Add --results-directory PATH to keep a run in a dedicated results folder.");
             return 0;
         }
     }

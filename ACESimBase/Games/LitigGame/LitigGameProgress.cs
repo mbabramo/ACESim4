@@ -107,6 +107,9 @@ namespace ACESim
         public double PDamagesSignalUniform { get => PostGameInfo.PDamagesSignalUniform; set { PostGameInfo.PDamagesSignalUniform = value; } }
         public double DDamagesSignalUniform { get => PostGameInfo.DDamagesSignalUniform; set { PostGameInfo.DDamagesSignalUniform = value; } }
 
+        // Legacy property names are retained for serialized-result compatibility. Article-facing
+        // reports label these net-wealth measures more literally. They intentionally include
+        // litigation costs and fee transfers, rather than measuring adjudicative error alone.
         public double FalsePositiveExpenditures { get => PostGameInfo.FalsePositiveExpenditures; set { PostGameInfo.FalsePositiveExpenditures = value; } }
         public double FalseNegativeShortfall { get => PostGameInfo.FalseNegativeShortfall; set { PostGameInfo.FalseNegativeShortfall = value; } }
         public double TotalExpensesIncurred { get => PostGameInfo.TotalExpensesIncurred; set { PostGameInfo.TotalExpensesIncurred = value; } }

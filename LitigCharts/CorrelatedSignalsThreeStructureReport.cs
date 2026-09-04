@@ -45,6 +45,8 @@ namespace LitigCharts
             "Proportion of Costs at Beginning",
             "Liability Signal Shaping",
             "Damages Signal Shaping",
+            "Number of Signals",
+            "Number of Court Signals",
             "Number of Offers",
         };
 

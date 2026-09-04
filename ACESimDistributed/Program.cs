@@ -19,6 +19,11 @@ namespace ACESimDistributed
             int? processorAffinity = ReadIntArgument(args, "--processor-affinity");
             if (processorAffinity != null)
                 ApplyProcessorAffinity(processorAffinity.Value);
+            string resultsDirectory = ReadStringArgument(args, "--results-directory");
+            if (!string.IsNullOrWhiteSpace(resultsDirectory))
+                Environment.SetEnvironmentVariable(
+                    FolderFinder.ReportResultsDirectoryEnvironmentVariable,
+                    Path.GetFullPath(resultsDirectory));
 
             using var cancellationSource = new CancellationTokenSource();
             Console.CancelKeyPress += (_, eventArgs) =>

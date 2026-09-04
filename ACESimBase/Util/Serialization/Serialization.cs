@@ -128,6 +128,9 @@ namespace ACESimBase.Util.Serialization
 
     public static class FolderFinder
     {
+        public const string ReportResultsDirectoryEnvironmentVariable =
+            "ACESIM_REPORT_RESULTS_DIRECTORY";
+
         static Dictionary<string, DirectoryInfo> Locations = new Dictionary<string, DirectoryInfo>();
 
         private static DirectoryInfo TryGetSolutionDirectoryInfo(string currentPath = null)
@@ -154,6 +157,18 @@ namespace ACESimBase.Util.Serialization
 
         public static DirectoryInfo GetFolderToWriteTo(string folderName)
         {
+            if (string.Equals(folderName, "ReportResults", StringComparison.Ordinal))
+            {
+                string configuredReportDirectory = Environment.GetEnvironmentVariable(
+                    ReportResultsDirectoryEnvironmentVariable);
+                if (!string.IsNullOrWhiteSpace(configuredReportDirectory))
+                {
+                    string fullPath = Path.GetFullPath(configuredReportDirectory);
+                    Directory.CreateDirectory(fullPath);
+                    return new DirectoryInfo(fullPath);
+                }
+            }
+
             lock (Locations)
                 if (Locations.ContainsKey(folderName))
                     return Locations[folderName];

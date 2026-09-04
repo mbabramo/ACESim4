@@ -35,6 +35,8 @@ namespace ACESimTest
                 string signalStrategies = Path.Combine(directory, "signal-strategies.csv");
                 WriteNumericalSource(numericalSource, launcher, options);
                 WriteSignalSource(signalSource, launcher, options);
+                CorrelatedSignalsFocusedReport.AllocateMutualGiveUpInCsv(numericalSource);
+                CorrelatedSignalsFocusedReport.AllocateMutualGiveUpInCsv(signalSource);
 
                 CorrelatedSignalsFocusedReport.ValidationSummary summary =
                     CorrelatedSignalsFocusedReport.BuildAndValidate(
@@ -46,23 +48,36 @@ namespace ACESimTest
                         feePairs,
                         signalStrategies);
 
-                summary.NumericalResultCount.Should().Be(130);
-                summary.SpecificationComparisonCount.Should().Be(120);
-                summary.FeeRegimeComparisonCount.Should().Be(65);
-                summary.SignalStrategyCount.Should().Be(2600);
-                File.ReadLines(numericalResults).Should().HaveCount(131);
-                File.ReadLines(specificationPairs).Should().HaveCount(121);
-                File.ReadLines(feePairs).Should().HaveCount(66);
-                File.ReadLines(signalStrategies).Should().HaveCount(2601);
+                summary.NumericalResultCount.Should().Be(134);
+                summary.SpecificationComparisonCount.Should().Be(122);
+                summary.FeeRegimeComparisonCount.Should().Be(67);
+                summary.SignalStrategyCount.Should().Be(2680);
+                File.ReadLines(numericalResults).Should().HaveCount(135);
+                File.ReadLines(specificationPairs).Should().HaveCount(123);
+                File.ReadLines(feePairs).Should().HaveCount(68);
+                File.ReadLines(signalStrategies).Should().HaveCount(2681);
                 File.ReadAllText(numericalResults).Should()
                     .Contain("Settlement Conditional on Reaching Bargaining")
                     .And.Contain("Real Litigation Costs")
                     .And.Contain("Liability Transfer to Plaintiff")
-                    .And.Contain("Fee-Shifting Transfer to Plaintiff");
+                    .And.Contain("Fee-Shifting Transfer to Plaintiff")
+                    .And.Contain(CorrelatedSignalsFocusedReport.DefendantExcessBurdenColumn)
+                    .And.Contain(CorrelatedSignalsFocusedReport.PlaintiffRecoveryShortfallColumn)
+                    .And.NotContain("False Positive Inaccuracy")
+                    .And.NotContain("False Negative Inaccuracy");
                 File.ReadAllText(signalStrategies).Should()
                     .Contain("Offer-Overlap Acceptance Conditional on Reaching Bargaining")
                     .And.Contain("P Offer 1 Action 10")
                     .And.Contain("D Offer 1 Action 10");
+
+                Dictionary<string, string> numericalRow = ReadFirstRow(numericalResults);
+                numericalRow["P Abandons"].Should().Be("0.05");
+                numericalRow["D Defaults"].Should().Be("0.05");
+                numericalRow[CorrelatedSignalsFocusedReport.MutualGiveUpBeforeAllocationColumn]
+                    .Should().Be("0.02");
+                Dictionary<string, string> signalRow = ReadFirstRow(signalStrategies);
+                signalRow["P Abandonment Probability Unconditional"].Should().Be("0.05");
+                signalRow["D Default Probability Unconditional"].Should().Be("0.05");
             }
             finally
             {
@@ -78,17 +93,22 @@ namespace ACESimTest
             string[] settings = launcher.DefaultVariableValues.Select(setting => setting.Item1).ToArray();
             string[] measures =
             {
+                "P Files",
                 "D Answers",
+                "Trial",
+                "No Suit",
                 "Settles",
                 "No Answer",
                 "P Abandons",
                 "D Defaults",
+                CorrelatedSignalsFocusedReport.MutualGiveUpBeforeAllocationColumn,
                 "P Loses",
                 "P Wins",
                 "Value If Settled",
                 "Expenditures",
-                "False Positive Inaccuracy",
-                "False Negative Inaccuracy",
+                CorrelatedSignalsFocusedReport.DefendantExcessBurdenColumn,
+                CorrelatedSignalsFocusedReport.PlaintiffRecoveryShortfallColumn,
+                "Total Wealth",
                 "P Welfare",
                 "D Welfare",
                 "Social Welfare Loss",
@@ -104,15 +124,20 @@ namespace ACESimTest
                 {
                     string value = measure switch
                     {
+                        "P Files" => "0.6",
                         "D Answers" => "0.5",
-                        "Settles" => "0.25",
+                        "Trial" => "0.2",
+                        "No Suit" => "0.4",
+                        "Settles" => "0.2",
                         "No Answer" => "0.1",
-                        "P Abandons" => "0.05",
-                        "D Defaults" => "0.05",
+                        "P Abandons" => "0.04",
+                        "D Defaults" => "0.04",
+                        CorrelatedSignalsFocusedReport.MutualGiveUpBeforeAllocationColumn => "0.02",
                         "P Loses" => "0.1",
                         "P Wins" => "0.1",
                         "Value If Settled" => "0.4",
                         "Expenditures" => "0.2",
+                        "Total Wealth" => "19.8",
                         _ => "0.01",
                     };
                     csv.WriteField(value);
@@ -137,6 +162,7 @@ namespace ACESimTest
                 "Settles",
                 "P Abandons",
                 "D Defaults",
+                CorrelatedSignalsFocusedReport.MutualGiveUpBeforeAllocationColumn,
                 "Trial",
                 "P Loses",
                 "P Wins",
@@ -162,8 +188,9 @@ namespace ACESimTest
                         "P Offer" => "0.3",
                         "D Offer" => "0.6",
                         "Settles" => "0.2",
-                        "P Abandons" => "0.05",
-                        "D Defaults" => "0.05",
+                        "P Abandons" => "0.04",
+                        "D Defaults" => "0.04",
+                        CorrelatedSignalsFocusedReport.MutualGiveUpBeforeAllocationColumn => "0.02",
                         "Trial" => "0.1",
                         "P Loses" => "0.04",
                         "P Wins" => "0.06",
@@ -207,6 +234,19 @@ namespace ACESimTest
             csv.WriteField(filter);
             csv.WriteField(option.Name);
             csv.WriteField(option.Name);
+        }
+
+        private static Dictionary<string, string> ReadFirstRow(string path)
+        {
+            using var reader = new StreamReader(path);
+            using var csv = new CsvReader(reader, CultureInfo.InvariantCulture);
+            csv.Read();
+            csv.ReadHeader();
+            csv.Read();
+            return csv.HeaderRecord.ToDictionary(
+                header => header,
+                header => csv.GetField(header),
+                StringComparer.OrdinalIgnoreCase);
         }
     }
 }

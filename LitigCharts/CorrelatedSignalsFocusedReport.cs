@@ -17,6 +17,17 @@ namespace LitigCharts
     /// </summary>
     public static class CorrelatedSignalsFocusedReport
     {
+        public const string DefendantExcessBurdenColumn =
+            "Defendant Excess Net Monetary Burden";
+        public const string PlaintiffRecoveryShortfallColumn =
+            "Plaintiff Net Recovery Shortfall";
+        public const string MutualGiveUpBeforeAllocationColumn =
+            "Mutual Give-Up Probability Before 50/50 Allocation";
+
+        private const string LegacyFalsePositiveColumn = "False Positive Inaccuracy";
+        private const string LegacyFalseNegativeColumn = "False Negative Inaccuracy";
+        private const double AccountingTolerance = 1E-4;
+
         public sealed record ValidationSummary(
             int NumericalResultCount,
             int SpecificationComparisonCount,
@@ -72,11 +83,15 @@ namespace LitigCharts
                 launcher.DefaultVariableValues.Select(setting => setting.Item1));
             RequireColumns(numericalSource.Headers, new[]
             {
+                "P Files",
                 "D Answers",
+                "Trial",
+                "No Suit",
                 "Settles",
                 "No Answer",
                 "P Abandons",
                 "D Defaults",
+                MutualGiveUpBeforeAllocationColumn,
                 "P Loses",
                 "P Wins",
                 "Value If Settled",
@@ -90,7 +105,10 @@ namespace LitigCharts
                     row,
                     optionsByName[row["OptionSetName"]]))
                 .ToList();
+            foreach (Dictionary<string, string> row in numericalRows)
+                ValidateNumericalAccounting(row, optionsByName[row["OptionSetName"]]);
             string[] numericalHeaders = numericalSource.Headers
+                .Select(RenameLegacyAccuracyHeader)
                 .Concat(DerivedNumericalColumns)
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .ToArray();
@@ -156,16 +174,53 @@ namespace LitigCharts
                 outcomeMeasures.Length);
         }
 
+        /// <summary>
+        /// Allocates the pre-resolution mutual-give-up mass equally between plaintiff
+        /// abandonment and defendant default. The mutual-give-up column is retained as an
+        /// audit field. Call this only on a newly aggregated CSV, before producing charts.
+        /// </summary>
+        public static void AllocateMutualGiveUpInCsv(string path)
+        {
+            CsvTable table = ReadRows(path);
+            RequireColumns(table.Headers, new[]
+            {
+                "P Abandons",
+                "D Defaults",
+                MutualGiveUpBeforeAllocationColumn,
+            });
+            foreach (Dictionary<string, string> row in table.Rows)
+            {
+                double mutualGiveUp = RequiredValue(row, MutualGiveUpBeforeAllocationColumn);
+                row["P Abandons"] = Format(RequiredValue(row, "P Abandons") + 0.5 * mutualGiveUp);
+                row["D Defaults"] = Format(RequiredValue(row, "D Defaults") + 0.5 * mutualGiveUp);
+            }
+            WriteRows(path, table.Headers, table.Rows);
+        }
+
         private static Dictionary<string, string> AddDerivedNumericalValues(
             Dictionary<string, string> source,
             LitigGameOptions options)
         {
             var row = new Dictionary<string, string>(source, StringComparer.OrdinalIgnoreCase);
+            RenameLegacyAccuracyValue(row, LegacyFalsePositiveColumn, DefendantExcessBurdenColumn);
+            RenameLegacyAccuracyValue(row, LegacyFalseNegativeColumn, PlaintiffRecoveryShortfallColumn);
+
             double reachesBargaining = RequiredValue(row, "D Answers");
             double settles = RequiredValue(row, "Settles");
+            double mutualGiveUp = RequiredValue(row, MutualGiveUpBeforeAllocationColumn);
+            (double pAbandons, double dDefaults) = AllocateMutualGiveUpIfNeeded(
+                reachesBargaining,
+                settles,
+                RequiredValue(row, "Trial"),
+                RequiredValue(row, "P Abandons"),
+                RequiredValue(row, "D Defaults"),
+                mutualGiveUp,
+                row["OptionSetName"]);
+            row["P Abandons"] = Format(pAbandons);
+            row["D Defaults"] = Format(dDefaults);
             double liabilityTransfer =
                 RequiredValue(row, "No Answer") * options.DamagesMax * options.DamagesMultiplier +
-                RequiredValue(row, "D Defaults") * options.DamagesMax * options.DamagesMultiplier +
+                dDefaults * options.DamagesMax * options.DamagesMultiplier +
                 settles * OptionalValue(row, "Value If Settled").GetValueOrDefault() +
                 RequiredValue(row, "P Wins") * options.DamagesMax * options.DamagesMultiplier;
 
@@ -188,13 +243,108 @@ namespace LitigCharts
             return row;
         }
 
+        private static (double pAbandons, double dDefaults) AllocateMutualGiveUpIfNeeded(
+            double reachesBargaining,
+            double settles,
+            double trial,
+            double pAbandons,
+            double dDefaults,
+            double mutualGiveUp,
+            string identity)
+        {
+            double reportedPathTotal = settles + pAbandons + dDefaults + trial;
+            if (Math.Abs(reachesBargaining - reportedPathTotal) <= AccountingTolerance)
+                return (pAbandons, dDefaults);
+            if (Math.Abs(reachesBargaining - reportedPathTotal - mutualGiveUp) <= AccountingTolerance)
+                return (
+                    pAbandons + 0.5 * mutualGiveUp,
+                    dDefaults + 0.5 * mutualGiveUp);
+            throw new InvalidDataException(
+                $"Row '{identity}' cannot reconcile the bargaining path before or after the " +
+                "50/50 mutual-give-up allocation.");
+        }
+
+        private static string RenameLegacyAccuracyHeader(string header) => header switch
+        {
+            LegacyFalsePositiveColumn => DefendantExcessBurdenColumn,
+            LegacyFalseNegativeColumn => PlaintiffRecoveryShortfallColumn,
+            _ => header,
+        };
+
+        private static void RenameLegacyAccuracyValue(
+            IDictionary<string, string> row,
+            string legacyName,
+            string currentName)
+        {
+            if (!row.ContainsKey(currentName) && row.TryGetValue(legacyName, out string value))
+                row[currentName] = value;
+            row.Remove(legacyName);
+        }
+
+        private static void ValidateNumericalAccounting(
+            IReadOnlyDictionary<string, string> row,
+            LitigGameOptions options)
+        {
+            string identity = row["OptionSetName"];
+            double pFiles = RequiredValue(row, "P Files");
+            double dAnswers = RequiredValue(row, "D Answers");
+            double trial = RequiredValue(row, "Trial");
+            double noSuit = RequiredValue(row, "No Suit");
+            double noAnswer = RequiredValue(row, "No Answer");
+            double settles = RequiredValue(row, "Settles");
+            double pAbandons = RequiredValue(row, "P Abandons");
+            double dDefaults = RequiredValue(row, "D Defaults");
+            double pLoses = RequiredValue(row, "P Loses");
+            double pWins = RequiredValue(row, "P Wins");
+            RequiredValue(row, DefendantExcessBurdenColumn);
+            RequiredValue(row, PlaintiffRecoveryShortfallColumn);
+
+            RequireApproximately(identity, "filing identity", pFiles, 1.0 - noSuit);
+            RequireApproximately(identity, "answering identity", dAnswers, pFiles - noAnswer);
+            RequireApproximately(identity, "trial identity", trial, pLoses + pWins);
+            RequireApproximately(
+                identity,
+                "bargaining-path identity",
+                dAnswers,
+                settles + pAbandons + dDefaults + trial);
+            RequireApproximately(
+                identity,
+                "terminal-disposition identity",
+                1.0,
+                noSuit + noAnswer + settles + pAbandons + dDefaults + pLoses + pWins);
+
+            if (OptionalValue(row, "Total Wealth") is double totalWealth &&
+                OptionalValue(row, "Expenditures") is double expenditures)
+            {
+                RequireApproximately(
+                    identity,
+                    "wealth/expenditure identity",
+                    options.PInitialWealth + options.DInitialWealth - expenditures,
+                    totalWealth);
+            }
+        }
+
+        private static void RequireApproximately(
+            string optionSetName,
+            string description,
+            double expected,
+            double actual)
+        {
+            if (Math.Abs(expected - actual) > AccountingTolerance)
+                throw new InvalidDataException(
+                    $"Option set '{optionSetName}' fails the {description}: expected {Format(expected)}, " +
+                    $"found {Format(actual)} (tolerance {AccountingTolerance}).");
+        }
+
         private static int WriteSpecificationComparisons(
             string path,
             IReadOnlyList<Dictionary<string, string>> numericalRows,
             IReadOnlyList<string> outcomes)
         {
             var groups = numericalRows
-                .GroupBy(row => $"{row["Costs Multiplier"]}|{row["Fee Regime"]}", StringComparer.Ordinal)
+                .GroupBy(
+                    row => $"{row["Costs Multiplier"]}|{row["Fee Regime"]}|{row["Number of Offers"]}",
+                    StringComparer.Ordinal)
                 .OrderBy(group => group.Key, StringComparer.Ordinal)
                 .ToList();
             var outputRows = new List<Dictionary<string, string>>();
@@ -211,6 +361,7 @@ namespace LitigCharts
                     {
                         ["Costs Multiplier"] = baseline["Costs Multiplier"],
                         ["Fee Regime"] = baseline["Fee Regime"],
+                        ["Number of Offers"] = baseline["Number of Offers"],
                         ["Baseline Specification"] = baseline["Specification"],
                         ["Comparison Specification"] = comparison["Specification"],
                         ["Baseline OptionSetName"] = baseline["OptionSetName"],
@@ -226,6 +377,7 @@ namespace LitigCharts
                 {
                     "Costs Multiplier",
                     "Fee Regime",
+                    "Number of Offers",
                     "Baseline Specification",
                     "Comparison Specification",
                     "Baseline OptionSetName",
@@ -245,7 +397,9 @@ namespace LitigCharts
             IReadOnlyList<string> outcomes)
         {
             var groups = numericalRows
-                .GroupBy(row => $"{row["Specification"]}|{row["Costs Multiplier"]}", StringComparer.Ordinal)
+                .GroupBy(
+                    row => $"{row["Specification"]}|{row["Costs Multiplier"]}|{row["Number of Offers"]}",
+                    StringComparer.Ordinal)
                 .OrderBy(group => group.Key, StringComparer.Ordinal)
                 .ToList();
             var outputRows = new List<Dictionary<string, string>>();
@@ -257,6 +411,7 @@ namespace LitigCharts
                 {
                     ["Specification"] = american["Specification"],
                     ["Costs Multiplier"] = american["Costs Multiplier"],
+                    ["Number of Offers"] = american["Number of Offers"],
                     ["American OptionSetName"] = american["OptionSetName"],
                     ["British OptionSetName"] = british["OptionSetName"],
                 };
@@ -269,6 +424,7 @@ namespace LitigCharts
                 {
                     "Specification",
                     "Costs Multiplier",
+                    "Number of Offers",
                     "American OptionSetName",
                     "British OptionSetName",
                 },
@@ -350,6 +506,7 @@ namespace LitigCharts
                 "P Abandonment Probability Conditional on Reaching Bargaining",
                 "D Default Probability Unconditional",
                 "D Default Probability Conditional on Reaching Bargaining",
+                MutualGiveUpBeforeAllocationColumn,
                 "Settlement Probability Unconditional",
                 "Settlement Probability Conditional on Reaching Bargaining",
                 "Trial Probability Unconditional",
@@ -369,9 +526,22 @@ namespace LitigCharts
                 double pFiles = RequiredValue(source, "P Files");
                 double dAnswers = RequiredValue(source, "D Answers");
                 double settles = RequiredValue(source, "Settles");
-                double pAbandons = RequiredValue(source, "P Abandons");
-                double dDefaults = RequiredValue(source, "D Defaults");
+                double mutualGiveUp = RequiredValue(source, MutualGiveUpBeforeAllocationColumn);
                 double trial = RequiredValue(source, "Trial");
+                (double pAbandons, double dDefaults) = AllocateMutualGiveUpIfNeeded(
+                    dAnswers,
+                    settles,
+                    trial,
+                    RequiredValue(source, "P Abandons"),
+                    RequiredValue(source, "D Defaults"),
+                    mutualGiveUp,
+                    $"{source["OptionSetName"]}|{filter}");
+
+                RequireApproximately(
+                    $"{source["OptionSetName"]}|{filter}",
+                    "signal-conditional bargaining-path identity",
+                    dAnswers,
+                    settles + pAbandons + dDefaults + trial);
 
                 var output = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
                 foreach (string header in metadata)
@@ -393,6 +563,7 @@ namespace LitigCharts
                 output["D Default Probability Unconditional"] = Format(dDefaults);
                 output["D Default Probability Conditional on Reaching Bargaining"] =
                     FormatRatio(dDefaults, dAnswers);
+                output[MutualGiveUpBeforeAllocationColumn] = Format(mutualGiveUp);
                 output["Settlement Probability Unconditional"] = Format(settles);
                 output["Settlement Probability Conditional on Reaching Bargaining"] =
                     FormatRatio(settles, dAnswers);
@@ -421,6 +592,7 @@ namespace LitigCharts
                 "Settles",
                 "P Abandons",
                 "D Defaults",
+                MutualGiveUpBeforeAllocationColumn,
                 "Trial",
                 "P Loses",
                 "P Wins",

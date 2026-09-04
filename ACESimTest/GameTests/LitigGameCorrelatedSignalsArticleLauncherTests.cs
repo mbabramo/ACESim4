@@ -1,6 +1,7 @@
 using ACESim;
 using ACESim.Util.DiscreteProbabilities;
 using ACESimBase.GameSolvingSupport.Settings;
+using ACESimBase.Util.Mathematics;
 using FluentAssertions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
@@ -174,7 +175,7 @@ namespace ACESimTest.GameTests
         }
 
         [TestMethod]
-        public void FocusedPlan_CrossesExactlyThirteenAtomicSpecificationsWithFiveCostsAndTwoFees()
+        public void FocusedPlan_CombinesCoreMatrixWithFourFinerOfferCases()
         {
             var launcher = new LitigGameCorrelatedSignalsArticleLauncher(
                 LitigGameCorrelatedSignalsArticleLauncher.ProductionRunPlan.FocusedContinuousMerits);
@@ -182,17 +183,25 @@ namespace ACESimTest.GameTests
             var audit = launcher.ValidateProductionMatrix(options.Cast<GameOptions>().ToList());
 
             launcher.MasterReportNameForDistributedProcessing.Should().Be("CS003");
-            audit.OptionSetCount.Should().Be(130);
+            audit.OptionSetCount.Should().Be(134);
             audit.CoreCombinationCount.Should().Be(10);
-            audit.PairedComparisonCount.Should().Be(120);
-            audit.FeeRegimeComparisonCount.Should().Be(65);
-            audit.CountsByInformationAndRisk.Should().HaveCount(13)
-                .And.OnlyContain(pair => pair.Value == 10);
+            audit.PairedComparisonCount.Should().Be(122);
+            audit.FeeRegimeComparisonCount.Should().Be(67);
+            audit.CountsByInformationAndRisk.Should().HaveCount(13);
+            audit.CountsByInformationAndRisk[LitigGameCorrelatedSignalsArticleLauncher.FocusedBaselineLabel]
+                .Should().Be(12);
+            audit.CountsByInformationAndRisk["Moderate symmetric risk aversion"]
+                .Should().Be(12);
+            audit.CountsByInformationAndRisk
+                .Where(pair =>
+                    pair.Key != LitigGameCorrelatedSignalsArticleLauncher.FocusedBaselineLabel &&
+                    pair.Key != "Moderate symmetric risk aversion")
+                .Should().OnlyContain(pair => pair.Value == 10);
             options.Select(option => Setting(option, "Costs Multiplier"))
                 .Distinct().Should().BeEquivalentTo("0.25", "0.5", "1", "2", "4");
             options.Select(option => Setting(option, "Fee Regime"))
                 .Distinct().Should().BeEquivalentTo("American", "British");
-            options.GroupBy(option => new
+            options.Where(option => option.NumOffers == 10).GroupBy(option => new
                 {
                     Cost = Setting(option, "Costs Multiplier"),
                     Fee = Setting(option, "Fee Regime"),
@@ -201,6 +210,22 @@ namespace ACESimTest.GameTests
                 .And.OnlyContain(group =>
                     group.Count() == 13 &&
                     group.Select(option => Setting(option, "Specification")).Distinct().Count() == 13);
+            options.Where(option => option.NumOffers == 15)
+                .Should().HaveCount(4)
+                .And.OnlyContain(option =>
+                    new[]
+                    {
+                        LitigGameCorrelatedSignalsArticleLauncher.FocusedBaselineLabel,
+                        "Moderate symmetric risk aversion",
+                    }.Contains(Setting(option, "Specification")) &&
+                    Setting(option, "Costs Multiplier") == "1");
+            options.Where(option => option.NumOffers == 15)
+                .GroupBy(option => Setting(option, "Specification"))
+                .Should().HaveCount(2)
+                .And.OnlyContain(group =>
+                    group.Select(option => Setting(option, "Fee Regime"))
+                        .OrderBy(value => value)
+                        .SequenceEqual(new[] { "American", "British" }));
 
             options.Count(option =>
                 Setting(option, "Information Level") == "0.5x" &&
@@ -227,7 +252,8 @@ namespace ACESimTest.GameTests
             var representativeOptions = launcher.GetOptionsSets().Cast<LitigGameOptions>()
                 .Where(option =>
                     Setting(option, "Costs Multiplier") == "1" &&
-                    Setting(option, "Fee Regime") == "American")
+                    Setting(option, "Fee Regime") == "American" &&
+                    option.NumOffers == 10)
                 .ToList();
 
             representativeOptions.Should().HaveCount(13);
@@ -243,6 +269,177 @@ namespace ACESimTest.GameTests
                 definition.DecisionsExecutionOrder.Count(decision =>
                     decision.Name.Contains("Offer", StringComparison.OrdinalIgnoreCase)).Should().Be(2);
             }
+        }
+
+        [TestMethod]
+        public void MultipleEquilibriaPlan_UsesFiftyVerifiedStartsForBothPrincipalFeeRegimes()
+        {
+            var launcher = new LitigGameCorrelatedSignalsArticleLauncher(
+                LitigGameCorrelatedSignalsArticleLauncher.ProductionRunPlan.MultipleEquilibriaRobustness);
+            var options = launcher.GetOptionsSets().Cast<LitigGameOptions>().ToList();
+            var audit = launcher.ValidateProductionMatrix(options.Cast<GameOptions>().ToList());
+
+            launcher.MasterReportNameForDistributedProcessing.Should().Be("CS004ME");
+            audit.OptionSetCount.Should().Be(2);
+            audit.FeeRegimeComparisonCount.Should().Be(1);
+            options.Select(option => Setting(option, "Fee Regime"))
+                .Should().BeEquivalentTo("American", "British");
+            options.Should().OnlyContain(option =>
+                Setting(option, "Specification") == LitigGameCorrelatedSignalsArticleLauncher.FocusedBaselineLabel &&
+                Setting(option, "Costs Multiplier") == "1" &&
+                option.NumLiabilitySignals == 10 &&
+                option.NumCourtLiabilitySignals == 2 &&
+                option.NumOffers == 10);
+            foreach (LitigGameOptions option in options)
+            {
+                var settings = new EvolutionSettings();
+                option.ModifyEvolutionSettings.Should().NotBeNull();
+                option.ModifyEvolutionSettings(settings);
+                settings.SequenceFormNumPriorsToUseToGenerateEquilibria.Should().Be(50);
+                settings.TryInexactArithmeticForAdditionalEquilibria.Should().BeTrue();
+                settings.ThrowIfNotPerfectEquilibrium.Should().BeFalse();
+            }
+            EveryReportIdentifierShouldSelectOneOption(launcher);
+        }
+
+        [TestMethod]
+        public void IncreasedOfferGridPlan_IsTheFourIntegratedCasesAsAConvenientRerunSubset()
+        {
+            var launcher = new LitigGameCorrelatedSignalsArticleLauncher(
+                LitigGameCorrelatedSignalsArticleLauncher.ProductionRunPlan.IncreasedOfferGridRobustness);
+            var options = launcher.GetOptionsSets().Cast<LitigGameOptions>().ToList();
+            var audit = launcher.ValidateProductionMatrix(options.Cast<GameOptions>().ToList());
+
+            launcher.MasterReportNameForDistributedProcessing.Should().Be("CS005O15");
+            audit.OptionSetCount.Should().Be(4);
+            audit.FeeRegimeComparisonCount.Should().Be(2);
+            options.Select(option => Setting(option, "Specification")).Distinct()
+                .Should().BeEquivalentTo(
+                    LitigGameCorrelatedSignalsArticleLauncher.FocusedBaselineLabel,
+                    "Moderate symmetric risk aversion");
+            options.Should().OnlyContain(option =>
+                Setting(option, "Costs Multiplier") == "1" &&
+                Setting(option, "Number of Signals") == "10" &&
+                Setting(option, "Number of Court Signals") == "2" &&
+                Setting(option, "Number of Offers") == "15" &&
+                option.NumLiabilitySignals == 10 &&
+                option.NumCourtLiabilitySignals == 2 &&
+                option.NumOffers == 15);
+            options.GroupBy(option => Setting(option, "Specification"))
+                .Should().HaveCount(2)
+                .And.OnlyContain(group =>
+                    group.Select(option => Setting(option, "Fee Regime"))
+                        .OrderBy(value => value)
+                        .SequenceEqual(new[] { "American", "British" }));
+            EveryReportIdentifierShouldSelectOneOption(launcher);
+        }
+
+        [TestMethod]
+        public void CorrelatedSignalsArticle_RestoresPublishedCostsWithoutChangingEndogenousArticleCosts()
+        {
+            foreach (LitigGameCorrelatedSignalsArticleLauncher.ProductionRunPlan plan in
+                Enum.GetValues(typeof(LitigGameCorrelatedSignalsArticleLauncher.ProductionRunPlan)))
+            {
+                var articleOptions = (LitigGameOptions)new LitigGameCorrelatedSignalsArticleLauncher(plan)
+                    .GetDefaultSingleGameOptions();
+                articleOptions.PFilingCost.Should().BeApproximately(0.15, 1E-12);
+                articleOptions.DAnswerCost.Should().BeApproximately(0.15, 1E-12);
+                articleOptions.PTrialCosts.Should().BeApproximately(0.15, 1E-12);
+                articleOptions.DTrialCosts.Should().BeApproximately(0.15, 1E-12);
+                articleOptions.PerPartyCostsLeadingUpToBargainingRound.Should().BeApproximately(0, 1E-12);
+                articleOptions.RoundSpecificBargainingCosts.Should().BeNull();
+            }
+
+            var endogenousArticleOptions = LitigGameOptionsGenerator.PrecautionNegligenceGame();
+            endogenousArticleOptions.PFilingCost.Should().BeApproximately(0.10, 1E-12);
+            endogenousArticleOptions.DAnswerCost.Should().BeApproximately(0.10, 1E-12);
+            endogenousArticleOptions.PTrialCosts.Should().BeApproximately(0.10, 1E-12);
+            endogenousArticleOptions.DTrialCosts.Should().BeApproximately(0.10, 1E-12);
+            endogenousArticleOptions.PerPartyCostsLeadingUpToBargainingRound.Should().BeApproximately(0.10, 1E-12);
+            endogenousArticleOptions.RoundSpecificBargainingCosts.Should().BeNull();
+        }
+
+        [TestMethod]
+        public void FocusedPlan_CostTimingRedistributesThePublishedTotalAndNeverAddsBargainingCosts()
+        {
+            var options = new LitigGameCorrelatedSignalsArticleLauncher(
+                    LitigGameCorrelatedSignalsArticleLauncher.ProductionRunPlan.FocusedContinuousMerits)
+                .GetOptionsSets().Cast<LitigGameOptions>()
+                .Where(option =>
+                    Setting(option, "Costs Multiplier") == "1" &&
+                    Setting(option, "Fee Regime") == "American")
+                .ToList();
+
+            foreach (LitigGameOptions option in options)
+            {
+                double expectedBeginningShare = Setting(option, "Specification") switch
+                {
+                    "All litigation costs avoidable at bargaining" => 0,
+                    "All litigation costs sunk before bargaining" => 1,
+                    _ => 0.5,
+                };
+                option.PFilingCost.Should().BeApproximately(0.30 * expectedBeginningShare, 1E-12);
+                option.DAnswerCost.Should().BeApproximately(0.30 * expectedBeginningShare, 1E-12);
+                option.PTrialCosts.Should().BeApproximately(0.30 * (1 - expectedBeginningShare), 1E-12);
+                option.DTrialCosts.Should().BeApproximately(0.30 * (1 - expectedBeginningShare), 1E-12);
+                option.PerPartyCostsLeadingUpToBargainingRound.Should().BeApproximately(0, 1E-12);
+                option.RoundSpecificBargainingCosts.Should().BeNull();
+            }
+        }
+
+        [TestMethod]
+        public void FocusedTruthConditionedRobustness_RetainsPublishedOriginalModelPrimitives()
+        {
+            var option = new LitigGameCorrelatedSignalsArticleLauncher(
+                    LitigGameCorrelatedSignalsArticleLauncher.ProductionRunPlan.FocusedContinuousMerits)
+                .GetOptionsSets().Cast<LitigGameOptions>()
+                .Single(candidate =>
+                    Setting(candidate, "Specification") == "Truth-conditioned latent merits" &&
+                    Setting(candidate, "Costs Multiplier") == "1" &&
+                    Setting(candidate, "Fee Regime") == "American");
+
+            option.PInitialWealth.Should().BeApproximately(10, 1E-12);
+            option.DInitialWealth.Should().BeApproximately(10, 1E-12);
+            option.DamagesMin.Should().BeApproximately(0, 1E-12);
+            option.DamagesMax.Should().BeApproximately(1, 1E-12);
+            option.DamagesMultiplier.Should().BeApproximately(1, 1E-12);
+            option.NumOffers.Should().Be(10);
+            option.NumLiabilityStrengthPoints.Should().Be(10);
+            option.NumLiabilitySignals.Should().Be(10);
+            option.IncludeEndpointsForOffers.Should().BeFalse();
+            option.PLiabilityNoiseStdev.Should().BeApproximately(0.20, 1E-12);
+            option.DLiabilityNoiseStdev.Should().BeApproximately(0.20, 1E-12);
+            option.CourtLiabilityNoiseStdev.Should().BeApproximately(0.20, 1E-12);
+            option.NumDamagesSignals.Should().Be(1);
+            option.NumDamagesStrengthPoints.Should().Be(1);
+            option.PDamagesNoiseStdev.Should().BeApproximately(0.10, 1E-12);
+            option.DDamagesNoiseStdev.Should().BeApproximately(0.10, 1E-12);
+            option.CourtDamagesNoiseStdev.Should().BeApproximately(0.15, 1E-12);
+            option.PFilingCost.Should().BeApproximately(0.15, 1E-12);
+            option.DAnswerCost.Should().BeApproximately(0.15, 1E-12);
+            option.PTrialCosts.Should().BeApproximately(0.15, 1E-12);
+            option.DTrialCosts.Should().BeApproximately(0.15, 1E-12);
+            option.PerPartyCostsLeadingUpToBargainingRound.Should().BeApproximately(0, 1E-12);
+            option.PFilingCost_PortionSavedIfDDoesntAnswer.Should().BeApproximately(0, 1E-12);
+            option.NumPotentialBargainingRounds.Should().Be(1);
+            option.BargainingRoundsSimultaneous.Should().BeTrue();
+            option.SimultaneousOffersUltimatelyRevealed.Should().BeTrue();
+            option.SkipFileAndAnswerDecisions.Should().BeFalse();
+            option.IncludeAgreementToBargainDecisions.Should().BeFalse();
+            option.AllowAbandonAndDefaults.Should().BeTrue();
+            option.PredeterminedAbandonAndDefaults.Should().BeTrue();
+            option.CollapseChanceDecisions.Should().BeTrue();
+            option.CollapseAlternativeEndings.Should().BeTrue();
+            option.PUtilityCalculator.Should().BeOfType<RiskNeutralUtilityCalculator>();
+            option.DUtilityCalculator.Should().BeOfType<RiskNeutralUtilityCalculator>();
+            option.RegretAversion.Should().BeApproximately(0, 1E-12);
+            option.LiabilitySignalShapeParameters.Mode.Should().Be(SignalShapeMode.Identity);
+            option.DamagesSignalShapeParameters.Mode.Should().Be(SignalShapeMode.Identity);
+
+            var generator = option.LitigGameDisputeGenerator.Should()
+                .BeOfType<LitigGameExogenousDisputeGenerator>().Subject;
+            generator.ExogenousProbabilityTrulyLiable.Should().BeApproximately(0.5, 1E-12);
+            generator.StdevNoiseToProduceLiabilityStrength.Should().BeApproximately(0.35, 1E-12);
         }
 
         private static void EveryReportIdentifierShouldSelectOneOption(
