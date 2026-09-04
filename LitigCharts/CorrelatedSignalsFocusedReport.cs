@@ -21,6 +21,14 @@ namespace LitigCharts
             "Defendant Excess Net Monetary Burden";
         public const string PlaintiffRecoveryShortfallColumn =
             "Plaintiff Net Recovery Shortfall";
+        public const string MeritoriousPlaintiffRecoveryShortfallColumn =
+            "Meritorious-Plaintiff Net Recovery Shortfall";
+        public const string NonliableDefendantNetBurdenColumn =
+            "Nonliable-Defendant Net Burden";
+        public const string LiableDefendantExcessNetBurdenColumn =
+            "Liable-Defendant Excess Net Burden Above Damages";
+        public const string NetOutcomeFidelityLossColumn =
+            "Net Outcome Fidelity Loss";
         public const string MutualGiveUpBeforeAllocationColumn =
             "Mutual Give-Up Probability Before 50/50 Allocation";
 
@@ -52,6 +60,10 @@ namespace LitigCharts
             "Liability Transfer to Plaintiff",
             "Fee-Shifting Transfer to Plaintiff",
             "Total Net Transfer to Plaintiff",
+            MeritoriousPlaintiffRecoveryShortfallColumn,
+            NonliableDefendantNetBurdenColumn,
+            LiableDefendantExcessNetBurdenColumn,
+            NetOutcomeFidelityLossColumn,
         };
 
         public static ValidationSummary BuildAndValidate(
@@ -98,12 +110,17 @@ namespace LitigCharts
                 "Expenditures",
             });
 
-            List<Dictionary<string, string>> numericalRows = numericalSource.Rows
-                .Where(row => row["Filter"] == "All")
-                .OrderBy(row => row["OptionSetName"], StringComparer.Ordinal)
-                .Select(row => AddDerivedNumericalValues(
-                    row,
-                    optionsByName[row["OptionSetName"]]))
+            Dictionary<string, Dictionary<string, string>> numericalRowsByIdentity =
+                numericalSource.Rows.ToDictionary(
+                    row => $"{row["OptionSetName"]}|{row["Filter"]}",
+                    StringComparer.Ordinal);
+            List<Dictionary<string, string>> numericalRows = optionsByName
+                .OrderBy(pair => pair.Key, StringComparer.Ordinal)
+                .Select(pair => AddDerivedNumericalValues(
+                    numericalRowsByIdentity[$"{pair.Key}|All"],
+                    numericalRowsByIdentity[$"{pair.Key}|Truly Liable"],
+                    numericalRowsByIdentity[$"{pair.Key}|Truly Not Liable"],
+                    pair.Value))
                 .ToList();
             foreach (Dictionary<string, string> row in numericalRows)
                 ValidateNumericalAccounting(row, optionsByName[row["OptionSetName"]]);
@@ -199,6 +216,8 @@ namespace LitigCharts
 
         private static Dictionary<string, string> AddDerivedNumericalValues(
             Dictionary<string, string> source,
+            IReadOnlyDictionary<string, string> trulyLiableSource,
+            IReadOnlyDictionary<string, string> trulyNotLiableSource,
             LitigGameOptions options)
         {
             var row = new Dictionary<string, string>(source, StringComparer.OrdinalIgnoreCase);
@@ -240,7 +259,62 @@ namespace LitigCharts
             row["Liability Transfer to Plaintiff"] = Format(liabilityTransfer);
             row["Fee-Shifting Transfer to Plaintiff"] = Format(feeTransfer);
             row["Total Net Transfer to Plaintiff"] = Format(liabilityTransfer + feeTransfer);
+
+            double probabilityTrulyLiable = RequiredValue(row, "Probability Truly Liable");
+            double meritoriousPlaintiffRecoveryShortfall = AccuracyValue(
+                trulyLiableSource,
+                PlaintiffRecoveryShortfallColumn,
+                LegacyFalseNegativeColumn);
+            double nonliableDefendantNetBurden = AccuracyValue(
+                trulyNotLiableSource,
+                DefendantExcessBurdenColumn,
+                LegacyFalsePositiveColumn);
+            double liableDefendantExcessNetBurden = AccuracyValue(
+                trulyLiableSource,
+                DefendantExcessBurdenColumn,
+                LegacyFalsePositiveColumn);
+            double populationPlaintiffRecoveryShortfall =
+                RequiredValue(row, PlaintiffRecoveryShortfallColumn);
+            double populationDefendantExcessBurden =
+                RequiredValue(row, DefendantExcessBurdenColumn);
+            double netOutcomeFidelityLoss =
+                populationPlaintiffRecoveryShortfall + populationDefendantExcessBurden;
+
+            row[MeritoriousPlaintiffRecoveryShortfallColumn] =
+                Format(meritoriousPlaintiffRecoveryShortfall);
+            row[NonliableDefendantNetBurdenColumn] = Format(nonliableDefendantNetBurden);
+            row[LiableDefendantExcessNetBurdenColumn] =
+                Format(liableDefendantExcessNetBurden);
+            row[NetOutcomeFidelityLossColumn] = Format(netOutcomeFidelityLoss);
+
+            RequireApproximately(
+                row["OptionSetName"],
+                "truth-weighted plaintiff-shortfall identity",
+                populationPlaintiffRecoveryShortfall,
+                probabilityTrulyLiable * meritoriousPlaintiffRecoveryShortfall);
+            RequireApproximately(
+                row["OptionSetName"],
+                "truth-weighted defendant-burden identity",
+                populationDefendantExcessBurden,
+                (1.0 - probabilityTrulyLiable) * nonliableDefendantNetBurden +
+                probabilityTrulyLiable * liableDefendantExcessNetBurden);
+            RequireApproximately(
+                row["OptionSetName"],
+                "net-outcome-fidelity identity",
+                netOutcomeFidelityLoss,
+                populationPlaintiffRecoveryShortfall + populationDefendantExcessBurden);
             return row;
+        }
+
+        private static double AccuracyValue(
+            IReadOnlyDictionary<string, string> row,
+            string currentName,
+            string legacyName)
+        {
+            double? currentValue = OptionalValue(row, currentName);
+            if (currentValue.HasValue)
+                return currentValue.Value;
+            return RequiredValue(row, legacyName);
         }
 
         private static (double pAbandons, double dDefaults) AllocateMutualGiveUpIfNeeded(

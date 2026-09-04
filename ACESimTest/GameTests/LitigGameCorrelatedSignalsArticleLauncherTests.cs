@@ -226,6 +226,13 @@ namespace ACESimTest.GameTests
                     group.Select(option => Setting(option, "Fee Regime"))
                         .OrderBy(value => value)
                         .SequenceEqual(new[] { "American", "British" }));
+            foreach (LitigGameOptions option in options)
+            {
+                var settings = new EvolutionSettings();
+                option.ModifyEvolutionSettings.Should().NotBeNull();
+                option.ModifyEvolutionSettings(settings);
+                settings.GenerateInformationSetActionReport.Should().BeTrue();
+            }
 
             options.Count(option =>
                 Setting(option, "Information Level") == "0.5x" &&

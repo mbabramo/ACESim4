@@ -105,7 +105,32 @@ namespace ACESimBase.GameSolvingAlgorithms
                     AddAdditionalEquilibria(equilibria, additionalEquilibria);
                 }
 
-                await ProcessIdentifiedEquilibria(reportCollection, equilibria.Select(x => x.equilibrium).ToList(), EvolutionSettings.SequenceFormNumPriorsToUseToGenerateEquilibria > 1);
+                List<double[]> equilibriumStrategies = equilibria
+                    .Select(item => item.equilibrium)
+                    .ToList();
+                await ProcessIdentifiedEquilibria(
+                    reportCollection,
+                    equilibriumStrategies,
+                    EvolutionSettings.SequenceFormNumPriorsToUseToGenerateEquilibria > 1);
+                if (EvolutionSettings.GenerateInformationSetActionReport)
+                {
+                    for (int equilibriumIndex = 0;
+                        equilibriumIndex < equilibriumStrategies.Count;
+                        equilibriumIndex++)
+                    {
+                        SetInformationSetsToEquilibrium(equilibriumStrategies[equilibriumIndex]);
+                        reportCollection.Add(
+                            string.Empty,
+                            InformationSetActionReport.BuildCsv(this, equilibriumIndex + 1),
+                            integrateCSVReportsIfPossible: false,
+                            ifNotIntegratingAlwaysMakeSeparateReport: true);
+                        reportCollection.AddReportSuffix(
+                            equilibriumStrategies.Count > 1
+                                ? $"Eq{equilibriumIndex + 1}-{InformationSetActionReport.ReportSuffix}"
+                                : InformationSetActionReport.ReportSuffix);
+                    }
+                    SetInformationSetsToEquilibrium(equilibriumStrategies.First());
+                }
             }
             else if (Approach == SequenceFormApproach.Gambit)
             {

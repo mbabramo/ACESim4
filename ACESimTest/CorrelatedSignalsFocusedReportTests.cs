@@ -63,6 +63,10 @@ namespace ACESimTest
                     .And.Contain("Fee-Shifting Transfer to Plaintiff")
                     .And.Contain(CorrelatedSignalsFocusedReport.DefendantExcessBurdenColumn)
                     .And.Contain(CorrelatedSignalsFocusedReport.PlaintiffRecoveryShortfallColumn)
+                    .And.Contain(CorrelatedSignalsFocusedReport.MeritoriousPlaintiffRecoveryShortfallColumn)
+                    .And.Contain(CorrelatedSignalsFocusedReport.NonliableDefendantNetBurdenColumn)
+                    .And.Contain(CorrelatedSignalsFocusedReport.LiableDefendantExcessNetBurdenColumn)
+                    .And.Contain(CorrelatedSignalsFocusedReport.NetOutcomeFidelityLossColumn)
                     .And.NotContain("False Positive Inaccuracy")
                     .And.NotContain("False Negative Inaccuracy");
                 File.ReadAllText(signalStrategies).Should()
@@ -75,6 +79,14 @@ namespace ACESimTest
                 numericalRow["D Defaults"].Should().Be("0.05");
                 numericalRow[CorrelatedSignalsFocusedReport.MutualGiveUpBeforeAllocationColumn]
                     .Should().Be("0.02");
+                numericalRow[CorrelatedSignalsFocusedReport.MeritoriousPlaintiffRecoveryShortfallColumn]
+                    .Should().Be("0.4");
+                numericalRow[CorrelatedSignalsFocusedReport.NonliableDefendantNetBurdenColumn]
+                    .Should().Be("0.4");
+                numericalRow[CorrelatedSignalsFocusedReport.LiableDefendantExcessNetBurdenColumn]
+                    .Should().Be("0.1");
+                numericalRow[CorrelatedSignalsFocusedReport.NetOutcomeFidelityLossColumn]
+                    .Should().Be("0.45");
                 Dictionary<string, string> signalRow = ReadFirstRow(signalStrategies);
                 signalRow["P Abandonment Probability Unconditional"].Should().Be("0.05");
                 signalRow["D Default Probability Unconditional"].Should().Be("0.05");
@@ -133,6 +145,20 @@ namespace ACESimTest
                         "P Abandons" => "0.04",
                         "D Defaults" => "0.04",
                         CorrelatedSignalsFocusedReport.MutualGiveUpBeforeAllocationColumn => "0.02",
+                        CorrelatedSignalsFocusedReport.DefendantExcessBurdenColumn => filter switch
+                        {
+                            "All" => "0.25",
+                            "Truly Liable" => "0.1",
+                            "Truly Not Liable" => "0.4",
+                            _ => "0.01",
+                        },
+                        CorrelatedSignalsFocusedReport.PlaintiffRecoveryShortfallColumn => filter switch
+                        {
+                            "All" => "0.2",
+                            "Truly Liable" => "0.4",
+                            "Truly Not Liable" => "0",
+                            _ => "0.01",
+                        },
                         "P Loses" => "0.1",
                         "P Wins" => "0.1",
                         "Value If Settled" => "0.4",

@@ -411,6 +411,7 @@ namespace ACESim
                 options.NumOffers = IncreasedOfferGridOfferCount;
                 options.VariableSettings["Number of Offers"] =
                     IncreasedOfferGridOfferCount.ToString(CultureInfo.InvariantCulture);
+                ApplyRunSpecificRobustnessSettings(options);
                 yield return options;
             }
         }
@@ -471,14 +472,21 @@ namespace ACESim
                 options.VariableSettings["Initialization Starts"] =
                     MultipleEquilibriaInitializationCount.ToString(CultureInfo.InvariantCulture);
                 options.VariableSettings["Additional-Prior Arithmetic"] = "Inexact with exact fallback";
-                options.ModifyEvolutionSettings = settings =>
+            }
+
+            Action<EvolutionSettings> existingModifier = options.ModifyEvolutionSettings;
+            options.ModifyEvolutionSettings = settings =>
+            {
+                existingModifier?.Invoke(settings);
+                settings.GenerateInformationSetActionReport = true;
+                if (RunPlan == ProductionRunPlan.MultipleEquilibriaRobustness)
                 {
                     settings.SequenceFormNumPriorsToUseToGenerateEquilibria =
                         MultipleEquilibriaInitializationCount;
                     settings.TryInexactArithmeticForAdditionalEquilibria = true;
                     settings.ThrowIfNotPerfectEquilibrium = false;
-                };
-            }
+                }
+            };
         }
 
         public override List<VariableCombinationGenerator.Dimension<LitigGameOptions>> GetVariationSetsInfo()

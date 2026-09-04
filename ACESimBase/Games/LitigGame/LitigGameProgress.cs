@@ -530,13 +530,13 @@ namespace ACESim
         public void WeightAlternativeEndings()
         {
             DisputeArises = true;
-            TrialOccurs = true;
+            TrialOccurs = AlternativeEndings.All(ending => ending.completedGame.TrialOccurs);
             double AggregateAlternativeEndings(Func<LitigGameProgress, double> valueToAverageFunc) => AlternativeEndings.Aggregate((double)0, (weightedSum, ending) => weightedSum + ending.weight * valueToAverageFunc(ending.completedGame));
             // note that we're averaging changes in wealth, but that is irrelevant to outcome if the party is risk averse, since we are also averaging welfare directly. That's the ultimate point -- we can collapse chance decisions by producing a weighted average of utility.
             PChangeWealth = AggregateAlternativeEndings(prog => prog.PChangeWealth);
             DChangeWealth = AggregateAlternativeEndings(prog => prog.DChangeWealth);
             PFinalWealth = AggregateAlternativeEndings(prog => prog.PFinalWealth);
-            PFinalWealth = AggregateAlternativeEndings(prog => prog.PFinalWealth);
+            DFinalWealth = AggregateAlternativeEndings(prog => prog.DFinalWealth);
             PWelfare = AggregateAlternativeEndings(prog => prog.PWelfare);
             DWelfare = AggregateAlternativeEndings(prog => prog.DWelfare);
         }
