@@ -207,6 +207,10 @@ namespace LitigCharts
             });
             foreach (Dictionary<string, string> row in table.Rows)
             {
+                if (IsBlank(row, "P Abandons") &&
+                    IsBlank(row, "D Defaults") &&
+                    IsBlank(row, MutualGiveUpBeforeAllocationColumn))
+                    continue;
                 double mutualGiveUp = RequiredValue(row, MutualGiveUpBeforeAllocationColumn);
                 row["P Abandons"] = Format(RequiredValue(row, "P Abandons") + 0.5 * mutualGiveUp);
                 row["D Defaults"] = Format(RequiredValue(row, "D Defaults") + 0.5 * mutualGiveUp);
@@ -733,6 +737,9 @@ namespace LitigCharts
         private static double RequiredValue(IReadOnlyDictionary<string, string> row, string column) =>
             OptionalValue(row, column) ?? throw new InvalidDataException(
                 $"Column '{column}' contains a missing or nonnumeric value.");
+
+        private static bool IsBlank(IReadOnlyDictionary<string, string> row, string column) =>
+            !row.TryGetValue(column, out string text) || string.IsNullOrWhiteSpace(text);
 
         private static double? OptionalValue(IReadOnlyDictionary<string, string> row, string column)
         {

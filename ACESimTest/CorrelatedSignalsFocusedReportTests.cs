@@ -97,6 +97,33 @@ namespace ACESimTest
             }
         }
 
+        [TestMethod]
+        public void MutualGiveUpAllocation_PreservesUndefinedZeroMassFilterRows()
+        {
+            string path = Path.Combine(
+                Path.GetTempPath(),
+                "ACESim-mutual-give-up-" + Guid.NewGuid().ToString("N") + ".csv");
+            try
+            {
+                File.WriteAllLines(path, new[]
+                {
+                    $"Filter,P Abandons,D Defaults,{CorrelatedSignalsFocusedReport.MutualGiveUpBeforeAllocationColumn}",
+                    "Zero Mass Filter,,,",
+                    "Positive Mass Filter,0.1,0.2,0.4",
+                });
+
+                CorrelatedSignalsFocusedReport.AllocateMutualGiveUpInCsv(path);
+
+                string[] lines = File.ReadAllLines(path);
+                lines[1].Should().Be("Zero Mass Filter,,,");
+                lines[2].Should().Be("Positive Mass Filter,0.3,0.4,0.4");
+            }
+            finally
+            {
+                File.Delete(path);
+            }
+        }
+
         private static void WriteNumericalSource(
             string path,
             LitigGameCorrelatedSignalsArticleLauncher launcher,
