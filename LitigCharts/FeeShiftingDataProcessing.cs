@@ -557,6 +557,12 @@ namespace LitigCharts
                 {
                     foreach (double? limitToCostsMultiplier in new double?[] { 1.0, null })
                     {
+                        List<PermutationalLauncher.SimulationSetsIdentifier> compatibleVariations =
+                            limitToCostsMultiplier == null
+                                ? variations.Where(variation => SupportsAllCostRows(
+                                    launcher,
+                                    variation)).ToList()
+                                : variations;
                         foreach (var welfareMeasureInfo in welfareMeasureColumns)
                         {
                             var welfareMeasureWithCorrectedMinorX = welfareMeasureInfo with { minorXAxisLabel = minorXToRun.minorXName, minorXAxisLabelShort = minorXToRun.minorXAbbrev };
@@ -574,7 +580,7 @@ namespace LitigCharts
                                 plannedPath.AddSubpath(subfolderName, 4);
                             }
 
-                            CreateAggregatedReportVariationsForWelfareMeasure(launcher, pathAndFilename, plannedPath, variations, welfareMeasureWithCorrectedMinorX, costsMultipliers, minorXToRun.minorXValues);
+                            CreateAggregatedReportVariationsForWelfareMeasure(launcher, pathAndFilename, plannedPath, compatibleVariations, welfareMeasureWithCorrectedMinorX, costsMultipliers, minorXToRun.minorXValues);
                         }
                     }
                 }
@@ -583,6 +589,19 @@ namespace LitigCharts
             WaitForProcessesToFinish();
             Task.Delay(1000);
             DeleteAuxiliaryFiles(outputFolderPath);
+        }
+
+        public static bool SupportsAllCostRows(
+            LitigGameLauncherBase launcher,
+            PermutationalLauncher.SimulationSetsIdentifier variation)
+        {
+            string defaultOffers = launcher.DefaultVariableValues
+                .Single(setting => setting.Item1 == "Number of Offers")
+                .Item2;
+            return variation.simulationIdentifiers.All(identifier =>
+                identifier.columnMatches.All(match =>
+                    match.columnName != "Number of Offers" ||
+                    match.expectedValue == defaultOffers));
         }
 
         private static void CreateAggregatedReportVariationsForWelfareMeasure(LitigGameLauncherBase launcher, string sourceDataPathAndFilename, PlannedPath outputFolderPath, List<PermutationalLauncher.SimulationSetsIdentifier> variations, AggregatedGraphInfo aggregatedGraphInfo, List<string> macroYValues, List<string> microXValues)

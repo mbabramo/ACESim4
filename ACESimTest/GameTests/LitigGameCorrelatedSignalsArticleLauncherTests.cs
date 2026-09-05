@@ -4,6 +4,7 @@ using ACESimBase.GameSolvingSupport.Settings;
 using ACESimBase.GameSolvingAlgorithms;
 using ACESimBase.Util.Mathematics;
 using FluentAssertions;
+using LitigCharts;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.Collections.Generic;
@@ -307,6 +308,15 @@ namespace ACESimTest.GameTests
                 .Should().OnlyContain(identifier => identifier.columnMatches.All(match =>
                     match.columnName != "Fee Regime"),
                     "the fee multiplier already uniquely identifies the focused American/British regime");
+            List<PermutationalLauncher.SimulationSetsIdentifier> allRowsVariations =
+                launcher.GetSimulationSetsIdentifiers()
+                    .Where(variation => FeeShiftingDataProcessing.SupportsAllCostRows(
+                        launcher,
+                        variation))
+                    .ToList();
+            allRowsVariations.Should().HaveCount(12);
+            allRowsVariations.Should().OnlyContain(variation =>
+                !variation.nameOfSet.Contains("offer-grid sensitivity", StringComparison.Ordinal));
             EveryReportIdentifierShouldSelectOneOption(launcher);
         }
 
