@@ -1659,7 +1659,7 @@ namespace ACESim
         {
             var processor = new TreeNodeCountingProcessor();
 
-            // The “forward” type is object here, so we can just pass null initially
+            // The "forward" type is object here, so we can just pass null initially
             TreeNodeCountingProcessor.NodeCounts totals
                 = TreeWalk_Tree<object, TreeNodeCountingProcessor.NodeCounts>(processor, null);
 
@@ -2158,6 +2158,8 @@ namespace ACESim
                 (var excludeBelow, var includeBelow) = GameDefinition.GetTreeDiagramExclusions();
 
                 string tikzDocument = processor.GenerateTikzDiagram(excludeBelow, includeBelow);
+                AzureBlob.WriteTextToFileOrAzure("results", Launcher.ReportFolder(),
+                    GetFilename("GameTree.tex"), true, tikzDocument, EvolutionSettings.SaveToAzureBlob);
             }
             else
             {

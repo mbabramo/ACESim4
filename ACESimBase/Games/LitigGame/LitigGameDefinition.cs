@@ -1201,7 +1201,7 @@ namespace ACESim
         }
 
 
-        private enum TreeDiagramExclusions
+        public enum TreeDiagramExclusions
         {
             FullDiagram,
             BeginningOfGame,
@@ -1210,7 +1210,9 @@ namespace ACESim
             EndOfGame,
         }
 
-        private TreeDiagramExclusions Exclusions = TreeDiagramExclusions.BeginningOfGame_Collapsed;
+        // Preserved for the endogenous-disputes article. The correlated-signals exporter
+        // supplies its own filters and does not change this default.
+        public TreeDiagramExclusions Exclusions = TreeDiagramExclusions.BeginningOfGame_Collapsed;
 
         public override (Func<ConstructGameTreeInformationSetInfo.GamePointNode, bool> excludeBelow, Func<ConstructGameTreeInformationSetInfo.GamePointNode, bool> includeBelow) GetTreeDiagramExclusions()
         {

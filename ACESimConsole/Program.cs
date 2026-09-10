@@ -27,6 +27,18 @@ namespace ACESim
         [STAThread]
         public static async Task Main(string[] args)
         {
+            if (args.Length > 0 && (args[0] == "--article-game-trees" || args[0] == "--endogenous-game-tree"))
+            {
+                if (args.Length != 2)
+                    throw new ArgumentException("Usage: " + args[0] + " <output-directory>");
+                if (args[0] == "--article-game-trees")
+                    await ACESimBase.Games.LitigGame.ManualReports.ArticleGameTreeDiagrams.WriteSourcesAsync(
+                        Path.GetFullPath(args[1]));
+                else
+                    await ACESimBase.Games.LitigGame.ManualReports.EndogenousGameTreeDiagrams.WriteSourceAsync(
+                        Path.GetFullPath(args[1]));
+                return;
+            }
             GameProgressLogger.LoggingOn = false;
             GameProgressLogger.DetailedLogging = false;
             await Execute();

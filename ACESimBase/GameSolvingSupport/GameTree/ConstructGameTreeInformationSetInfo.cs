@@ -188,128 +188,93 @@ namespace ACESimBase.GameSolvingSupport.GameTree
             });
         }
 
-        public string GenerateTikzDiagram(Func<GamePointNode, bool> excludeBelowNode, Func<GamePointNode, bool> includeBelowNode)
+        /// <summary>
+        /// Renders a fresh view on every call. A restricted subtree includes its root but not
+        /// the incoming edge from the omitted portion of the tree.
+        /// </summary>
+        public string GenerateTikzDiagram(
+            Func<GamePointNode, bool> excludeBelowNode,
+            Func<GamePointNode, bool> includeBelowNode,
+            bool includeBehavioralProbabilities = true,
+            string caption = null,
+            Func<EdgeInfo, string> edgeLabel = null,
+            int payoffDecimalPlaces = 4)
         {
-            const double xSpaceForNode = 6.0, ySpaceForLeaf = 0.5, circleSize = 0.4, straightAdjacentArrow = 0.4, utilitiesShiftRight = -0.45;
-            StringBuilder b = new StringBuilder();
-            bool onlyIncludableRegionFound = false;
-            TreeRoot.ExecuteActionsOnTree(gamePointNode =>
-            {
-                if (excludeBelowNode != null && excludeBelowNode(gamePointNode.StoredValue))
-                {
-                    gamePointNode.StoredValue.ExcludeBelow = true;
-                }
-                if (gamePointNode.Parent?.StoredValue?.ExcludeBelow == true || gamePointNode.Parent?.StoredValue?.ExcludedFromAbove == true)
-                {
-                    gamePointNode.StoredValue.ExcludedFromAbove = true;
-                }
-                if (includeBelowNode != null && !onlyIncludableRegionFound && includeBelowNode(gamePointNode.StoredValue))
-                {
-                    gamePointNode.StoredValue.IncludeInRestrictedBelow = true; // we are making a diagram near the leaves of the tree. Only this section of the diagram will be included
-                    onlyIncludableRegionFound = true;
-                }
-                if (gamePointNode.Parent?.StoredValue?.IncludeInRestrictedBelow == true || gamePointNode.Parent?.StoredValue?.IncludeInRestrictedFromAbove == true)
-                {
-                    gamePointNode.StoredValue.IncludeInRestrictedFromAbove = true;
-                }
-            },
-            gamePointNode => { }
-            );
-            int tikzIndex = 0;
-            bool done = false;
-            do
-            {
-                done = true;
-                TreeRoot.ExecuteActionsOnTree(gamePointNode => { }, gamePointNode =>
-                {
-                    GamePointNode storedValue = gamePointNode.StoredValue;
-                    if (!storedValue.IncludeInDiagram)
-                        return;
-                    if (storedValue.ExcludedFromAbove)
-                        return;
-                    if (onlyIncludableRegionFound && !storedValue.IncludeInRestrictedBelow && !storedValue.IncludeInRestrictedFromAbove)
-                        return;
-                    if (storedValue.Children.Any(x => x.YRangeStart != x.YRangeEnd)) // i.e., has initialized children
-                    {
-                        for (int i = 1; i < storedValue.Children.Count; i++)
-                        {
-                            var c0 = storedValue.Children[i - 1];
-                            var c1 = storedValue.Children[i];
-                            if (c1.YRangeStart > c0.YRangeEnd - ySpaceForLeaf)
-                            {
-                                done = false;
-                                double distanceDown = c1.YRangeStart - (c0.YRangeEnd - ySpaceForLeaf);
-                                var gamePointNodeInternal = (NWayTreeStorageInternal<GamePointNode>)gamePointNode;
-                                gamePointNodeInternal.Branches[i].ExecuteActions(gamePointNode2 => { }, gamePointNode2 =>
-                                {
-                                    if (gamePointNode2.Children.Any())
-                                    {
+            if (payoffDecimalPlaces < 0 || payoffDecimalPlaces > 15)
+                throw new ArgumentOutOfRangeException(nameof(payoffDecimalPlaces));
+            var allNodes = TreeRoot.EnumerateNodes().Select(x => x.StoredValue).ToList();
+            GamePointNode root = includeBelowNode == null
+                ? allNodes.First(x => x.IncludeInDiagram)
+                : allNodes.FirstOrDefault(x => x.IncludeInDiagram && includeBelowNode(x));
+            if (root == null)
+                throw new ArgumentException("No game-tree node matches the requested subtree.");
 
-                                        gamePointNode2.YRangeStart = gamePointNode2.Children.Max(c => c.YRangeStart);
-                                        gamePointNode2.YRangeEnd = gamePointNode2.Children.Min(c => c.YRangeEnd);
-                                    }
-                                    else
-                                    {
-                                        gamePointNode2.YRangeStart -= distanceDown;
-                                        gamePointNode2.YRangeEnd = gamePointNode2.YRangeStart - ySpaceForLeaf;
-                                    }
-                                });
-                            }
-                        }
-                        storedValue.YRangeStart = storedValue.Children.Max(c => c.YRangeStart);
-                        storedValue.YRangeEnd = storedValue.Children.Min(c => c.YRangeEnd);
-                        double childrenXLocation = storedValue.Children.Min(x => x.XLocation);
-                        foreach (var child in storedValue.Children)
-                            child.XLocation = childrenXLocation;
-                        storedValue.XLocation = childrenXLocation - xSpaceForNode;
-                    }
-                    else
-                    {
-                        // start this at the top -- then it will be moved down
-                        if (storedValue.YRangeStart == storedValue.YRangeEnd)
-                        {
-                            storedValue.YRangeStart = 0;
-                            storedValue.YRangeEnd = -ySpaceForLeaf;
-                        }
-                    }
-                }
-                );
+            const double xSpacing = 5.8, leafSpacing = 1.0, radius = 0.3;
+            var visible = new List<GamePointNode>();
+            var children = new Dictionary<GamePointNode, List<GamePointNode>>(ReferenceEqualityComparer.Instance);
+            double nextLeaf = 0;
+            void Layout(GamePointNode node, int depth)
+            {
+                node.TikzIndex = visible.Count;
+                visible.Add(node);
+                node.XLocation = depth * xSpacing;
+                node.ExcludeBelow = excludeBelowNode?.Invoke(node) == true;
+                var displayedChildren = node.ExcludeBelow
+                    ? new List<GamePointNode>()
+                    : node.Children.Where(x => x.IncludeInDiagram).ToList();
+                children[node] = displayedChildren;
+                foreach (var child in displayedChildren)
+                    Layout(child, depth + 1);
+                double y = displayedChildren.Count == 0
+                    ? nextLeaf--
+                    : (displayedChildren.First().YLocation + displayedChildren.Last().YLocation) / (2 * leafSpacing);
+                node.YRangeStart = node.YRangeEnd = y * leafSpacing;
             }
-            while (!done);
+            Layout(root, 0);
+            string Number(double value) => value.ToString("0.####", System.Globalization.CultureInfo.InvariantCulture);
+            string Escape(string value) => value.Replace(@"\", @"\textbackslash{}")
+                .Replace("&", @"\&").Replace("%", @"\%").Replace("_", @"\_")
+                .Replace("#", @"\#").Replace("$", @"\$");
 
-            var includedNodes = TreeRoot.EnumerateNodes().Select(x => x.StoredValue).Where(x => x.IncludeInDiagram && !x.ExcludedFromAbove && (!onlyIncludableRegionFound || x.IncludeInRestrictedFromAbove)).ToList();
-            foreach (var node in includedNodes)
+            var b = new StringBuilder();
+            // Separate node identities from edge identities (the old renderer could reuse N0).
+            foreach (var node in visible)
             {
-                string arrow = null;
-                bool isUtilitiesNode = node.anyNode.IsUtilitiesNode;
-                StringBuilder nodeStringBuilder = new StringBuilder();
-                nodeStringBuilder.AppendLine($@"
-    \draw[color=black] ({node.XLocation}, {node.YLocation}) {(isUtilitiesNode ? "" : $"circle ({circleSize}cm) ")}node[draw=none] (N{tikzIndex}) {{{node.NodePlayerString(GameDefinition)}}};");
-                if (isUtilitiesNode)
-                    nodeStringBuilder.AppendLine($@"\node[draw=none, right={utilitiesShiftRight}cm of N{tikzIndex}] {{{node.MainNodeText()}}};");
-                bool excludingBelow = node.ExcludeBelow && node.IncludeInDiagram;
-                if (excludingBelow)
-                    nodeStringBuilder.AppendLine($@"\node[draw=none, right=0cm of N{tikzIndex},font=\huge] {{...}};");
-
-                if (node.EdgeFromParent != null)
+                string location = $"({Number(node.XLocation)}, {Number(node.YLocation)})";
+                if (node.anyNode.IsUtilitiesNode)
                 {
-                    arrow = $@"\draw ({node.EdgeFromParent.parentNode.XLocation + circleSize}, {node.EdgeFromParent.parentNode.YLocation}) -- ({node.EdgeFromParent.parentNode.XLocation + circleSize + straightAdjacentArrow}, {node.EdgeFromParent.parentNode.YLocation}) -- ({node.EdgeFromParent.parentNode.XLocation + circleSize + straightAdjacentArrow}, {node.YLocation}) -- ({node.XLocation - circleSize}, {node.YLocation}) node [midway, above, sloped] (E{tikzIndex++}) {{{node.EdgeFromParent.parentNameWithActionString(GameDefinition)}}} node [midway, below, sloped] (E{tikzIndex++}) {{{node.EdgeFromParent.probabilityString}}} ;
-";
-                    //                    arrow = $@"\draw ({node.EdgeFromParent.parentNode.XLocation + circleSize}, {node.EdgeFromParent.parentNode.YLocation}) -- ({node.EdgeFromParent.parentNode.XLocation + circleSize + straightAdjacentArrow}, {node.EdgeFromParent.parentNode.YLocation}) -- ({node.XLocation - circleSize - straightAdjacentArrow}, {node.YLocation}) node [midway, above, sloped] (E{tikzIndex++}) {{{node.EdgeFromParent.parentName}: {GameDefinition.GetActionString(node.EdgeFromParent.action, node.EdgeFromParent.parentDecisionByteCode)}}} -- ({node.XLocation - circleSize}, {node.YLocation});
-                    //";
-                    nodeStringBuilder.AppendLine(arrow);
+                    string utilities = "(" + string.Join(", ", node.anyNode.GetNodeValues().Select(
+                        value => value.ToString("0." + new string('#', payoffDecimalPlaces),
+                            System.Globalization.CultureInfo.InvariantCulture))) + ")";
+                    b.AppendLine($@"\node[anchor=west, inner sep=0pt] (N{node.TikzIndex}) at {location} {{{utilities}}};");
                 }
-                b.Append(nodeStringBuilder.ToString());
-                // here is where we would put text under node if desired
-                //                b.AppendLine($@"\node[draw=none, below=0cm of N{tikzIndex}] {{
-                //\begin{{tabular}}{{c}}
-                //{node.MainNodeText()} \\
-                //\end{{tabular}}
-                //}};
-                //{arrow}");
+                else
+                    b.AppendLine($@"\node[circle, draw, minimum size={Number(radius * 2)}cm, inner sep=0pt, font=\scriptsize] (N{node.TikzIndex}) at {location} {{{Escape(node.NodePlayerString(GameDefinition))}}};");
+                if (node.ExcludeBelow && !node.anyNode.IsUtilitiesNode)
+                    b.AppendLine($@"\node[anchor=west] at ({Number(node.XLocation + radius)}, {Number(node.YLocation)}) {{$\cdots$}};");
             }
-            string tikzDocument = TikzHelper.GetStandaloneDocument(b.ToString(), additionalTikzLibraries: new List<string>() { "shapes.geometric" });
-            return tikzDocument;
+            foreach (var parent in visible)
+                foreach (var node in children[parent])
+                {
+                    var edge = node.EdgeFromParent;
+                    string probability = "";
+                    if (parent.anyNode.IsChanceNode || includeBehavioralProbabilities)
+                    {
+                        double value = parent.anyNode.GetNodeValues()[edge.action - 1];
+                        // Preserve the rare-event formatting used by the endogenous model.
+                        // In particular, do not label a possible accident as probability zero.
+                        string label = edge.parentName == "Accident" || (value > 0 && value < 0.0005) ||
+                            (value > 0.9995 && value < 1)
+                            ? edge.probabilityStringScientificNotation
+                            : "Pr.: " + value.ToString("0.000", System.Globalization.CultureInfo.InvariantCulture);
+                        probability = $@" node[midway, below, font=\small] {{{label}}}";
+                    }
+                    b.AppendLine($@"\draw[->] (N{parent.TikzIndex}.east) -- ({Number(parent.XLocation + 0.6)}, {Number(parent.YLocation)}) -- ({Number(parent.XLocation + 0.6)}, {Number(node.YLocation)}) -- (N{node.TikzIndex}.west) node[midway, above, font=\small] {{{Escape(edgeLabel?.Invoke(edge) ?? edge.parentNameWithActionString(GameDefinition))}}}{probability};");
+                }
+            if (!string.IsNullOrWhiteSpace(caption))
+                b.AppendLine($@"\node[anchor=south west, align=left, text width={Number(Math.Max(17, visible.Max(x => x.XLocation)))}cm, font=\small] at (0, 0.8) {{{Escape(caption)}}};");
+            return TikzHelper.GetStandaloneDocument(b.ToString())
+                .Replace(@"\documentclass{standalone}", @"\documentclass[border=3pt]{standalone}");
         }
 
         public Dictionary<string, double[]> GetProbabilitiesOfOtherInformationSetMoves(bool nonChancePlayer, int atNodeNumber, List<Decision> decisions)
