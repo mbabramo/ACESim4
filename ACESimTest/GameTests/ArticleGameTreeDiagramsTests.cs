@@ -53,6 +53,10 @@ namespace ACESimTest.GameTests
                 foreach (Match reference in references)
                     nodes.Should().Contain(reference.Groups[1].Value);
                 diagram.Latex.Should().NotContain("Case Strength");
+                diagram.Latex.Should().NotContain("Continuous-merits baseline")
+                    .And.NotContain("no equilibrium").And.NotContain("text width=");
+                diagram.Description.Should().Contain("Continuous-merits baseline")
+                    .And.Contain("no equilibrium");
             }
             diagrams.Single(x => x.FileStem == "game tree 2x2x2 beginning").Latex.Should()
                 .Be(diagrams.Single(x => x.FileStem == "game tree 2x2x2 beginning simplified").Latex);
@@ -104,6 +108,8 @@ namespace ACESimTest.GameTests
             latex.Should().Contain("Defendant Signal").And.Contain("Engage in Activity")
                 .And.Contain("Precaution").And.Contain("Accident").And.Contain("Plaintiff Signal");
             latex.Should().NotContain("Continuous-merits");
+            latex.Should().NotContain("Endogenous-disputes model").And.NotContain("text width=");
+            EndogenousGameTreeDiagrams.Description.Should().Contain("Endogenous-disputes model");
             latex.Should().NotContain("Pr.: 0.000").And.NotContain("Pr.: 1.000");
         }
     }

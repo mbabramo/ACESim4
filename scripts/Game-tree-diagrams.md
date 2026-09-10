@@ -8,9 +8,10 @@ It requires .NET 9, LuaLaTeX, and Poppler's pdftoppm on PATH.
     .\scripts\Generate-ArticleGameTrees.ps1 -Model CorrelatedSignals -OutputDirectory "C:\path\to\Game tree diagrams"
 
 This initializes the current focused continuous-merits baseline on a small two-signal,
-two-offer grid. It writes the six legacy-named PDFs, matching LaTeX sources, two PNG
+two-offer grid. It writes the six legacy-named PDFs, matching LaTeX sources and .txt explanations, two PNG
 previews, and a README documenting the parameters. It does not solve an equilibrium.
 Only chance probabilities are printed; player labels identify information sets.
+Explanatory prose belongs in the accompanying .txt files, never inside the diagrams.
 The full views expand terminal lotteries; the simplified views integrate them out.
 Both integrate continuous merits, so their beginning views are identical.
 
@@ -20,7 +21,7 @@ Both integrate continuous merits, so their beginning views are identical.
 
 This selects the existing precaution-negligence generator and its original
 BeginningOfGame_Collapsed filter. It writes an endogenous-disputes prefix PDF, LaTeX
-source, and PNG. Use a separate output folder for this other article.
+source, .txt explanation, and PNG. Use a separate output folder for this other article.
 The existing endogenous model, option generators, and production launchers are unchanged.
 Small accident probabilities retain scientific notation, and small payoff differences
 are shown with up to eight decimal places.

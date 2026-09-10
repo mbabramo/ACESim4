@@ -8,6 +8,10 @@ namespace ACESimBase.Games.LitigGame.ManualReports
 {
     public static class EndogenousGameTreeDiagrams
     {
+        public const string Description =
+            "Endogenous-disputes model: small precaution-negligence illustration. " +
+            "Existing endogenous view filters; chance probabilities only, not an equilibrium.";
+
         public static async Task<string> GenerateAsync(
             LitigGameDefinition.TreeDiagramExclusions view =
                 LitigGameDefinition.TreeDiagramExclusions.BeginningOfGame_Collapsed)
@@ -35,10 +39,7 @@ namespace ACESimBase.Games.LitigGame.ManualReports
             definition.Exclusions = view;
             var (exclude, include) = definition.GetTreeDiagramExclusions();
             return ArticleGameTreeDiagrams.Collect(developer).GenerateTikzDiagram(
-                exclude, include, false,
-                "Endogenous-disputes model: small precaution-negligence illustration. " +
-                "Existing endogenous view filters; chance probabilities only, not an equilibrium.",
-                payoffDecimalPlaces: 8);
+                exclude, include, false, payoffDecimalPlaces: 8);
         }
 
         public static async Task WriteSourceAsync(string outputDirectory)
@@ -46,6 +47,8 @@ namespace ACESimBase.Games.LitigGame.ManualReports
             Directory.CreateDirectory(outputDirectory);
             await File.WriteAllTextAsync(Path.Combine(outputDirectory, "endogenous disputes beginning.tex"),
                 await GenerateAsync());
+            await File.WriteAllTextAsync(Path.Combine(outputDirectory, "endogenous disputes beginning.txt"),
+                Description + System.Environment.NewLine);
         }
     }
 }

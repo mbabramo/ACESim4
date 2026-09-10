@@ -11,7 +11,7 @@ namespace ACESimBase.Games.LitigGame.ManualReports
     /// <summary>Structural illustrations, not equilibrium runs. Continuous merits stay integrated out.</summary>
     public static class ArticleGameTreeDiagrams
     {
-        public sealed record Diagram(string FileStem, string Latex);
+        public sealed record Diagram(string FileStem, string Latex, string Description);
 
         public static LitigGameOptions CreateOptions(bool simplified)
         {
@@ -89,21 +89,25 @@ namespace ACESimBase.Games.LitigGame.ManualReports
                 string endings = simplified
                     ? "Terminal pairs are expected final wealth (P, D), with terminal lotteries integrated out."
                     : "Terminal pairs are final wealth (P, D); court and mutual-exit lotteries are explicit.";
-                string Render(
+                Diagram CreateDiagram(
+                    string stem,
                     Func<ConstructGameTreeInformationSetInfo.GamePointNode, bool> exclude,
                     Func<ConstructGameTreeInformationSetInfo.GamePointNode, bool> include,
-                    string caption) =>
-                    tree.GenerateTikzDiagram(exclude, include, false, caption,
-                        edge => Label(edge, developer.GameDefinition));
-                results.Add(new Diagram("game tree 2x2x2" + suffix,
-                    Render(null, null, legend + endings)));
-                results.Add(new Diagram("game tree 2x2x2 beginning" + suffix,
-                    Render(AfterDefendantSignal, null, legend +
-                        "Private signal bins are represented by 0.25 and 0.75; play continues at the ellipses.")));
-                results.Add(new Diagram("game tree 2x2x2 end" + suffix,
-                    Render(null, StartOfBargaining, legend +
+                    string description) =>
+                    new Diagram(stem,
+                        tree.GenerateTikzDiagram(exclude, include, false,
+                            edgeLabel: edge => Label(edge, developer.GameDefinition)),
+                        description);
+                results.Add(CreateDiagram("game tree 2x2x2" + suffix,
+                    null, null, legend + endings));
+                results.Add(CreateDiagram("game tree 2x2x2 beginning" + suffix,
+                    AfterDefendantSignal, null, legend +
+                        "Private signal bins are represented by 0.25 and 0.75; play continues at the ellipses. " +
+                        "The regular and simplified beginning diagrams are identical: only terminal lotteries differ."));
+                results.Add(CreateDiagram("game tree 2x2x2 end" + suffix,
+                    null, StartOfBargaining, legend +
                         "Subtree after both signals equal 0.25, filing, and answering. " +
-                        "Exit choices take effect only if offers fail to settle. " + endings)));
+                        "Exit choices take effect only if offers fail to settle. " + endings));
             }
             return results;
         }
@@ -112,7 +116,11 @@ namespace ACESimBase.Games.LitigGame.ManualReports
         {
             Directory.CreateDirectory(outputDirectory);
             foreach (var diagram in await GenerateAsync())
+            {
                 await File.WriteAllTextAsync(Path.Combine(outputDirectory, diagram.FileStem + ".tex"), diagram.Latex);
+                await File.WriteAllTextAsync(Path.Combine(outputDirectory, diagram.FileStem + ".txt"),
+                    diagram.Description + Environment.NewLine);
+            }
             await File.WriteAllTextAsync(Path.Combine(outputDirectory, "README.md"), Readme);
         }
 
@@ -163,6 +171,8 @@ namespace ACESimBase.Games.LitigGame.ManualReports
             In ACESim4, run scripts/Generate-ArticleGameTrees.ps1 -OutputDirectory <this folder>.
             This invokes the existing C# tree walker and TikZ generator, compiles all six
             LaTeX sources with LuaLaTeX, and refreshes the two existing PNG previews.
+            Explanatory prose is in a matching .txt file for each diagram, not inside the PDF.
+            Only node/branch labels, probabilities, and payoff pairs appear in the diagrams.
             No production settings, equilibrium files, or production results are modified.
             The .tex sources are retained here so the figures can also be compiled directly.
             """;
