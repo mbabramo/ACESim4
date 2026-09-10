@@ -41,7 +41,10 @@ try {
         $sourceCommit = & git -C $repository rev-parse HEAD
         $sourceState = & git -C $repository status --porcelain -- ACESimBase ACESimConsole scripts/Generate-ArticleGameTrees.ps1
         $note = if ($sourceState) { ' (source changes were present)' } else { ' (clean source)' }
-        Add-Content -LiteralPath (Join-Path $destination 'README.md') -Value ([Environment]::NewLine + [Environment]::NewLine + "Generated from ACESim4 commit " + $sourceCommit + $note + ".")
+        $lineFeed = [string][char]10
+        [System.IO.File]::AppendAllText(
+            (Join-Path $destination 'README.md'),
+            ($lineFeed + $lineFeed + "Generated from ACESim4 commit " + $sourceCommit + $note + "." + $lineFeed))
     }
 }
 finally {

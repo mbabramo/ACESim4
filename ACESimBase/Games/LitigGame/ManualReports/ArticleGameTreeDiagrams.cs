@@ -119,9 +119,9 @@ namespace ACESimBase.Games.LitigGame.ManualReports
             {
                 await File.WriteAllTextAsync(Path.Combine(outputDirectory, diagram.FileStem + ".tex"), diagram.Latex);
                 await File.WriteAllTextAsync(Path.Combine(outputDirectory, diagram.FileStem + ".txt"),
-                    diagram.Description + Environment.NewLine);
+                    diagram.Description + "\n");
             }
-            await File.WriteAllTextAsync(Path.Combine(outputDirectory, "README.md"), Readme);
+            await File.WriteAllTextAsync(Path.Combine(outputDirectory, "README.md"), Readme.ReplaceLineEndings("\n"));
         }
 
         public const string Readme = """

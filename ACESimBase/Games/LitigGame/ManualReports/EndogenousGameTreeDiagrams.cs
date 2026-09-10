@@ -48,7 +48,7 @@ namespace ACESimBase.Games.LitigGame.ManualReports
             await File.WriteAllTextAsync(Path.Combine(outputDirectory, "endogenous disputes beginning.tex"),
                 await GenerateAsync());
             await File.WriteAllTextAsync(Path.Combine(outputDirectory, "endogenous disputes beginning.txt"),
-                Description + System.Environment.NewLine);
+                Description + "\n");
         }
     }
 }
