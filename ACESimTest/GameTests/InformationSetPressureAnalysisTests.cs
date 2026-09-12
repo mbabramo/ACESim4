@@ -176,66 +176,28 @@ public class InformationSetPressureAnalysisTests
     }
 
     [TestMethod]
-    public void TableCellsKeepMixingAndBlanksDistinctFromZero()
-    {
-        var reference = Describe(developer, baseline);
-        var info = reference.InformationSets.First(i => i.Decision == "P Offer");
-        string mixed = LitigCharts.InformationSetPressureTables.Cell(info, true, false);
-        mixed.Should().Contain("31").And.Contain("69").And.Contain("shortstack");
-        LitigCharts.InformationSetPressureTables.Cell(info with { ActualOffPath = true }, true, false).Should().BeEmpty();
-        var filing = reference.InformationSets.First(i => i.Decision == "P Files");
-        LitigCharts.InformationSetPressureTables.Cell(filing with { Actions = filing.Actions.Select(a => a with { Probability = a.Label == "Yes" ? 0 : 1 }).ToArray() }, false, false)
-            .Should().Be("0\\%");
-    }
-
-    [TestMethod]
     public void DirectionalHeadingsIdentifyInterventionAndFixedPrimitive()
     {
         const string american = "Specification-Baseline__Cost-1__Fee-American";
         const string british = "Specification-Baseline__Cost-1__Fee-British";
         const string americanRa = "Specification-ModerateRiskAversion__Cost-1__Fee-American";
         const string britishRa = "Specification-ModerateRiskAversion__Cost-1__Fee-British";
-        var rnFees = LitigCharts.InformationSetPressureTables.Heading(american, british);
+        var rnFees = LitigCharts.EquilibriumChangeTables.Heading(american, british);
         rnFees.Title.Should().Be("Fee shifting: American to British");
         rnFees.HeldFixed.Should().Be("Both players remain risk neutral");
         rnFees.Original.Should().Be("American rule, risk neutral");
         rnFees.Target.Should().Be("British rule, risk neutral");
-        var raFees = LitigCharts.InformationSetPressureTables.Heading(americanRa, britishRa);
+        var raFees = LitigCharts.EquilibriumChangeTables.Heading(americanRa, britishRa);
         raFees.Title.Should().Be(rnFees.Title);
         raFees.HeldFixed.Should().Be("Both players remain moderately risk averse");
         foreach (var pair in new[] { (american, americanRa, "American"), (british, britishRa, "British") })
         {
-            var heading = LitigCharts.InformationSetPressureTables.Heading(pair.Item1, pair.Item2);
+            var heading = LitigCharts.EquilibriumChangeTables.Heading(pair.Item1, pair.Item2);
             heading.Title.Should().Be("Preferences: risk neutral to moderately risk averse");
             heading.HeldFixed.Should().Be(pair.Item3 + " rule remains in force");
         }
-        LitigCharts.InformationSetPressureTables.Heading(british, american).Title.Should().Be("Fee shifting: British to American");
-        LitigCharts.InformationSetPressureTables.Heading(americanRa, american).Title.Should().Be("Preferences: moderately risk averse to risk neutral");
+        LitigCharts.EquilibriumChangeTables.Heading(british, american).Title.Should().Be("Fee shifting: British to American");
+        LitigCharts.EquilibriumChangeTables.Heading(americanRa, american).Title.Should().Be("Preferences: moderately risk averse to risk neutral");
     }
 
-    [TestMethod]
-    public void DeltaCellsUseOriginalReferencePercentagePointsAndExactOfferGrid()
-    {
-        var reference = Describe(developer, baseline);
-        var filing = reference.InformationSets.First(i => i.Decision == "P Files");
-        var full = filing with { Actions = filing.Actions.Select(a => a with { Probability = a.Label == "Yes" ? 1 : 0, NearBest = false }).ToArray() };
-        LitigCharts.InformationSetPressureTables.DeltaCell(full, filing, false).Should().Be("+69");
-        LitigCharts.InformationSetPressureTables.DeltaCell(filing, full, false).Should().StartWith("-69");
-        LitigCharts.InformationSetPressureTables.DeltaCell(full, full, false).Should().Be("---");
-        LitigCharts.InformationSetPressureTables.DeltaCell(full with { ActualOffPath = true }, filing, false).Should().BeEmpty();
-        LitigCharts.InformationSetPressureTables.DeltaCell(full, filing with { ActualOffPath = true }, false)
-            .Should().Contain("new").And.Contain("100\\%").And.NotContain("+100");
-        var info = reference.InformationSets.First(i => i.Decision == "P Offer");
-        InformationSet Pure(int action) => info with { Actions = info.Actions.Select(a => a with { Probability = a.Action == action ? 1 : 0, NearBest = false }).ToArray() };
-        LitigCharts.InformationSetPressureTables.DeltaCell(Pure(2), Pure(1), true, new[] { .25, .75 }).Should().Be("+0.50");
-        LitigCharts.InformationSetPressureTables.DeltaCell(Pure(1), Pure(2), true, new[] { .25, .75 }).Should().Be("-0.50");
-        // A rounded label is not the source of the delta (e.g. finer offer grids).
-        LitigCharts.InformationSetPressureTables.DeltaCell(Pure(2), Pure(1), true, new[] { 1.0 / 30, 3.0 / 30 }).Should().Be("+0.07");
-        LitigCharts.InformationSetPressureTables.DeltaCell(Pure(2), info, true, new[] { .25, .75 }).Should().Contain("level");
-        var mixed = LitigCharts.InformationSetPressureTables.DeltaCell(info, Pure(1), true, new[] { .25, .75 });
-        mixed.Should().Contain("level").And.Contain("31").And.Contain("69");
-        LitigCharts.InformationSetPressureTables.ExitLabel(info with { Player = 0, ExitCommitment = 1 }).Should().Be("Abandon");
-        LitigCharts.InformationSetPressureTables.ExitLabel(info with { Player = 1, ExitCommitment = 1 }).Should().Be("Default");
-        LitigCharts.InformationSetPressureTables.ExitLabel(info with { ExitCommitment = 2 }).Should().Be("Continue");
-    }
 }

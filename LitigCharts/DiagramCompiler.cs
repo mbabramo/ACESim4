@@ -11,7 +11,7 @@ namespace LitigCharts;
 /// <summary>Compiles in owned short-path temporary directories; never cleans a results directory.</summary>
 public static class DiagramCompiler
 {
-    public static async Task CompileAllAsync(string[] sources, ArticleDiagramCommand.Configuration config, int parallelism)
+    public static async Task CompileAllAsync(string[] sources, ArticleDiagramCommand.Configuration config, int parallelism, int passes = 1)
     {
         var errors = new ConcurrentQueue<string>();
         int completed = 0;
@@ -19,7 +19,7 @@ public static class DiagramCompiler
         {
             try
             {
-                await CompileAsync(source, config);
+                await CompileAsync(source, config, passes);
                 Console.WriteLine($"[{Interlocked.Increment(ref completed)}/{sources.Length}] {Path.GetFileNameWithoutExtension(source)}");
             }
             catch (Exception ex) { errors.Enqueue(source + ": " + ex.Message); }
@@ -28,16 +28,19 @@ public static class DiagramCompiler
             throw new InvalidOperationException($"{errors.Count} compilation(s) failed; {completed} succeeded.\n" + string.Join("\n", errors));
     }
 
-    public static async Task CompileAsync(string source, ArticleDiagramCommand.Configuration config)
+    public static async Task CompileAsync(string source, ArticleDiagramCommand.Configuration config, int passes = 1)
     {
+        if (passes < 1 || passes > 3) throw new ArgumentOutOfRangeException(nameof(passes));
         source = Path.GetFullPath(source);
         if (!File.Exists(source)) throw new FileNotFoundException("Missing LaTeX source.", source);
         var temp = Directory.CreateTempSubdirectory("acesim-diagram-");
         bool success = false;
         try
         {
-            await RunProcessAsync(config.LatexExecutable, Path.GetDirectoryName(source), config.ProcessTimeoutSeconds,
-                "--interaction=nonstopmode", "--halt-on-error", "--jobname=diagram", "--output-directory=" + temp.FullName, source);
+            // Tables with repeated headers need their aux widths from the first pass.
+            for (int pass = 0; pass < passes; pass++)
+                await RunProcessAsync(config.LatexExecutable, Path.GetDirectoryName(source), config.ProcessTimeoutSeconds,
+                    "--interaction=nonstopmode", "--halt-on-error", "--jobname=diagram", "--output-directory=" + temp.FullName, source);
             string pdf = Path.Combine(temp.FullName, "diagram.pdf");
             if (!File.Exists(pdf)) throw new IOException("Compiler did not produce its expected PDF.");
             await RunProcessAsync(config.PreviewExecutable, temp.FullName, config.ProcessTimeoutSeconds,

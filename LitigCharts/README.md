@@ -15,39 +15,25 @@ dotnet run --project LitigCharts -c Release -- diagrams publication --config "C:
 dotnet run --project LitigCharts -c Release -- diagrams all --config "C:/Users/Admin/source/repos/correlated-signals-article/article-diagrams.json" --jobs 4
 ```
 
-## Information-set pressure diagnostics
+## Changed-equilibrium diagnostics
 
-```text
-dotnet run --project LitigCharts -c Release -- pressure --request "C:/Users/Admin/source/repos/correlated-signals-article/information-set-pressure.request.json"
-```
+    dotnet run --project LitigCharts -c Release -- equilibrium-changes --request "C:/Users/Admin/source/repos/correlated-signals-article/equilibrium-changes.request.json"
 
-This separate command validates saved profiles, calculates unrestricted full-continuation
-best responses, and generates the intervention tables. It does not run an equilibrium
-search or edit production settings. `--calculate-only` writes the diagnostic JSON and
-manifest; `--render-only` reuses hash-validated calculations to regenerate PDF/TeX and
-CSV reports. It is deliberately not included in `diagrams all`.
+This separate command validates saved equilibria and computes all eight subsets
+of actual opponent entry, offer, and exit replacements using unrestricted full
+best responses. Direct incentives come first; the remaining contributions average
+marginal replacements over all six orders. Only changed decisions reached in both
+endpoint equilibria are displayed. Ties, selection residuals, and intermediate
+reach are explicit. Mixed offers are never replaced by mean offers.
 
-The request identifies source/target equilibrium files and corresponding action reports,
-one fee-rule or risk-preference intervention per contrast, an output directory outside
-production inputs, and numerical/tie tolerances. Paths resolve relative to the request.
-The implementation reuses the existing GEBR routine and independently replays each
-response and conditional action value. Calculation is serial.
+--calculate-only writes full diagnostic JSON and fingerprints; --render-only
+assembles verified calculations. The pressure command is a compatibility alias,
+not the deleted seven-column table generator. The ordinary-cost bundle goes to
+the article's Tables folder; high-cost and individual comparisons go to
+Supplemental materials/Equilibrium changes. No production equilibrium is solved
+or overwritten. This calculation is not implicitly included in diagrams all.
 
-Each contrast PDF has four pages: P and D for two-step best-response dynamics, then
-P and D for actual-equilibrium opponent-component decomposition. Participation, exit
-commitments, and offers by separate exit histories are retained. CSV/JSON companions
-include all action values, counterfactual reach/posteriors, root gains, near ties, and
-off-path completion sensitivity. Existing source profile/report hashes are checked
-before and after the run; output hashes guard against partially replaced calculations.
-
-PDF headings identify the intervention direction and the held-fixed primitive. Original
-and Target show equilibrium levels; the five middle columns emphasize deltas from
-Original (percentage points for probabilities). Mixed offers and newly reached histories
-use explicitly labeled levels where a single delta would be misleading. Offer histories
-spell out Abandon/Default/Continue instead of Q/C. Render-only does not modify calculation
-JSONs or recompute best responses.
-
-See `scripts/Information-set-pressure.md` for the definitions and interpretation limits.
+See [the calculation guide](../scripts/Equilibrium-strategy-changes.md).
 
 ## Other targets
 
@@ -275,3 +261,11 @@ output-root sends these extras to `Supplemental disposition figures`.
 Both targets support the existing list, source-only, compile-only and separate
 output-root modes. Publication generation validates all selected input data
 before writing any outputs. It does not alter the saved reports or equilibria.
+
+## Changed-equilibrium tables
+
+The equilibrium-changes command replaces the former pressure-table generator.
+It reuses saved equilibria, calculates all eight opponent-component coalitions,
+and displays only changed, commonly reached decisions with direct-first additive
+contributions. Ties, selection residuals, and counterfactual reach are explicit.
+See [the calculation and reproduction guide](../scripts/Equilibrium-strategy-changes.md).

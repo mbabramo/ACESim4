@@ -133,7 +133,7 @@ public static class InformationSetPressureAnalysis
     };
 
     public static Result Respond(StrategiesDeveloperBase developer, Profile input, byte player,
-        string name, Tolerances tolerances = null, bool highTie = false)
+        string name, Tolerances tolerances = null, bool highTie = false, Profile tieReference = null)
     {
         tolerances ??= new();
         ValidateTolerances(tolerances);
@@ -169,6 +169,9 @@ public static class InformationSetPressureAnalysis
                     .Last(a => values.Max() - values[a] <= tolerances.Tie);
                 var probabilities = new double[node.NumPossibleActions];
                 probabilities[choice] = 1;
+                if (tieReference != null)
+                    probabilities = PreserveOptimalReference(values,
+                        tieReference.Strategies[Key(node, developer.GameDefinition)].Probabilities, tolerances.Tie);
                 node.SetCurrentProbabilities(probabilities);
             }
             var walk = Walk(developer, player);
@@ -177,7 +180,7 @@ public static class InformationSetPressureAnalysis
             if (walk.RootUtility[player] + tolerances.Numerical < referenceUtility)
                 throw new InvalidDataException("Best response is worse than the input policy.");
             double maxError = 0;
-            if (!highTie)
+            if (!highTie && tieReference == null)
                 foreach (var node in developer.InformationSets.Where(n => n.PlayerIndex == player))
                     if (algorithmValues.TryGetValue(node.InformationSetNodeNumber, out var values))
                     {
@@ -203,12 +206,30 @@ public static class InformationSetPressureAnalysis
                 .Select(x => new CompletionWarning(x.Donor.Key, x.Donor.Labels, x.Donor.Donor,
                     x.Donor.DonorReach, x.Reach, x.Donor.UniformFallback, x.Donor.DonorCounterfactuallyUnreachable, x.DeviationWeight)).ToArray();
             return new(name, developer.GameDefinition.OptionSetName, player,
-                highTie ? "highest action within tie tolerance" : "GEBR strict maximum; first action on exact ties",
+                tieReference != null ? "retain and renormalize original probability on optimal actions; first optimum if none retained" :
+                    highTie ? "highest action within tie tolerance" : "GEBR strict maximum; first action on exact ties",
                 referenceUtility, walk.RootUtility[player], best, walk.RootUtility[player] - referenceUtility,
                 maxError, walk.TerminalProbability, captured,
                 DescribeSets(developer, player, walk, input, tolerances), warnings);
         }
         finally { Apply(developer, original); }
+    }
+
+    // L1-minimal departure from the reference among policies supported on optimal
+    // actions. No probability is retained on an action outside the tie tolerance.
+    public static double[] PreserveOptimalReference(double[] utilities, double[] reference, double tolerance)
+    {
+        if (utilities.Length != reference.Length || utilities.Length == 0 ||
+            utilities.Any(x => !double.IsFinite(x)) || reference.Any(x => !double.IsFinite(x) || x < 0) ||
+            Math.Abs(reference.Sum() - 1) > 1e-10 || !double.IsFinite(tolerance) || tolerance < 0)
+            throw new ArgumentException("Invalid tie-selection inputs.");
+        double best = utilities.Max();
+        var result = utilities.Select((u, i) => best - u <= tolerance ? reference[i] : 0).ToArray();
+        double retained = result.Sum();
+        if (retained > 0)
+            return result.Select(x => x / retained).ToArray();
+        result[Array.FindIndex(utilities, u => best - u <= tolerance)] = 1;
+        return result;
     }
 
     public static void ValidateTolerances(Tolerances t)

@@ -18,14 +18,17 @@ public static class ArticlePressureAnalysis
         string ActionReportFile, int EquilibriumNumber = 1);
     public sealed record Contrast(string Id, string Label, string Source, string Target);
     public sealed record Request(string OutputDirectory, Source[] Sources, Contrast[] Contrasts,
-        Tolerances Tolerances = null, bool CheckOffPathCompletions = true, bool CheckFirstResponseTies = true);
+        Tolerances Tolerances = null, bool CheckOffPathCompletions = true, bool CheckTieSensitivity = true,
+        string PublicationDirectory = null);
     public sealed record Fingerprint(string Path, string Sha256);
     public sealed record Loaded(Source Selection, Fingerprint Equilibrium, Fingerprint ActionReport,
         int ValidatedRows, Profile Profile, Reference Reference, Result[] Controls);
     public sealed record Scenario(string Panel, string Component, Result Result);
     public sealed record ContrastResult(string Schema, Contrast Contrast, string SourceOptionSet,
         string TargetOptionSet, Tolerances Tolerances, Reference SourceEquilibrium,
-        Reference TargetEquilibrium, Scenario[] Scenarios, string[] Interpretation);
+        Reference TargetEquilibrium, Scenario[] Scenarios, string[] Interpretation,
+        EquilibriumChangeDecomposition.ChangeRow[] Changes,
+        EquilibriumChangeDecomposition.ExcludedHistory[] ExcludedHistories, double[] OfferValues);
     public sealed record Manifest(string Schema, DateTimeOffset CreatedUtc, Fingerprint Request,
         int MaxIntegralUtility, int RoundOffChanceDigits, Tolerances Tolerances,
         Loaded[] Sources, Contrast[] Contrasts, string[] OutputJsonFiles,
@@ -92,78 +95,54 @@ public static class ArticlePressureAnalysis
             progress?.Invoke("Analyze " + contrast.Label);
             var developer = await ArticleWorkedPathExtraction.InitializeAsync(targetOptions);
             var scenarios = new List<Scenario>();
-            var first = new Result[2];
-            var high = new Result[2];
-            for (byte player = 0; player < 2; player++)
-            {
-                first[player] = Respond(developer, source.Profile, player, contrast.Id + "-direct-" + player, tolerance);
-                scenarios.Add(new("direct", "none", first[player]));
-                if (request.CheckFirstResponseTies)
-                {
-                    high[player] = Respond(developer, source.Profile, player, contrast.Id + "-direct-high-tie-" + player, tolerance, highTie: true);
-                    scenarios.Add(new("first-response-tie-check", "none", high[player]));
-                }
-            }
             foreach (byte player in new byte[] { 0, 1 })
             {
                 byte opponent = (byte)(1 - player);
-                foreach (string panel in new[] { "dynamics", "equilibrium" })
-                    foreach (string component in new[] { "participation", "offers", "exit", "all" })
-                    {
-                        Profile donor = panel == "dynamics" ? first[opponent].Response : target.Profile;
-                        var hybrid = Hybrid(source.Profile, donor, opponent, component, contrast.Id + "-hybrid");
-                        var response = Respond(developer, hybrid, player, contrast.Id + "-" + panel + "-" + component + "-" + player, tolerance);
-                        scenarios.Add(new(panel, component, response));
-                        if (panel == "equilibrium" && component == "all")
-                        {
-                            // ReferenceUtility here uses the OLD focal strategy. Compare the
-                            // response instead to the target-equilibrium utility, not Gain.
-                            Near(target.Reference.Utilities[player], response.BestResponseUtility,
-                                tolerance.Numerical, "Full target-opponent substitution");
-                        }
-                        if (panel == "dynamics" && request.CheckFirstResponseTies)
-                        {
-                            var alternative = Hybrid(source.Profile, high[opponent].Response, opponent, component, contrast.Id + "-tie-hybrid");
-                            scenarios.Add(new("dynamics-tie-check", component,
-                                Respond(developer, alternative, player, response.Name + "-high-donor", tolerance)));
-                        }
-                    }
-                progress?.Invoke("  " + (player == 0 ? "Plaintiff" : "Defendant") + " direct and component responses complete");
-            }
-            if (request.CheckOffPathCompletions)
-                foreach (var scenario in scenarios.Where(s => s.Panel is "direct" or "dynamics" or "equilibrium").ToArray())
+                for (int mask = 0; mask < 8; mask++)
                 {
-                    if (scenario.Result.ExposedOpponentSets.Length == 0) continue;
-                    // Sensitivity replaces only originally unvisited donor sets, never
-                    // their on-path policy. This is a stress test, not exhaustive bounds.
-                    byte player = scenario.Result.Player;
-                    byte opponent = (byte)(1 - player);
-                    Profile donor = scenario.Panel == "equilibrium" ? target.Profile : first[opponent].Response;
-                    Profile hybrid = scenario.Panel == "direct" ? source.Profile :
-                        Hybrid(source.Profile, donor, opponent, scenario.Component, "completion-hybrid");
-                    foreach (bool highest in new[] { false, true })
+                    string name = contrast.Id + "-coalition-" + mask + "-" + player;
+                    var hybrid = EquilibriumChangeDecomposition.Coalition(source.Profile, target.Profile, player, mask);
+                    var response = Respond(developer, hybrid, player, name, tolerance, tieReference: source.Profile);
+                    scenarios.Add(new("coalition", mask.ToString(), response));
+                    if (mask == 7)
+                        Near(target.Reference.Utilities[player], response.BestResponseUtility,
+                            tolerance.Numerical, "Full target-opponent substitution");
+                    if (request.CheckTieSensitivity)
                     {
-                        var completed = ReplaceUnvisitedOpponentPolicies(hybrid, opponent, highest);
-                        scenarios.Add(new(scenario.Panel + (highest ? "-completion-high" : "-completion-low"), scenario.Component,
-                            Respond(developer, completed, player, scenario.Result.Name + (highest ? "-completion-high" : "-completion-low"), tolerance)));
+                        scenarios.Add(new("tie-low", mask.ToString(), Respond(developer, hybrid, player, name + "-tie-low", tolerance)));
+                        scenarios.Add(new("tie-high", mask.ToString(), Respond(developer, hybrid, player, name + "-tie-high", tolerance, highTie: true)));
                     }
+                    if (request.CheckOffPathCompletions && response.ExposedOpponentSets.Length > 0)
+                        foreach (bool highest in new[] { false, true })
+                        {
+                            var completed = ReplaceUnvisitedOpponentPolicies(hybrid, opponent, highest);
+                            // Each stress replaces one coalition at a time in the allocation.
+                            string check = "completion-" + (highest ? "high-" : "low-") + mask;
+                            scenarios.Add(new(check, mask.ToString(), Respond(developer, completed, player,
+                                name + "-" + check, tolerance, tieReference: source.Profile)));
+                        }
                 }
-            var result = new ContrastResult("1", contrast, source.Selection.OptionSetName, target.Selection.OptionSetName,
-                tolerance, source.Reference, target.Reference, scenarios.ToArray(), Interpretation);
+                progress?.Invoke("  " + (player == 0 ? "Plaintiff" : "Defendant") + ": eight coalitions and sensitivity checks complete");
+            }
+            double[] offerValues = Enumerable.Range(1, targetOptions.NumOffers).Select(a =>
+                Game.ConvertActionToUniformDistributionDraw((byte)a, targetOptions.NumOffers, targetOptions.IncludeEndpointsForOffers)).ToArray();
+            var (changes, excluded) = EquilibriumChangeDecomposition.BuildRows(source.Reference, target.Reference, scenarios.ToArray(), offerValues);
+            var result = new ContrastResult("2", contrast, source.Selection.OptionSetName, target.Selection.OptionSetName,
+                tolerance, source.Reference, target.Reference, scenarios.ToArray(), Interpretation, changes, excluded, offerValues);
             string path = Path.Combine(output, contrast.Id + ".json");
             await File.WriteAllTextAsync(path, JsonSerializer.Serialize(result, JsonOptions) + "\n");
             outputs.Add(path);
-            progress?.Invoke($"  Saved {scenarios.Count} responses, including sensitivity checks");
+            progress?.Invoke($"  {changes.Length} changed rows; {changes.Count(r => r.EndpointSelection)} endpoint-selection rows; {scenarios.Count} diagnostic responses");
         }
         foreach (var source in loaded.Values)
         {
             if (Hash(source.Equilibrium.Path).Sha256 != source.Equilibrium.Sha256 || Hash(source.ActionReport.Path).Sha256 != source.ActionReport.Sha256)
                 throw new IOException("A production input changed during the diagnostic run.");
         }
-        var manifest = new Manifest("1", DateTimeOffset.UtcNow, Hash(requestFile), EvolutionSettings.MaxIntegralUtility,
+        var manifest = new Manifest("2", DateTimeOffset.UtcNow, Hash(requestFile), EvolutionSettings.MaxIntegralUtility,
             EvolutionSettings.RoundOffChanceDigits, tolerance, loaded.Values.ToArray(), request.Contrasts, outputs.ToArray(),
             outputs.Select(Hash).ToArray(), Hash(typeof(ArticlePressureAnalysis).Assembly.Location));
-        await File.WriteAllTextAsync(Path.Combine(output, "pressure-analysis-manifest.json"), JsonSerializer.Serialize(manifest, JsonOptions) + "\n");
+        await File.WriteAllTextAsync(Path.Combine(output, "equilibrium-changes-manifest.json"), JsonSerializer.Serialize(manifest, JsonOptions) + "\n");
         return manifest;
     }
 
@@ -213,13 +192,16 @@ public static class ArticlePressureAnalysis
     public static readonly string[] Interpretation =
     {
         "Each response optimizes ALL focal-player continuation decisions against a fixed, complete opponent strategy. No monotonicity restriction is imposed.",
-        "Direct responses for both players use the original opponent (simultaneous first round). Dynamics columns substitute one or all components of that first response. Equilibrium columns instead substitute actual target-equilibrium components.",
-        "Component changes are one-at-a-time from the original opponent, not cumulative; interactions need not add. Two rounds are not convergence or an observed learning path.",
+        "Only actual strategy changes at information sets reached in BOTH endpoint equilibria enter the change table. Reach changes are recorded separately; no undefined endpoint action is imputed.",
+        "The direct contribution changes the rule or preference primitive first, holding the opponent's original complete strategy. Eight coalitions then replace every subset of the opponent's actual target-equilibrium entry, offer, and exit policies.",
+        "Opponent contributions average incremental replacements over all six orders, conditional on the new rules. Their sum is the all-opponent response minus the direct response. Direct plus opponent contributions plus the explicitly retained selection residual equals the observed change. This convention assigns interactions with the primitive change to the opponent-adjustment portion; it is not an order-free causal identification.",
         "Information sets are mapped using player, decision code, and labeled observed decision/action history, not numerical node identifiers.",
         "Counterfactual reach omits ONLY the responding player's own prior action probabilities. Its normalized action values assume optimized continuation and its beliefs include changed opponent selection. These are not the saved equilibrium-continuation Q values.",
         "ActualReach and actual conditional utility concern the reported response profile; actual conditional utility is null when actual reach is zero. Counterfactual conditional values can remain defined if the player could reach the set by changing an earlier action; values/beliefs are null when opponent-and-chance reach is zero.",
         "Offer rows retain own exit commitments separately. The commitments are private and operate only after failed settlement. This does not test a different bargaining/exit protocol.",
-        "Pure responses use GEBR's strict maximum and first action for exact ties. A high-action near-tie alternative is separately replay-checked against the optimal root value before use as a first-round donor. Zero-counterfactual-reach response sets preserve the original complete policy and are flagged.",
+        "Primary responses retain and renormalize original probability on optimal actions within the tie tolerance; when none remains they choose the first optimum. Each resulting complete policy is independently replayed against the optimal root utility. Low/high action alternatives test selection sensitivity. These are illustrative checks, not exhaustive bounds.",
+        "If the selected all-target-opponent response differs from the observed target policy, its residual is never silently attributed to the four mechanisms. The publication table labels the row selection-dependent and suppresses a purported four-way accounting. Mixed offers are decomposed as action shares, never as mean offers.",
+        "Intermediate coalitions may not actually reach a commonly reached endpoint history. Conditional continuation policies are usable only with positive opponent-and-chance reach and are explicitly flagged. Zero-counterfactual-reach coalitions make the row undefined for attribution.",
         "Opponent completions are audited both when actually newly reached and when reachable through a focal-player deviation: an arbitrary continuation can deter entry without being played. FocalDeviationReachWeight at opponent sets is only an exposure weight, not a normalized probability. Low/high completion tests change only donor-unvisited sets and are illustrative stress tests, not exhaustive bounds or alternative equilibria.",
         "Utility differences are within the intervention utility function. Risk-neutral and CARA utilities are not cross-regime welfare-comparable. Positive effect sizes do not by themselves establish a policy ranking.",
         "All-target-opponent validation compares optimal response utility to actual target-equilibrium utility, allowing payoff-equivalent strategies and the numerical tolerance. Gain elsewhere is against the old focal strategy under the same hybrid opponent.",
