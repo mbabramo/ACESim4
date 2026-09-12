@@ -39,10 +39,10 @@ namespace ACESimTest.GameTests
         }
 
         [TestMethod]
-        public async Task AllSixViewsHaveUniqueConnectedNodesAndCorrectChanceStructure()
+        public async Task AllFiveViewsHaveUniqueConnectedNodesAndCorrectChanceStructure()
         {
             var diagrams = await ArticleGameTreeDiagrams.GenerateAsync();
-            diagrams.Should().HaveCount(6);
+            diagrams.Should().HaveCount(5);
             foreach (var diagram in diagrams)
             {
                 var nodes = Regex.Matches(diagram.Latex, @"\(N(\d+)\) at")
@@ -58,8 +58,8 @@ namespace ACESimTest.GameTests
                 diagram.Description.Should().Contain("Continuous-merits baseline")
                     .And.Contain("no equilibrium");
             }
-            diagrams.Single(x => x.FileStem == "game tree 2x2x2 beginning").Latex.Should()
-                .Be(diagrams.Single(x => x.FileStem == "game tree 2x2x2 beginning simplified").Latex);
+            diagrams.Count(x => x.FileStem.Contains("beginning")).Should().Be(1);
+            diagrams.Should().NotContain(x => x.FileStem == "game tree 2x2x2 beginning simplified");
             var fullEnd = diagrams.Single(x => x.FileStem == "game tree 2x2x2 end").Latex;
             var simpleEnd = diagrams.Single(x => x.FileStem == "game tree 2x2x2 end simplified").Latex;
             fullEnd.Should().Contain("Court finding:").And.Contain("Both Quit");

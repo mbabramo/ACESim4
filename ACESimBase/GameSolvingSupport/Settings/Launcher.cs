@@ -226,6 +226,8 @@ namespace ACESimBase.GameSolvingSupport.Settings
                     return new AverageStrategiesSampling(existingStrategyState, evolutionSettings, gameDefinition);
                 case GameApproximationAlgorithm.PureStrategyFinder:
                     return new PureStrategiesFinder(existingStrategyState, evolutionSettings, gameDefinition);
+                case GameApproximationAlgorithm.EnumeratedPureStrategies:
+                    return new ACESimBase.GameSolvingAlgorithms.EnumeratedPureStrategies(existingStrategyState, evolutionSettings, gameDefinition);
                 case GameApproximationAlgorithm.FictitiousPlay:
                     return new FictitiousPlay(existingStrategyState, evolutionSettings, gameDefinition);
                 case GameApproximationAlgorithm.BestResponseDynamics:

@@ -1,46 +1,56 @@
-# Regenerating game-tree diagrams
+# Regenerating article diagrams
 
-Run Generate-ArticleGameTrees.ps1 from PowerShell with an explicit output directory.
-It requires .NET 9, LuaLaTeX, and Poppler's pdftoppm on PATH.
+The workflow is now in the existing C# **LitigCharts** project. See
+[LitigCharts/README.md](../LitigCharts/README.md) for commands and configuration.
+The former PowerShell wrappers and independently maintained LaTeX template have
+been retired. C# owns both numerical binding and the worked-path layout.
 
-## Correlated-signals article
+## Structural game trees
 
-    .\scripts\Generate-ArticleGameTrees.ps1 -Model CorrelatedSignals -OutputDirectory "C:\path\to\Game tree diagrams"
+The `game-trees` target initializes the current focused continuous-merits
+baseline on a two-signal, two-offer grid and generates five views. It does not
+solve an equilibrium. Only chance probabilities are printed; player labels
+identify information sets. Explanations are written to matching .txt files.
+The simplified views integrate terminal lotteries; only one beginning view is
+generated because simplifying the ending does not change the beginning.
 
-This initializes the current focused continuous-merits baseline on a small two-signal,
-two-offer grid. It writes the six legacy-named PDFs, matching LaTeX sources and .txt explanations, two PNG
-previews, and a README documenting the parameters. It does not solve an equilibrium.
-Only chance probabilities are printed; player labels identify information sets.
-Explanatory prose belongs in the accompanying .txt files, never inside the diagrams.
-The full views expand terminal lotteries; the simplified views integrate them out.
-Both integrate continuous merits, so their beginning views are identical.
+The `endogenous` target selects the existing precaution-negligence generator
+and its original BeginningOfGame_Collapsed filter. It is excluded from `all`.
+Other views remain available through
+`EndogenousGameTreeDiagrams.GenerateAsync(TreeDiagramExclusions)`.
+The endogenous model, option generators, and production launchers are unchanged.
 
-## Endogenous-disputes article
+## Worked path
 
-    .\scripts\Generate-ArticleGameTrees.ps1 -Model EndogenousDisputes -OutputDirectory "C:\path\to\Endogenous game tree"
+The request JSON names an option set, saved equilibrium, matching
+InformationSetActions report, one-based equilibrium number, and ordered paths.
+Each path lists decision enum names and one-based actions. Input paths resolve
+relative to the request file. Invalid, partial, overlong and ambiguous histories
+are rejected. Both source files are hashed; every action-report row must match
+the reconstructed information sets and numerical results.
 
-This selects the existing precaution-negligence generator and its original
-BeginningOfGame_Collapsed filter. It writes an endogenous-disputes prefix PDF, LaTeX
-source, .txt explanation, and PNG. Use a separate output folder for this other article.
-The existing endogenous model, option generators, and production launchers are unchanged.
-Small accident probabilities retain scientific notation, and small payoff differences
-are shown with up to eight decimal places.
+Conditional action utilities average over the acting player's information set
+with the saved profile thereafter. Replaying a history does not change that
+profile. Terminal monetary accounting remains separate from solver-rounded
+utility. The JSON also records history and information-set reach probabilities,
+off-path and fallback flags, and replayed terminal outcomes.
 
-For another endogenous view, pass the public LitigGameDefinition.TreeDiagramExclusions
-value to EndogenousGameTreeDiagrams.GenerateAsync: FullDiagram, BeginningOfGame,
-BeginningOfGame_Collapsed, MiddleOfGame, or EndOfGame. Large full trees may exceed
-LaTeX's page-size limits; the selected prefix is the readable default.
+`LitigCharts/WorkedPathDiagram.cs` owns the deliberately arranged layout for
+the selected baseline example. `ArticleWorkedPathLatexData.cs` validates its
+assumptions and binds extracted numbers. The output .tex is self-contained;
+it is not another project or a hand-maintained input. Revise the request to
+change histories; revise these C# classes to change the drawing. Explanatory
+prose belongs in the accompanying .txt, not inside the PDF.
 
-## Existing report switches
+The older model-console `--extract-article-paths <request.json> <output.json>`
+remains available for extraction without chart generation. New workflows should
+use `LitigCharts diagrams worked-path-data`. The old values-only console switch
+now reports the replacement command rather than falling through to production.
 
-EvolutionSettings.PrintGameTree and PrintedGameTreeIncludesInformationSetData still
-select TikZ output during normal reporting. That path now saves GameTree.tex with the
-normal report/option-set prefix instead of discarding the generated string.
-LitigGameDefinition.Exclusions is now public, retaining its existing endogenous default.
-The correlated-signals export supplies separate filters; it does not overwrite those
-endogenous settings.
+## Existing reporting APIs
 
-The diagram renderer supports repeatable full/subtree views, unique node identifiers,
-chance-only versus behavioral probability labels, and configurable payoff precision.
-The command-line modes only initialize and traverse the small game. They do not change
-production settings, write equilibrium files, or overwrite production reports.
+EvolutionSettings.PrintGameTree and PrintedGameTreeIncludesInformationSetData
+still select TikZ output during normal reporting. That path saves GameTree.tex
+with the normal report/option-set prefix. LitigGameDefinition.Exclusions retains
+its endogenous default; the correlated-signals exporter uses separate filters.
+The new commands do not require changing these switches.

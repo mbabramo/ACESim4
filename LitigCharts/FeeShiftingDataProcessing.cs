@@ -472,13 +472,16 @@ namespace LitigCharts
 
         public record AggregatedGraphInfo(string topicName, List<string> columnsToGet, List<string> lineScheme, string minorXAxisLabel = "TBD", string minorXAxisLabelShort = "TBD", string minorYAxisLabel = "\\$", string majorYAxisLabel = "Costs Multiplier", double? maximumValueMicroY = null, TikzAxisSet.GraphType graphType = TikzAxisSet.GraphType.Line, Func<double?, double?> scaleMiniGraphValues = null, string filter = "All");
 
-        public static void ProduceLatexDiagramsAggregatingReports(LitigGameLauncherBase launcher, DataBeingAnalyzed article)
+        public static void ProduceLatexDiagramsAggregatingReports(LitigGameLauncherBase launcher, DataBeingAnalyzed article,
+            string sourceCsvPath = null, string outputDirectory = null, Action<string, string> emitSource = null)
         {
-            string reportFolder = Launcher.ReportFolder();
-            string pathAndFilename = launcher.GetReportFullPath(null, "output.csv");
+            if (emitSource != null && (sourceCsvPath == null || outputDirectory == null))
+                throw new ArgumentException("Source-only generation requires explicit input and output paths.");
+            string reportFolder = emitSource == null ? Launcher.ReportFolder() : outputDirectory;
+            string pathAndFilename = sourceCsvPath ?? launcher.GetReportFullPath(null, "output.csv");
             string outputFolderName = "Aggregated Data";
-            string outputFolderPath = Path.Combine(reportFolder, outputFolderName);
-            if (!VirtualizableFileSystem.Directory.GetDirectories(reportFolder).Any(x => x == outputFolderName))
+            string outputFolderPath = outputDirectory ?? Path.Combine(reportFolder, outputFolderName);
+            if (emitSource == null && !VirtualizableFileSystem.Directory.GetDirectories(reportFolder).Any(x => x == outputFolderName))
                 VirtualizableFileSystem.Directory.CreateDirectory(outputFolderPath);
 
             IEnumerable<bool> riskModes = article == DataBeingAnalyzed.CorrelatedSignalsArticle
@@ -580,15 +583,18 @@ namespace LitigCharts
                                 plannedPath.AddSubpath(subfolderName, 4);
                             }
 
-                            CreateAggregatedReportVariationsForWelfareMeasure(launcher, pathAndFilename, plannedPath, compatibleVariations, welfareMeasureWithCorrectedMinorX, costsMultipliers, minorXToRun.minorXValues);
+                            CreateAggregatedReportVariationsForWelfareMeasure(launcher, pathAndFilename, plannedPath, compatibleVariations, welfareMeasureWithCorrectedMinorX, costsMultipliers, minorXToRun.minorXValues, emitSource);
                         }
                     }
                 }
             }
 
-            WaitForProcessesToFinish();
-            Task.Delay(1000);
-            DeleteAuxiliaryFiles(outputFolderPath);
+            if (emitSource == null)
+            {
+                WaitForProcessesToFinish();
+                Task.Delay(1000);
+                DeleteAuxiliaryFiles(outputFolderPath);
+            }
         }
 
         public static bool SupportsAllCostRows(
@@ -604,7 +610,7 @@ namespace LitigCharts
                     match.expectedValue == defaultOffers));
         }
 
-        private static void CreateAggregatedReportVariationsForWelfareMeasure(LitigGameLauncherBase launcher, string sourceDataPathAndFilename, PlannedPath outputFolderPath, List<PermutationalLauncher.SimulationSetsIdentifier> variations, AggregatedGraphInfo aggregatedGraphInfo, List<string> macroYValues, List<string> microXValues)
+        private static void CreateAggregatedReportVariationsForWelfareMeasure(LitigGameLauncherBase launcher, string sourceDataPathAndFilename, PlannedPath outputFolderPath, List<PermutationalLauncher.SimulationSetsIdentifier> variations, AggregatedGraphInfo aggregatedGraphInfo, List<string> macroYValues, List<string> microXValues, Action<string, string> emitSource = null)
         {
             Func<double?, double?> scaleMiniGraphValues = aggregatedGraphInfo.scaleMiniGraphValues ?? (x => x);
             List<(string columnName, string expectedText)[]> collectedRowsToFind = new List<(string columnName, string expectedText)[]>();
@@ -613,7 +619,7 @@ namespace LitigCharts
             // We do this as a two-step process, first defining the rows to find and then acting on that information. So we go through the basic logic twice, checking at various points which step we are on.
             foreach (bool stepDefiningRowsToFind in new bool[] { true, false })
             {
-                foreach (string equilibriumType in eqToRun)
+                foreach (string equilibriumType in emitSource == null ? eqToRun : new[] { "Only Eq" })
                 {
                     string eqAbbreviation = equilibriumType switch { "Correlated" => "-Corr", "Average" => "-Avg", "First Eq" => "-Eq1", "Only Eq" => "", _ => equilibriumType[1..] };
                     foreach (var variation in variations)
@@ -707,7 +713,7 @@ namespace LitigCharts
 
                         // Now create the aggregated line graph. This is the very last thing we'll do in this method.
                         if (!stepDefiningRowsToFind && variation.nameOfSet != aggregatedGraphInfo.minorXAxisLabel) // we don't want to have graphs in a Fee Shifting Multiplier folder, if we're already including Fee Shifting Multiplier as the minor x axis (this would actually create the same graph multiple times)
-                            CreateAggregatedLineGraphFromData(launcher, outputFolderPath, aggregatedGraphInfo, equilibriumType, variation, simulationIdentifiers, lineGraphData, macroYValues, microXValues);
+                            CreateAggregatedLineGraphFromData(launcher, outputFolderPath, aggregatedGraphInfo, equilibriumType, variation, simulationIdentifiers, lineGraphData, macroYValues, microXValues, emitSource);
 
                     }
                 }
@@ -726,7 +732,7 @@ namespace LitigCharts
 
         }
 
-        private static void CreateAggregatedLineGraphFromData(LitigGameLauncherBase launcher, PlannedPath plannedPath, AggregatedGraphInfo aggregatedGraphInfo, string equilibriumType, LitigGameEndogenousDisputesLauncher.SimulationSetsIdentifier variation, List<LitigGameEndogenousDisputesLauncher.SimulationIdentifier> simulationIdentifiers, List<List<TikzLineGraphData>> lineGraphData, List<string> macroYValueNames, List<string> microXValues)
+        private static void CreateAggregatedLineGraphFromData(LitigGameLauncherBase launcher, PlannedPath plannedPath, AggregatedGraphInfo aggregatedGraphInfo, string equilibriumType, LitigGameEndogenousDisputesLauncher.SimulationSetsIdentifier variation, List<LitigGameEndogenousDisputesLauncher.SimulationIdentifier> simulationIdentifiers, List<List<TikzLineGraphData>> lineGraphData, List<string> macroYValueNames, List<string> microXValues, Action<string, string> emitSource = null)
         {
             plannedPath = plannedPath.DeepClone();
             plannedPath.AddSubpath(variation.nameOfSet, 5);
@@ -789,7 +795,11 @@ namespace LitigCharts
                 lineGraphData = lineGraphData,
             };
             var result = r.GetStandaloneDocument();
-            GenerateLatex(plannedPath, outputFilename, result);
+            if (emitSource == null)
+                GenerateLatex(plannedPath, outputFilename, result);
+            else
+                emitSource(plannedPath.GetCombinedPathWithoutCreating(outputFilename),
+                    ApplyBlackAndWhiteOptionToLatex(result, outputFilename));
         }
 
         private static double RoundAxisLimit(double value)
@@ -1422,6 +1432,10 @@ namespace LitigCharts
             }
 
             public string GetCombinedPlannedPathString(string filename) => Path.Combine(GetPlannedPathString(), filename);
+
+            public string GetCombinedPathWithoutCreating(string filename) =>
+                Path.Combine(prioritizedSubpaths.OrderByDescending(x => x.priority)
+                    .Aggregate(originalPath, (path, part) => Path.Combine(path, part.name)), filename);
 
             public PlannedPath DeepClone() => new PlannedPath(originalPath, prioritizedSubpaths.ToList());
         }

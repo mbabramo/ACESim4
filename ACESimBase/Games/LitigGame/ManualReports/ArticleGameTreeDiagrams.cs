@@ -100,10 +100,11 @@ namespace ACESimBase.Games.LitigGame.ManualReports
                         description);
                 results.Add(CreateDiagram("game tree 2x2x2" + suffix,
                     null, null, legend + endings));
-                results.Add(CreateDiagram("game tree 2x2x2 beginning" + suffix,
-                    AfterDefendantSignal, null, legend +
-                        "Private signal bins are represented by 0.25 and 0.75; play continues at the ellipses. " +
-                        "The regular and simplified beginning diagrams are identical: only terminal lotteries differ."));
+                if (!simplified)
+                    results.Add(CreateDiagram("game tree 2x2x2 beginning",
+                        AfterDefendantSignal, null, legend +
+                            "Private signal bins are represented by 0.25 and 0.75; play continues at the ellipses. " +
+                            "Only one beginning view is needed because simplifying terminal lotteries does not change it."));
                 results.Add(CreateDiagram("game tree 2x2x2 end" + suffix,
                     null, StartOfBargaining, legend +
                         "Subtree after both signals equal 0.25, filing, and answering. " +
@@ -127,7 +128,7 @@ namespace ACESimBase.Games.LitigGame.ManualReports
         public const string Readme = """
             # Game-tree illustrations
 
-            These six diagrams are generated from the revised continuous-merits baseline in
+            These five structural diagrams are generated from the revised continuous-merits baseline in
             ACESim4, using two signal bins per party, two court outcomes, and two offer values.
             They illustrate the extensive form; they are not solved equilibria or the
             ten-signal, ten-/fifteen-offer production results.
@@ -154,13 +155,13 @@ namespace ACESimBase.Games.LitigGame.ManualReports
               Simplified leaves give expected wealth, not a realized monetary allocation.
               These pairs are not the article's net-outcome-fidelity measure.
 
-            ## The six views
+            ## The five structural views
 
             - game tree 2x2x2.pdf: all actions, with court and mutual-exit lotteries explicit.
             - game tree 2x2x2 simplified.pdf: the same game with terminal lotteries integrated out.
-            - The two beginning PDFs stop after private signals, at the filing information sets.
-              They are deliberately identical: continuous merits are integrated out in both
-              versions, so the obsolete finite case-strength layer is not reinstated.
+            - game tree 2x2x2 beginning.pdf stops after private signals, at the filing information sets.
+              There is no separate simplified beginning: continuous merits are integrated out
+              in both versions, and the terminal-lottery switch does not affect this prefix.
             - The two end PDFs show the first bargaining subtree: both signals are 0.25,
               and the plaintiff has filed and the defendant has answered.
             - The legacy 2x2x2 filenames are retained to avoid unnecessary link changes.
@@ -168,13 +169,25 @@ namespace ACESimBase.Games.LitigGame.ManualReports
 
             ## Regeneration
 
-            In ACESim4, run scripts/Generate-ArticleGameTrees.ps1 -OutputDirectory <this folder>.
-            This invokes the existing C# tree walker and TikZ generator, compiles all six
-            LaTeX sources with LuaLaTeX, and refreshes the two existing PNG previews.
+            In ACESim4, run dotnet run --project LitigCharts -c Release -- diagrams game-trees
+            --config <article repository>/article-diagrams.json (as one command).
+            This invokes the existing C# tree walker and TikZ generator, compiles all five
+            LaTeX sources with LuaLaTeX, and generates matching PNG previews.
             Explanatory prose is in a matching .txt file for each diagram, not inside the PDF.
             Only node/branch labels, probabilities, and payoff pairs appear in the diagrams.
             No production settings, equilibrium files, or production results are modified.
             The .tex sources are retained here so the figures can also be compiled directly.
+
+            ## Worked equilibrium path
+
+            The separate worked equilibrium path figure uses the ten-signal, ten-offer
+            production equilibrium, not the structural illustrations' arbitrary strategies.
+            See worked equilibrium path.txt and worked equilibrium paths.request.json.
+            Regenerate it with the same command using the worked-path target.
+            LitigCharts.WorkedPathDiagram owns the layout and emits self-contained LaTeX;
+            the .tex is a generated output, not a separately maintained template.
+            Use worked-path-data for extraction alone or all for all article diagrams.
+            See LitigCharts/README.md for compile-only, sources-only, list, and output-root modes.
             """;
     }
 }

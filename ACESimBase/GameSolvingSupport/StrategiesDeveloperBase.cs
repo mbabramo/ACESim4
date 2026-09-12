@@ -1523,10 +1523,10 @@ namespace ACESim
 
         #region Initialization
 
-        public void InitializeInformationSets()
+        public void InitializeInformationSets(int maxWorkers = -1)
         {
             int numInformationSets = InformationSets.Count;
-            Parallel.For(0, numInformationSets, n => InformationSets[n].Initialize());
+            Parallel.For(0, numInformationSets, new ParallelOptions { MaxDegreeOfParallelism = maxWorkers }, n => InformationSets[n].Initialize());
             int numActionsSoFar = 0;
             foreach (var informationSet in InformationSets)
             {

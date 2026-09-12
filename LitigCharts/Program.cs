@@ -14,15 +14,15 @@ namespace LitigCharts
     class Program
     {
 
-        static void Main(string[] args)
+        static async System.Threading.Tasks.Task<int> Main(string[] args)
         {
-            //Runner.KlermanData.Execute();
-
-            // Runner.AdditiveEvidenceArticle();
-
-            // Runner.ProcessLitigationGameData(Runner.DataBeingAnalyzed.EndogenousDisputesArticle);
-            
-            Runner.ProcessLitigationGameData(Runner.DataBeingAnalyzed.CorrelatedSignalsArticle);
+            if (args.Length > 0 && args[0] == "pressure")
+                return await InformationSetPressureTables.RunAsync(args.Skip(1).ToArray());
+            if (args.Length > 0 && args[0] == "tables")
+                return await PublicationTables.RunAsync(args.Skip(1).ToArray());
+            if (args.Length > 0 && args[0] == "pure")
+                return await EnumeratedPureReport.RunAsync(args.Skip(1).ToArray());
+            return await ArticleDiagramCommand.RunAsync(args);
         }
     }
 }

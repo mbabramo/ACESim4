@@ -1,0 +1,88 @@
+using System;
+using System.Collections.Concurrent;
+using System.Diagnostics;
+using System.IO;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+
+namespace LitigCharts;
+
+/// <summary>Compiles in owned short-path temporary directories; never cleans a results directory.</summary>
+public static class DiagramCompiler
+{
+    public static async Task CompileAllAsync(string[] sources, ArticleDiagramCommand.Configuration config, int parallelism)
+    {
+        var errors = new ConcurrentQueue<string>();
+        int completed = 0;
+        await Parallel.ForEachAsync(sources, new ParallelOptions { MaxDegreeOfParallelism = parallelism }, async (source, _) =>
+        {
+            try
+            {
+                await CompileAsync(source, config);
+                Console.WriteLine($"[{Interlocked.Increment(ref completed)}/{sources.Length}] {Path.GetFileNameWithoutExtension(source)}");
+            }
+            catch (Exception ex) { errors.Enqueue(source + ": " + ex.Message); }
+        });
+        if (!errors.IsEmpty)
+            throw new InvalidOperationException($"{errors.Count} compilation(s) failed; {completed} succeeded.\n" + string.Join("\n", errors));
+    }
+
+    public static async Task CompileAsync(string source, ArticleDiagramCommand.Configuration config)
+    {
+        source = Path.GetFullPath(source);
+        if (!File.Exists(source)) throw new FileNotFoundException("Missing LaTeX source.", source);
+        var temp = Directory.CreateTempSubdirectory("acesim-diagram-");
+        bool success = false;
+        try
+        {
+            await RunProcessAsync(config.LatexExecutable, Path.GetDirectoryName(source), config.ProcessTimeoutSeconds,
+                "--interaction=nonstopmode", "--halt-on-error", "--jobname=diagram", "--output-directory=" + temp.FullName, source);
+            string pdf = Path.Combine(temp.FullName, "diagram.pdf");
+            if (!File.Exists(pdf)) throw new IOException("Compiler did not produce its expected PDF.");
+            await RunProcessAsync(config.PreviewExecutable, temp.FullName, config.ProcessTimeoutSeconds,
+                "-png", "-singlefile", "-r", "150", pdf, Path.Combine(temp.FullName, "diagram"));
+            string png = Path.Combine(temp.FullName, "diagram.png");
+            if (!File.Exists(png)) throw new IOException("Preview tool did not produce its expected PNG.");
+            File.Copy(pdf, Path.ChangeExtension(source, ".pdf"), overwrite: true);
+            File.Copy(png, Path.ChangeExtension(source, ".png"), overwrite: true);
+            success = true;
+        }
+        catch (Exception ex)
+        {
+            throw new IOException($"Diagram generation failed. Diagnostics retained in {temp.FullName}. {ex.Message}", ex);
+        }
+        finally
+        {
+            // Only the directory created by this invocation, never a caller-provided path.
+            if (success && temp.Parent.FullName.TrimEnd(Path.DirectorySeparatorChar)
+                    .Equals(Path.GetFullPath(Path.GetTempPath()).TrimEnd(Path.DirectorySeparatorChar), StringComparison.OrdinalIgnoreCase)
+                && !temp.Attributes.HasFlag(FileAttributes.ReparsePoint))
+                temp.Delete(recursive: true);
+        }
+    }
+
+    public static async Task RunProcessAsync(string executable, string workingDirectory, int timeoutSeconds, params string[] arguments)
+    {
+        var start = new ProcessStartInfo(executable)
+        {
+            WorkingDirectory = workingDirectory, UseShellExecute = false, CreateNoWindow = true,
+            RedirectStandardOutput = true, RedirectStandardError = true
+        };
+        foreach (string argument in arguments) start.ArgumentList.Add(argument);
+        using var process = Process.Start(start) ?? throw new IOException("Could not start " + executable);
+        Task<string> stdout = process.StandardOutput.ReadToEndAsync(), stderr = process.StandardError.ReadToEndAsync();
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(timeoutSeconds));
+        try { await process.WaitForExitAsync(timeout.Token); }
+        catch (OperationCanceledException)
+        {
+            process.Kill(entireProcessTree: true);
+            await process.WaitForExitAsync();
+            await Task.WhenAll(stdout, stderr);
+            throw new TimeoutException($"{executable} exceeded {timeoutSeconds} seconds.");
+        }
+        string output = await stdout + "\n" + await stderr;
+        if (process.ExitCode != 0)
+            throw new IOException($"{executable} exited {process.ExitCode}.\n" + output[Math.Max(0, output.Length - 4000)..]);
+    }
+}

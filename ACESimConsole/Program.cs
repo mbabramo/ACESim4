@@ -27,6 +27,26 @@ namespace ACESim
         [STAThread]
         public static async Task Main(string[] args)
         {
+            if (args.Length > 0 && args[0] == "--enumerated-pure")
+            {
+                GameProgressLogger.LoggingOn = false;
+                GameProgressLogger.DetailedLogging = false;
+                await ACESimBase.Games.LitigGame.LitigGameEnumeratedPureLauncher.RunCommandAsync(args.Skip(1).ToArray());
+                return;
+            }
+            if (args.Length > 0 && args[0] == "--article-worked-path-values")
+            {
+                throw new ArgumentException("Worked-path LaTeX generation has moved to LitigCharts: diagrams worked-path --config <article-diagrams.json>.");
+            }
+            if (args.Length > 0 && args[0] == "--extract-article-paths")
+            {
+                if (args.Length != 3)
+                    throw new ArgumentException("Usage: --extract-article-paths <request.json> <output.json>");
+                GameProgressLogger.LoggingOn = false;
+                GameProgressLogger.DetailedLogging = false;
+                await ACESimBase.Games.LitigGame.ManualReports.ArticleWorkedPathExtraction.WriteJsonAsync(args[1], args[2]);
+                return;
+            }
             if (args.Length > 0 && (args[0] == "--article-game-trees" || args[0] == "--endogenous-game-tree"))
             {
                 if (args.Length != 2)

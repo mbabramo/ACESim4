@@ -16,5 +16,6 @@ namespace ACESim
         ModifiedGibsonProbing,
         AverageStrategySampling,
         PlaybackOnly,
+        EnumeratedPureStrategies,
     }
 }
