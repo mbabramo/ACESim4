@@ -155,7 +155,7 @@ public static class EquilibriumChangeDecomposition
     }
 
     public static (ChangeRow[] Rows, ExcludedHistory[] Excluded) BuildRows(
-        Reference original, Reference target, Scenario[] scenarios, double[] offerValues)
+        Reference original, Reference target, Scenario[] scenarios, double[] offerValues, bool includeUnchanged = false)
     {
         var rows = new List<ChangeRow>();
         var excluded = new List<ExcludedHistory>();
@@ -173,7 +173,7 @@ public static class EquilibriumChangeDecomposition
             }
             double[] startPolicy = old.Actions.Select(a => a.Probability).ToArray();
             double[] endPolicy = end.Actions.Select(a => a.Probability).ToArray();
-            if (startPolicy.Zip(endPolicy, (a, b) => Math.Abs(a - b)).Max() <= PolicyTolerance) continue;
+            if (!includeUnchanged && startPolicy.Zip(endPolicy, (a, b) => Math.Abs(a - b)).Max() <= PolicyTolerance) continue;
             var primary = Enumerable.Range(0, 8).Select(mask => scenarios.Single(s =>
                 s.Panel == "coalition" && s.Component == mask.ToString() && s.Result.Player == old.Player)
                 .Result.InformationSets.Single(i => i.Key == old.Key)).ToArray();
@@ -186,7 +186,8 @@ public static class EquilibriumChangeDecomposition
                 alternatives.All(s => Pure(s.Result.InformationSets.Single(i => i.Key == old.Key)));
             int[] actions = !offer || amount ? new[] { -1 } :
                 Enumerable.Range(0, old.Actions.Length).Where(a =>
-                    Math.Abs(startPolicy[a] - endPolicy[a]) > PolicyTolerance).ToArray();
+                    Math.Abs(startPolicy[a] - endPolicy[a]) > PolicyTolerance ||
+                    includeUnchanged && primary.Any(i => Math.Abs(startPolicy[a] - i.Actions[a].Probability) > PolicyTolerance)).ToArray();
             foreach (int action in actions)
             {
                 double Value(InformationSet i) => amount

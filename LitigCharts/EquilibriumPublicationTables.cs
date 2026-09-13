@@ -81,9 +81,44 @@ public static class EquilibriumPublicationTables
         var keys = Focus(original);
         keys.IntersectWith(Focus(mixed));
         keys.IntersectWith(Focus(check));
-        var selected = original.Changes.Where(r => keys.Contains(r.Key)).ToArray();
+        var offsets = OffsettingEffects(original);
+        var offsetKeys = OffsettingEffects(mixed).Select(r => r.Key).ToHashSet();
+        offsetKeys.IntersectWith(OffsettingEffects(check).Select(r => r.Key));
+        var selected = original.Changes.Where(r => keys.Contains(r.Key))
+            .Concat(offsets.Where(r => offsetKeys.Contains(r.Key))).ToArray();
         ValidateRows(selected);
         return selected;
+    }
+
+    public static bool Unchanged(ChangeRow row) =>
+        row.OriginalPolicy.Zip(row.TargetPolicy, (a, b) => Math.Abs(a - b)).Max() <= PolicyTolerance;
+
+    /// <summary>
+    /// An unchanged endpoint policy is strictly suboptimal after the intervention
+    /// alone, but restored by the all-target-opponent best response. Uses cached
+    /// unrestricted responses, never a fresh equilibrium or an imposed causal path.
+    /// </summary>
+    public static ChangeRow[] OffsettingEffects(ContrastResult result)
+    {
+        bool Qualifies(ChangeRow row)
+        {
+            if (!Unchanged(row) || row.CounterfactualUndefined ||
+                Math.Abs(row.Allocation.Direct) <= PolicyTolerance ||
+                Math.Abs(row.Allocation.SelectionResidual) > PolicyTolerance) return false;
+            var direct = result.Scenarios.Single(s => s.Panel == "coalition" && s.Component == "0" && s.Result.Player == row.Player)
+                .Result.InformationSets.Single(s => s.Key == row.Key);
+            var all = result.Scenarios.Single(s => s.Panel == "coalition" && s.Component == "7" && s.Result.Player == row.Player)
+                .Result.InformationSets.Single(s => s.Key == row.Key);
+            if (direct.CounterfactuallyUnreachable || direct.Actions.Any(a =>
+                !a.CounterfactualConditionalUtility.HasValue || !double.IsFinite(a.CounterfactualConditionalUtility.Value)) ||
+                all.Actions.Zip(row.TargetPolicy, (a, p) => Math.Abs(a.Probability - p)).Max() > PolicyTolerance) return false;
+            double best = direct.Actions.Max(a => a.CounterfactualConditionalUtility.Value);
+            double inferiorMass = direct.Actions.Select((a, i) =>
+                best - a.CounterfactualConditionalUtility.Value > result.Tolerances.NearTie ? row.OriginalPolicy[i] : 0).Sum();
+            return inferiorMass > PolicyTolerance;
+        }
+        return BuildRows(result.SourceEquilibrium, result.TargetEquilibrium, result.Scenarios,
+            result.OfferValues, includeUnchanged: true).Rows.Where(Qualifies).ToArray();
     }
 
     public static void ValidateRows(ChangeRow[] rows)
@@ -154,28 +189,38 @@ public static class EquilibriumPublicationTables
         b.AppendLine(@"{\fontsize{9.5}{11.5}\selectfont\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{1.38in}>{\centering\arraybackslash}p{.54in}>{\centering\arraybackslash}p{1.07in}*{4}{>{\raggedleft\arraybackslash}p{.61in}}>{\centering\arraybackslash}X@{}}");
         b.AppendLine(@"\toprule & & & \multicolumn{4}{c}{Contributions to change} & \\");
         b.AppendLine(@"\cmidrule(lr){4-7} Decision & Own signal & Original $\to$ Target & Direct & \shortstack{Opponent\\entry} & \shortstack{Opponent\\offers} & \shortstack{Opponent\\exit} & \shortstack{Tie/off-path\\sensitivity} \\\midrule");
-        foreach (var group in GroupRows(rows))
+        bool hasOffsets = rows.Any(Unchanged);
+        foreach (var section in rows.GroupBy(Unchanged).OrderBy(g => g.Key))
         {
-            var row = group.First; var a = row.Allocation;
-            bool amount = row.Metric == "offer amount";
-            string Num(double v, bool signed)
+            if (hasOffsets)
+                b.AppendLine((section.Key ? @"\midrule " : "") + @"\multicolumn{8}{l}{\textit{" +
+                    (section.Key ? "Unchanged actions with offsetting effects" : "Changed actions") + @"}}\\[2pt]");
+            foreach (var group in GroupRows(section.ToArray()))
             {
-                if (Math.Abs(v) < (amount ? .0005 : .05)) v = 0;
-                return (signed && v > 0 ? "+" : "") + v.ToString(amount ? "0.00#" : "0.#", CultureInfo.InvariantCulture);
+                var row = group.First; var a = row.Allocation;
+                bool amount = row.Metric == "offer amount";
+                string Num(double v, bool signed)
+                {
+                    if (Math.Abs(v) < (amount ? .0005 : .05)) v = 0;
+                    return (signed && v > 0 ? "+" : "") + v.ToString(amount ? "0.00#" : "0.#", CultureInfo.InvariantCulture);
+                }
+                string endpoint = "$" + Num(a.Original, false) + (amount ? "" : @"\%") + @"\to " + Num(a.Target, false) + (amount ? "" : @"\%") + "$";
+                string label = row.Decision switch
+                {
+                    "P Files" => "P files",
+                    "D Answers" => "D answers",
+                    "P Abandons" => "P commits to abandon",
+                    "D Defaults" => "D commits to default",
+                    _ => (row.Player == 0 ? "P demand" : "D offer") + (row.ExitCommitment == 2 ? ", continue" : ", exit")
+                };
+                string signal = row.SignalValue.ToString("0.00", CultureInfo.InvariantCulture) +
+                    (group.Rows.Length > 1 ? "--" + group.Last.SignalValue.ToString("0.00", CultureInfo.InvariantCulture) : "");
+                if (group.Rows.Any(r => r.UnreachedCoalitions.Length > 0)) label += "$^{*}$";
+                b.Append(label + " & " + signal + " & " + endpoint);
+                foreach (double effect in new[] { a.Direct, a.Entry, a.Offers, a.Exit })
+                    b.Append(" & $" + Num(effect, true) + (!amount && Math.Abs(effect) >= .05 ? @"\,\mathrm{pp}" : "") + "$");
+                b.AppendLine(" & " + group.Sensitivity + @"\\");
             }
-            string endpoint = "$" + Num(a.Original, false) + (amount ? "" : @"\%") + @"\to " + Num(a.Target, false) + (amount ? "" : @"\%") + "$";
-            string label = row.Decision switch
-            {
-                "P Files" => "P files", "D Answers" => "D answers",
-                "P Abandons" => "P commits to abandon", "D Defaults" => "D commits to default",
-                _ => (row.Player == 0 ? "P demand" : "D offer") + (row.ExitCommitment == 2 ? ", continue" : ", exit")
-            };
-            string signal = row.SignalValue.ToString("0.00", CultureInfo.InvariantCulture) +
-                (group.Rows.Length > 1 ? "--" + group.Last.SignalValue.ToString("0.00", CultureInfo.InvariantCulture) : "");
-            b.Append(label + " & " + signal + " & " + endpoint);
-            foreach (double effect in new[] { a.Direct, a.Entry, a.Offers, a.Exit })
-                b.Append(" & $" + Num(effect, true) + (!amount && Math.Abs(effect) >= .05 ? @"\,\mathrm{pp}" : "") + "$");
-            b.AppendLine(" & " + group.Sensitivity + @"\\");
         }
         return b.AppendLine(@"\bottomrule\end{tabularx}}\end{minipage}\end{document}").ToString();
     }

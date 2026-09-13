@@ -23,7 +23,7 @@ dotnet run --project LitigCharts -c Release -- diagrams all --config "C:/Users/A
 
 ## Changed-equilibrium diagnostics
 
-    dotnet run --project LitigCharts -c Release -- equilibrium-changes --request "C:/Users/Admin/source/repos/correlated-signals-article/Replication/Requests/equilibrium-changes.request.json" --calculate-only
+    dotnet run --project LitigCharts -c Release -- equilibrium-changes --request "C:/Users/Admin/source/repos/correlated-signals-article/Results/Equilibrium diagnostics/Original/equilibrium-changes.request.json" --calculate-only
 
 This separate command validates saved equilibria and computes all eight subsets
 of actual opponent entry, offer, and exit replacements using unrestricted full

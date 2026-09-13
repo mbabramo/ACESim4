@@ -2,13 +2,13 @@
 
 Run the optional diagnostic workflow from ACESim4:
 
-    dotnet run --project LitigCharts -c Release -- equilibrium-paths --request "C:/Users/Admin/source/repos/correlated-signals-article/Replication/Requests/equilibrium-paths.request.json"
+    dotnet run --project LitigCharts -c Release -- equilibrium-paths --request "C:/Users/Admin/source/repos/correlated-signals-article/Supplemental materials/Equilibrium solution paths/equilibrium-paths.request.json"
 
 The default command calculates and validates the original paths, then creates
 four standalone animations and one combined case selector. Use `--calculate-only`
 for the data phase. For already completed traces, use:
 
-    dotnet run --project LitigCharts -c Release -- equilibrium-paths --request "C:/Users/Admin/source/repos/correlated-signals-article/Replication/Requests/equilibrium-paths.request.json" --render-only
+    dotnet run --project LitigCharts -c Release -- equilibrium-paths --request "C:/Users/Admin/source/repos/correlated-signals-article/Supplemental materials/Equilibrium solution paths/equilibrium-paths.request.json" --render-only
 
 Rendering lives in LitigCharts/EquilibriumPathAnimation.cs. It verifies the
 completed manifest, metadata, frame and input hashes, consecutive pivot stream,
@@ -154,8 +154,10 @@ Player-control regression tests (fake DOM/canvas and clock; no browser dependenc
 The C# EquilibriumPathAnimationTests additionally validate packed information-set
 ordering, coverage and source/frame fingerprints.
 
-Active article requests are under `Replication/Requests`. Exact historical
-request bytes are under `Replication/Recorded requests`; relocated trace input
+The active `equilibrium-paths.request.json` sits beside the animations and raw
+traces. The source-equilibrium request sits beside its calculation in
+`Results/Equilibrium diagnostics/Original`. Each has an adjacent
+`.recorded-request.json` preserving its exact historical bytes; relocated trace input
 fingerprints reference these originals without changing their hashes. Only
 metadata paths and the rendered viewer changed during the directory cleanup;
 the JSONL pivot streams did not change.

@@ -2,7 +2,7 @@
 
 From the ACESim4 repository:
 
-    dotnet run --project LitigCharts -c Release -- equilibrium-changes --request "C:/Users/Admin/source/repos/correlated-signals-article/Replication/Requests/equilibrium-changes.request.json" --calculate-only
+    dotnet run --project LitigCharts -c Release -- equilibrium-changes --request "C:/Users/Admin/source/repos/correlated-signals-article/Results/Equilibrium diagnostics/Original/equilibrium-changes.request.json" --calculate-only
 
 --calculate-only runs diagnostics; --render-only assembles verified saved
 calculations. The pressure command remains an alias, but the old table generator
@@ -123,8 +123,9 @@ target strategies, primary and sensitivity responses, action values, reaches,
 beliefs, exclusions, and explicit residuals. Original production files are
 hash-checked before and after calculation and again before rendering.
 
-Active equilibrium request files are in `Replication/Requests`, with exact
-historical copies in `Replication/Recorded requests`. The old combined-table
+Active equilibrium request files sit beside their corresponding calculations,
+with adjacent `.recorded-request.json` files preserving exact historical bytes.
+The old combined-table
 renderer remains available for diagnostics, but its request no longer writes
 to `Tables`. Use `equilibrium-publication` below for the accepted presentation.
 
@@ -180,8 +181,24 @@ standalone LaTeX/PDF pairs. It reads the original, selected-mixed and
 forward/tighter calculation manifests (including their input hashes), intersects
 their focus sets, and takes every displayed coordinate and contribution from
 the ORIGINAL calculation. It does not reuse the mixed-report aggregation of
-probability on gaining actions. The current selection has 39 information sets
+probability on gaining actions. The changed-action selection has 39 information sets
 grouped into 26 rows (2, 6, 12 and 6 rows in the four tables).
+
+An additional section retains unchanged local policies when the direct
+intervention makes positive original mass strictly suboptimal (using the same
+1e-6 mass and target-utility thresholds), but the all-target-opponent best
+response restores the original/target distribution. Require defined conditional
+comparisons, a nonzero direct coordinate contribution, and zero remainder.
+Intersect this filter across the original, mixed and forward/tighter pairs too.
+Eight information sets survive (0, 3, 3, 2); the complete packet has 47 information
+sets in 34 rows (2, 9, 15, 8). Original coordinates and allocations are preserved.
+
+`BuildRows(..., includeUnchanged: true)` reconstructs these allocations from
+cached scenarios without changing the default changed-only export or any saved
+calculation. `OffsettingEffects` applies the strict-direct-loss and restoration
+tests. Asterisks identify primary hybrids that do not actually reach the
+information set while its conditional comparison remains defined. Marker
+definitions and interpretation belong in the editable methodology, not table notes.
 
 ```text
 dotnet run --project LitigCharts -c Release -- equilibrium-publication --original <equilibrium-changes.request.json> --mixed <equilibrium-changes-mixed.request.json> --check <equilibrium-changes-mixed-forward.request.json> --output <article/Tables/Equilibrium strategy changes> --previews <temporary-QA-directory>
@@ -194,9 +211,9 @@ author-owned `Methodology.tex` fragment. There are no generated table notes,
 README files, request files, calculation JSON, or PNG previews in this directory.
 The command never writes `Methodology.tex`, so the author may edit it freely.
 
-In the article repository, the three request arguments are in
-`Replication/Requests`. Their cached inputs are in `Results/Equilibrium diagnostics`:
-`Original`, `Mixed`, and `Mixed tighter check`. The `Mixing` subdirectory retains
+In the article repository, the three request arguments sit with their cached
+inputs in `Results/Equilibrium diagnostics/Original`, `Mixed`, and
+`Mixed tighter check`, respectively. The `Mixing` subdirectory retains
 the profile searches and their tighter-tolerance checks. Cached manifest input
 and output hashes are still verified. `OriginalRequest` preserves each original
 calculation request fingerprint alongside the relocated active request.

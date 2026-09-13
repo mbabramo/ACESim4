@@ -193,6 +193,8 @@ public class EquilibriumChangeDecompositionTests
         result.Rows[0].Allocation.Direct.Should().Be(-100);
         result.Rows[0].EndpointSelection.Should().BeFalse();
         BuildRows(ReferenceFor(old), ReferenceFor(old), scenario, new[] { .25, .75 }).Rows.Should().BeEmpty();
+        BuildRows(ReferenceFor(old), ReferenceFor(old), scenario, new[] { .25, .75 }, includeUnchanged: true)
+            .Rows.Should().ContainSingle("optional diagnostic accounting includes unchanged policies without changing the default");
         result = BuildRows(ReferenceFor(old), ReferenceFor(Policy(old, 0) with { ActualOffPath = true, ActualReach = 0 }), scenario, new[] { .25, .75 });
         result.Rows.Should().BeEmpty();
         result.Excluded.Should().ContainSingle().Which.Reason.Should().StartWith("no longer");

@@ -6,13 +6,13 @@ Run through the existing C# chart/report entry point:
 dotnet run --project LitigCharts -c Release -- equilibrium-mixing --request <request.json>
 ```
 
-The article's `Replication/Requests/equilibrium-mixing.request.json` selects the four ordinary-cost
+The article's `Results/Equilibrium diagnostics/Mixing/equilibrium-mixing.request.json` selects the four ordinary-cost
 equilibria: American/British crossed with risk neutrality/moderate risk aversion.
 Additional saved profiles can be added to `Sources`. Mixing always starts from
 the saved equilibrium, not a `ProfileFile` override. This does not run ECTA,
 replace production equilibria, or revise existing animations or paper figures.
 
-`Replication/Requests/equilibrium-mixing-tight.request.json` repeats the four equilibria and both
+`equilibrium-mixing-tight.request.json`, beside its results in `Mixing/Tighter tolerance check`, repeats the four equilibria and both
 search orders with a tenfold tighter acceptance limit and conditional tie
 tolerance, retaining its results in a separate `Tighter tolerance check`
 subdirectory. Search-order sensitivity is distinct from numerical tolerance.
@@ -131,7 +131,7 @@ are read-only inputs, validated against the initialized rounded article game.
 
 ## Separate decomposition experiment
 
-The article's `Replication/Requests/equilibrium-changes-mixed.request.json` uses the selected profiles
+The article's `Results/Equilibrium diagnostics/Mixed/equilibrium-changes-mixed.request.json` uses the selected profiles
 as explicit `ProfileFile` inputs to the existing decomposition engine. Its output
 is `Results/Equilibrium diagnostics/Mixed`, with the forward/tighter check in
 `Results/Equilibrium diagnostics/Mixed tighter check`. See `Equilibrium-strategy-changes.md` for
