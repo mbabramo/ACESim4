@@ -140,7 +140,7 @@ public static class EquilibriumMixingCommand
         b.AppendLine("## Interpretation\n");
         foreach (string note in report.Interpretation) b.AppendLine("- " + note);
         b.AppendLine("\nFull profiles, action utilities and reaches, best-response gains, every accepted block, solver statuses and input fingerprints are in the JSON files. No existing decomposition or publication figure has been replaced.\n");
-        return b.ToString();
+        return b.ToString().TrimEnd() + "\n";
     }
 
     private static string Distribution(Strategy strategy, double threshold) => string.Join("; ",
