@@ -194,6 +194,12 @@ namespace ACESim
         /// </summary>
         public bool LoserPaysAfterAbandonment;
         /// <summary>
+        /// If true, loser-pays also reimburses the plaintiff's incurred filing costs when
+        /// a filed claim ends because the defendant does not answer. No unincurred costs
+        /// are shifted. Separate from later abandonment/default for explicit comparisons.
+        /// </summary>
+        public bool LoserPaysAfterNonAnswer;
+        /// <summary>
         /// If true, then if LoserPays is true, plaintiff wins, and plaintiff receives less than defendant's offer. 
         /// </summary>
         public bool Rule68;

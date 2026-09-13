@@ -27,6 +27,7 @@ namespace ACESim
             FocusedContinuousMerits,
             MultipleEquilibriaRobustness,
             IncreasedOfferGridRobustness,
+            ExitFeeShifting,
         }
 
         public enum FocusedSpecification
@@ -95,6 +96,9 @@ namespace ACESim
         public const int MultipleEquilibriaInitializationCount = 50;
         public const int IncreasedOfferGridOptionSetCount = 4;
         public const int IncreasedOfferGridOfferCount = 15;
+        public const int ExitFeeOptionSetCount = 10;
+        public const int ExitFeeSpecificationComparisonCount = 5;
+        public const string ExitFeeTriggerLabel = "Trial and unilateral exit";
         private const double PublishedTotalPerPartyLitigationCosts = 0.30;
         private const double PublishedProportionOfCostsAtBeginning = 0.5;
 
@@ -103,6 +107,7 @@ namespace ACESim
             {
                 ProductionRunPlan.FocusedContinuousMerits,
                 ProductionRunPlan.MultipleEquilibriaRobustness,
+                ProductionRunPlan.ExitFeeShifting,
             };
 
         public static readonly IReadOnlyList<FocusedSpecificationDefinition> FocusedSpecifications =
@@ -148,6 +153,7 @@ namespace ACESim
             ProductionRunPlan.FocusedContinuousMerits => "CS004",
             ProductionRunPlan.MultipleEquilibriaRobustness => "CS004ME",
             ProductionRunPlan.IncreasedOfferGridRobustness => "CS005O15",
+            ProductionRunPlan.ExitFeeShifting => "CS006EF",
             _ => throw new NotSupportedException(),
         };
 
@@ -173,9 +179,10 @@ namespace ACESim
                 "focused" or "continuous" or "cs003" => ProductionRunPlan.FocusedContinuousMerits,
                 "multiple-equilibria" or "multiple" or "equilibria" or "cs004me" => ProductionRunPlan.MultipleEquilibriaRobustness,
                 "offers-15" or "offers15" or "increased-offers" or "cs005o15" => ProductionRunPlan.IncreasedOfferGridRobustness,
+                "exit-fees" or "exit-fee-shifting" or "cs006ef" => ProductionRunPlan.ExitFeeShifting,
                 _ => throw new ArgumentException(
                     $"Unknown correlated-signals plan '{value}'. Expected legacy, supplemental, unified, focused, " +
-                    "multiple-equilibria, or offers-15."),
+                    "multiple-equilibria, offers-15, or exit-fees."),
             };
 
         public IReadOnlyList<ArticleSignalStructure> IncludedSignalStructures => RunPlan switch
@@ -197,6 +204,8 @@ namespace ACESim
                 new[] { ArticleSignalStructure.UniformQuality },
             ProductionRunPlan.IncreasedOfferGridRobustness =>
                 new[] { ArticleSignalStructure.UniformQuality },
+            ProductionRunPlan.ExitFeeShifting =>
+                new[] { ArticleSignalStructure.UniformQuality },
             _ => throw new NotSupportedException(),
         };
 
@@ -208,6 +217,7 @@ namespace ACESim
             ProductionRunPlan.FocusedContinuousMerits => FocusedOptionSetCount,
             ProductionRunPlan.MultipleEquilibriaRobustness => MultipleEquilibriaOptionSetCount,
             ProductionRunPlan.IncreasedOfferGridRobustness => IncreasedOfferGridOptionSetCount,
+            ProductionRunPlan.ExitFeeShifting => ExitFeeOptionSetCount,
             _ => throw new NotSupportedException(),
         };
 
@@ -219,6 +229,7 @@ namespace ACESim
             ProductionRunPlan.FocusedContinuousMerits => FocusedCoreCombinationCount,
             ProductionRunPlan.MultipleEquilibriaRobustness => 1,
             ProductionRunPlan.IncreasedOfferGridRobustness => IncreasedOfferGridSpecifications.Count,
+            ProductionRunPlan.ExitFeeShifting => ExitFeeSpecificationComparisonCount,
             _ => throw new NotSupportedException(),
         };
 
@@ -230,20 +241,22 @@ namespace ACESim
             ProductionRunPlan.FocusedContinuousMerits => FocusedSpecificationComparisonCount,
             ProductionRunPlan.MultipleEquilibriaRobustness => 1,
             ProductionRunPlan.IncreasedOfferGridRobustness => IncreasedOfferGridSpecifications.Count,
+            ProductionRunPlan.ExitFeeShifting => ExitFeeSpecificationComparisonCount,
             _ => throw new NotSupportedException(),
         };
 
         public override double[] AdditionalCostsMultipliers => Array.Empty<double>();
         public override double[] AdditionalFeeShiftingMultipliers => Array.Empty<double>();
         public override double[] CriticalFeeShiftingMultipliers =>
-            IsFocusedFamilyRun
+            RunPlan == ProductionRunPlan.ExitFeeShifting ? new[] { 1.0 } : IsFocusedFamilyRun
                 ? new[] { 0.0, 1.0 }
                 : base.CriticalFeeShiftingMultipliers;
 
         private bool IsFocusedFamilyRun => RunPlan is
             ProductionRunPlan.FocusedContinuousMerits or
             ProductionRunPlan.MultipleEquilibriaRobustness or
-            ProductionRunPlan.IncreasedOfferGridRobustness;
+            ProductionRunPlan.IncreasedOfferGridRobustness or
+            ProductionRunPlan.ExitFeeShifting;
 
         public override List<(string, string)> DefaultVariableValues
         {
@@ -324,6 +337,13 @@ namespace ACESim
         private List<(string, string)> FocusedDefaultVariableValuesForRun()
         {
             List<(string, string)> values = FocusedDefaultVariableValues();
+            if (RunPlan == ProductionRunPlan.ExitFeeShifting)
+            {
+                values = values.WithReplacement("Fee Regime", "British")
+                    .WithReplacement("Fee Shifting Multiplier", "1");
+                values.Add(("Fee Shifting Trigger", ExitFeeTriggerLabel));
+                values.Add(("Fees After Nonanswer", "true"));
+            }
             if (RunPlan == ProductionRunPlan.IncreasedOfferGridRobustness)
                 values = values.WithReplacement(
                     "Number of Offers",
@@ -343,10 +363,11 @@ namespace ACESim
                 ? new()
                 {
                     ("Specification", RobustnessSpecifications().Select(GetFocusedSpecificationDefinition).Select(x => x.Label).ToArray()),
-                    ("Costs Multiplier", RunPlan == ProductionRunPlan.FocusedContinuousMerits
+                    ("Costs Multiplier", RunPlan is ProductionRunPlan.FocusedContinuousMerits or ProductionRunPlan.ExitFeeShifting
                         ? CriticalCostsMultipliers.Select(FormatNumber).ToArray()
                         : new[] { "1" }),
-                    ("Fee Regime", new[] { "American", "British" }),
+                    ("Fee Regime", RunPlan == ProductionRunPlan.ExitFeeShifting
+                        ? new[] { "British" } : new[] { "American", "British" }),
                 }
                 : new()
                 {
@@ -382,6 +403,8 @@ namespace ACESim
 
         public override List<GameOptions> GetOptionsSets()
         {
+            if (RunPlan == ProductionRunPlan.ExitFeeShifting)
+                return GetExitFeeOptionSets();
             if (RunPlan is ProductionRunPlan.MultipleEquilibriaRobustness or
                 ProductionRunPlan.IncreasedOfferGridRobustness)
                 return GetRobustnessOptionSets();
@@ -461,6 +484,37 @@ namespace ACESim
             return optionSets;
         }
 
+        private List<GameOptions> GetExitFeeOptionSets()
+        {
+            var options = new List<GameOptions>();
+            foreach (FocusedSpecification specification in IncreasedOfferGridSpecifications)
+            foreach (double cost in CriticalCostsMultipliers)
+            {
+                var option = (LitigGameOptions)GetDefaultSingleGameOptions();
+                ConfigureFocusedSpecification(option, specification);
+                option.CostsMultiplier = cost;
+                option.VariableSettings["Costs Multiplier"] = FormatNumber(cost);
+                ApplyExitFeeSettings(option);
+                option.Name = CreateStableOptionSetIdentifier(option);
+                options.Add(option);
+            }
+            options = options.OrderBy(option => option.Name, StringComparer.Ordinal).ToList();
+            ValidateProductionMatrix(options);
+            return options;
+        }
+
+        private static void ApplyExitFeeSettings(LitigGameOptions options)
+        {
+            options.LoserPays = true;
+            options.LoserPaysMultiple = 1.0;
+            options.LoserPaysAfterAbandonment = true;
+            options.LoserPaysAfterNonAnswer = true;
+            options.VariableSettings["Fee Regime"] = "British";
+            options.VariableSettings["Fee Shifting Multiplier"] = "1";
+            options.VariableSettings["Fee Shifting Trigger"] = ExitFeeTriggerLabel;
+            options.VariableSettings["Fees After Nonanswer"] = "true";
+        }
+
         private IReadOnlyList<FocusedSpecification> RobustnessSpecifications() => RunPlan switch
         {
             ProductionRunPlan.FocusedContinuousMerits =>
@@ -469,11 +523,14 @@ namespace ACESim
                 new[] { FocusedSpecification.Baseline },
             ProductionRunPlan.IncreasedOfferGridRobustness =>
                 IncreasedOfferGridSpecifications,
+            ProductionRunPlan.ExitFeeShifting => IncreasedOfferGridSpecifications,
             _ => Array.Empty<FocusedSpecification>(),
         };
 
         private void ApplyRunSpecificRobustnessSettings(LitigGameOptions options)
         {
+            if (RunPlan == ProductionRunPlan.ExitFeeShifting)
+                ApplyExitFeeSettings(options);
             options.VariableSettings["Number of Signals"] =
                 options.NumLiabilitySignals.ToString(CultureInfo.InvariantCulture);
             options.VariableSettings["Number of Court Signals"] =
@@ -833,6 +890,8 @@ namespace ACESim
 
             if (RunPlan == ProductionRunPlan.FocusedContinuousMerits)
                 return ValidateFocusedProductionMatrix(litigOptions, errors);
+            if (RunPlan == ProductionRunPlan.ExitFeeShifting)
+                return ValidateExitFeeProductionMatrix(litigOptions, errors);
             if (RunPlan is ProductionRunPlan.MultipleEquilibriaRobustness or
                 ProductionRunPlan.IncreasedOfferGridRobustness)
                 return ValidateRobustnessProductionMatrix(litigOptions, errors);
@@ -1084,8 +1143,41 @@ namespace ACESim
             };
         }
 
+        private ProductionMatrixAudit ValidateExitFeeProductionMatrix(
+            List<LitigGameOptions> options, List<string> errors)
+        {
+            foreach (LitigGameOptions option in options)
+            {
+                ValidateFocusedOptionSet(option, errors, exitFees: true);
+                if (option.LoserPaysMultiple != 1.0 ||
+                    !IncreasedOfferGridSpecifications.Contains(ParseFocusedSpecification(GetSetting(option, "Specification"))) ||
+                    GetSetting(option, "Fee Shifting Trigger") != ExitFeeTriggerLabel ||
+                    GetSetting(option, "Fees After Nonanswer") != "true")
+                    errors.Add(option.Name + ": invalid exit-fee extension configuration.");
+            }
+            foreach (double cost in CriticalCostsMultipliers)
+            foreach (FocusedSpecification specification in IncreasedOfferGridSpecifications)
+                if (options.Count(option => option.CostsMultiplier == cost &&
+                    GetSetting(option, "Specification") == GetFocusedSpecificationDefinition(specification).Label) != 1)
+                    errors.Add($"Expected one exit-fee case for {specification} at cost {cost}.");
+            if (errors.Count != 0)
+                throw new InvalidOperationException(string.Join(Environment.NewLine, errors));
+            return new ProductionMatrixAudit(options.Count, ExitFeeSpecificationComparisonCount,
+                ExitFeeSpecificationComparisonCount, options.GroupBy(option => GetSetting(option, "Risk Aversion"))
+                    .ToDictionary(group => group.Key, group => group.Count()));
+        }
+
         public override List<SimulationSetsIdentifier> GetSimulationSetsIdentifiers(SimulationSetsTransformer transformer = null)
         {
+            if (RunPlan == ProductionRunPlan.ExitFeeShifting)
+            {
+                var exitResults = GetOptionsSets().Cast<LitigGameOptions>()
+                    .GroupBy(option => option.CostsMultiplier).OrderBy(group => group.Key)
+                    .Select(group => new SimulationSetsIdentifier("Exit fees, cost " + FormatNumber(group.Key),
+                        group.Select(option => CreateExactSimulationIdentifier(
+                            GetSetting(option, "Risk Aversion"), option)).ToList())).ToList();
+                return PerformArticleVariationInfoSetsTransformation(transformer, exitResults);
+            }
             if (RunPlan is ProductionRunPlan.MultipleEquilibriaRobustness or
                 ProductionRunPlan.IncreasedOfferGridRobustness)
             {
@@ -1401,6 +1493,7 @@ namespace ACESim
                     "Specification-" + specification,
                     "Cost-" + FormatNumber(options.CostsMultiplier),
                     "Fee-" + GetSetting(options, "Fee Regime"),
+                    RunPlan == ProductionRunPlan.ExitFeeShifting ? "ExitFees-AllUnilateralExits" : null,
                     RunPlan == ProductionRunPlan.MultipleEquilibriaRobustness
                         ? "Starts-" + MultipleEquilibriaInitializationCount
                         : null,
@@ -1433,7 +1526,8 @@ namespace ACESim
         private static void ValidateFocusedOptionSet(
             LitigGameOptions options,
             ICollection<string> errors,
-            int expectedOffers = 10)
+            int expectedOffers = 10,
+            bool exitFees = false)
         {
             string prefix = options.Name + ": ";
             FocusedSpecification specification;
@@ -1455,7 +1549,8 @@ namespace ACESim
             if (GetSetting(options, "Fee Regime") != expectedFeeRegime ||
                 GetSetting(options, "Fee Shifting Multiplier") != FormatNumber(options.LoserPaysMultiple))
                 errors.Add(prefix + "fee-regime metadata does not match the configured rule.");
-            if (!options.LoserPays || options.LoserPaysAfterAbandonment || options.Rule68 ||
+            if (!options.LoserPays || options.LoserPaysAfterAbandonment != exitFees ||
+                options.LoserPaysAfterNonAnswer != exitFees || options.Rule68 ||
                 options.LoserPaysOnlyLargeMarginOfVictory)
                 errors.Add(prefix + "contains an unintended fee-shifting interaction.");
 

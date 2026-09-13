@@ -77,9 +77,11 @@ namespace LitigCharts
         {
             if (launcher == null)
                 throw new ArgumentNullException(nameof(launcher));
-            if (launcher.RunPlan !=
+            bool exitFees = launcher.RunPlan ==
+                LitigGameCorrelatedSignalsArticleLauncher.ProductionRunPlan.ExitFeeShifting;
+            if (!exitFees && launcher.RunPlan !=
                 LitigGameCorrelatedSignalsArticleLauncher.ProductionRunPlan.FocusedContinuousMerits)
-                throw new ArgumentException("Focused reporting requires the CS004 launcher.", nameof(launcher));
+                throw new ArgumentException("Focused reporting requires the CS004 or CS006EF launcher.", nameof(launcher));
 
             List<GameOptions> optionSets = launcher.GetOptionsSets();
             launcher.ValidateProductionMatrix(optionSets);
@@ -145,7 +147,7 @@ namespace LitigCharts
                 specificationComparisonsCsvPath,
                 numericalRows,
                 outcomeMeasures);
-            int feeComparisonCount = WriteFeeRegimeComparisons(
+            int feeComparisonCount = exitFees ? 0 : WriteFeeRegimeComparisons(
                 feeRegimeComparisonsCsvPath,
                 numericalRows,
                 outcomeMeasures);
@@ -162,22 +164,23 @@ namespace LitigCharts
                 launcher,
                 signalSource.Rows);
 
-            if (numericalRows.Count != LitigGameCorrelatedSignalsArticleLauncher.FocusedOptionSetCount)
+            int expectedRows = exitFees ? LitigGameCorrelatedSignalsArticleLauncher.ExitFeeOptionSetCount
+                : LitigGameCorrelatedSignalsArticleLauncher.FocusedOptionSetCount;
+            int expectedComparisons = exitFees ? LitigGameCorrelatedSignalsArticleLauncher.ExitFeeSpecificationComparisonCount
+                : LitigGameCorrelatedSignalsArticleLauncher.FocusedSpecificationComparisonCount;
+            if (numericalRows.Count != expectedRows)
                 throw new InvalidDataException(
-                    $"CS004 contains {numericalRows.Count} numerical result rows; expected " +
-                    $"{LitigGameCorrelatedSignalsArticleLauncher.FocusedOptionSetCount}.");
-            if (specificationComparisonCount !=
-                LitigGameCorrelatedSignalsArticleLauncher.FocusedSpecificationComparisonCount)
+                    $"{launcher.MasterReportNameForDistributedProcessing} contains {numericalRows.Count} numerical result rows; expected {expectedRows}.");
+            if (specificationComparisonCount != expectedComparisons)
                 throw new InvalidDataException(
-                    $"CS004 contains {specificationComparisonCount} specification comparisons; expected " +
-                    $"{LitigGameCorrelatedSignalsArticleLauncher.FocusedSpecificationComparisonCount}.");
-            if (feeComparisonCount !=
+                    $"{launcher.MasterReportNameForDistributedProcessing} contains {specificationComparisonCount} specification comparisons; expected {expectedComparisons}.");
+            if (!exitFees && feeComparisonCount !=
                 LitigGameCorrelatedSignalsArticleLauncher.FocusedFeeRegimeComparisonCount)
                 throw new InvalidDataException(
                     $"CS004 contains {feeComparisonCount} fee-regime comparisons; expected " +
                     $"{LitigGameCorrelatedSignalsArticleLauncher.FocusedFeeRegimeComparisonCount}.");
             int expectedSignalStrategies =
-                LitigGameCorrelatedSignalsArticleLauncher.FocusedOptionSetCount * SignalFilters.Count;
+                expectedRows * SignalFilters.Count;
             if (signalStrategyCount != expectedSignalStrategies)
                 throw new InvalidDataException(
                     $"CS004 contains {signalStrategyCount} signal-strategy rows; expected " +
@@ -254,6 +257,13 @@ namespace LitigCharts
             double feeTransfer = options.LoserPaysMultiple *
                 (pTrialPathCost * RequiredValue(row, "P Wins") -
                  dTrialPathCost * RequiredValue(row, "P Loses"));
+            if (options.LoserPaysAfterAbandonment)
+                feeTransfer += options.LoserPaysMultiple * options.CostsMultiplier *
+                    ((options.PFilingCost + options.PerPartyCostsLeadingUpToBargainingRound) * dDefaults -
+                     (options.DAnswerCost + options.PerPartyCostsLeadingUpToBargainingRound) * pAbandons);
+            if (options.LoserPaysAfterNonAnswer)
+                feeTransfer += options.LoserPaysMultiple * options.CostsMultiplier * options.PFilingCost *
+                    (1.0 - options.PFilingCost_PortionSavedIfDDoesntAnswer) * RequiredValue(row, "No Answer");
 
             row["Reaches Bargaining"] = Format(reachesBargaining);
             row["Settlement Unconditional"] = Format(settles);
@@ -399,6 +409,21 @@ namespace LitigCharts
                     "wealth/expenditure identity",
                     options.PInitialWealth + options.DInitialWealth - expenditures,
                     totalWealth);
+            }
+            if (OptionalValue(row, "P Wealth") is double pWealth &&
+                OptionalValue(row, "D Wealth") is double dWealth)
+            {
+                double pExpenses = options.CostsMultiplier *
+                    (options.PFilingCost * (pFiles - noAnswer * options.PFilingCost_PortionSavedIfDDoesntAnswer) +
+                     options.PerPartyCostsLeadingUpToBargainingRound * dAnswers + options.PTrialCosts * trial);
+                double dExpenses = options.CostsMultiplier *
+                    ((options.DAnswerCost + options.PerPartyCostsLeadingUpToBargainingRound) * dAnswers +
+                     options.DTrialCosts * trial);
+                double transfer = RequiredValue(row, "Total Net Transfer to Plaintiff");
+                RequireApproximately(identity, "plaintiff wealth/transfer identity",
+                    options.PInitialWealth + transfer - pExpenses, pWealth);
+                RequireApproximately(identity, "defendant wealth/transfer identity",
+                    options.DInitialWealth - transfer - dExpenses, dWealth);
             }
         }
 

@@ -382,12 +382,13 @@ namespace ACESimTest.GameTests
         }
 
         [TestMethod]
-        public void RequiredArticleProductionPlans_IncludeFocusedAndMultipleEquilibriaOnly()
+        public void RequiredArticleProductionPlans_IncludeFocusedMultipleEquilibriaAndExitFees()
         {
             LitigGameCorrelatedSignalsArticleLauncher.RequiredArticleProductionPlans.Should()
                 .Equal(
                     LitigGameCorrelatedSignalsArticleLauncher.ProductionRunPlan.FocusedContinuousMerits,
-                    LitigGameCorrelatedSignalsArticleLauncher.ProductionRunPlan.MultipleEquilibriaRobustness);
+                    LitigGameCorrelatedSignalsArticleLauncher.ProductionRunPlan.MultipleEquilibriaRobustness,
+                    LitigGameCorrelatedSignalsArticleLauncher.ProductionRunPlan.ExitFeeShifting);
         }
 
         [TestMethod]

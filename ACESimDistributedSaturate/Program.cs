@@ -88,6 +88,7 @@ namespace ACESimDistributedSaturate
             Console.WriteLine(
                 "The four required 15-offer cases are integrated into CS004; " +
                 "CS005O15 is not required by the suite.");
+            Console.WriteLine("CS006EF adds ten exit-fee cases; --plan exit-fees runs only that extension.");
             return 0;
         }
 
@@ -280,8 +281,9 @@ namespace ACESimDistributedSaturate
                     workerExecutable);
             WritePlanManifest(launcher, "Running", source, processorCount, null);
 
+            bool hiddenWorkers = args.Contains("--hidden-workers", StringComparer.OrdinalIgnoreCase);
             Console.WriteLine(
-                $"Launching {processorCount} visible worker windows for {launcher.GetUninitializedTaskList().NumIndividualTasks} tasks " +
+                $"Launching {processorCount} {(hiddenWorkers ? "hidden workers" : "visible worker windows")} for {launcher.GetUninitializedTaskList().NumIndividualTasks} tasks " +
                 $"using Environment.ProcessorCount={Environment.ProcessorCount}.");
 
             var workers = new List<Process>();
@@ -292,7 +294,7 @@ namespace ACESimDistributedSaturate
                         workerExecutable,
                         workerId,
                         launcher.RunPlan,
-                        launcher.GetReportFolder()));
+                        launcher.GetReportFolder(), hiddenWorkers));
 
                 string lastStatus = null;
                 while (true)
@@ -545,8 +547,9 @@ namespace ACESimDistributedSaturate
         private static void ValidateAggregatedOutputs(
             LitigGameCorrelatedSignalsArticleLauncher launcher)
         {
-            if (launcher.RunPlan ==
-                LitigGameCorrelatedSignalsArticleLauncher.ProductionRunPlan.FocusedContinuousMerits)
+            if (launcher.RunPlan is
+                LitigGameCorrelatedSignalsArticleLauncher.ProductionRunPlan.FocusedContinuousMerits or
+                LitigGameCorrelatedSignalsArticleLauncher.ProductionRunPlan.ExitFeeShifting)
             {
                 string path = launcher.GetReportFullPath("numerical results", ".csv");
                 string specificationPath = launcher.GetReportFullPath("specification comparisons", ".csv");
@@ -554,11 +557,12 @@ namespace ACESimDistributedSaturate
                 string strategiesPath = launcher.GetReportFullPath("signal strategies", ".csv");
                 RequireNonemptyFile(path);
                 RequireNonemptyFile(specificationPath);
-                RequireNonemptyFile(feeRegimePath);
+                bool exitFees = launcher.RunPlan == LitigGameCorrelatedSignalsArticleLauncher.ProductionRunPlan.ExitFeeShifting;
+                if (!exitFees) RequireNonemptyFile(feeRegimePath);
                 RequireNonemptyFile(strategiesPath);
                 RequireCsvDataRows(path);
                 RequireCsvDataRows(specificationPath);
-                RequireCsvDataRows(feeRegimePath);
+                if (!exitFees) RequireCsvDataRows(feeRegimePath);
                 RequireCsvDataRows(strategiesPath);
                 RequireHeaderColumns(
                     path,
@@ -1097,7 +1101,8 @@ namespace ACESimDistributedSaturate
             string executablePath,
             int workerId,
             LitigGameCorrelatedSignalsArticleLauncher.ProductionRunPlan runPlan,
-            string resultsDirectory)
+            string resultsDirectory,
+            bool hidden = false)
         {
             // This intentionally mirrors the established ACESimDistributedSaturate interface:
             // ShellExecute opens each console application in its own visible window so the user
@@ -1106,7 +1111,7 @@ namespace ACESimDistributedSaturate
             {
                 UseShellExecute = true,
                 CreateNoWindow = false,
-                WindowStyle = ProcessWindowStyle.Normal,
+                WindowStyle = hidden ? ProcessWindowStyle.Hidden : ProcessWindowStyle.Normal,
             };
             startInfo.ArgumentList.Add("--worker-id");
             startInfo.ArgumentList.Add(workerId.ToString(CultureInfo.InvariantCulture));
@@ -1127,6 +1132,7 @@ namespace ACESimDistributedSaturate
             LitigGameCorrelatedSignalsArticleLauncher.ProductionRunPlan.FocusedContinuousMerits => "focused",
             LitigGameCorrelatedSignalsArticleLauncher.ProductionRunPlan.MultipleEquilibriaRobustness => "multiple-equilibria",
             LitigGameCorrelatedSignalsArticleLauncher.ProductionRunPlan.IncreasedOfferGridRobustness => "offers-15",
+            LitigGameCorrelatedSignalsArticleLauncher.ProductionRunPlan.ExitFeeShifting => "exit-fees",
             _ => throw new NotSupportedException(),
         };
 
@@ -1169,7 +1175,7 @@ namespace ACESimDistributedSaturate
         private static int ShowHelp()
         {
             Console.WriteLine("ACESim4 correlated-signals production commands:");
-            Console.WriteLine("  <no arguments>              (required CS004 + CS004ME suite; 16 workers; aggregate and validate)");
+            Console.WriteLine("  <no arguments>              (required CS004 + CS004ME + CS006EF suite; 16 workers; aggregate and validate)");
             Console.WriteLine("  preflight-suite [--results-directory PATH]");
             Console.WriteLine("  run-suite [--processors all|N] [--results-directory PATH]");
             Console.WriteLine("  preflight [--plan focused|multiple-equilibria|offers-15|unified|supplemental|legacy]");
@@ -1178,6 +1184,8 @@ namespace ACESimDistributedSaturate
             Console.WriteLine("  recover --failed [--include-pending] [--plan focused|multiple-equilibria|offers-15|unified|supplemental|legacy]");
             Console.WriteLine("  aggregate [--plan focused|multiple-equilibria|offers-15|unified|supplemental|legacy]");
             Console.WriteLine("  smoke-test");
+            Console.WriteLine("  --plan exit-fees is also supported by preflight, run, status, recover, and aggregate.");
+            Console.WriteLine("  Add --hidden-workers to run or run-suite to suppress worker windows.");
             Console.WriteLine("  The suite defaults to ReportResults/Production Runs/ALER Production <commit>.");
             Console.WriteLine("  Add --results-directory PATH to select a different dedicated results folder.");
             Console.WriteLine("  Final production and aggregation require a clean working tree.");

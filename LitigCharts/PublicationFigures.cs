@@ -19,7 +19,7 @@ public static class PublicationFigures
     public sealed record StrategyCase(string Label, string OptionSetName, string ActionReport, int EquilibriumNumber = 1);
     public sealed record DispositionGroup(string Label, string[] OptionSetNames);
     public sealed record Request(StrategyCase[] StrategyCases, string NumericalResultsCsv, DispositionGroup[] DispositionGroups,
-        string DispositionIntroduction = null);
+        string DispositionIntroduction = null, string RegimeColumn = "Fee Regime");
     public sealed record Source(string Path, string Sha256);
     public sealed record ActionValue(int Action, double Value, double Probability);
     public sealed record StrategyPoint(int Signal, double SignalValue, int[] InformationSets,
@@ -103,8 +103,8 @@ public static class PublicationFigures
                 var matches = numericalRows.Where(r => r["OptionSetName"] == name && r["Filter"] == "All" && r["Equilibrium Type"] == "Only Eq").ToArray();
                 if (matches.Length != 1) throw new InvalidDataException($"Expected exactly one All/Only Eq row for {name}; found {matches.Length}.");
                 var row = matches[0];
-                if (row["Fee Regime"] != request.StrategyCases[i].Label)
-                    throw new InvalidDataException("Fee regime and requested label disagree: " + name);
+                if (!row.TryGetValue(request.RegimeColumn, out string regime) || regime != request.StrategyCases[i].Label)
+                    throw new InvalidDataException("Comparison regime and requested label disagree: " + name);
                 double[] values = CategoryColumns.Select(c => Number(row, c)).ToArray();
                 ValidateDisposition(values, Number(row, "Trial"));
                 bars.Add(new(group.Label, request.StrategyCases[i].Label, name, values, values.Sum(),

@@ -436,7 +436,9 @@ namespace ACESim
             {
                 loserPaysApplies = ((outcome.TrialOccurs && (!options.LoserPaysOnlyLargeMarginOfVictory || largeMarginAtTrial)) 
                     || 
-                    options.LoserPaysAfterAbandonment && (pAbandons || dDefaults));
+                    options.LoserPaysAfterAbandonment && (pAbandons || dDefaults)
+                    || options.LoserPaysAfterNonAnswer && pFiles && !dAnswers &&
+                        !options.SkipFileAndAnswerDecisions && !pAbandons);
                 // NOTE: If punishPlaintiffUnderRule68, then plaintiff has won and usually would be entitled to fee shifting, but because of Rule 68, now defendant is entitled to fee shifting. So, loser pays still applies.
             }
             else

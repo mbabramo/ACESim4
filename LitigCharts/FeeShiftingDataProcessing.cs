@@ -58,8 +58,9 @@ namespace LitigCharts
                     LitigGameCorrelatedSignalsArticleLauncher.ProductionRunPlan.MultipleEquilibriaRobustness or
                     LitigGameCorrelatedSignalsArticleLauncher.ProductionRunPlan.IncreasedOfferGridRobustness)
                     return;
-                if (correlatedLauncher.RunPlan ==
-                    LitigGameCorrelatedSignalsArticleLauncher.ProductionRunPlan.FocusedContinuousMerits)
+                if (correlatedLauncher.RunPlan is
+                    LitigGameCorrelatedSignalsArticleLauncher.ProductionRunPlan.FocusedContinuousMerits or
+                    LitigGameCorrelatedSignalsArticleLauncher.ProductionRunPlan.ExitFeeShifting)
                 {
                     List<string> signalRows = CorrelatedSignalsFocusedReport.SignalFilters.ToList();
                     List<string> signalColumns = new()

@@ -98,6 +98,39 @@ namespace ACESimTest
         }
 
         [TestMethod]
+        public void ExitFeeReport_IncludesNonanswerAndLaterExitTransfersWithoutAmericanDuplicateRuns()
+        {
+            string directory = Path.Combine(Path.GetTempPath(), "ACESim-exit-fees-" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(directory);
+            try
+            {
+                var launcher = new LitigGameCorrelatedSignalsArticleLauncher(
+                    LitigGameCorrelatedSignalsArticleLauncher.ProductionRunPlan.ExitFeeShifting);
+                var options = launcher.GetOptionsSets();
+                string numerical = Path.Combine(directory, "source.csv");
+                string signals = Path.Combine(directory, "signals.csv");
+                string results = Path.Combine(directory, "results.csv");
+                WriteNumericalSource(numerical, launcher, options, asymmetricExit: true);
+                WriteSignalSource(signals, launcher, options);
+                var summary = CorrelatedSignalsFocusedReport.BuildAndValidate(launcher,
+                    numerical, signals, results, Path.Combine(directory, "preferences.csv"),
+                    Path.Combine(directory, "fees.csv"), Path.Combine(directory, "strategies.csv"));
+                summary.NumericalResultCount.Should().Be(10);
+                summary.SpecificationComparisonCount.Should().Be(5);
+                summary.FeeRegimeComparisonCount.Should().Be(0);
+                summary.SignalStrategyCount.Should().Be(200);
+                var row = ReadFirstRow(results);
+                // Trial win/loss masses cancel. The fixture has 10% nonanswers and,
+                // after allocating mutual exit, 8% defaults versus 2% abandonment.
+                double cost = double.Parse(row["Costs Multiplier"], CultureInfo.InvariantCulture);
+                double.Parse(row["Fee-Shifting Transfer to Plaintiff"], CultureInfo.InvariantCulture)
+                    .Should().BeApproximately((0.1 + 0.08 - 0.02) * 0.15 * cost, 1E-12);
+                File.Exists(Path.Combine(directory, "fees.csv")).Should().BeFalse();
+            }
+            finally { Directory.Delete(directory, recursive: true); }
+        }
+
+        [TestMethod]
         public void MutualGiveUpAllocation_PreservesUndefinedZeroMassFilterRows()
         {
             string path = Path.Combine(
@@ -127,7 +160,8 @@ namespace ACESimTest
         private static void WriteNumericalSource(
             string path,
             LitigGameCorrelatedSignalsArticleLauncher launcher,
-            IReadOnlyList<GameOptions> options)
+            IReadOnlyList<GameOptions> options,
+            bool asymmetricExit = false)
         {
             string[] settings = launcher.DefaultVariableValues.Select(setting => setting.Item1).ToArray();
             string[] measures =
@@ -169,8 +203,8 @@ namespace ACESimTest
                         "No Suit" => "0.4",
                         "Settles" => "0.2",
                         "No Answer" => "0.1",
-                        "P Abandons" => "0.04",
-                        "D Defaults" => "0.04",
+                        "P Abandons" => asymmetricExit ? "0.01" : "0.04",
+                        "D Defaults" => asymmetricExit ? "0.07" : "0.04",
                         CorrelatedSignalsFocusedReport.MutualGiveUpBeforeAllocationColumn => "0.02",
                         CorrelatedSignalsFocusedReport.DefendantExcessBurdenColumn => filter switch
                         {

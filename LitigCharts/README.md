@@ -1,5 +1,8 @@
 # Article diagrams
 
+The routine production suite includes the separate ten-case [fee-on-exit extension](../scripts/Exit-fee-extension.md).
+Use `--plan exit-fees` to solve just those cases; CS004 and CS004ME remain unchanged.
+
 Optional ECTA numerical-path exports are described in
 [Equilibrium paths](../scripts/Equilibrium-paths.md). The equilibrium-paths
 command records every pivot and its complete strategies and incentive gaps,
