@@ -126,7 +126,7 @@ public static class EquilibriumPathAnimation
                 foreach (var spec in specifications)
                 {
                     var sets = m.InformationSets.Where(s => s.Player == player && s.Decision == spec.Decision &&
-                        s.ExitCommitment == spec.Commit).OrderBy(s => s.Signal).ToArray();
+                        s.ExitCommitment == spec.Commit).OrderByDescending(s => s.Signal).ToArray();
                     if (sets.Length == 0 || sets.Any(s => !s.Actions.SequenceEqual(sets[0].Actions)) ||
                         sets.Select(s => s.Signal).Distinct().Count() != sets.Length)
                         throw new InvalidDataException("Unsupported strategy-panel structure.");
@@ -164,11 +164,11 @@ public static class EquilibriumPathAnimation
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Original ECTA equilibrium derivations</title>
+<title>Solution paths</title>
 <style>
 :root{color-scheme:light;font-family:Segoe UI,Arial,sans-serif;color:#253441;background:#fafbf9}
 body{margin:0;padding:22px}main{max-width:1080px;margin:auto}
-h1{font-size:21px;font-weight:600;margin:0 0 6px}.sub{font-size:13px;color:#52616b;margin:0 0 14px}
+h1{font-size:21px;font-weight:600;margin:0 0 6px}
 .controls,.status,.legend{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
 .controls{margin:10px 0}button,select{font:inherit;font-size:13px;padding:7px 11px;border:1px solid #b7c3c9;border-radius:4px;background:white;color:#253441}
 button{cursor:pointer}button.primary{background:#234f70;color:white;border-color:#234f70}
@@ -186,19 +186,18 @@ details{font-size:12px;color:#52616b;line-height:1.5;margin-top:10px}summary{cur
 </head>
 <body>
 <main>
-<h1>Original ECTA solution paths</h1>
-<p class="sub">Four independent starts, fixed rules within each solve. Every endpoint matches the original saved equilibrium.</p>
+<h1>Solution paths</h1>
 <div class="controls">
 <label>Case <select id="case" aria-label="Case"></select></label>
-<button id="play" class="primary">Play all</button>
+<button id="play" class="primary">Play</button>
 <button id="previous" aria-label="Previous pivot">◀ Step</button>
 <button id="next" aria-label="Next pivot">Step ▶</button>
 <button id="end">Equilibrium</button>
 <label>Speed <select id="speed" aria-label="Playback speed"><option value="4">4 steps/s</option><option value="12" selected>12 steps/s</option><option value="30">30 steps/s</option></select></label>
 </div>
 <div class="status"><span id="case-title"></span><span id="numbers"></span></div>
-<input id="scrub" type="range" min="0" step="1" value="0" aria-label="Step across all independent solves">
-<div id="stage"><canvas id="map" role="img" aria-label="Complete strategies: plaintiff above defendant; rows ascend in own signal; columns are actions. Blue encodes action probability and orange corners encode positive action advantage."></canvas><div id="tip" role="tooltip"></div></div>
+<input id="scrub" type="range" min="0" step="1" value="0" aria-label="Pivot in selected case">
+<div id="stage"><canvas id="map" role="img" aria-label="Complete strategies: plaintiff above defendant; low signals at the bottom, high signals at the top; columns are actions. Blue encodes action probability and orange corners encode positive action advantage."></canvas><div id="tip" role="tooltip"></div></div>
 <div class="legend">
 <span class="key"><span class="swatch prob"></span>Probability 0 → 1</span>
 <span class="key"><span class="swatch gain"></span><span id="gain-range">▲ Positive action advantage</span></span>
@@ -206,13 +205,15 @@ details{font-size:12px;color:#52616b;line-height:1.5;margin-top:10px}summary{cur
 </div>
 <div class="controls">
 <label><input id="skip" type="checkbox" checked>Skip unchanged probabilities</label>
+<label><input id="smooth" type="checkbox" checked>Smooth color transitions</label>
 <label><input id="offpath" type="checkbox">Show off-path advantages</label>
 <button id="png">Save frame as PNG</button>
 </div>
 <div id="detail">Hover or tap a cell for its probability and conditional utility.</div>
 <details><summary>Reading the animation</summary>
-<p>Each case starts afresh from the original uniform covering-vector prior. Playback includes each recorded pivot, with an optional skip over unchanged probabilities; the slider and Step buttons always retain every pivot. These are numerical ECTA/Lemke paths, not learning or best-response dynamics. No interpolated strategic states are inserted.</p>
-<p>P is above D. Signal increases downward; offer amount increases to the right. Enter and Exit columns are Yes, then No. Offer · continue and Offer · exit show both private advance exit-commitment histories. Exit means abandonment for P and default for D. Hatched rows are actually unreached; a dot marks a uniform completion at a zero-realization history, not identified equilibrium mixing.</p>
+<p>Each case starts afresh from the original uniform covering-vector prior. Play stops at the selected case's equilibrium; use Case to select another solve. The slider and Step buttons retain every pivot within the selected case. Playback can skip unchanged probabilities. These are numerical ECTA/Lemke paths, not learning or best-response dynamics.</p>
+<p>Smooth color transitions briefly blend only the blue probability fills between displayed pivots. These are visual fades, not additional solver states. Numerical readouts, hover values, orange advantages and reach markings refer to the destination pivot throughout the fade. Pause, scrubbing and PNG export show an exact recorded frame. Reduced-motion preferences disable smoothing.</p>
+<p>P is above D. Signal increases upward, from low at the bottom to high at the top; offer amount increases to the right. Enter and Exit columns are Yes, then No. Offer · continue and Offer · exit show both private advance exit-commitment histories. Exit means abandonment for P and default for D. Hatched rows are actually unreached; a dot marks a uniform completion at a zero-realization history, not identified equilibrium mixing.</p>
 <p>Blue fill is the action probability. An orange corner marks Q(action) minus the expected Q of the current mix, holding both players' continuation behavior fixed. Darker orange means a larger gain; its square-root scale is fixed over the entire case, including off-path values. Hover gives exact numbers. Incentives with zero counterfactual reach are undefined, not zero. Off-path advantages are hidden by default because they can remain positive at a Nash equilibrium.</p>
 <p>ε is the largest unrestricted whole-strategy best-response gain, in this game's rounded utility units. It need not decrease at every pivot and should not be compared across utility specifications as a welfare measure. z₀ is ECTA's auxiliary variable. Displayed realization weights are x + z₀ times the original prior, normalized locally; raw variables and flow residuals remain in the accompanying JSONL files. The final z₀ is zero.</p>
 </details>
@@ -226,18 +227,20 @@ const unpacked=new Blob([bytes]).stream().pipeThrough(new DecompressionStream('g
 const cases=JSON.parse(await new Response(unpacked).text());
 const $ = id => document.getElementById(id);
 const canvas = $('map'), ctx = canvas.getContext('2d');
-const offsets = []; let total = 0;
-cases.forEach((c,i) => { offsets.push(total); total += c.frames.length;
+cases.forEach((c,i) => {
  const option = document.createElement('option'); option.value=i; option.textContent=c.title; $('case').appendChild(option); });
-$('scrub').max = total - 1;
-let position=0, playing=false, lastTick=0, boxes=[], currentCase=0, width=1000, height=500;
+let position=0, playing=false, lastTick=0, boxes=[], currentCase=0, width=1000, height=500, transition=null;
+const reducedMotion=window.matchMedia('(prefers-reduced-motion: reduce)');
+$('smooth').checked=!reducedMotion.matches; $('smooth').disabled=reducedMotion.matches;
 const number = x => x === null ? 'undefined' : Math.abs(x) < 1e-10 ? '0' : Number(x).toPrecision(4);
-function locate(pos) { let i=offsets.length-1; while(offsets[i]>pos)i--; return [i,pos-offsets[i]]; }
 function color(low,high,t) { t=Math.max(0,Math.min(1,t)); return 'rgb('+low.map((v,i)=>Math.round(v+(high[i]-v)*t)).join(',')+')'; }
 function text(value,x,y,size=14,align='left') { ctx.fillStyle='#253441'; ctx.font=size+'px Segoe UI,Arial,sans-serif'; ctx.textAlign=align; ctx.fillText(value,x,y); }
 function draw() {
- const [ci,fi]=locate(position), c=cases[ci], f=c.frames[fi]; currentCase=ci;
- $('case').value=ci; $('scrub').value=position; $('case-title').textContent=c.title;
+ const c=cases[currentCase], fi=position, f=c.frames[fi];
+ const progress=transition?Math.min(1,Math.max(0,(performance.now()-transition.start)/transition.duration)):1;
+ const blend=progress*progress*(3-2*progress);
+ $('case').value=currentCase; $('scrub').max=c.frames.length-1; $('scrub').value=position; $('case-title').textContent=c.title;
+ $('previous').disabled=fi===0; $('next').disabled=fi===c.frames.length-1;
  $('numbers').textContent='Pivot '+f.step+' / '+c.pivots+'   ·   ε '+number(f.epsilon)+'   ·   z₀ '+number(f.z);
  $('gain-range').textContent='▲ Action advantage 0 → '+number(c.maxGain);
  $('scrub').setAttribute('aria-valuetext',c.title+', pivot '+f.step+' of '+c.pivots);
@@ -261,7 +264,8 @@ function draw() {
     const s=c.sets[si], yy=y+row*rowHeight, unreached=f.r[si]<=1e-10;
     for(let a=0;a<g.actions.length;a++) {
      const j=s.start+a, xx=x+a*cw, w=cw-1.5, h=rowHeight-1.5;
-     ctx.fillStyle=color([237,242,245],[35,79,112],f.p[j]);ctx.fillRect(xx,yy,w,h);
+     const fillProbability=transition?transition.from.p[j]+(f.p[j]-transition.from.p[j])*blend:f.p[j];
+     ctx.fillStyle=color([237,242,245],[35,79,112],fillProbability);ctx.fillRect(xx,yy,w,h);
      if(unreached) {
       ctx.save();ctx.beginPath();ctx.rect(xx,yy,w,h);ctx.clip();
       ctx.strokeStyle='rgba(110,124,133,.38)';ctx.lineWidth=.65;
@@ -282,32 +286,42 @@ function draw() {
    x+=span+gap;
   }
  }
- if(!compact){ctx.save();ctx.translate(45,top+rowCount*rowHeight/2);ctx.rotate(Math.PI/2);text('signal: low → high',0,0,11,'center');ctx.restore();}
- $('detail').textContent=fi===c.frames.length-1?'Original equilibrium verified · '+c.pivots+' pivots · all saved probabilities matched.':'Hover or tap a cell for its probability and conditional utility.';
- canvas.setAttribute('aria-label',c.title+', pivot '+f.step+'. Complete P and D strategies. Maximum unrestricted gain '+number(f.epsilon)+'.');
+ if(!compact){ctx.save();ctx.translate(45,top+rowCount*rowHeight/2);ctx.rotate(-Math.PI/2);text('signal: low → high',0,0,11,'center');ctx.restore();}
+ $('detail').textContent=transition?'Color transition '+transition.from.step+' → '+f.step+' · values are for pivot '+f.step+'.':fi===c.frames.length-1?'Original equilibrium verified · '+c.pivots+' pivots · all saved probabilities matched.':'Hover or tap a cell for its probability and conditional utility.';
+ canvas.setAttribute('aria-label',c.title+', pivot '+f.step+'. Complete P and D strategies, low signals at the bottom and high signals at the top. Maximum unrestricted gain '+number(f.epsilon)+'.');
  $('tip').style.display='none';
 }
-function setPosition(value){position=Math.max(0,Math.min(total-1,Number(value)));draw();}
-function stop(){playing=false;$('play').textContent=cases.length>1?'Play all':'Play';}
+function setPosition(value,animate=false){
+ const c=cases[currentCase],from=c.frames[position];
+ position=Math.max(0,Math.min(c.frames.length-1,Number(value))); transition=null;
+ if(animate && $('smooth').checked && !reducedMotion.matches && !same(from,c.frames[position]))
+  transition={from,start:performance.now(),duration:Math.min(220,750/Number($('speed').value))};
+ draw();
+}
+function stop(){playing=false;transition=null;$('play').textContent='Play';draw();}
 function same(a,b){return a.p.every((p,i)=>Math.abs(p-b.p[i])<=1e-12);}
 function advance() {
- if(position===total-1){stop();return;}
- const [ci,fi]=locate(position), c=cases[ci]; let next=position+1;
- if($('skip').checked && fi<c.frames.length-1)
-  while(next<offsets[ci]+c.frames.length-1 && same(c.frames[fi],c.frames[next-offsets[ci]]))next++;
- setPosition(next);
+ const c=cases[currentCase];
+ if(position===c.frames.length-1){stop();return;}
+ let next=position+1;
+ if($('skip').checked)
+  while(next<c.frames.length-1 && same(c.frames[position],c.frames[next]))next++;
+ setPosition(next,true);
 }
-$('play').onclick=()=>{if(playing)stop();else {if(position===total-1)setPosition(0);playing=true;$('play').textContent='Pause';lastTick=performance.now();}};
-$('previous').onclick=()=>{stop();setPosition(position-1);};
-$('next').onclick=()=>{stop();setPosition(position+1);};
-$('end').onclick=()=>{stop();setPosition(offsets[currentCase]+cases[currentCase].frames.length-1);};
-$('case').onchange=()=>{stop();setPosition(offsets[Number($('case').value)]);};
-$('scrub').oninput=()=>{stop();setPosition($('scrub').value);};
-$('offpath').onchange=draw;
+$('play').onclick=()=>{if(playing)stop();else {if(position===cases[currentCase].frames.length-1)setPosition(0);playing=true;$('play').textContent='Pause';lastTick=performance.now();}};
+$('previous').onclick=()=>{stop();setPosition(position-1,true);};
+$('next').onclick=()=>{stop();setPosition(position+1,true);};
+$('end').onclick=()=>{stop();setPosition(cases[currentCase].frames.length-1);};
+$('case').onchange=()=>{const selected=Number($('case').value);stop();currentCase=selected;position=0;setPosition(0);};
+$('scrub').oninput=()=>{const selected=$('scrub').value;stop();setPosition(selected);};
+$('offpath').onchange=()=>{transition=null;draw();};
+$('smooth').onchange=()=>{transition=null;draw();};
+reducedMotion.addEventListener('change',()=>{$('smooth').checked=!reducedMotion.matches;$('smooth').disabled=reducedMotion.matches;transition=null;draw();});
 function tick(now) {
- if(playing) {
-  const [ci,fi]=locate(position), boundary=fi===0 || fi===cases[ci].frames.length-1;
-  const interval=boundary?1100:1000/Number($('speed').value);
+ if(transition){if(now-transition.start>=transition.duration)transition=null;draw();}
+ if(playing && !transition) {
+  if(position===cases[currentCase].frames.length-1){stop();requestAnimationFrame(tick);return;}
+  const interval=position===0?1100:1000/Number($('speed').value);
   if(now-lastTick>=interval){advance();lastTick=now;}
  }
  requestAnimationFrame(tick);
@@ -316,7 +330,7 @@ function inspect(event) {
  const rect=canvas.getBoundingClientRect(), x=event.clientX-rect.left,y=event.clientY-rect.top;
  const b=boxes.find(b=>x>=b.x&&x<b.x+b.w&&y>=b.y&&y<b.y+b.h), tip=$('tip');
  if(!b){tip.style.display='none';return;}
- const [ci,fi]=locate(position),c=cases[ci],f=c.frames[fi],s=c.sets[b.si];
+ const c=cases[currentCase],f=c.frames[position],s=c.sets[b.si];
  const label=(s.player===0?'P':'D')+' · '+s.decision+' · signal '+s.signal.toFixed(2)+' · action '+s.actions[b.a];
  const details=label+'\nProbability: '+number(f.p[b.j])+'\nConditional utility: '+number(f.q[b.j])+
   '\nAdvantage over current mix: '+number(f.a[b.j])+'\nInformation-set gap: '+number(f.gaps[b.si])+
@@ -326,9 +340,9 @@ function inspect(event) {
  tip.style.top=Math.max(0,Math.min(y+14,height-tip.offsetHeight-4))+'px';$('detail').textContent=label+' · p '+number(f.p[b.j])+' · advantage '+number(f.a[b.j]);
 }
 canvas.onpointermove=inspect;canvas.onclick=inspect;canvas.onpointerleave=()=>{$('tip').style.display='none';};
-$('png').onclick=()=>{const [ci,fi]=locate(position);const a=document.createElement('a');a.download=cases[ci].id+'-pivot-'+fi+'.png';a.href=canvas.toDataURL('image/png');a.click();};
-if(cases.length===1){$('case').parentElement.hidden=true;document.querySelector('.sub').textContent='Original uniform start, fixed rules throughout. Endpoint matches the original saved equilibrium.';}
-stop();new ResizeObserver(draw).observe(canvas.parentElement);draw();requestAnimationFrame(tick);
+$('png').onclick=()=>{stop();const a=document.createElement('a');a.download=cases[currentCase].id+'-pivot-'+position+'.png';a.href=canvas.toDataURL('image/png');a.click();};
+if(cases.length===1)$('case').parentElement.hidden=true;
+stop();new ResizeObserver(()=>draw()).observe(canvas.parentElement);requestAnimationFrame(tick);
 }
 initializePlayer().catch(error=>{document.getElementById('detail').textContent='Unable to load animation: '+error.message;document.getElementById('detail').setAttribute('role','alert');});
 </script>

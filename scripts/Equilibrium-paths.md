@@ -5,7 +5,7 @@ Run the optional diagnostic workflow from ACESim4:
     dotnet run --project LitigCharts -c Release -- equilibrium-paths --request "C:/Users/Admin/source/repos/correlated-signals-article/equilibrium-paths.request.json"
 
 The default command calculates and validates the original paths, then creates
-four standalone animations and one combined playback. Use `--calculate-only`
+four standalone animations and one combined case selector. Use `--calculate-only`
 for the data phase. For already completed traces, use:
 
     dotnet run --project LitigCharts -c Release -- equilibrium-paths --request "C:/Users/Admin/source/repos/correlated-signals-article/equilibrium-paths.request.json" --render-only
@@ -117,17 +117,33 @@ that observation leaves both uniform and explicitly seeded solves unchanged.
 Open any generated HTML file in a browser; it is self-contained and needs no
 server or network service. The data are losslessly gzip-compressed, decoded by
 the browser's DecompressionStream API. Full-precision JSONL remains the canonical
-data. The combined file plays the four independent solves sequentially, resetting
-to the uniform prior at every case boundary.
+data. Play runs only the selected case and stops at its equilibrium. At the end,
+Play restarts that same case. Select another independent solve from the Case
+menu; its playback starts at its own uniform prior. The slider and Step buttons
+are restricted to the selected case as well.
 
 P is above D. Every own-signal information set is shown in Enter, Offer/continue,
-Offer/exit, and Exit panels. Signal increases downward; offer amount increases
+Offer/exit, and Exit panels. Signal increases upward, with low signals at the
+bottom and high signals at the top; offer amount increases
 rightward. Binary actions are Yes then No. Blue fill is probability; orange
 corners show positive Q minus current mixed-policy Q, with a fixed square-root
 scale for the whole case. Hatched rows are actually unreached; dots mark uniform
 completions. Off-path advantages are optional and hidden initially.
 
 The slider and Step buttons retain all pivots. Playback can skip identical
-probability vectors (tolerance 1e-12) without dropping data. No interpolated states
-are generated. Epsilon and z0 are displayed outside the grid, and hover/tap gives
-precise action details. Save frame as PNG exports the current grid.
+probability vectors (tolerance 1e-12) without dropping data. Optional smooth color
+transitions blend only the blue probability fills, for at most 220 ms and no more
+than 75% of a playback interval. These fades are visual only: no intermediate
+strategies or utilities are generated or evaluated. Readouts, hover values,
+advantage corners and reach markings always refer to the destination pivot;
+the status line identifies the color transition. Reduced-motion preferences
+disable smoothing. Pause, scrubbing and PNG export snap to the exact recorded
+frame. Epsilon and z0 are displayed outside the grid, and hover/tap gives precise
+action details.
+
+Player-control regression tests (fake DOM/canvas and clock; no browser dependency):
+
+    node --test scripts/tests/equilibrium-path-player.test.cjs
+
+The C# EquilibriumPathAnimationTests additionally validate packed information-set
+ordering, coverage and source/frame fingerprints.

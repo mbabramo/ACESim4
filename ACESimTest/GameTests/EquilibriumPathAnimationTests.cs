@@ -56,8 +56,15 @@ public class EquilibriumPathAnimationTests
         data.GetProperty("frames").GetArrayLength().Should().Be(3);
         data.GetProperty("groups").EnumerateArray().SelectMany(g => g.GetProperty("sets").EnumerateArray()
             .Select(s => s.GetInt32())).Order().Should().Equal(Enumerable.Range(0, 16));
+        foreach (var group in data.GetProperty("groups").EnumerateArray())
+            group.GetProperty("sets").EnumerateArray().Select(s => run.Metadata.InformationSets[s.GetInt32()].Signal)
+                .Should().BeInDescendingOrder("low signals belong at the bottom of each panel");
         html.Should().Contain("Skip unchanged probabilities").And.Contain("Show off-path advantages")
-            .And.Contain("Save frame as PNG").And.NotContain("__TRACE_DATA__");
+            .And.Contain("Smooth color transitions").And.Contain("prefers-reduced-motion")
+            .And.Contain("Save frame as PNG").And.NotContain("__TRACE_DATA__")
+            .And.Contain("<h1>Solution paths</h1>").And.NotContain("class=\"sub\"")
+            .And.Contain("class=\"primary\">Play</button>").And.NotContain("Play all")
+            .And.Contain("Pivot in selected case").And.Contain("ctx.rotate(-Math.PI/2)");
     }
 
     [TestMethod]
