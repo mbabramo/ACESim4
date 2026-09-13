@@ -168,3 +168,32 @@ incentives or outcomes. The actual mixture, support, and opponent's incentive
 constraints may change even when the player's actions are tied. Remaining and
 tie/completion sensitivity are never forcibly zeroed. The compact allocation
 does not reconstruct equilibrium dynamics or resolve equilibrium selection.
+
+## Four publication tables
+
+`equilibrium-publication` renders the accepted compact table as four separate
+standalone LaTeX/PDF pairs. It reads the original, selected-mixed and
+forward/tighter calculation manifests (including their input hashes), intersects
+their focus sets, and takes every displayed coordinate and contribution from
+the ORIGINAL calculation. It does not reuse the mixed-report aggregation of
+probability on gaining actions. The current selection has 39 information sets
+grouped into 26 rows (2, 6, 12 and 6 rows in the four tables).
+
+```text
+dotnet run --project LitigCharts -c Release -- equilibrium-publication --original <equilibrium-changes.request.json> --mixed <equilibrium-changes-mixed.request.json> --check <equilibrium-changes-mixed-forward.request.json> --output <article/Tables/Equilibrium strategy changes> --previews <temporary-QA-directory>
+```
+
+Quote paths containing spaces. The command compiles through the existing
+LaTeX compiler, sending raster QA previews to the separate requested directory.
+The publication directory contains only the four `.tex`/`.pdf` pairs and the
+author-owned `Methodology.tex` fragment. There are no generated table notes,
+README files, request files, calculation JSON, or PNG previews in this directory.
+The command never writes `Methodology.tex`, so the author may edit it freely.
+
+Consecutive signal rows with the same numerical policies and contributions may
+be combined despite differing sensitivity flags. The last column then reports
+`No`, `Yes`, or `At some signals` depending on whether none, all, or some of the
+group's signals have a tie/off-path-sensitive original-profile allocation.
+The compact layout rejects nonzero remainders, undefined allocations and
+mixed-offer probability coordinates rather than silently mislabeling or dropping
+those quantities. Adding them requires an explicit layout extension.

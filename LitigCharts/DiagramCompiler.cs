@@ -11,7 +11,8 @@ namespace LitigCharts;
 /// <summary>Compiles in owned short-path temporary directories; never cleans a results directory.</summary>
 public static class DiagramCompiler
 {
-    public static async Task CompileAllAsync(string[] sources, ArticleDiagramCommand.Configuration config, int parallelism, int passes = 1)
+    public static async Task CompileAllAsync(string[] sources, ArticleDiagramCommand.Configuration config, int parallelism, int passes = 1,
+        string previewDirectory = null)
     {
         var errors = new ConcurrentQueue<string>();
         int completed = 0;
@@ -19,7 +20,7 @@ public static class DiagramCompiler
         {
             try
             {
-                await CompileAsync(source, config, passes);
+                await CompileAsync(source, config, passes, previewDirectory);
                 Console.WriteLine($"[{Interlocked.Increment(ref completed)}/{sources.Length}] {Path.GetFileNameWithoutExtension(source)}");
             }
             catch (Exception ex) { errors.Enqueue(source + ": " + ex.Message); }
@@ -28,7 +29,8 @@ public static class DiagramCompiler
             throw new InvalidOperationException($"{errors.Count} compilation(s) failed; {completed} succeeded.\n" + string.Join("\n", errors));
     }
 
-    public static async Task CompileAsync(string source, ArticleDiagramCommand.Configuration config, int passes = 1)
+    public static async Task CompileAsync(string source, ArticleDiagramCommand.Configuration config, int passes = 1,
+        string previewDirectory = null)
     {
         if (passes < 1 || passes > 3) throw new ArgumentOutOfRangeException(nameof(passes));
         source = Path.GetFullPath(source);
@@ -48,7 +50,10 @@ public static class DiagramCompiler
             string png = Path.Combine(temp.FullName, "diagram.png");
             if (!File.Exists(png)) throw new IOException("Preview tool did not produce its expected PNG.");
             File.Copy(pdf, Path.ChangeExtension(source, ".pdf"), overwrite: true);
-            File.Copy(png, Path.ChangeExtension(source, ".png"), overwrite: true);
+            string preview = previewDirectory == null ? Path.ChangeExtension(source, ".png")
+                : Path.Combine(Path.GetFullPath(previewDirectory), Path.GetFileNameWithoutExtension(source) + ".png");
+            Directory.CreateDirectory(Path.GetDirectoryName(preview));
+            File.Copy(png, preview, overwrite: true);
             success = true;
         }
         catch (Exception ex)

@@ -16,6 +16,8 @@ namespace LitigCharts
 
         static async System.Threading.Tasks.Task<int> Main(string[] args)
         {
+            if (args.Length > 0 && args[0] == "equilibrium-publication")
+                return await EquilibriumPublicationTables.RunAsync(args.Skip(1).ToArray());
             if (args.Length > 0 && args[0] == "equilibrium-change-focus")
                 return await EquilibriumChangeFocusCommand.RunAsync(args.Skip(1).ToArray());
             if (args.Length > 0 && args[0] == "equilibrium-mixing")
