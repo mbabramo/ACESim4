@@ -35,6 +35,92 @@ public static class EquilibriumChangeDecomposition
         bool CounterfactualUndefined, double MaximumSensitivity, int[] UnreachedCoalitions);
     public sealed record ExcludedHistory(string Key, byte Player, string Decision,
         double SignalValue, int? ExitCommitment, string Reason);
+    public sealed record PayoffGapRow(string Key, byte Player, string Decision, double SignalValue,
+        int? ExitCommitment, string[] ActionLabels, double[] GainingWeights, double[] LosingWeights,
+        double ShiftedProbability, double? OriginalGap, double? TargetGap, double?[] CoalitionGaps,
+        Allocation Allocation, bool CounterfactualUndefined, bool TieSensitive, bool CompletionSensitive,
+        double MaximumSensitivity, int[] UnreachedCoalitions);
+
+    /// <summary>
+    /// Conditional Q of actions gaining probability minus Q of actions losing it.
+    /// Normalize each side by the probability mass actually moved. This compares
+    /// payoffs, never mean offer amounts, and needs no new solve or arbitrary tie break.
+    /// Original/target Q use their actual continuation policies; coalition Q use
+    /// optimized continuations. Thus Direct includes reoptimization, and any final
+    /// continuation mismatch remains explicit in Allocation.SelectionResidual.
+    /// </summary>
+    public static PayoffGapRow[] BuildPayoffGaps(Reference original, Reference target,
+        Scenario[] scenarios, ChangeRow[] changes, double tolerance = 1e-7)
+    {
+        var rows = new List<PayoffGapRow>();
+        foreach (var changed in changes.Where(r => r.EndpointSelection || r.CounterfactualUndefined)
+            .GroupBy(r => r.Key).Select(g => g.First()))
+        {
+            var old = original.InformationSets.Single(s => s.Key == changed.Key);
+            var end = target.InformationSets.Single(s => s.Key == changed.Key);
+            var primary = Enumerable.Range(0, 8).Select(mask => scenarios.Single(s =>
+                s.Panel == "coalition" && s.Component == mask.ToString() && s.Result.Player == old.Player)
+                .Result.InformationSets.Single(s => s.Key == old.Key)).ToArray();
+            var gaining = old.Actions.Zip(end.Actions, (a, b) => Math.Max(0, b.Probability - a.Probability)).ToArray();
+            var losing = old.Actions.Zip(end.Actions, (a, b) => Math.Max(0, a.Probability - b.Probability)).ToArray();
+            double mass = gaining.Sum();
+            Near(mass, losing.Sum(), 1e-9, "Equal gained/lost probability mass");
+            if (mass <= PolicyTolerance) continue;
+            gaining = gaining.Select(p => p / mass).ToArray();
+            losing = losing.Select(p => p / mass).ToArray();
+            double? Gap(InformationSet info)
+            {
+                if (!info.Actions.Select(a => a.Label).SequenceEqual(old.Actions.Select(a => a.Label)))
+                    throw new InvalidDataException("Mismatched payoff-gap action menus.");
+                if (info.CounterfactuallyUnreachable) return null;
+                double gap = 0;
+                for (int a = 0; a < gaining.Length; a++)
+                {
+                    double weight = gaining[a] - losing[a];
+                    if (weight == 0) continue;
+                    double? q = info.Actions[a].CounterfactualConditionalUtility;
+                    if (!q.HasValue || !double.IsFinite(q.Value)) return null;
+                    gap += weight * q.Value;
+                }
+                return gap;
+            }
+            double? start = Gap(old), finish = Gap(end);
+            var gaps = primary.Select(Gap).ToArray();
+            bool undefined = !start.HasValue || !finish.HasValue || gaps.Any(g => !g.HasValue);
+            Allocation allocation = undefined ? null : Allocate(start.Value, finish.Value, gaps.Select(g => g.Value).ToArray());
+            bool tieSensitive = false, completionSensitive = false;
+            double maximumSensitivity = 0;
+            if (!undefined)
+                foreach (var group in scenarios.Where(s => s.Panel != "coalition" && s.Result.Player == old.Player).GroupBy(s => s.Panel))
+                {
+                    var candidate = gaps.ToArray();
+                    foreach (var s in group)
+                        candidate[int.Parse(s.Component)] = Gap(s.Result.InformationSets.Single(i => i.Key == old.Key));
+                    double distance;
+                    if (candidate.Any(g => !g.HasValue)) distance = double.PositiveInfinity;
+                    else
+                    {
+                        var alternative = Allocate(start.Value, finish.Value, candidate.Select(g => g.Value).ToArray());
+                        distance = new[] { allocation.Direct - alternative.Direct, allocation.Entry - alternative.Entry,
+                            allocation.Offers - alternative.Offers, allocation.Exit - alternative.Exit,
+                            allocation.SelectionResidual - alternative.SelectionResidual }.Select(Math.Abs).Max();
+                    }
+                    // A disappearing conditional value is sensitive, but Infinity
+                    // must not be serialized into the numeric diagnostics.
+                    maximumSensitivity = Math.Max(maximumSensitivity, double.IsFinite(distance) ? distance : 0);
+                    if (distance > tolerance)
+                    {
+                        if (group.Key.StartsWith("tie-")) tieSensitive = true;
+                        if (group.Key.StartsWith("completion-")) completionSensitive = true;
+                    }
+                }
+            rows.Add(new(old.Key, old.Player, old.Decision, old.SignalValue, old.ExitCommitment,
+                old.Actions.Select(a => a.Label).ToArray(), gaining, losing, mass, start, finish, gaps,
+                allocation, undefined, tieSensitive, completionSensitive, maximumSensitivity,
+                Enumerable.Range(0, 8).Where(m => primary[m].ActualOffPath).ToArray()));
+        }
+        return rows.ToArray();
+    }
 
     public static Profile Coalition(Profile source, Profile target, byte player, int mask)
     {

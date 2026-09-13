@@ -131,7 +131,7 @@ public class EquilibriumChangeDecompositionTests
     }
 
     [TestMethod]
-    public void PublicationRowsSuppressUnreconciledAndUndefinedAttributions()
+    public void PublicationRowsRetainPartialAttributionsAndExplicitResiduals()
     {
         var old = Info();
         var scenarios = Scenarios(old, Enumerable.Repeat(0.0, 8).ToArray());
@@ -141,16 +141,89 @@ public class EquilibriumChangeDecompositionTests
             new(), ReferenceFor(old), ReferenceFor(Policy(old, 0)), scenarios, Array.Empty<string>(),
             new[] { row }, Array.Empty<ExcludedHistory>(), new[] { .25, .75 });
         string RowText(ChangeRow candidate) => LitigCharts.EquilibriumChangeTables.Latex(new[]
-            { report with { Changes = new[] { candidate } } }).Split('\n').Single(x => x.StartsWith("File"));
+            { report with { Changes = new[] { candidate } } }).Split('\n').First(x => x.StartsWith("File"));
         RowText(row).Should().Contain(" & -100 & -100 & 0 & 0 & 0");
         string selected = RowText(row with { EndpointSelection = true });
-        selected.Should().Contain(@"\multicolumn{4}{c}{Selection-dependent}");
-        selected.Should().NotContain(" & -100 & -100");
+        selected.Should().Contain(@"File (\%)");
+        selected.Should().Contain("$^{*}$");
+        selected.Should().Contain(" & -100 & -100 & 0 & 0 & 0 & 0");
+        selected.Should().NotContain("Selection-dependent");
         string undefined = RowText(row with { CounterfactualUndefined = true, EndpointSelection = true });
-        undefined.Should().Contain(@"\multicolumn{4}{c}{Undefined counterfactual}");
+        undefined.Should().Contain(@"\multicolumn{5}{c}{Undefined counterfactual}");
         undefined.Should().NotContain("Selection-dependent");
         LitigCharts.EquilibriumChangeTables.Latex(new[] { report }).Should()
-            .Contain("Original & Target & Change & Direct & Entry & Offers & Exit");
+            .Contain("Original & Target & Change & Direct & Entry & Offers & Exit & Remaining");
+    }
+
+    private static InformationSet Q(InformationSet info, double? first, double? second) => info with
+    {
+        Actions = info.Actions.Select((a, i) => a with { CounterfactualConditionalUtility = i == 0 ? first : second }).ToArray()
+    };
+
+    [TestMethod]
+    public void PayoffGapsExplainVanishingDisadvantageWithoutAttributingMixingProbability()
+    {
+        var old = Q(Info("P Offer", 0), 996, 1000);
+        var end = Q(Policy(old, .43081), 1000, 1000);
+        var scenarios = Scenarios(old, Enumerable.Repeat(0.0, 8).ToArray());
+        for (int m = 0; m < 8; m++)
+        {
+            double gap = -3 + ((m & 1) != 0 ? 1 : 0) + ((m & 2) != 0 ? 4 : 0) - ((m & 4) != 0 ? 2 : 0);
+            scenarios[m] = scenarios[m] with { Result = scenarios[m].Result with { InformationSets = new[] { Q(old, 1000 + gap, 1000) } } };
+        }
+        var changes = BuildRows(ReferenceFor(old), ReferenceFor(end), scenarios, new[] { .25, .75 }).Rows;
+        changes.Should().HaveCount(2);
+        changes[0].Allocation.SelectionResidual.Should().BeApproximately(43.081, 1e-9);
+        var rows = BuildPayoffGaps(ReferenceFor(old), ReferenceFor(end), scenarios, changes);
+        rows.Should().ContainSingle("both probability rows describe the same probability transfer");
+        var row = rows[0];
+        row.GainingWeights.Should().Equal(1, 0); row.LosingWeights.Should().Equal(0, 1);
+        row.ShiftedProbability.Should().BeApproximately(.43081, 1e-9);
+        row.Allocation.Original.Should().Be(-4); row.Allocation.Target.Should().Be(0);
+        row.Allocation.Direct.Should().Be(1); row.Allocation.Entry.Should().BeApproximately(1, 1e-9);
+        row.Allocation.Offers.Should().BeApproximately(4, 1e-9); row.Allocation.Exit.Should().BeApproximately(-2, 1e-9);
+        row.Allocation.SelectionResidual.Should().Be(0);
+        var mismatch = Q(end, 1002, 1000);
+        BuildPayoffGaps(ReferenceFor(old), ReferenceFor(mismatch), scenarios, changes)
+            .Single().Allocation.SelectionResidual.Should().Be(2, "endpoint continuation differences must remain explicit");
+    }
+
+    [TestMethod]
+    public void PayoffGapsDistinguishUnreachedFromUndefinedAndSkipUnaffectedRows()
+    {
+        var old = Q(Info("P Offer", 0), 999, 1000); var end = Q(Policy(old, .5), 1000, 1000);
+        var scenarios = Scenarios(old, Enumerable.Repeat(0.0, 8).ToArray());
+        var changes = BuildRows(ReferenceFor(old), ReferenceFor(end), scenarios, new[] { .25, .75 }).Rows;
+        scenarios[0] = scenarios[0] with { Result = scenarios[0].Result with { InformationSets = new[] { old with { ActualOffPath = true } } } };
+        var gap = BuildPayoffGaps(ReferenceFor(old), ReferenceFor(end), scenarios, changes).Single();
+        gap.CounterfactualUndefined.Should().BeFalse(); gap.UnreachedCoalitions.Should().Equal(0);
+        scenarios[0] = scenarios[0] with { Result = scenarios[0].Result with { InformationSets = new[] { Q(old, null, 1000) } } };
+        gap = BuildPayoffGaps(ReferenceFor(old), ReferenceFor(end), scenarios, changes).Single();
+        gap.CounterfactualUndefined.Should().BeTrue(); gap.CoalitionGaps[0].Should().BeNull(); gap.Allocation.Should().BeNull();
+        BuildPayoffGaps(ReferenceFor(old), ReferenceFor(end), scenarios,
+            changes.Select(r => r with { EndpointSelection = false, CounterfactualUndefined = false }).ToArray()).Should().BeEmpty();
+    }
+
+    [TestMethod]
+    public void PayoffGapsWeightActualProbabilityTransfersAndIgnoreUnusedUndefinedActions()
+    {
+        var old = Info("P Offer", .25) with { Actions = new[] {
+            new ActionValue(1, "0.25", .25, 1, 0, true, true),
+            new ActionValue(2, "0.50", .75, 2, 0, true, true),
+            new ActionValue(3, "0.75", 0, 3, 0, true, true),
+            new ActionValue(4, "0.95", 0, null, null, null, null) } };
+        var end = old with { Actions = old.Actions.Select((a, i) => a with { Probability = new[] { 0.0, .25, .75, 0 }[i] }).ToArray() };
+        var scenarios = Scenarios(old, Enumerable.Repeat(0.0, 8).ToArray()).Select(s =>
+            s with { Result = s.Result with { InformationSets = new[] { old } } }).ToArray();
+        var changes = BuildRows(ReferenceFor(old), ReferenceFor(end), scenarios, new[] { .25, .5, .75, .95 }).Rows;
+        var gap = BuildPayoffGaps(ReferenceFor(old), ReferenceFor(end), scenarios, changes).Single();
+        gap.GainingWeights.Should().Equal(0, 0, 1, 0);
+        gap.LosingWeights[0].Should().BeApproximately(1.0 / 3, 1e-9);
+        gap.LosingWeights[1].Should().BeApproximately(2.0 / 3, 1e-9);
+        gap.OriginalGap.Should().BeApproximately(4.0 / 3, 1e-9);
+        gap.CounterfactualUndefined.Should().BeFalse();
+        LitigCharts.EquilibriumChangeTables.GapComparison(gap).Should().Be("0.75 vs 33.3% 0.25 + 66.7% 0.50");
+        LitigCharts.EquilibriumChangeTables.PayoffNumber(.0038863, true).Should().Be("+3.8863");
     }
 
     [TestMethod]

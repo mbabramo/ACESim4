@@ -47,9 +47,10 @@ entire selected policy to verify its root payoff against GEBR (1e-7 by default).
 Never retain a strictly inferior original action merely for smoothness.
 
 An observed target mix may differ from this original-preserving response even
-when both are optimal. Its selection residual remains in JSON. The table says
-**Selection-dependent** rather than disguising the residual as one of four
-mechanisms. Low/high optimal-action selections flag other tie-sensitive
+when both are optimal. The table now retains the four numerical contributions
+and shows its selection residual in **Remaining**, with an asterisk. The four
+contributions plus Remaining equal the observed change; the remainder is not
+presented as a fifth mechanism. Low/high optimal-action selections flag other tie-sensitive
 allocations. They are stress tests, not exhaustive identification bounds.
 
 Pure offer comparisons use exact monetary grid coordinates only if all
@@ -65,7 +66,42 @@ Posterior beliefs always reflect the hybrid opponent's selection.
 Opponent policies unvisited in their donor equilibria are audited even if
 exposed only by a focal deviation. Low/high completion stresses alter only
 these donor-unvisited policies. Completion-sensitive allocations receive a
-star, not an assertion that all hybrids are credible equilibria.
+section sign, not an assertion that all hybrids are credible equilibria. Asterisks
+are reserved for unmatched endpoint residuals; daggers retain tie sensitivity.
+
+## Relative-payoff supplement
+
+For each information set with a partial or undefined policy decomposition, show
+one additional comparison, not one row per changed offer probability. Let d(a)
+be target probability minus original probability. Normalize positive d(a) to
+unit mass and, separately, negative d(a) to unit mass. Compare the conditional
+utility of the gaining-action mixture against the losing-action mixture. This
+weights the actual probability transfer, not mean offer amounts. For an original
+pure 0.85 demand changing to a mixture of 0.75 and 0.85, it is Q(0.75) - Q(0.85).
+
+Calculate that payoff gap in the original and target references and all eight
+saved opponent-component hybrids. Apply the same direct-first allocation to
+the gaps. Original/target Q uses actual endpoint continuations; hybrid Q uses
+optimized focal continuations. Therefore the first column is explicitly labeled
+Direct/reopt., and any target-reference versus all-target-opponent continuation
+mismatch stays in Remaining. It is not silently assigned to opponent changes.
+
+Payoff supplements are appended after the strategy tables. All their PDF values
+are 1000 times utility differences for readability; JSON and text keep unscaled
+values. These are never percentage points, money, or a welfare comparison across
+utility specifications. Preference-regime comparisons depend on the chosen
+utility normalization. They can explain why an action becomes competitive but
+cannot determine an exact equilibrium mixing probability or reconstruct dynamics.
+
+Tie/completion stress tests apply to payoff allocations separately from policy
+allocations. A hybrid off the focal best-response path is marked but remains
+conditionally defined if chance-and-opponent reach is positive. Missing Q values
+or zero chance-and-opponent reach yield null gaps and no fabricated allocation.
+All intermediate gaps, weights, flags and residuals are exported in
+`*-payoff-gaps.json`; combined publication JSON also includes them. Render-only
+derives these quantities from the verified saved calculations, without changing
+the source calculation JSON, its manifest, the production equilibria or the
+ECTA trace inputs.
 
 ## Reports and verification
 

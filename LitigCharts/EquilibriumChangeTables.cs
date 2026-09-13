@@ -95,7 +95,8 @@ public static class EquilibriumChangeTables
             await WriteReport(stem, group.ToArray());
             await File.WriteAllTextAsync(stem + ".json", JsonSerializer.Serialize(group.Select(r => new
             {
-                r.Contrast, r.SourceOptionSet, r.TargetOptionSet, r.Changes, r.ExcludedHistories
+                r.Contrast, r.SourceOptionSet, r.TargetOptionSet, r.Changes, r.ExcludedHistories,
+                PayoffGaps = PayoffGaps(r)
             }), JsonOptions) + "\n");
             sources.Add(stem + ".tex");
         }
@@ -117,6 +118,9 @@ public static class EquilibriumChangeTables
         await File.WriteAllTextAsync(Path.Combine(output, "README.md"), readme.ToString());
     }
 
+    public static PayoffGapRow[] PayoffGaps(ContrastResult r) => BuildPayoffGaps(
+        r.SourceEquilibrium, r.TargetEquilibrium, r.Scenarios, r.Changes, r.Tolerances.Numerical);
+
     private static async Task WriteReport(string stem, ContrastResult[] results)
     {
         await File.WriteAllTextAsync(stem + ".tex", Latex(results));
@@ -137,9 +141,24 @@ public static class EquilibriumChangeTables
             notes.AppendLine("Histories omitted because reach changes:");
             foreach (var x in result.ExcludedHistories)
                 notes.AppendLine($"  {(x.Player == 0 ? "P" : "D")} {x.Decision}, signal {x.SignalValue:0.00}, exit {x.ExitCommitment}: {x.Reason}");
+            notes.AppendLine("Relative-payoff gaps (unscaled utility units): gained-action mixture minus lost-action mixture.");
+            foreach (var gap in PayoffGaps(result))
+            {
+                string value(double? x) => x?.ToString("G12", Invariant) ?? "undefined";
+                notes.AppendLine($"{(gap.Player == 0 ? "P" : "D")} {gap.Decision}; signal {gap.SignalValue:0.00}; " +
+                    $"{GapComparison(gap)}: {value(gap.OriginalGap)} -> {value(gap.TargetGap)}; " +
+                    (gap.Allocation is { } a ? $"direct/reoptimization={a.Direct:G12}, entry={a.Entry:G12}, offers={a.Offers:G12}, exit={a.Exit:G12}, endpoint remainder={a.SelectionResidual:G12}; " : "undefined counterfactual; ") +
+                    $"tie-sensitive={gap.TieSensitive}, completion-sensitive={gap.CompletionSensitive}; " +
+                    "unreached coalitions=" + string.Join(",", gap.UnreachedCoalitions));
+            }
             notes.AppendLine();
         }
         await File.WriteAllTextAsync(stem + ".txt", notes.ToString());
+        await File.WriteAllTextAsync(stem + "-payoff-gaps.json", JsonSerializer.Serialize(results.Select(r => new
+        {
+            r.Contrast, Units = "Unscaled reported utility; positive gap favors the gained-action mixture",
+            CalculationFile = r.Contrast.Id + ".json", PayoffGaps = PayoffGaps(r)
+        }), JsonOptions) + "\n");
     }
 
     public static RowGroup[] GroupRows(IEnumerable<ChangeRow> rows)
@@ -213,46 +232,106 @@ public static class EquilibriumChangeTables
             b.AppendLine(@"{\large\bfseries " + Escape(h.Title) + @"}\par");
             b.AppendLine(Escape(h.HeldFixed) + "; costs unchanged at multiplier " + Escape(h.Cost) + @".\par");
             b.AppendLine(@"{\small Changed decisions only. Original: " + Escape(h.OriginalColumn) + "; target: " + Escape(h.TargetColumn) + @".}\par");
-            b.AppendLine(@"\begin{longtable}{@{}p{1.9in}rrrrrrrr@{}}");
-            b.AppendLine(@"\toprule Decision & Signal & Original & Target & Change & Direct & Entry & Offers & Exit \\\midrule\endfirsthead");
-            b.AppendLine(@"\toprule Decision & Signal & Original & Target & Change & Direct & Entry & Offers & Exit \\\midrule\endhead");
+            b.AppendLine(@"{\small\setlength{\tabcolsep}{3pt}\begin{longtable}{@{}>{\raggedright\arraybackslash}p{1.65in}rrrrrrrrr@{}}");
+            b.AppendLine(@"\toprule Decision & Signal & Original & Target & Change & Direct & Entry & Offers & Exit & Remaining \\\midrule\endfirsthead");
+            b.AppendLine(@"\toprule Decision & Signal & Original & Target & Change & Direct & Entry & Offers & Exit & Remaining \\\midrule\endhead");
             b.AppendLine(@"\bottomrule\endfoot");
             foreach (byte player in new byte[] { 0, 1 })
             {
                 var rows = GroupRows(result.Changes.Where(r => r.Player == player));
                 if (rows.Length == 0) continue;
-                b.AppendLine(@"\multicolumn{9}{@{}l}{\textbf{" + (player == 0 ? "Plaintiff" : "Defendant") + @"}}\\");
+                b.AppendLine(@"\multicolumn{10}{@{}l}{\textbf{" + (player == 0 ? "Plaintiff" : "Defendant") + @"}}\\");
                 foreach (var group in rows)
                 {
                     var r = group.First; var a = r.Allocation;
                     bool amount = r.Metric == "offer amount";
-                    string marks = (r.TieSensitive ? @"\dagger" : "") + (r.CompletionSensitive ? "*" : "") +
+                    string marks = (r.EndpointSelection ? "*" : "") + (r.TieSensitive ? @"\dagger" : "") + (r.CompletionSensitive ? @"\S" : "") +
                         (r.UnreachedCoalitions.Length > 0 ? @"\ddagger" : "");
                     b.Append(Escape(DecisionLabel(r)) + (marks.Length > 0 ? "$^{" + marks + "}$" : "") +
                         " & " + SignalLabel(group) + " & " + Number(a.Original, amount) + " & " + Number(a.Target, amount) +
                         " & " + Number(a.Change, amount, true));
                     if (r.CounterfactualUndefined)
-                        b.Append(@" & \multicolumn{4}{c}{Undefined counterfactual}");
-                    else if (r.EndpointSelection)
-                        b.Append(@" & \multicolumn{4}{c}{Selection-dependent}");
+                        b.Append(@" & \multicolumn{5}{c}{Undefined counterfactual}");
                     else
-                        foreach (double effect in new[] { a.Direct, a.Entry, a.Offers, a.Exit })
+                        foreach (double effect in new[] { a.Direct, a.Entry, a.Offers, a.Exit, a.SelectionResidual })
                             b.Append(" & " + Number(effect, amount, true));
                     b.AppendLine(@"\\");
                 }
             }
             if (result.Changes.Length == 0)
-                b.AppendLine(@"\multicolumn{9}{l}{No changed decisions reached in both equilibria.}\\");
-            b.AppendLine(@"\end{longtable}");
-            b.AppendLine(@"{\footnotesize Direct: rule/preferences first. Entry, Offers, Exit: opponent contributions, averaged over six replacement orders. Four contributions sum to Change, before rounding.\par");
+                b.AppendLine(@"\multicolumn{10}{l}{No changed decisions reached in both equilibria.}\\");
+            b.AppendLine(@"\end{longtable}}");
+            b.AppendLine(@"{\footnotesize Direct: rule/preferences first. Entry, Offers, Exit: opponent contributions, averaged over six replacement orders. Change equals their sum plus Remaining, before rounding.\par");
             b.AppendLine(@"Probability changes are percentage points; pure demand/offer changes are fractions of damages. Mixed offers are shown as action probabilities, not averages.\par");
-            b.AppendLine(@"$\dagger$: tie-sensitive allocation. $*$: sensitive to an unvisited opponent policy. $\ddagger$: a conditional policy at an intermediate history not reached in that hybrid.\par");
-            b.AppendLine(@"Selection-dependent: the original-preserving optimal response does not reproduce the target action/mix; no four-way allocation is claimed. Undefined counterfactual: no opponent-and-chance reach.\par");
+            b.AppendLine(@"$*$: partial, selection-dependent accounting; Remaining is the target action/mix minus the selected full-target-opponent response, not a fifth causal mechanism. $\dagger$: tie-sensitive. $\S$: sensitive to an unvisited opponent policy. $\ddagger$: conditional on an intermediate history not reached in that hybrid.\par");
+            b.AppendLine(@"Undefined counterfactual: no opponent-and-chance reach; no numerical attribution is shown. These are conditional comparisons, not observed adjustment dynamics.\par");
             b.AppendLine(result.ExcludedHistories.Count(x => x.Reason.StartsWith("no longer")) +
                 " histories no longer reached; " + result.ExcludedHistories.Count(x => x.Reason.StartsWith("newly")) +
                 @" newly reached. These have no comparable endpoint action and are omitted. Detailed diagnostics accompany the table.}\par");
         }
+        foreach (var result in results)
+            AppendPayoffTable(b, result);
         return b.AppendLine(@"\end{document}").ToString();
+    }
+
+    public static string GapComparison(PayoffGapRow row)
+    {
+        string Side(double[] weights)
+        {
+            var selected = weights.Select((w, i) => (Weight: w, Label: row.ActionLabels[i])).Where(x => x.Weight > 0).ToArray();
+            return selected.Length == 1 ? selected[0].Label : string.Join(" + ", selected.Select(x =>
+                (100 * x.Weight).ToString("0.#", Invariant) + "% " + x.Label));
+        }
+        return Side(row.GainingWeights) + " vs " + Side(row.LosingWeights);
+    }
+
+    public static string PayoffNumber(double? value, bool signed = false)
+    {
+        if (!value.HasValue) return "--";
+        double scaled = 1000 * value.Value;
+        if (Math.Abs(scaled) < .00005) scaled = 0;
+        return (signed && scaled > 0 ? "+" : "") + scaled.ToString("0.####", Invariant);
+    }
+
+    private static void AppendPayoffTable(StringBuilder b, ContrastResult result)
+    {
+        var rows = PayoffGaps(result);
+        if (rows.Length == 0) return;
+        var h = Heading(result.SourceOptionSet, result.TargetOptionSet);
+        b.AppendLine(@"\clearpage {\large\bfseries Relative-payoff changes}\par");
+        b.AppendLine(Escape(h.Title + "; " + h.HeldFixed + "; costs " + h.Cost) + @".\par");
+        b.AppendLine(@"{\small Supplement to partial strategy decompositions. Gap: conditional utility of actions gaining probability minus that of actions losing probability. Positive favors the gaining side.}\par");
+        b.AppendLine(@"{\small\setlength{\tabcolsep}{3pt}\begin{longtable}{@{}>{\raggedright\arraybackslash}p{1.7in}rrrrrrrrr@{}}");
+        string header = @"\toprule Decision / comparison & Signal & Original & Target & Change & \shortstack{Direct/\\reopt.} & Entry & Offers & Exit & Remaining \\\midrule";
+        b.AppendLine(header + @"\endfirsthead"); b.AppendLine(header + @"\endhead");
+        b.AppendLine(@"\bottomrule\endfoot");
+        foreach (byte player in new byte[] { 0, 1 })
+        {
+            var selected = rows.Where(r => r.Player == player).ToArray();
+            if (selected.Length == 0) continue;
+            b.AppendLine(@"\multicolumn{10}{@{}l}{\textbf{" + (player == 0 ? "Plaintiff" : "Defendant") + @"}}\\");
+            foreach (var row in selected)
+            {
+                var representative = result.Changes.First(r => r.Key == row.Key) with { Action = null };
+                string label = DecisionLabel(representative).Replace(" (%)", "");
+                string marks = (row.Allocation != null && Math.Abs(row.Allocation.SelectionResidual) > result.Tolerances.Numerical ? "*" : "") +
+                    (row.TieSensitive ? @"\dagger" : "") + (row.CompletionSensitive ? @"\S" : "") +
+                    (row.UnreachedCoalitions.Length > 0 ? @"\ddagger" : "");
+                b.Append(Escape(label) + @"\newline " + Escape(GapComparison(row)) +
+                    (marks.Length > 0 ? "$^{" + marks + "}$" : "") + " & " + row.SignalValue.ToString("0.00", Invariant) +
+                    " & " + PayoffNumber(row.OriginalGap) + " & " + PayoffNumber(row.TargetGap) +
+                    " & " + PayoffNumber(row.TargetGap - row.OriginalGap, true));
+                if (row.CounterfactualUndefined) b.Append(@" & \multicolumn{5}{c}{Undefined counterfactual}");
+                else
+                    foreach (double v in new[] { row.Allocation.Direct, row.Allocation.Entry, row.Allocation.Offers,
+                        row.Allocation.Exit, row.Allocation.SelectionResidual }) b.Append(" & " + PayoffNumber(v, true));
+                b.AppendLine(@"\\[3pt]");
+            }
+        }
+        b.AppendLine(@"\end{longtable}} {\footnotesize All numbers on this page are $1000\times$ utility differences (not percentages or money). The JSON/text files retain unscaled values. Mixtures weight each action by its share of the probability mass gained/lost between endpoints.\par");
+        b.AppendLine(@"Direct/reopt.: new rule/preferences and optimized own continuation against the original opponent. Entry, Offers, Exit: marginal opponent replacements averaged over six orders. Original and Target use actual endpoint continuations; any final continuation mismatch is Remaining$^*$. Change equals all five columns before rounding.\par");
+        b.AppendLine(@"$\dagger$: tie-sensitive payoff allocation. $\S$: unvisited-opponent-policy sensitivity. $\ddagger$: conditional on an intermediate history not reached in that hybrid. Undefined values are not zero.\par");
+        b.AppendLine(@"These comparisons explain changes in relative incentives, not the exact equilibrium mixing probabilities or an observed dynamic path. Utility scales are convention-dependent, particularly across preference regimes, and are not cross-regime welfare comparisons.}\par");
     }
 
     public static string Escape(string value) => value.Replace("&", @"\&").Replace("%", @"\%")
@@ -264,9 +343,14 @@ public static class EquilibriumChangeTables
         "Direct changes the fee rule or risk preferences first, holding the opponent's original strategy. Entry, offers, and exit then average marginal replacements across all six orders using all eight subsets. " +
         "Each hybrid reoptimizes the entire focal-player strategy; this is not the fixed-current-strategy misalignment measure and not an observed adjustment process. " +
         "Primary tie selection preserves original probability on optimal actions. Low/high tie alternatives and unvisited-opponent completion stresses identify sensitivity, not exhaustive bounds. " +
-        "When the all-target-opponent selected best response does not reproduce the actual target action or mix, the residual is retained in JSON and the publication row is marked Selection-dependent. " +
-        "No arbitrary residual is forced into the four categories. Defined, reconciled rows add exactly before display rounding. " +
+        "When the all-target-opponent selected best response does not reproduce the actual target action or mix, all available contributions are shown with an asterisk and an explicit Remaining column. " +
+        "No arbitrary residual is forced into the four categories. The four contributions plus Remaining equal the observed change before display rounding. Remaining is a selection residual, not a fifth causal mechanism. " +
         "Intermediate histories with positive opponent-and-chance reach have conditional continuation policies even if the response would not reach them; they carry a double dagger. " +
         "Probability contributions use percentage points. Only wholly pure offer comparisons use monetary grid values; mixed comparisons use separate action probabilities. " +
-        "This direct-first, tie-convention-conditional accounting is a selected-equilibrium diagnostic, not uniquely identified causal shares.";
+        "Relative-payoff supplements compare the gained-action mixture with the lost-action mixture, weighted by probability mass moved. All flagged information sets are included once. " +
+        "Payoff columns are 1000 times utility differences in the PDF, unscaled in JSON/text; they never mix with policy percentages or offer amounts. " +
+        "Payoff Direct/reopt. includes the change of rule/preferences and own-continuation optimization. Payoff Remaining retains any endpoint continuation mismatch. Undefined conditional values are never imputed as zero. " +
+        "Asterisks mark residuals, daggers mark tie sensitivity, section signs mark unvisited-opponent completion sensitivity, and double daggers mark unreached hybrids. " +
+        "Utility normalization, especially across preference regimes, affects payoff-unit accounting; these are not cross-regime welfare comparisons. " +
+        "This direct-first, tie-convention-conditional accounting is a selected-equilibrium diagnostic, not uniquely identified causal shares or observed dynamics.";
 }
