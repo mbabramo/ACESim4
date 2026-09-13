@@ -135,8 +135,8 @@ probability vectors (tolerance 1e-12) without dropping data. Optional smooth col
 transitions blend only the blue probability fills, for at most 220 ms and no more
 than 75% of a playback interval. These fades are visual only: no intermediate
 strategies or utilities are generated or evaluated. Readouts, hover values,
-advantage corners and reach markings always refer to the destination pivot;
-the status line identifies the color transition. Reduced-motion preferences
+advantage corners and reach markings always refer to the destination pivot.
+Explanatory notes are kept in the documentation, not in the viewer. Reduced-motion preferences
 disable smoothing. Pause, scrubbing and PNG export snap to the exact recorded
 frame. Epsilon and z0 are displayed outside the grid, and hover/tap gives precise
 action details.

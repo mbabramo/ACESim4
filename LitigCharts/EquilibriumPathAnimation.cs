@@ -179,7 +179,6 @@ label{font-size:13px;display:inline-flex;align-items:center;gap:5px}.status{just
 .prob{background:linear-gradient(90deg,#edf2f5,#234f70)}.gain{background:linear-gradient(90deg,#ffe1b2,#c54b08)}
 .hatch{width:18px;background:repeating-linear-gradient(135deg,transparent 0px,transparent 5px,#919da6 5px,#919da6 6px)}
 #tip{position:absolute;display:none;pointer-events:none;white-space:pre-line;background:#fffef7;border:1px solid #89979e;padding:9px 12px;font-size:12px;line-height:1.5;box-shadow:0 3px 12px #0002;z-index:2;max-width:320px}
-details{font-size:12px;color:#52616b;line-height:1.5;margin-top:10px}summary{cursor:pointer}details p{max-width:900px}
 #detail{font-size:12px;min-height:18px;margin:8px 0;color:#52616b}
 @media(max-width:600px){body{padding:12px}.controls{gap:8px}#case-title{font-size:15px}}
 </style>
@@ -210,13 +209,6 @@ details{font-size:12px;color:#52616b;line-height:1.5;margin-top:10px}summary{cur
 <button id="png">Save frame as PNG</button>
 </div>
 <div id="detail">Hover or tap a cell for its probability and conditional utility.</div>
-<details><summary>Reading the animation</summary>
-<p>Each case starts afresh from the original uniform covering-vector prior. Play stops at the selected case's equilibrium; use Case to select another solve. The slider and Step buttons retain every pivot within the selected case. Playback can skip unchanged probabilities. These are numerical ECTA/Lemke paths, not learning or best-response dynamics.</p>
-<p>Smooth color transitions briefly blend only the blue probability fills between displayed pivots. These are visual fades, not additional solver states. Numerical readouts, hover values, orange advantages and reach markings refer to the destination pivot throughout the fade. Pause, scrubbing and PNG export show an exact recorded frame. Reduced-motion preferences disable smoothing.</p>
-<p>P is above D. Signal increases upward, from low at the bottom to high at the top; offer amount increases to the right. Enter and Exit columns are Yes, then No. Offer · continue and Offer · exit show both private advance exit-commitment histories. Exit means abandonment for P and default for D. Hatched rows are actually unreached; a dot marks a uniform completion at a zero-realization history, not identified equilibrium mixing.</p>
-<p>Blue fill is the action probability. An orange corner marks Q(action) minus the expected Q of the current mix, holding both players' continuation behavior fixed. Darker orange means a larger gain; its square-root scale is fixed over the entire case, including off-path values. Hover gives exact numbers. Incentives with zero counterfactual reach are undefined, not zero. Off-path advantages are hidden by default because they can remain positive at a Nash equilibrium.</p>
-<p>ε is the largest unrestricted whole-strategy best-response gain, in this game's rounded utility units. It need not decrease at every pivot and should not be compared across utility specifications as a welfare measure. z₀ is ECTA's auxiliary variable. Displayed realization weights are x + z₀ times the original prior, normalized locally; raw variables and flow residuals remain in the accompanying JSONL files. The final z₀ is zero.</p>
-</details>
 </main>
 <script id="trace-data" type="application/gzip">__TRACE_DATA__</script>
 <script>
@@ -287,7 +279,7 @@ function draw() {
   }
  }
  if(!compact){ctx.save();ctx.translate(45,top+rowCount*rowHeight/2);ctx.rotate(-Math.PI/2);text('signal: low → high',0,0,11,'center');ctx.restore();}
- $('detail').textContent=transition?'Color transition '+transition.from.step+' → '+f.step+' · values are for pivot '+f.step+'.':fi===c.frames.length-1?'Original equilibrium verified · '+c.pivots+' pivots · all saved probabilities matched.':'Hover or tap a cell for its probability and conditional utility.';
+ $('detail').textContent=fi===c.frames.length-1?'Original equilibrium verified · '+c.pivots+' pivots · all saved probabilities matched.':'Hover or tap a cell for its probability and conditional utility.';
  canvas.setAttribute('aria-label',c.title+', pivot '+f.step+'. Complete P and D strategies, low signals at the bottom and high signals at the top. Maximum unrestricted gain '+number(f.epsilon)+'.');
  $('tip').style.display='none';
 }

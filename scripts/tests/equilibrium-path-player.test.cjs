@@ -81,12 +81,13 @@ test('Play stops at selected case; replay and step buttons never cross cases', a
 });
 
 test('Blue fills interpolate; readouts and hover stay at the destination pivot', async () => {
-  const ui = await player(); const initial = ui.firstFill;
+  const ui = await player(); const initial = ui.firstFill, initialHint = ui.element('detail').textContent;
   const originalData = JSON.stringify(ui.cases);
   ui.click('play'); ui.tick(1100);
   assert.equal(ui.firstFill, initial);
   assert.match(ui.element('numbers').textContent, /Pivot 2 /);
-  assert.match(ui.element('detail').textContent, /Color transition 0 → 2/);
+  assert.equal(ui.element('detail').textContent, initialHint);
+  assert.doesNotMatch(ui.element('detail').textContent, /Color transition/);
   ui.tick(1131.25); const middle = ui.firstFill;
   assert.notEqual(middle, initial);
   ui.element('map').onpointermove({ clientX: 70, clientY: 35 });

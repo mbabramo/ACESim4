@@ -64,7 +64,9 @@ public class EquilibriumPathAnimationTests
             .And.Contain("Save frame as PNG").And.NotContain("__TRACE_DATA__")
             .And.Contain("<h1>Solution paths</h1>").And.NotContain("class=\"sub\"")
             .And.Contain("class=\"primary\">Play</button>").And.NotContain("Play all")
-            .And.Contain("Pivot in selected case").And.Contain("ctx.rotate(-Math.PI/2)");
+            .And.Contain("Pivot in selected case").And.Contain("ctx.rotate(-Math.PI/2)")
+            .And.NotContain("Reading the animation").And.NotContain("Color transition")
+            .And.NotContain("<details>");
     }
 
     [TestMethod]
