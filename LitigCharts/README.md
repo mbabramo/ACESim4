@@ -2,8 +2,9 @@
 
 Optional ECTA numerical-path exports are described in
 [Equilibrium paths](../scripts/Equilibrium-paths.md). The equilibrium-paths
-command records every pivot and its complete strategies and incentive gaps;
-it does not overwrite production equilibria.
+command records every pivot and its complete strategies and incentive gaps,
+then generates standalone heat-map animations. Use --render-only to regenerate
+animations from verified traces. It does not overwrite production equilibria.
 
 Run these commands from the ACESim4 repository. Requires .NET 9; PDF generation
 also requires LuaLaTeX and Poppler's pdftoppm on PATH (or configured executable paths).

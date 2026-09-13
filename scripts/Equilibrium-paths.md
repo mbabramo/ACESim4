@@ -4,6 +4,18 @@ Run the optional diagnostic workflow from ACESim4:
 
     dotnet run --project LitigCharts -c Release -- equilibrium-paths --request "C:/Users/Admin/source/repos/correlated-signals-article/equilibrium-paths.request.json"
 
+The default command calculates and validates the original paths, then creates
+four standalone animations and one combined playback. Use `--calculate-only`
+for the data phase. For already completed traces, use:
+
+    dotnet run --project LitigCharts -c Release -- equilibrium-paths --request "C:/Users/Admin/source/repos/correlated-signals-article/equilibrium-paths.request.json" --render-only
+
+Rendering lives in LitigCharts/EquilibriumPathAnimation.cs. It verifies the
+completed manifest, metadata, frame and input hashes, consecutive pivot stream,
+initial uniform probabilities, and final diagnostic before rendering. It refuses
+layouts that would omit information sets. No solver settings need editing, and
+render-only never invokes the equilibrium solver.
+
 The request references the verified source selection and names four original
 ordinary-cost equilibria: American/British crossed with risk neutrality/moderate
 risk aversion. Each is solved independently under its own fixed rules, starting
@@ -99,3 +111,23 @@ and mutated the input array. It now validates atomically, consumes the complete
 ordered vector, applies its optional floor, and leaves caller/chance data alone.
 Failed solver attempts are no longer read as successful equilibria. Tests verify
 that observation leaves both uniform and explicitly seeded solves unchanged.
+
+## Animation
+
+Open any generated HTML file in a browser; it is self-contained and needs no
+server or network service. The data are losslessly gzip-compressed, decoded by
+the browser's DecompressionStream API. Full-precision JSONL remains the canonical
+data. The combined file plays the four independent solves sequentially, resetting
+to the uniform prior at every case boundary.
+
+P is above D. Every own-signal information set is shown in Enter, Offer/continue,
+Offer/exit, and Exit panels. Signal increases downward; offer amount increases
+rightward. Binary actions are Yes then No. Blue fill is probability; orange
+corners show positive Q minus current mixed-policy Q, with a fixed square-root
+scale for the whole case. Hatched rows are actually unreached; dots mark uniform
+completions. Off-path advantages are optional and hidden initially.
+
+The slider and Step buttons retain all pivots. Playback can skip identical
+probability vectors (tolerance 1e-12) without dropping data. No interpolated states
+are generated. Epsilon and z0 are displayed outside the grid, and hover/tap gives
+precise action details. Save frame as PNG exports the current grid.
