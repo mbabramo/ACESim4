@@ -21,11 +21,11 @@ function fixture(id, count) {
 }
 
 async function player({ reduced = false, cases = [fixture('American', 4), fixture('British', 5)] } = {}) {
-  let now = 0, raf, fills = [], download;
+  let now = 0, raf, fills = [], markers = 0, download;
   const context = new Proxy({ fillRect(x, y, w, h) {
-    if (this.fillStyle === '#ffffff') fills = [];
+    if (x === 0 && y === 0) { fills = []; markers = 0; }
     else fills.push(this.fillStyle);
-  } }, { get: (target, key) => key in target ? target[key] : () => {} });
+  }, fill() { markers++; } }, { get: (target, key) => key in target ? target[key] : () => {} });
   const elements = new Map();
   function element(id) {
     if (!elements.has(id)) elements.set(id, {
@@ -58,7 +58,8 @@ async function player({ reduced = false, cases = [fixture('American', 4), fixtur
     click(id) { if (!element(id).disabled) element(id).onclick(); },
     select(index) { element('case').value = String(index); element('case').onchange(); },
     scrub(value) { element('scrub').value = String(value); element('scrub').oninput(); },
-    get firstFill() { return fills[0]; }, get download() { return download; }
+    get firstFill() { return fills[0]; }, get fills() { return fills; }, get markers() { return markers; },
+    get download() { return download; }
   };
 }
 
@@ -143,4 +144,34 @@ test('Single-case player has the same local controls without a case menu', async
   ui.click('end'); ui.click('play');
   assert.equal(Number(ui.element('scrub').value), 0);
   assert.equal(Number(ui.element('scrub').max), 3);
+});
+
+test('Unreached destination rows stay blank during fades; reached zero probability is faint blue', async () => {
+  const c = fixture('American', 4);
+  c.frames[2].r[0] = 0;
+  c.frames[2].fallback = [0];
+  const ui = await player({ cases: [c] });
+  const original = JSON.stringify(c);
+  ui.click('play'); ui.tick(1100);
+  assert.deepEqual(ui.fills.slice(0, 2), ['#ffffff', '#ffffff']);
+  assert.equal(ui.markers, 1, 'only the reached defendant may have a gain corner');
+  ui.tick(1131.25);
+  assert.deepEqual(ui.fills.slice(0, 2), ['#ffffff', '#ffffff']);
+  ui.element('map').onpointermove({ clientX: 70, clientY: 35 });
+  assert.match(ui.element('tip').textContent, /Unreached information set/);
+  assert.match(ui.element('tip').textContent, /Stored off-path probability: 0.8000/);
+  ui.click('end');
+  assert.equal(ui.fills[1], 'rgb(225,236,244)');
+  assert.equal(ui.fills[0], 'rgb(35,79,112)');
+  assert.equal(JSON.stringify(c), original);
+});
+
+test('Unreached rows are blank even with defined positive off-path advantages', async () => {
+  const c = fixture('American', 4);
+  c.frames[3].r = [1e-11, 0];
+  c.frames[3].fallback = [0, 1];
+  const ui = await player({ cases: [c] });
+  ui.click('end');
+  assert.deepEqual(ui.fills, Array(4).fill('#ffffff'));
+  assert.equal(ui.markers, 0);
 });

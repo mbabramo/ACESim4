@@ -101,7 +101,7 @@ public static class EquilibriumPathAnimation
             File.WriteAllText(file, BuildHtml(new[] { run }));
             written.Add(file);
         }
-        string combined = Path.Combine(output, "all-equilibrium-derivations.html");
+        string combined = Path.Combine(output, "all-equilibrium-solution-paths.html");
         File.WriteAllText(combined, BuildHtml(runs)); written.Add(combined);
         return written.ToArray();
     }
@@ -176,8 +176,8 @@ label{font-size:13px;display:inline-flex;align-items:center;gap:5px}.status{just
 #case-title{font-size:17px;font-weight:600}#scrub{width:100%;accent-color:#234f70;margin:9px 0}
 #stage{position:relative;background:white}canvas{display:block;width:100%}
 .legend{font-size:12px;gap:18px;margin:12px 0}.key{display:inline-flex;gap:6px;align-items:center}.swatch{display:inline-block;width:68px;height:12px}
-.prob{background:linear-gradient(90deg,#edf2f5,#234f70)}.gain{background:linear-gradient(90deg,#ffe1b2,#c54b08)}
-.hatch{width:18px;background:repeating-linear-gradient(135deg,transparent 0px,transparent 5px,#919da6 5px,#919da6 6px)}
+.prob{background:linear-gradient(90deg,#e1ecf4,#234f70)}.gain{background:linear-gradient(90deg,#ffe1b2,#c54b08)}
+.unreached{width:18px;background:white;border:1px solid #b7c3c9}
 #tip{position:absolute;display:none;pointer-events:none;white-space:pre-line;background:#fffef7;border:1px solid #89979e;padding:9px 12px;font-size:12px;line-height:1.5;box-shadow:0 3px 12px #0002;z-index:2;max-width:320px}
 #detail{font-size:12px;min-height:18px;margin:8px 0;color:#52616b}
 @media(max-width:600px){body{padding:12px}.controls{gap:8px}#case-title{font-size:15px}}
@@ -200,12 +200,11 @@ label{font-size:13px;display:inline-flex;align-items:center;gap:5px}.status{just
 <div class="legend">
 <span class="key"><span class="swatch prob"></span>Probability 0 → 1</span>
 <span class="key"><span class="swatch gain"></span><span id="gain-range">▲ Positive action advantage</span></span>
-<span class="key"><span class="swatch hatch"></span>Unreached information set</span>
+<span class="key"><span class="swatch unreached"></span>Unreached information set</span>
 </div>
 <div class="controls">
 <label><input id="skip" type="checkbox" checked>Skip unchanged probabilities</label>
 <label><input id="smooth" type="checkbox" checked>Smooth color transitions</label>
-<label><input id="offpath" type="checkbox">Show off-path advantages</label>
 <button id="png">Save frame as PNG</button>
 </div>
 <div id="detail">Hover or tap a cell for its probability and conditional utility.</div>
@@ -242,7 +241,6 @@ function draw() {
  height=panelHeight*2+10; const dpr=Math.min(window.devicePixelRatio||1,2);
  canvas.width=Math.round(width*dpr); canvas.height=Math.round(height*dpr); canvas.style.height=height+'px'; ctx.scale(dpr,dpr);
  ctx.fillStyle='#ffffff';ctx.fillRect(0,0,width,height);boxes=[];
- const fallback=new Set(f.fallback);
  for(let player=0;player<2;player++) {
   const groups=c.groups.filter(g=>g.player===player), cols=groups.reduce((n,g)=>n+g.actions.length,0);
   const cw=(width-left-16-gap*3)/cols, y=top+player*panelHeight;
@@ -257,22 +255,17 @@ function draw() {
     for(let a=0;a<g.actions.length;a++) {
      const j=s.start+a, xx=x+a*cw, w=cw-1.5, h=rowHeight-1.5;
      const fillProbability=transition?transition.from.p[j]+(f.p[j]-transition.from.p[j])*blend:f.p[j];
-     ctx.fillStyle=color([237,242,245],[35,79,112],fillProbability);ctx.fillRect(xx,yy,w,h);
-     if(unreached) {
-      ctx.save();ctx.beginPath();ctx.rect(xx,yy,w,h);ctx.clip();
-      ctx.strokeStyle='rgba(110,124,133,.38)';ctx.lineWidth=.65;
-      for(let k=-h;k<w;k+=8){ctx.beginPath();ctx.moveTo(xx+k,yy+h);ctx.lineTo(xx+k+h,yy);ctx.stroke();}
-      ctx.restore();
-     }
+     // Reach belongs to the destination pivot, even during a visual probability fade.
+     // Blank rows do not depict the arbitrary stored off-path completion.
+     ctx.fillStyle=unreached?'#ffffff':color([225,236,244],[35,79,112],fillProbability);ctx.fillRect(xx,yy,w,h);
      const advantage=f.a[j];
-     if(advantage!==null && advantage>1e-10 && (!unreached || $('offpath').checked)) {
+     if(!unreached && advantage!==null && advantage>1e-10) {
       const size=Math.min(w*.48,h*.74);
       ctx.fillStyle=color([255,225,178],[197,75,8],Math.sqrt(advantage/Math.max(c.maxGain,1e-10)));
       ctx.beginPath();ctx.moveTo(xx+w,yy);ctx.lineTo(xx+w-size,yy);ctx.lineTo(xx+w,yy+size);ctx.closePath();ctx.fill();
      }
      boxes.push({x:xx,y:yy,w,h,si,j,a});
     }
-    if(fallback.has(s.tree)) {ctx.fillStyle='#75848d';ctx.beginPath();ctx.arc(x-3,yy+rowHeight/2,1.6,0,Math.PI*2);ctx.fill();}
    });
    if(g.actions.length===2 && !compact) {text('yes',x+cw/2,y+rowCount*rowHeight+16,11,'center');text('no',x+cw*1.5,y+rowCount*rowHeight+16,11,'center');}
    x+=span+gap;
@@ -306,7 +299,6 @@ $('next').onclick=()=>{stop();setPosition(position+1,true);};
 $('end').onclick=()=>{stop();setPosition(cases[currentCase].frames.length-1);};
 $('case').onchange=()=>{const selected=Number($('case').value);stop();currentCase=selected;position=0;setPosition(0);};
 $('scrub').oninput=()=>{const selected=$('scrub').value;stop();setPosition(selected);};
-$('offpath').onchange=()=>{transition=null;draw();};
 $('smooth').onchange=()=>{transition=null;draw();};
 reducedMotion.addEventListener('change',()=>{$('smooth').checked=!reducedMotion.matches;$('smooth').disabled=reducedMotion.matches;transition=null;draw();});
 function tick(now) {
@@ -324,7 +316,8 @@ function inspect(event) {
  if(!b){tip.style.display='none';return;}
  const c=cases[currentCase],f=c.frames[position],s=c.sets[b.si];
  const label=(s.player===0?'P':'D')+' · '+s.decision+' · signal '+s.signal.toFixed(2)+' · action '+s.actions[b.a];
- const details=label+'\nProbability: '+number(f.p[b.j])+'\nConditional utility: '+number(f.q[b.j])+
+ const unreached=f.r[b.si]<=1e-10;
+ const details=label+(unreached?'\nUnreached information set\nStored off-path probability: ':'\nProbability: ')+number(f.p[b.j])+'\nConditional utility: '+number(f.q[b.j])+
   '\nAdvantage over current mix: '+number(f.a[b.j])+'\nInformation-set gap: '+number(f.gaps[b.si])+
   '\nOutside-support gap: '+number(f.outside[b.si])+'\nActual reach: '+number(f.r[b.si])+
   (f.fallback.includes(s.tree)?'\nUniform completion at zero realization':'');

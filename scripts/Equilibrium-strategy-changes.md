@@ -2,7 +2,7 @@
 
 From the ACESim4 repository:
 
-    dotnet run --project LitigCharts -c Release -- equilibrium-changes --request "C:/Users/Admin/source/repos/correlated-signals-article/equilibrium-changes.request.json"
+    dotnet run --project LitigCharts -c Release -- equilibrium-changes --request "C:/Users/Admin/source/repos/correlated-signals-article/Replication/Requests/equilibrium-changes.request.json" --calculate-only
 
 --calculate-only runs diagnostics; --render-only assembles verified saved
 calculations. The pressure command remains an alias, but the old table generator
@@ -114,15 +114,19 @@ ECTA trace inputs.
 - EquilibriumChangeTables.cs: change-only PDF/TeX/TXT and grouped paper tables.
 
 The article request selects four fee/preference contrasts at costs 1 and 4.
-Ordinary-cost comparisons are bundled in Tables/Equilibrium strategy changes.
-High-cost comparisons and all eight per-contrast reports are in
-Supplemental materials/Equilibrium changes. Full JSON contains source and
+The four accepted ordinary-cost TeX/PDF pairs and editable methodology are in
+`Tables/Equilibrium strategy changes`. The superseded combined and per-contrast
+presentation reports have been removed. All eight original calculations,
+including the high-cost cases, remain in `Results/Equilibrium diagnostics/Original`.
+Full JSON contains source and
 target strategies, primary and sensitivity responses, action values, reaches,
 beliefs, exclusions, and explicit residuals. Original production files are
 hash-checked before and after calculation and again before rendering.
 
-The earlier Supplemental materials/Information-set pressure output is retained
-as historical research, not presented as additive accounting.
+Active equilibrium request files are in `Replication/Requests`, with exact
+historical copies in `Replication/Recorded requests`. The old combined-table
+renderer remains available for diagnostics, but its request no longer writes
+to `Tables`. Use `equilibrium-publication` below for the accepted presentation.
 
 ## Diagnostic profile replacements and compact focus
 
@@ -189,6 +193,13 @@ The publication directory contains only the four `.tex`/`.pdf` pairs and the
 author-owned `Methodology.tex` fragment. There are no generated table notes,
 README files, request files, calculation JSON, or PNG previews in this directory.
 The command never writes `Methodology.tex`, so the author may edit it freely.
+
+In the article repository, the three request arguments are in
+`Replication/Requests`. Their cached inputs are in `Results/Equilibrium diagnostics`:
+`Original`, `Mixed`, and `Mixed tighter check`. The `Mixing` subdirectory retains
+the profile searches and their tighter-tolerance checks. Cached manifest input
+and output hashes are still verified. `OriginalRequest` preserves each original
+calculation request fingerprint alongside the relocated active request.
 
 Consecutive signal rows with the same numerical policies and contributions may
 be combined despite differing sensitivity flags. The last column then reports

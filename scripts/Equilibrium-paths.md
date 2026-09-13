@@ -2,13 +2,13 @@
 
 Run the optional diagnostic workflow from ACESim4:
 
-    dotnet run --project LitigCharts -c Release -- equilibrium-paths --request "C:/Users/Admin/source/repos/correlated-signals-article/equilibrium-paths.request.json"
+    dotnet run --project LitigCharts -c Release -- equilibrium-paths --request "C:/Users/Admin/source/repos/correlated-signals-article/Replication/Requests/equilibrium-paths.request.json"
 
 The default command calculates and validates the original paths, then creates
 four standalone animations and one combined case selector. Use `--calculate-only`
 for the data phase. For already completed traces, use:
 
-    dotnet run --project LitigCharts -c Release -- equilibrium-paths --request "C:/Users/Admin/source/repos/correlated-signals-article/equilibrium-paths.request.json" --render-only
+    dotnet run --project LitigCharts -c Release -- equilibrium-paths --request "C:/Users/Admin/source/repos/correlated-signals-article/Replication/Requests/equilibrium-paths.request.json" --render-only
 
 Rendering lives in LitigCharts/EquilibriumPathAnimation.cs. It verifies the
 completed manifest, metadata, frame and input hashes, consecutive pivot stream,
@@ -26,8 +26,9 @@ transition or a warm start from another equilibrium.
 Each selection supplies the original production log. Replay must match its pivot
 count and all saved action probabilities (tolerance 1e-10), including the same
 uniform completion of zero-realization histories. The original four logs record
-209, 235, 403 and 975 pivots respectively. Output is `Equilibrium derivations`;
-the earlier mistaken intervention traces are marked superseded and are not used.
+209, 235, 403 and 975 pivots respectively. Output is
+`Supplemental materials/Equilibrium solution paths`; the combined viewer is
+`all-equilibrium-solution-paths.html`.
 No production equilibrium file or cache is changed. MaxPivots=0 is unlimited,
 as in the original exact run.
 
@@ -127,8 +128,11 @@ Offer/exit, and Exit panels. Signal increases upward, with low signals at the
 bottom and high signals at the top; offer amount increases
 rightward. Binary actions are Yes then No. Blue fill is probability; orange
 corners show positive Q minus current mixed-policy Q, with a fixed square-root
-scale for the whole case. Hatched rows are actually unreached; dots mark uniform
-completions. Off-path advantages are optional and hidden initially.
+scale for the whole case. Reached probability zero is faint blue, distinct from
+the plain white of actually unreached rows (actual reach at most 1e-10).
+Unreached rows have no hatching, completion dots, borders or advantage corners.
+Their stored strategies and conditional diagnostics remain in the data and
+hover details, explicitly labeled off path; they are not depicted as played behavior.
 
 The slider and Step buttons retain all pivots. Playback can skip identical
 probability vectors (tolerance 1e-12) without dropping data. Optional smooth color
@@ -136,6 +140,8 @@ transitions blend only the blue probability fills, for at most 220 ms and no mor
 than 75% of a playback interval. These fades are visual only: no intermediate
 strategies or utilities are generated or evaluated. Readouts, hover values,
 advantage corners and reach markings always refer to the destination pivot.
+An unreached destination row is white throughout the transition, regardless of
+the preceding pivot's reach or stored probabilities.
 Explanatory notes are kept in the documentation, not in the viewer. Reduced-motion preferences
 disable smoothing. Pause, scrubbing and PNG export snap to the exact recorded
 frame. Epsilon and z0 are displayed outside the grid, and hover/tap gives precise
@@ -147,3 +153,9 @@ Player-control regression tests (fake DOM/canvas and clock; no browser dependenc
 
 The C# EquilibriumPathAnimationTests additionally validate packed information-set
 ordering, coverage and source/frame fingerprints.
+
+Active article requests are under `Replication/Requests`. Exact historical
+request bytes are under `Replication/Recorded requests`; relocated trace input
+fingerprints reference these originals without changing their hashes. Only
+metadata paths and the rendered viewer changed during the directory cleanup;
+the JSONL pivot streams did not change.

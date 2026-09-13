@@ -59,7 +59,7 @@ public class EquilibriumPathAnimationTests
         foreach (var group in data.GetProperty("groups").EnumerateArray())
             group.GetProperty("sets").EnumerateArray().Select(s => run.Metadata.InformationSets[s.GetInt32()].Signal)
                 .Should().BeInDescendingOrder("low signals belong at the bottom of each panel");
-        html.Should().Contain("Skip unchanged probabilities").And.Contain("Show off-path advantages")
+        html.Should().Contain("Skip unchanged probabilities").And.NotContain("Show off-path advantages")
             .And.Contain("Smooth color transitions").And.Contain("prefers-reduced-motion")
             .And.Contain("Save frame as PNG").And.NotContain("__TRACE_DATA__")
             .And.Contain("<h1>Solution paths</h1>").And.NotContain("class=\"sub\"")
@@ -67,6 +67,10 @@ public class EquilibriumPathAnimationTests
             .And.Contain("Pivot in selected case").And.Contain("ctx.rotate(-Math.PI/2)")
             .And.NotContain("Reading the animation").And.NotContain("Color transition")
             .And.NotContain("<details>");
+        html.Should().Contain("unreached?'#ffffff':color([225,236,244]")
+            .And.Contain("if(!unreached && advantage")
+            .And.NotContain("swatch hatch").And.NotContain("ctx.arc(")
+            .And.Contain("Stored off-path probability:");
     }
 
     [TestMethod]
