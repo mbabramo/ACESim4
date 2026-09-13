@@ -71,6 +71,24 @@ public class ExitFeeShiftingTests
     }
 
     [TestMethod]
+    public void StrategyDiagnostics_IsolateFeeTriggerAndIdentifyItsDirection()
+    {
+        var source = ACESimBase.Games.LitigGame.ManualReports.ArticleWorkedPathExtraction.CreateOptions(
+            "Specification-Baseline__Cost-1__Fee-British");
+        var target = ACESimBase.Games.LitigGame.ManualReports.ArticleWorkedPathExtraction.CreateOptions(
+            "Specification-Baseline__Cost-1__Fee-British__ExitFees-AllUnilateralExits");
+        ACESimBase.Games.LitigGame.ManualReports.ArticlePressureAnalysis.ValidateMatchedOptions(source, target);
+        var heading = LitigCharts.EquilibriumChangeTables.Heading(source.Name, target.Name);
+        heading.OriginalColumn.Should().Be("Trial only");
+        heading.TargetColumn.Should().Be("Trial + exit");
+        heading.Title.Should().StartWith("Fee liability:");
+        var american = ACESimBase.Games.LitigGame.ManualReports.ArticleWorkedPathExtraction.CreateOptions(
+            "Specification-Baseline__Cost-1__Fee-American");
+        Action compound = () => ACESimBase.Games.LitigGame.ManualReports.ArticlePressureAnalysis.ValidateMatchedOptions(american, target);
+        compound.Should().Throw<System.IO.InvalidDataException>("the trigger contrast must hold the fee multiplier fixed");
+    }
+
+    [TestMethod]
     public void Nonanswer_ReimbursesOnlyUnsavedFilingCostAndHonorsFeeMultiplier()
     {
         var options = (LitigGameOptions)new LitigGameCorrelatedSignalsArticleLauncher(

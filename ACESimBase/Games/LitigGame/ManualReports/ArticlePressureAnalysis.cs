@@ -199,13 +199,16 @@ public static class ArticlePressureAnalysis
         RequireProtocol(source); RequireProtocol(target);
         // VariableSettings is the production request's human-readable primitive manifest.
         var allowed = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
-        { "Fee Regime", "Fee Shifting Multiplier", "Risk Aversion", "CARA Alpha", "Specification" };
+        { "Fee Regime", "Fee Shifting Multiplier", "Risk Aversion", "CARA Alpha", "Specification",
+            "Fee Shifting Trigger", "Fees After Nonanswer" };
         var left = source.VariableSettings.ToDictionary(x => x.Key, x => Convert.ToString(x.Value, System.Globalization.CultureInfo.InvariantCulture));
         var right = target.VariableSettings.ToDictionary(x => x.Key, x => Convert.ToString(x.Value, System.Globalization.CultureInfo.InvariantCulture));
         bool feeChanged = left.GetValueOrDefault("Fee Regime") != right.GetValueOrDefault("Fee Regime");
         bool riskChanged = left.GetValueOrDefault("Risk Aversion") != right.GetValueOrDefault("Risk Aversion");
-        if (feeChanged == riskChanged)
-            throw new InvalidDataException("Change exactly one intervention: fee rule OR risk preferences.");
+        bool triggerChanged = source.LoserPaysAfterAbandonment != target.LoserPaysAfterAbandonment ||
+            source.LoserPaysAfterNonAnswer != target.LoserPaysAfterNonAnswer;
+        if ((feeChanged ? 1 : 0) + (riskChanged ? 1 : 0) + (triggerChanged ? 1 : 0) != 1)
+            throw new InvalidDataException("Change exactly one intervention: fee regime, fee trigger, OR risk preferences.");
         foreach (string key in left.Keys.Union(right.Keys))
             if (!allowed.Contains(key) && left.GetValueOrDefault(key) != right.GetValueOrDefault(key))
                 throw new InvalidDataException("Unmatched intervention primitive: " + key);

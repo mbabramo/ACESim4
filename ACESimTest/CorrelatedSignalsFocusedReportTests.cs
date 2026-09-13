@@ -157,6 +157,41 @@ namespace ACESimTest
             }
         }
 
+        [TestMethod]
+        public void ExitFeeCharts_SelectMatchedUnconditionalControlsAndPopulationWeightComponents()
+        {
+            string directory = Path.Combine(Path.GetTempPath(), "ACESim-exit-chart-" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(directory);
+            try
+            {
+                string[] results = new string[2];
+                var plans = new[] { LitigGameCorrelatedSignalsArticleLauncher.ProductionRunPlan.FocusedContinuousMerits,
+                    LitigGameCorrelatedSignalsArticleLauncher.ProductionRunPlan.ExitFeeShifting };
+                for (int i = 0; i < plans.Length; i++)
+                {
+                    var launcher = new LitigGameCorrelatedSignalsArticleLauncher(plans[i]);
+                    var options = launcher.GetOptionsSets();
+                    string numerical = Path.Combine(directory, i + "source.csv"), signals = Path.Combine(directory, i + "signals.csv");
+                    results[i] = Path.Combine(directory, i + "results.csv");
+                    WriteNumericalSource(numerical, launcher, options);
+                    WriteSignalSource(signals, launcher, options);
+                    CorrelatedSignalsFocusedReport.BuildAndValidate(launcher, numerical, signals, results[i],
+                        Path.Combine(directory, i + "spec.csv"), Path.Combine(directory, i + "fees.csv"), Path.Combine(directory, i + "strategy.csv"));
+                }
+                var selected = ExitFeeCharts.SelectComparisons(results[0], results[1]);
+                selected.Should().HaveCount(30);
+                selected.Count(row => row["Source Plan"] == "CS006EF").Should().Be(10);
+                selected.Should().OnlyContain(row => row["Filter"] == "All" && row["Number of Offers"] == "10");
+                selected[0]["Plaintiff shortfall contribution"].Should().Be("0.2");
+                selected[0]["Nonliable defendant contribution"].Should().Be("0.2");
+                selected[0]["Liable defendant contribution"].Should().Be("0.05");
+                File.WriteAllText(results[1], File.ReadAllText(results[1]).Replace("Trial and unilateral exit", "Trial only"));
+                Action mismatch = () => ExitFeeCharts.SelectComparisons(results[0], results[1]);
+                mismatch.Should().Throw<InvalidDataException>("an extension label cannot substitute for the correct fee trigger metadata");
+            }
+            finally { Directory.Delete(directory, recursive: true); }
+        }
+
         private static void WriteNumericalSource(
             string path,
             LitigGameCorrelatedSignalsArticleLauncher launcher,

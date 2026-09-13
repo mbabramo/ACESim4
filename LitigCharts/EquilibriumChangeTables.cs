@@ -29,6 +29,18 @@ public static class EquilibriumChangeTables
         string To(string key) => Convert.ToString(target.VariableSettings[key], Invariant);
         string fromFee = From("Fee Regime"), toFee = To("Fee Regime");
         string fromRisk = From("Risk Aversion").ToLowerInvariant(), toRisk = To("Risk Aversion").ToLowerInvariant();
+        bool triggerChanged = source.LoserPaysAfterAbandonment != target.LoserPaysAfterAbandonment ||
+            source.LoserPaysAfterNonAnswer != target.LoserPaysAfterNonAnswer;
+        if (triggerChanged)
+        {
+            string Trigger(ACESim.LitigGameOptions option) => option.LoserPaysAfterAbandonment && option.LoserPaysAfterNonAnswer
+                ? "Trial + exit" : !option.LoserPaysAfterAbandonment && !option.LoserPaysAfterNonAnswer
+                    ? "Trial only" : "Selected exits";
+            return new("Fee liability: " + Trigger(source) + " to " + Trigger(target),
+                "Both players remain " + fromRisk + "; fee multiplier " + From("Fee Shifting Multiplier"),
+                From("Costs Multiplier"), Trigger(source) + ", " + fromRisk, Trigger(target) + ", " + toRisk,
+                Trigger(source), Trigger(target));
+        }
         bool fees = fromFee != toFee;
         string ShortRisk(string risk) => risk == "moderately risk averse" ? "risk averse" : risk;
         return new(fees ? $"Fee shifting: {fromFee} to {toFee}" : $"Preferences: {fromRisk} to {toRisk}",

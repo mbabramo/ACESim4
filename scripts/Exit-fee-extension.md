@@ -42,6 +42,25 @@ charts must identify their original CS004 source rows separately.
 Primary reported disposition probabilities and monetary outcomes use all potential
 disputes. Conditional rates remain available in the saved diagnostic reports.
 
+After importing the new reports to the article repository, generate the complete
+extension chart set and its matched-control CSV with:
+
+```powershell
+dotnet run --project LitigCharts -c Release -- exit-fees --request "C:/Users/Admin/source/repos/correlated-signals-article/Supplemental materials/Fee shifting on exit/exit-fees.request.json"
+dotnet run --project LitigCharts -c Release -- equilibrium-changes --request "C:/Users/Admin/source/repos/correlated-signals-article/Supplemental materials/Fee shifting on exit/Equilibrium strategy changes/equilibrium-changes.request.json"
+```
+
+The first command produces two five-cost disposition comparisons, two ordinary-cost
+participation/offer comparisons, and two monetary-outcome figures with six panels
+each, plus all sixty individual-result diagrams when requested. It validates ten
+new cases against twenty archived control rows, population-weights monetary
+components, and records source and output hashes. `--sources-only` omits compilation.
+The second command calculates and renders the ordinary/high-cost strategy-change
+diagnostics under each preference, with unchanged signal/offer grids and voluntary
+entry/exit. It permits exactly one intervention (fee regime, fee trigger, or risk
+preferences) per contrast. The trigger extension jointly changes fees on initial
+nonanswer and later withdrawal; it does not isolate later withdrawal alone.
+
 Legal motivation: CPR 38.6 (discontinuance costs) and CPR 44.2 (costs discretion).
 Buckhannon, 532 U.S. 598, 603–605 (2001), motivates attention to the form of
 termination, but does not establish a blanket exemption for pretrial exits.
