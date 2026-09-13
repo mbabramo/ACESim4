@@ -29,6 +29,8 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
         /* LCP result   */
         public IMaybeExact<T>[] solz;
         public int pivotcount;
+        // Null by default: no snapshot conversion or allocation in ordinary solves.
+        public Action<ECTAPivotSnapshot> PivotObserver;
 
         /* tableau:    */
         public IMaybeExact<T>[][] Tableau;        /* tableau                              */
@@ -797,6 +799,8 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
                     throw new ECTAException(err);
                 }
                 Pivot(leaveBasis, enterBasis);
+                if (PivotObserver != null)
+                    PivotObserver(CapturePivot(leaveBasis, enterBasis, z0leave));
                 if (VariableIsBasic(leaveBasis))
                 {
                     throw new Exception($"Leaving variable is basic."); 
@@ -837,6 +841,31 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
         private bool CheckCycling(int minNumRepetitionsForCycle)
         {
             return CycleDetection.CycleExists((a, b) => pivotHistory[a] == pivotHistory[b], pivotHistory.Count(), minNumRepetitionsForCycle);
+        }
+
+        public ECTAPivotSnapshot CapturePivot(int leaving, int entering, bool final)
+        {
+            double Value(int variable)
+            {
+                int row = variableIndexToBasicCobasicIndex[variable];
+                if (row >= n) return 0;
+                var numerator = Tableau[row][RHS()];
+                if (variable <= n) numerator = scaleFactors[variable].Times(numerator);
+                return numerator.DividedBy(determinant.Times(scaleFactors[RHS()])).AsDouble;
+            }
+            double auxiliary = Value(Z(0));
+            var z = new double[n]; var w = new double[n];
+            double feasibility = 0, complementarity = 0, augmented = 0;
+            for (int i = 0; i < n; i++)
+            {
+                z[i] = Value(Z(i + 1)); w[i] = Value(W(i + 1));
+                double originalSlack = w[i] - coveringVectorD[i].AsDouble * auxiliary;
+                feasibility = Math.Max(feasibility, Math.Max(-z[i], -originalSlack));
+                complementarity = Math.Max(complementarity, Math.Abs(z[i] * originalSlack));
+                augmented = Math.Max(augmented, Math.Abs(z[i] * w[i]));
+            }
+            return new(pivotcount, leaving, entering, final, auxiliary, z, w,
+                feasibility, complementarity, augmented);
         }
     }
 }

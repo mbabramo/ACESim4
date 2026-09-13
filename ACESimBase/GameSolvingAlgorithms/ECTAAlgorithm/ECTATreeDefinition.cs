@@ -666,48 +666,35 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
         /// <param name="minValue"></param>
         public void SetProbabilitiesToValues(IMaybeExact<T>[] allMoveProbabilities, IMaybeExact<T> minValue)
         {
-
-            int offset = numSequences[1] + 1 + numInfoSets[2];
-            SetProbabilitiesToValues(1, allMoveProbabilities, 0, minValue);
-            SetProbabilitiesToValues(2, allMoveProbabilities, offset, minValue);
-        }
-
-        private void SetProbabilitiesToValues(int pl, IMaybeExact<T>[] allMoveProbabilities, int offset, IMaybeExact<T> minValue)
-        {
-            int indexInAllMovesArray = 0;
-            int moveIndexInInformationSet;
-            ECTAMove<T> c;
-            ECTAInformationSet h;
-            for (int hindex = firstInformationSet[pl]; hindex < firstInformationSet[pl + 1]; hindex++)
+            int expected = informationSets.Skip(firstInformationSet[1]).Sum(h => h.numMoves);
+            if (allMoveProbabilities == null || allMoveProbabilities.Length != expected ||
+                !double.IsFinite(minValue.AsDouble) || minValue.IsNegative())
+                throw new ArgumentException("Invalid initial behavioral probabilities or floor.");
+            var pending = new List<(int Move, IMaybeExact<T> Probability)>();
+            int offset = 0;
+            for (int hindex = firstInformationSet[1]; hindex < informationSets.Length; hindex++)
             {
-                h = informationSets[hindex];
-                IMaybeExact<T> total = IMaybeExact<T>.Zero();
-                IMaybeExact<T> totalAboveMinValue = IMaybeExact<T>.Zero();
-                moveIndexInInformationSet = 0;
-                for (int cindex = h.firstMoveIndex; moveIndexInInformationSet < h.numMoves; cindex++, moveIndexInInformationSet++)
-                {
-                    c = moves[cindex];
-                    c.behavioralProbability = allMoveProbabilities[indexInAllMovesArray++];
-                    if (c.behavioralProbability.IsLessThan(minValue))
-                        c.behavioralProbability = minValue;
-                    total = total.Plus(c.behavioralProbability);
-                    if (c.behavioralProbability.IsGreaterThan(minValue))
-                        totalAboveMinValue = totalAboveMinValue.Plus(c.behavioralProbability.Minus(minValue));
-                }
-                IMaybeExact<T> excess = total.Minus(IMaybeExact<T>.One());
-                indexInAllMovesArray = 0;
-                moveIndexInInformationSet = 0;
-                for (int cindex = h.firstMoveIndex; moveIndexInInformationSet < h.numMoves; cindex++, moveIndexInInformationSet++)
-                {
-                    c = moves[cindex];
-                    if (c.behavioralProbability.IsGreaterThan(minValue))
-                    {
-                        var proportionOfExcess = (c.behavioralProbability.Minus(minValue)).DividedBy(totalAboveMinValue);
-                        c.behavioralProbability = c.behavioralProbability.Minus(excess.Times(proportionOfExcess));
-                    }
-                    allMoveProbabilities[indexInAllMovesArray++] = c.behavioralProbability;
-                }
+                var h = informationSets[hindex];
+                if (minValue.Times(IMaybeExact<T>.FromInteger(h.numMoves)).IsGreaterThan(IMaybeExact<T>.One()))
+                    throw new ArgumentException("Probability floor is infeasible.");
+                var values = allMoveProbabilities.Skip(offset).Take(h.numMoves).ToArray();
+                if (values.Any(v => v == null || !double.IsFinite(v.AsDouble) || v.IsNegative()))
+                    throw new ArgumentException("Invalid initial probability.");
+                var sum = values.Aggregate(IMaybeExact<T>.Zero(), (a, v) => a.Plus(v));
+                if (Math.Abs(sum.AsDouble - 1) > 1e-9)
+                    throw new ArgumentException("Initial probabilities must sum to one in every information set.");
+                values = values.Select(v => v.DividedBy(sum)).ToArray();
+                var excessWeights = values.Select(v => v.IsGreaterThan(minValue) ? v.Minus(minValue) : IMaybeExact<T>.Zero()).ToArray();
+                var weight = excessWeights.Aggregate(IMaybeExact<T>.Zero(), (a, v) => a.Plus(v));
+                var remaining = IMaybeExact<T>.One().Minus(minValue.Times(IMaybeExact<T>.FromInteger(h.numMoves)));
+                for (int a = 0; a < h.numMoves; a++)
+                    pending.Add((h.firstMoveIndex + a, weight.IsZero()
+                        ? IMaybeExact<T>.One().DividedBy(IMaybeExact<T>.FromInteger(h.numMoves))
+                        : minValue.Plus(remaining.Times(excessWeights[a]).DividedBy(weight))));
+                offset += h.numMoves;
             }
+            // Atomic validation; never change the caller's array or chance policies.
+            foreach (var (move, probability) in pending) moves[move].behavioralProbability = probability;
         }
 
         public IEnumerable<IMaybeExact<T>> GetInformationSetProbabilitySums(int pl, T[] rplan, int offset)

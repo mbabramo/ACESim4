@@ -34,6 +34,12 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
         public bool abortIfCycling = true;
         public int minRepetitionsForCycling = 3;
         public int maxPivotSteps = 0;
+        public double initialProbabilityFloor = 0.001;
+        // Opt in explicitly: historical ordinary solves used genprior even when a
+        // custom initialization was passed. Preserve their equilibrium selection.
+        public bool useSuppliedInitialProbabilities = false;
+        public Action<ECTATreeDefinition<T>> BeforeSolve;
+        public Action<ECTATreeDefinition<T>, ECTAPivotSnapshot> PivotObserver;
 
         /* global variables for generating and documenting computation  */
         ECTALemkeOptions lemkeOptions;
@@ -153,6 +159,8 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
             t.generateSequenceFormLCP();
 
             t.calculateCoveringVectorD();
+            BeforeSolve?.Invoke(t);
+            if (PivotObserver != null) t.Lemke.PivotObserver = snapshot => PivotObserver(t, snapshot);
             if (outputLCP)
                 t.Lemke.OutputLCP();
             stopwatch(false);
@@ -230,11 +238,16 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
                 TabbedText.WriteLine($"Prior {priorcount + 1} of {numPriors}");
                 if (priorcount > 0 && initialProbabilities != null && !tracingEquilibrium)
                     throw new Exception("Can't use multiple priors if you set the initial probabilities and don't want to trace the equilibrium, because then the probabilities will be the same every time.");
-                if ((priorcount == 0 && initialProbabilities == null) || !tracingEquilibrium)
+                if (priorcount == 0 && initialProbabilities != null && (tracingEquilibrium || useSuppliedInitialProbabilities))
+                {
+                    t.SetProbabilitiesToValues(initialProbabilities, IMaybeExact<T>.FromRational((Rational)initialProbabilityFloor));
+                    updateActionWhenTracingPathOfEquilibrium?.Invoke(priorcount, t);
+                }
+                else if (!tracingEquilibrium || equilibriumProbabilities == null)
                     t.genprior(priorcount + seedAdjust);
                 else
                 {
-                    t.SetProbabilitiesToValues(equilibriumProbabilities, IMaybeExact<T>.One().DividedBy(IMaybeExact<T>.FromInteger(1_000)));
+                    t.SetProbabilitiesToValues(equilibriumProbabilities, IMaybeExact<T>.FromRational((Rational)initialProbabilityFloor));
                     updateActionWhenTracingPathOfEquilibrium(priorcount, t);
                 }
                 if (outputGameTreeSetup)
@@ -249,8 +262,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
                 catch (ECTAException ex)
                 {
                     TabbedText.WriteLine($"ECTA algorithm failed {ex.Message}");
-                    if (priorcount == numPriors - 1 && !equilibria.Any())
-                        succeeded = false;
+                    succeeded = false;
                 }
                 if (succeeded)
                 {
@@ -275,7 +287,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
                 }
                 outputGameTreeSetup = false;
                 TabbedText.WriteLine($"Elapsed milliseconds prior {priorcount + 1}: {s.ElapsedMilliseconds}");
-                if (!succeeded && priorcount == numPriors - 1)
+                if (!succeeded && priorcount == numPriors - 1 && !equilibria.Any())
                     return new List<(IMaybeExact<T>[] equilibrium, int frequency)>();
             }
             if (numPriors > 1)    /* give averages */
