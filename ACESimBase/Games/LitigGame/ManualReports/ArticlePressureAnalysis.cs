@@ -15,14 +15,14 @@ namespace ACESimBase.Games.LitigGame.ManualReports;
 public static class ArticlePressureAnalysis
 {
     public sealed record Source(string Id, string OptionSetName, string EquilibriumFile,
-        string ActionReportFile, int EquilibriumNumber = 1);
+        string ActionReportFile, int EquilibriumNumber = 1, string ProfileFile = null);
     public sealed record Contrast(string Id, string Label, string Source, string Target);
     public sealed record Request(string OutputDirectory, Source[] Sources, Contrast[] Contrasts,
         Tolerances Tolerances = null, bool CheckOffPathCompletions = true, bool CheckTieSensitivity = true,
         string PublicationDirectory = null);
     public sealed record Fingerprint(string Path, string Sha256);
     public sealed record Loaded(Source Selection, Fingerprint Equilibrium, Fingerprint ActionReport,
-        int ValidatedRows, Profile Profile, Reference Reference, Result[] Controls);
+        int ValidatedRows, Profile Profile, Reference Reference, Result[] Controls, Fingerprint ProfileOverride = null);
     public sealed record Scenario(string Panel, string Component, Result Result);
     public sealed record ContrastResult(string Schema, Contrast Contrast, string SourceOptionSet,
         string TargetOptionSet, Tolerances Tolerances, Reference SourceEquilibrium,
@@ -54,7 +54,8 @@ public static class ArticlePressureAnalysis
         string Resolve(string p) => Path.GetFullPath(p, directory);
         string output = Resolve(request.OutputDirectory);
         foreach (var source in request.Sources)
-            foreach (string input in new[] { Resolve(source.EquilibriumFile), Resolve(source.ActionReportFile) })
+            foreach (string input in new[] { source.EquilibriumFile, source.ActionReportFile, source.ProfileFile }
+                .Where(p => p != null).Select(Resolve))
                 if (Inside(output, Path.GetDirectoryName(input)))
                     throw new InvalidDataException("Diagnostic outputs must be outside production-input directories.");
         Directory.CreateDirectory(output);
@@ -67,6 +68,9 @@ public static class ArticlePressureAnalysis
             var developer = await ArticleWorkedPathExtraction.InitializeAsync(options);
             string file = Resolve(source.EquilibriumFile);
             string report = Resolve(source.ActionReportFile);
+            var equilibriumHash = Hash(file);
+            var actionHash = Hash(report);
+            var profileHash = source.ProfileFile == null ? null : Hash(Resolve(source.ProfileFile));
             if (source.EquilibriumNumber < 1) throw new InvalidDataException("Equilibrium number must be positive.");
             string line = File.ReadLines(file).Skip(source.EquilibriumNumber - 1).FirstOrDefault();
             if (string.IsNullOrWhiteSpace(line)) throw new InvalidDataException("Missing equilibrium line in " + file);
@@ -74,14 +78,16 @@ public static class ArticlePressureAnalysis
             var fallbacks = ArticleWorkedPathExtraction.LoadProfile(developer, values);
             int rows = ArticleWorkedPathExtraction.ValidateActionReport(developer, source.EquilibriumNumber, report);
             var profile = Capture(developer, source.Id, fallbacks);
-            var reference = Describe(developer, profile);
-            profile = WithObservedReach(profile, reference);
-            var controls = new[] { Respond(developer, profile, 0, source.Id + "-control-P", tolerance),
-                Respond(developer, profile, 1, source.Id + "-control-D", tolerance) };
-            foreach (var control in controls)
-                if (control.Gain > tolerance.Numerical)
-                    throw new InvalidDataException($"Source equilibrium {source.Id} exploitability {control.Gain:G17} exceeds {tolerance.Numerical:G17}.");
-            loaded[source.Id] = new(source, Hash(file), Hash(report), rows, profile, reference, controls);
+            // The action report verifies the SAVED profile, not a diagnostic replacement.
+            // Replacements have their own fingerprint, fresh utilities/reaches, and full BR checks.
+            if (profileHash != null)
+                profile = JsonSerializer.Deserialize<Profile>(File.ReadAllText(profileHash.Path), JsonOptions)
+                    ?? throw new InvalidDataException("Empty diagnostic profile.");
+            var inspected = InspectEquilibrium(developer, profile with { Name = source.Id }, source.OptionSetName, tolerance);
+            profile = inspected.Profile;
+            var reference = inspected.Reference;
+            var controls = inspected.Controls;
+            loaded[source.Id] = new(source, equilibriumHash, actionHash, rows, profile, reference, controls, profileHash);
             progress?.Invoke($"  {rows} action rows verified; max gain {controls.Max(c => c.Gain):G4}");
         }
         var outputs = new List<string>();
@@ -136,7 +142,7 @@ public static class ArticlePressureAnalysis
         }
         foreach (var source in loaded.Values)
         {
-            if (Hash(source.Equilibrium.Path).Sha256 != source.Equilibrium.Sha256 || Hash(source.ActionReport.Path).Sha256 != source.ActionReport.Sha256)
+            if (SourceFingerprints(source).Any(f => Hash(f.Path).Sha256 != f.Sha256))
                 throw new IOException("A production input changed during the diagnostic run.");
         }
         var manifest = new Manifest("2", DateTimeOffset.UtcNow, Hash(requestFile), EvolutionSettings.MaxIntegralUtility,
@@ -144,6 +150,29 @@ public static class ArticlePressureAnalysis
             outputs.Select(Hash).ToArray(), Hash(typeof(ArticlePressureAnalysis).Assembly.Location));
         await File.WriteAllTextAsync(Path.Combine(output, "equilibrium-changes-manifest.json"), JsonSerializer.Serialize(manifest, JsonOptions) + "\n");
         return manifest;
+    }
+
+    public static IEnumerable<Fingerprint> SourceFingerprints(Loaded source) =>
+        new[] { source.Equilibrium, source.ActionReport, source.ProfileOverride }.Where(f => f != null);
+
+    public static (Profile Profile, Reference Reference, Result[] Controls) InspectEquilibrium(
+        StrategiesDeveloperBase developer, Profile profile, string expectedOptionSet, Tolerances tolerance)
+    {
+        ValidateTolerances(tolerance);
+        if (profile.OptionSet != expectedOptionSet || developer.GameDefinition.OptionSetName != expectedOptionSet)
+            throw new InvalidDataException("Diagnostic profile belongs to a different option set.");
+        var restore = Capture(developer, "restore");
+        try
+        {
+            var reference = Describe(developer, profile); // Apply validates all semantic policies before mutation.
+            profile = WithObservedReach(profile, reference); // Never trust cached donor reaches in an overlay.
+            var controls = new[] { Respond(developer, profile, 0, profile.Name + "-control-P", tolerance),
+                Respond(developer, profile, 1, profile.Name + "-control-D", tolerance) };
+            if (controls.Any(c => c.Gain > tolerance.Numerical))
+                throw new InvalidDataException($"Source equilibrium {profile.Name} exploitability {controls.Max(c => c.Gain):G17} exceeds {tolerance.Numerical:G17}.");
+            return (profile, reference, controls);
+        }
+        finally { Apply(developer, restore); }
     }
 
     public static Profile ReplaceUnvisitedOpponentPolicies(Profile input, byte opponent, bool highest) => input with

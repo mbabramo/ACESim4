@@ -6,15 +6,16 @@ Run through the existing C# chart/report entry point:
 dotnet run --project LitigCharts -c Release -- equilibrium-mixing --request <request.json>
 ```
 
-The article's `equilibrium-mixing.request.json` initially selects only the
-ordinary-cost, American-rule, risk-neutral baseline. Additional saved profiles
-can be added to `Sources` using the same source records as the existing pressure
-and equilibrium-change analysis. This does not run ECTA, replace production
-equilibria, or revise the existing decomposition or publication figures.
+The article's `equilibrium-mixing.request.json` selects the four ordinary-cost
+equilibria: American/British crossed with risk neutrality/moderate risk aversion.
+Additional saved profiles can be added to `Sources`. Mixing always starts from
+the saved equilibrium, not a `ProfileFile` override. This does not run ECTA,
+replace production equilibria, or revise existing animations or paper figures.
 
-`equilibrium-mixing-tight.request.json` repeats the baseline with a tenfold
-tighter acceptance limit and conditional tie tolerance, retaining its results in
-a separate `Tighter tolerance check` subdirectory.
+`equilibrium-mixing-tight.request.json` repeats the four equilibria and both
+search orders with a tenfold tighter acceptance limit and conditional tie
+tolerance, retaining its results in a separate `Tighter tolerance check`
+subdirectory. Search-order sensitivity is distinct from numerical tolerance.
 
 ## Objective and scope
 
@@ -113,6 +114,8 @@ source-unvisited policies and source-file SHA-256 hashes are checked unchanged.
   action values, both runs, all accepted blocks and member changes, solver audits,
   final profiles, conditional values/beliefs/reaches, and aggregate outcomes.
 - `<id>-forward.json`, `<id>-reverse.json`: completed-run checkpoints.
+- `<id>-forward-profile.json`, `<id>-reverse-profile.json`: each order's semantic
+  profile, available for explicit search-order sensitivity decompositions.
 - `<id>-profile.json`: selected semantically keyed full behavioral profile,
   directly consumable by `InformationSetPressureAnalysis.Apply`.
 - `README.md`: methodology and links to completed sources.
@@ -123,3 +126,12 @@ abandonment/default and does not imply a new disposition convention for the
 article's existing figures. They use actual path probabilities, not conditional
 averages over information sets. All saved production profiles and action reports
 are read-only inputs, validated against the initialized rounded article game.
+
+## Separate decomposition experiment
+
+The article's `equilibrium-changes-mixed.request.json` uses the selected profiles
+as explicit `ProfileFile` inputs to the existing decomposition engine. Its output
+is `Supplemental materials/Equilibrium changes after mixing`, not `Tables` or the
+existing equilibrium-change directory. See `Equilibrium-strategy-changes.md` for
+the compact focus filter and its limitations. No mixing representative should be
+substituted into original ECTA solution-path animations.

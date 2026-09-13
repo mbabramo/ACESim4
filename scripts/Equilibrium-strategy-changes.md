@@ -123,3 +123,48 @@ hash-checked before and after calculation and again before rendering.
 
 The earlier Supplemental materials/Information-set pressure output is retained
 as historical research, not presented as additive accounting.
+
+## Diagnostic profile replacements and compact focus
+
+An optional `ProfileFile` on a source loads a semantic behavioral profile instead
+of using the saved equilibrium as the endpoint. The saved equilibrium/action
+report are still validated together first: their 480 rows are NOT claimed to
+describe the replacement. The replacement must match the option set and complete
+semantic action menus, have valid probabilities, and pass BOTH unrestricted
+best-response controls. Conditional values, beliefs and donor reaches are
+recomputed. Its own SHA-256 is included in the manifest and checked again before
+reading/rendering cached results. Ordinary requests without overrides work as
+before. No saved equilibrium file is rewritten.
+
+For the four mixed ordinary-cost profiles:
+
+```text
+dotnet run --project LitigCharts -c Release -- equilibrium-changes --request <equilibrium-changes-mixed.request.json> --calculate-only
+dotnet run --project LitigCharts -c Release -- equilibrium-change-focus --request <equilibrium-changes-mixed.request.json> --original <equilibrium-changes.request.json>
+```
+
+The second command writes experimental `Focused strategy changes.md` and JSON
+beside the separate calculation, not into the original table or animation folders.
+It compares original and mixed endpoints and retains ALL changed information sets
+in the audit output, with one row per set. For each set, G is the set of actions
+whose probability increases by more than `PolicyTolerance`. Decompose probability
+assigned to G, in percentage points, using the same eight-coalition calculation.
+This is not a mean offer or an average of action utilities. The full calculation
+still contains the separate action-share rows; aggregation can mask offsetting
+redistribution within G, so it is explicitly a compact summary.
+
+The focus subset requires original probability mass greater than 1e-6 on actions
+that lose more than `NearTie` (default 1e-6 target-utility units) relative to the
+best action against the target opponent, with ALL subsequent own choices
+reoptimized. Fixed-target-continuation losses are exported separately. The test
+avoids mistaking an unfavorable off-path own completion for a necessary action
+change. It is neither a full-strategy regret measure nor a welfare comparison.
+
+This filter allows overlapping supports and can reject disjoint supports when
+the actions remain tied. It can be applied to original equilibria too: increasing
+mixing is not required for the filter, and does not guarantee a shorter table.
+Changes omitted from the focused portion can still be important for opponent
+incentives or outcomes. The actual mixture, support, and opponent's incentive
+constraints may change even when the player's actions are tied. Remaining and
+tie/completion sensitivity are never forcibly zeroed. The compact allocation
+does not reconstruct equilibrium dynamics or resolve equilibrium selection.

@@ -56,9 +56,9 @@ public static class EquilibriumMixingCommand
         if (orders.Length == 0 || orders.Distinct().Count() != orders.Length || orders.Any(o => o is not ("forward" or "reverse")))
             throw new InvalidDataException("Use distinct forward/reverse search orders.");
         if (request.Sources == null || request.Sources.Length == 0 || request.Sources.Any(s =>
-            string.IsNullOrWhiteSpace(s.Id) || s.Id.Any(c => !char.IsAsciiLetterOrDigit(c) && c != '-') || s.EquilibriumNumber < 1) ||
+            string.IsNullOrWhiteSpace(s.Id) || s.Id.Any(c => !char.IsAsciiLetterOrDigit(c) && c != '-') || s.EquilibriumNumber < 1 || s.ProfileFile != null) ||
             request.Sources.Select(s => s.Id).Distinct().Count() != request.Sources.Length)
-            throw new InvalidDataException("Supply uniquely identified sources.");
+            throw new InvalidDataException("Supply uniquely identified saved sources without profile overrides.");
         string Resolve(string p) => Path.GetFullPath(p, Path.GetDirectoryName(Path.GetFullPath(requestFile)));
         string output = Resolve(request.OutputDirectory);
         foreach (var source in request.Sources)
@@ -93,6 +93,7 @@ public static class EquilibriumMixingCommand
                 runs.Add(run);
                 // Checkpoint each completed run separately; never overwrite production files.
                 await File.WriteAllTextAsync(Path.Combine(output, source.Id + "-" + order + ".json"), JsonSerializer.Serialize(run, json) + "\n");
+                await File.WriteAllTextAsync(Path.Combine(output, source.Id + "-" + order + "-profile.json"), JsonSerializer.Serialize(run.FinalProfile, json) + "\n");
             }
             var selected = runs.OrderByDescending(r => r.FinalScore).ThenBy(r => r.FinalGains.Max()).First();
             if (ArticlePressureAnalysis.Hash(eqHash.Path).Sha256 != eqHash.Sha256 ||

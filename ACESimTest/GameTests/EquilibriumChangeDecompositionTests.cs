@@ -14,6 +14,115 @@ namespace ACESimTest.GameTests;
 [TestClass]
 public class EquilibriumChangeDecompositionTests
 {
+    private static EquilibriumChangeFocus.Row Focus(InformationSet old, InformationSet end, Scenario[] scenarios = null)
+    {
+        scenarios ??= Scenarios(end, Enumerable.Repeat(end.Actions[0].Probability, 8).ToArray());
+        var changes = BuildRows(ReferenceFor(old), ReferenceFor(end), scenarios, new[] { .25, .75 });
+        var result = new ContrastResult("2", new("test", "test", "old", "new"), "old", "new", new(),
+            ReferenceFor(old), ReferenceFor(end), scenarios, Array.Empty<string>(), changes.Rows, changes.Excluded, new[] { .25, .75 });
+        return EquilibriumChangeFocus.Build(result).Single();
+    }
+
+    [TestMethod]
+    public void FocusDoesNotMistakeDisjointTiedActionsForStrictIncentives()
+    {
+        var old = Info("P Offer", 1);
+        var row = Focus(old, Policy(old, 0));
+        row.SupportsDisjoint.Should().BeTrue();
+        row.Focus.Should().BeFalse();
+        row.OriginalPolicyLossAtTarget.Should().Be(0);
+        row.ShiftedProbability.Should().Be(1);
+    }
+
+    [TestMethod]
+    public void FocusRetainsStrictlyInferiorOldActionsEvenWhenSupportsOverlap()
+    {
+        var old = Info("P Offer", .75);
+        var end = Policy(old, .25) with { Actions = new[]
+        {
+            old.Actions[0] with { Probability = .25, CounterfactualConditionalUtility = 1 },
+            old.Actions[1] with { Probability = .75, CounterfactualConditionalUtility = 2 }
+        } };
+        var row = Focus(old, end);
+        row.SupportsDisjoint.Should().BeFalse();
+        row.Focus.Should().BeTrue();
+        row.InferiorOriginalMass.Should().Be(.75);
+        row.OriginalPolicyLossAtTarget.Should().Be(.75);
+        row.Allocation.Change.Should().Be(50);
+        row.Allocation.Direct.Should().Be(50);
+    }
+
+    [TestMethod]
+    public void FocusUsesGainingProbabilityIncludingNoRatherThanSignedYesChange()
+    {
+        var old = Info();
+        var row = Focus(old, Policy(old, 0));
+        row.GainingActions.Should().Equal(2);
+        row.Allocation.Original.Should().Be(0);
+        row.Allocation.Target.Should().Be(100);
+        row.Allocation.Explained.Should().Be(100);
+    }
+
+    [TestMethod]
+    public void FocusNeverAllocatesUndefinedCounterfactualPolicies()
+    {
+        var old = Info();
+        var end = Policy(old, 0);
+        var scenarios = Scenarios(end with { CounterfactuallyUnreachable = true }, Enumerable.Repeat(0.0, 8).ToArray());
+        var row = Focus(old, end, scenarios);
+        row.CounterfactualUndefined.Should().BeTrue();
+        row.Allocation.Should().BeNull();
+    }
+
+    [TestMethod]
+    public void FocusIgnoresNumericalNearTiesWithoutDroppingAuditRow()
+    {
+        var old = Info();
+        var end = Policy(old, 0);
+        end = end with { Actions = end.Actions.Select((a, i) => a with { CounterfactualConditionalUtility = i * 1e-7 }).ToArray() };
+        var row = Focus(old, end);
+        row.Focus.Should().BeFalse();
+        row.OriginalPolicyLossAtTarget.Should().Be(1e-7);
+    }
+
+    [TestMethod]
+    public void FocusReoptimizesContinuationRatherThanTreatingAnOffPathCompletionAsStrictLoss()
+    {
+        var old = Info();
+        var end = Policy(old, 0);
+        end = end with { Actions = end.Actions.Select((a, i) => a with { CounterfactualConditionalUtility = i }).ToArray() };
+        var optimized = Scenarios(old, Enumerable.Repeat(1.0, 8).ToArray()); // Both Qs tied, retaining old action.
+        var row = Focus(old, end, optimized);
+        row.FixedTargetContinuationLoss.Should().Be(1);
+        row.OriginalPolicyLossAtTarget.Should().Be(0);
+        row.Focus.Should().BeFalse();
+        row.Allocation.SelectionResidual.Should().Be(100);
+    }
+
+    [TestMethod]
+    public void FocusAggregatesSeveralGainingActionsWithoutAveragingOfferAmounts()
+    {
+        var old = Info("P Offer") with { Actions = new[]
+        {
+            new ActionValue(1, "0.25", .7, 0, 0, true, true),
+            new ActionValue(2, "0.50", .3, 0, 0, true, true),
+            new ActionValue(3, "0.75", 0, 0, 0, true, true)
+        } };
+        var end = old with { Actions = old.Actions.Select((a, i) => a with { Probability = new[] { .2, .4, .4 }[i] }).ToArray() };
+        var scenarios = Scenarios(old, Enumerable.Repeat(.4, 8).ToArray()).Select(s => s with
+        {
+            Result = s.Result with { InformationSets = new[] { old with
+            { Actions = old.Actions.Select((a, i) => a with { Probability = new[] { .4, .3, .3 }[i] }).ToArray() } } }
+        }).ToArray();
+        var row = Focus(old, end, scenarios);
+        row.GainingActions.Should().Equal(2, 3);
+        row.Allocation.Original.Should().BeApproximately(30, 1e-10);
+        row.Allocation.Target.Should().BeApproximately(80, 1e-10);
+        row.Allocation.Direct.Should().BeApproximately(30, 1e-10);
+        row.Allocation.SelectionResidual.Should().BeApproximately(20, 1e-10);
+        row.ShiftedProbability.Should().BeApproximately(.5, 1e-10);
+    }
+
     [TestMethod]
     public void AdditiveEffectsAndInteractionsReconcileToObservedChange()
     {

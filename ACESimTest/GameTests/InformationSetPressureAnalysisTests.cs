@@ -69,6 +69,33 @@ public class InformationSetPressureAnalysisTests
     }
 
     [TestMethod]
+    public void DiagnosticProfileRejectsWrongOptionsMissingHistoriesAndNonEquilibriumWithoutMutation()
+    {
+        Apply(developer, baseline);
+        void Check(Profile profile)
+        {
+            Action inspect = () => ArticlePressureAnalysis.InspectEquilibrium(developer, profile, baseline.OptionSet, new());
+            inspect.Should().Throw<InvalidDataException>();
+            foreach (var node in developer.InformationSets)
+                node.GetCurrentProbabilitiesAsArray().Should().Equal(baseline.Strategies[Key(node, developer.GameDefinition)].Probabilities);
+        }
+        Check(baseline with { OptionSet = "different-options" });
+        Check(baseline with { Strategies = baseline.Strategies.Skip(1).ToDictionary(x => x.Key, x => x.Value) });
+        Check(baseline); // Deliberately non-equilibrium synthetic profile.
+    }
+
+    [TestMethod]
+    public void DiagnosticSourceFingerprintsIncludeOptionalOverlayAndRemainBackwardCompatible()
+    {
+        var saved = new ArticlePressureAnalysis.Fingerprint("equ", "a");
+        var actions = new ArticlePressureAnalysis.Fingerprint("actions", "b");
+        var overlay = new ArticlePressureAnalysis.Fingerprint("profile", "c");
+        var source = new ArticlePressureAnalysis.Loaded(null, saved, actions, 0, baseline, null, null);
+        ArticlePressureAnalysis.SourceFingerprints(source).Should().Equal(saved, actions);
+        ArticlePressureAnalysis.SourceFingerprints(source with { ProfileOverride = overlay }).Should().Equal(saved, actions, overlay);
+    }
+
+    [TestMethod]
     public void RespondDoesNotChangeTheLoadedStrategyAndReplaysHighTiePolicy()
     {
         Apply(developer, baseline);

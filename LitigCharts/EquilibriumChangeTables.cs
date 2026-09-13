@@ -68,17 +68,7 @@ public static class EquilibriumChangeTables
         var request = ReadRequest(requestFile);
         string Resolve(string p) => Path.GetFullPath(p, Path.GetDirectoryName(Path.GetFullPath(requestFile)));
         string output = Resolve(request.OutputDirectory);
-        var manifest = JsonSerializer.Deserialize<Manifest>(File.ReadAllText(Path.Combine(output, "equilibrium-changes-manifest.json")), JsonOptions)
-            ?? throw new InvalidDataException("Missing completed manifest.");
-        if (manifest.Schema != "2" || manifest.Request.Sha256 != Hash(requestFile).Sha256)
-            throw new InvalidDataException("Recalculate: incompatible schema or changed request.");
-        foreach (var fingerprint in manifest.OutputFingerprints.Concat(manifest.Sources.SelectMany(s => new[] { s.Equilibrium, s.ActionReport })))
-            if (Hash(fingerprint.Path).Sha256 != fingerprint.Sha256)
-                throw new InvalidDataException("Input or calculation changed: " + fingerprint.Path);
-        var results = manifest.OutputJsonFiles.Select(path => JsonSerializer.Deserialize<ContrastResult>(File.ReadAllText(path), JsonOptions)
-            ?? throw new InvalidDataException(path)).ToArray();
-        if (results.Any(r => r.Schema != "2" || r.Changes == null))
-            throw new InvalidDataException("Old pressure data cannot be rendered as additive decompositions.");
+        var (manifest, results) = LoadCalculated(requestFile);
         var sources = new List<string>();
         foreach (var result in results)
         {
@@ -116,6 +106,24 @@ public static class EquilibriumChangeTables
         readme.AppendLine("\nThe earlier Information-set pressure directory is historical: its independent columns were not additive contributions. " +
             "The former table generator has been removed; the pressure command is an alias for the new workflow.");
         await File.WriteAllTextAsync(Path.Combine(output, "README.md"), readme.ToString());
+    }
+
+    public static (Manifest Manifest, ContrastResult[] Results) LoadCalculated(string requestFile)
+    {
+        var request = ReadRequest(requestFile);
+        string output = Path.GetFullPath(request.OutputDirectory, Path.GetDirectoryName(Path.GetFullPath(requestFile)));
+        var manifest = JsonSerializer.Deserialize<Manifest>(File.ReadAllText(Path.Combine(output, "equilibrium-changes-manifest.json")), JsonOptions)
+            ?? throw new InvalidDataException("Missing completed manifest.");
+        if (manifest.Schema != "2" || manifest.Request.Sha256 != Hash(requestFile).Sha256)
+            throw new InvalidDataException("Recalculate: incompatible schema or changed request.");
+        foreach (var fingerprint in manifest.OutputFingerprints.Concat(manifest.Sources.SelectMany(SourceFingerprints)))
+            if (Hash(fingerprint.Path).Sha256 != fingerprint.Sha256)
+                throw new InvalidDataException("Input or calculation changed: " + fingerprint.Path);
+        var results = manifest.OutputJsonFiles.Select(path => JsonSerializer.Deserialize<ContrastResult>(File.ReadAllText(path), JsonOptions)
+            ?? throw new InvalidDataException(path)).ToArray();
+        if (results.Any(r => r.Schema != "2" || r.Changes == null))
+            throw new InvalidDataException("Old pressure data cannot be rendered as additive decompositions.");
+        return (manifest, results);
     }
 
     public static PayoffGapRow[] PayoffGaps(ContrastResult r) => BuildPayoffGaps(
