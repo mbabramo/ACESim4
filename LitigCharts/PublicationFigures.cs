@@ -19,13 +19,15 @@ public static class PublicationFigures
     public sealed record StrategyCase(string Label, string OptionSetName, string ActionReport, int EquilibriumNumber = 1);
     public sealed record DispositionGroup(string Label, string[] OptionSetNames);
     public sealed record Request(StrategyCase[] StrategyCases, string NumericalResultsCsv, DispositionGroup[] DispositionGroups,
-        string DispositionIntroduction = null, string RegimeColumn = "Fee Regime", bool SeparateExitHistories = false);
+        string DispositionIntroduction = null, string RegimeColumn = "Fee Regime", bool SeparateExitHistories = false,
+        bool AnnotateMixingProbabilities = true);
     public sealed record Source(string Path, string Sha256);
     public sealed record ActionValue(int Action, double Value, double Probability);
     public sealed record StrategyPoint(int Signal, double SignalValue, int[] InformationSets,
         double Reach, bool OffPath, ActionValue[] Actions);
     public sealed record StrategyPanel(string Decision, string Label, StrategyPoint[][] Series, int? ExitCommitment = null);
-    public sealed record StrategyData(string[] Labels, string[] OptionSets, int[] Equilibria, Source RequestSource, Source[] Sources, StrategyPanel[] Panels);
+    public sealed record StrategyData(string[] Labels, string[] OptionSets, int[] Equilibria, Source RequestSource, Source[] Sources, StrategyPanel[] Panels,
+        bool AnnotateMixingProbabilities = true);
     public sealed record DispositionBar(string Group, string Regime, string OptionSetName,
         double[] Values, double Sum, double MutualGiveUpAudit, double Trial);
     public sealed record DispositionData(Source RequestSource, Source Source, string[] Categories, DispositionBar[] Bars);
@@ -87,11 +89,15 @@ public static class PublicationFigures
                 throw new InvalidDataException("All strategy panels must use the same signal grid.");
             var data = new StrategyData(request.StrategyCases.Select(c => c.Label).ToArray(),
                 request.StrategyCases.Select(c => c.OptionSetName).ToArray(),
-                request.StrategyCases.Select(c => c.EquilibriumNumber).ToArray(), Fingerprint(requestFile), files.Select(Fingerprint).ToArray(), panels);
+                request.StrategyCases.Select(c => c.EquilibriumNumber).ToArray(), Fingerprint(requestFile), files.Select(Fingerprint).ToArray(), panels,
+                request.AnnotateMixingProbabilities);
             string strategyCaption = request.SeparateExitHistories
                 ? "Offer panels separately condition on the party's commitment to continue or to abandon/default if bargaining fails. " +
                   "An exit commitment is not an actual exit: settlement can intervene. Unreached commitment histories remain blank.\n\n" + StrategyCaption
                 : StrategyCaption;
+            if (!request.AnnotateMixingProbabilities)
+                strategyCaption = strategyCaption.Replace("mixed offer support receives short p labels.",
+                    "mixed offer support uses equal-size markers. Exact mixing probabilities are retained in the companion JSON and strategy tables; marker size does not encode probability.");
             return new Figure(Stem(target), RenderStrategies(data), strategyCaption, data);
         }
         if (target != "dispositions") throw new ArgumentException("Unknown target: " + target);
@@ -297,6 +303,8 @@ public static class PublicationFigures
             Marker(b, s, x + .35, legendY);
             b.AppendLine($@"\node[anchor=west] at ({N(x + .85)},{N(legendY)}) {{{Label(data.Labels[s])}}};");
         }
+        if (!data.AnnotateMixingProbabilities)
+            b.AppendLine($@"\node[font=\footnotesize] at (8.7,{N(legendY - .43)}) {{Offer markers show support; mixing probabilities are in the companion data.}};");
         for (int k = 0; k < data.Panels.Length; k++)
         {
             var panel = data.Panels[k];
@@ -342,7 +350,7 @@ public static class PublicationFigures
                     foreach (var action in support)
                     {
                         Marker(b, s, point.SignalValue, action.Value);
-                        if (support.Length > 1)
+                        if (support.Length > 1 && data.AnnotateMixingProbabilities)
                             b.AppendLine($@"\node[anchor={(s == 0 ? "east" : "west")},font=\scriptsize,fill=white,inner sep=1pt] at ({N(point.SignalValue + (s == 0 ? -.012 : .012))},{N(action.Value + .035)}) {{$p={action.Probability.ToString("0.###", CultureInfo.InvariantCulture)}$}};");
                     }
                 }

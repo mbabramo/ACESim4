@@ -109,7 +109,8 @@ public static class ExitFeeCharts
                 File.WriteAllText(figureRequest, JsonSerializer.Serialize(new PublicationFigures.Request(cases, "matched-comparisons.csv", groups,
                     label + ": trial-contingent fee shifting versus reimbursement on trial and unilateral exit, including initial nonanswer. " +
                     "Filing, answering, and later exit remain voluntary; ten offers. Every disposition uses all potential disputes. " +
-                    "Archived CS004 controls and new CS006EF cases are distinct source batches.", "Comparison Regime", SeparateExitHistories: true), Json));
+                    "Archived CS004 controls and new CS006EF cases are distinct source batches.", "Comparison Regime",
+                    SeparateExitHistories: true, AnnotateMixingProbabilities: false), Json));
                 foreach (string target in new[] { "dispositions", "selection-offers" })
                 {
                     var figure = PublicationFigures.Generate(figureRequest, target);
