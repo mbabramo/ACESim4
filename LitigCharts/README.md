@@ -1,7 +1,19 @@
+# Current article workflow
+
+Use `scripts/Rebuild-ArticleResults.ps1` for production plus diagrams, or add
+`-DiagramsOnly` for saved reports. The current config sets
+`UseArticleResultsLayout: true`. See [the complete workflow](../scripts/Article-results.md).
+`diagrams results` generates the retained routine study and excludes separate
+multiple-equilibrium analysis. Baseline includes all three fee rules crossed with
+RN/RA and costs; ordinary extensions share the same figure/table layout.
+
+The command reference below also documents older, explicitly requested workflows.
+Those do not determine the current article selection or folder layout.
+
 # Article diagrams
 
-The routine production suite includes the separate ten-case [fee-on-exit extension](../scripts/Exit-fee-extension.md).
-Use `--plan exit-fees` to solve just those cases; CS004 and CS004ME remain unchanged.
+The routine suite includes the ten-case [Complete Fee-Shifting batch](../scripts/Exit-fee-extension.md).
+Use `--plan exit-fees` to operate on that batch alone. CS004 contains 114 retained cases; CS004ME is a separate multiple-start workflow.
 
 Optional ECTA numerical-path exports are described in
 [Equilibrium paths](../scripts/Equilibrium-paths.md). The equilibrium-paths
@@ -11,7 +23,7 @@ animations from verified traces. It does not overwrite production equilibria.
 
 Run these commands from the ACESim4 repository. Requires .NET 9; PDF generation
 also requires LuaLaTeX and Poppler's pdftoppm on PATH (or configured executable paths).
-No PowerShell script or separate LaTeX project is used.
+The direct C# commands below can be used independently of the production/rebuild wrapper.
 
 The article repository contains `article-diagrams.json`. All paths in that file
 resolve relative to the file, not the shell's current directory. Change the
@@ -26,7 +38,7 @@ dotnet run --project LitigCharts -c Release -- diagrams all --config "C:/Users/A
 
 ## Changed-equilibrium diagnostics
 
-    dotnet run --project LitigCharts -c Release -- equilibrium-changes --request "C:/Users/Admin/source/repos/correlated-signals-article/Results/Equilibrium diagnostics/Original/equilibrium-changes.request.json" --calculate-only
+    dotnet run --project LitigCharts -c Release -- equilibrium-changes --request "C:/Users/Admin/source/repos/correlated-signals-article/Supplemental materials/Equilibrium strategy changes/Calculations/Original/equilibrium-changes.request.json" --calculate-only
 
 This separate command validates saved equilibria and computes all eight subsets
 of actual opponent entry, offer, and exit replacements using unrestricted full
@@ -255,8 +267,7 @@ Stage-cost checks use each specification's actual cost timing. Numerical and acc
 finishes before any artifact is written. `--list`, `--sources-only`, `--compile-only`, `--output-root`,
 and `--jobs` work as for the other diagram targets. Compile-only reads inventoried standalone TeX.
 
-The strategy figure still uses `PublicationFiguresRequest` and `PublicationFiguresDirectory`;
-its selected profiles are independent of the welfare comparison's automatically discovered rows.
+For legacy configurations without UseArticleResultsLayout, the strategy figure uses `PublicationFiguresRequest` and `PublicationFiguresDirectory`. The current article layout automatically generates matched strategy figures from the same available case groups as welfare/disposition outputs.
 Older configurations without WelfareExhibitsRequest retain the original fixed disposition behavior.
 
 `PublicationFigures.cs` owns reusable two-regime layouts. Change the request to
@@ -282,7 +293,7 @@ caption must be reviewed when changing the publication selection.
 
 For older configurations, `AdditionalDispositionFigures` lists independent request/output pairs.
 Those selections are ignored when WelfareExhibitsRequest supplies the automatically generated
-comparison families. The current article config therefore has an empty AdditionalDispositionFigures list.
+comparison families. The current article config omits AdditionalDispositionFigures.
 
 Both targets support the existing list, source-only, compile-only and separate
 output-root modes. Publication generation validates all selected input data

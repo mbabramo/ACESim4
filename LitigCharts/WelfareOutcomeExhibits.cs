@@ -110,7 +110,7 @@ public static class WelfareOutcomeExhibits
     }
 
     // Pair the existing RN/RA specifications while keeping other extensions distinct.
-    // Unknown future specifications receive their own family automatically.
+    // Additional families also require an explicit display name in ArticleResultsLayout.
     public static string Family(IReadOnlyDictionary<string, string> row)
     {
         string spec = row["OptionSetName"].Split("__")[0];
@@ -220,7 +220,7 @@ public static class WelfareOutcomeExhibits
             .ThenBy(r => N(r, "CARA Alpha")).ThenBy(r => Array.IndexOf(Regimes, r["Comparison Fee Rule"])).ToList();
         var sourceRecords = inputs.Distinct().Select(Source).ToArray();
         string csvText = Csv(rows);
-        var csvSource = new PublicationFigures.Source(Path.Combine(output, "welfare-outcomes.csv"),
+        var csvSource = new PublicationFigures.Source(ArticleResultsLayout.Source(output, "welfare-outcomes", ".csv"),
             Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(csvText))));
         var files = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         var exhibits = new List<Exhibit>();
@@ -229,10 +229,16 @@ public static class WelfareOutcomeExhibits
         {
             var selected = group.ToArray();
             ValidateGroup(selected);
-            string directory = Path.Combine(output, group.Key.Family == "baseline" ? "Baseline" : Path.Combine("Extensions", group.Key.Family));
+            var riskGroups = selected.GroupBy(r => N(r, "CARA Alpha")).OrderBy(g => g.Key).ToArray();
+            var views = riskGroups.Select(g => (Risk: ArticleResultsLayout.Risk(g.Key), Rows: g.ToArray())).ToList();
+            if (riskGroups.Length > 1) views.Add((ArticleResultsLayout.RiskComparison, selected));
+            foreach (var view in views)
+            {
+            selected = view.Rows;
+            string directory = ArticleResultsLayout.Aggregate(output, group.Key.Family, view.Risk);
             string[] names = selected.Select(r => r["OptionSetName"]).ToArray();
             var table = BuildTable(group.Key.Cost, selected, sourceRecords, audits.Where(a => names.Contains(a.OptionSet)).ToArray());
-            string tableFile = Path.Combine(directory, table.Stem + ".tex");
+            string tableFile = ArticleResultsLayout.Source(directory, table.Stem, ".tex");
             files.Add(tableFile, PublicationTables.Standalone("", PublicationTables.RenderFragment(table)));
             files.Add(Path.ChangeExtension(tableFile, ".json"), JsonSerializer.Serialize(table, Json));
             exhibits.Add(new(group.Key.Family, group.Key.Cost, "welfare-outcomes", tableFile, names));
@@ -243,14 +249,15 @@ public static class WelfareOutcomeExhibits
             var requestSource = Source(requestPath);
             var data = new PublicationFigures.DispositionData(new(requestSource.Path, requestSource.Sha256),
                 csvSource, PublicationFigures.CategoryLabels, bars);
-            string chartFile = Path.Combine(directory, "dispositions-cost-" + F(group.Key.Cost) + ".tex");
+            string chartFile = ArticleResultsLayout.Source(directory, ArticleResultsLayout.Cost(group.Key.Cost) + "-dispositions", ".tex");
             files.Add(chartFile, PublicationFigures.RenderDispositions(data, groupHeadingsAbove: true));
             files.Add(Path.ChangeExtension(chartFile, ".json"), JsonSerializer.Serialize(new { Data = data, Sources = sourceRecords, Rows = selected }, Json));
             exhibits.Add(new(group.Key.Family, group.Key.Cost, "dispositions", chartFile, names));
+            }
             coverage.AppendLine($"| {group.Key.Family} | {F(group.Key.Cost)} | {selected.Length} | {string.Join(", ", selected.Select(r => r["Comparison Fee Rule"]).Distinct())} |");
         }
-        files.Add(Path.Combine(output, "welfare-outcomes.csv"), csvText);
-        files.Add(Path.Combine(output, "calculation-audit.json"), JsonSerializer.Serialize(new { Description = ErrorDescription, Cases = audits }, Json));
+        files.Add(ArticleResultsLayout.Source(output, "welfare-outcomes", ".csv"), csvText);
+        files.Add(ArticleResultsLayout.Source(output, "calculation-audit", ".json"), JsonSerializer.Serialize(new { Description = ErrorDescription, Cases = audits }, Json));
         files.Add(Path.Combine(output, "README.md"), Readme(coverage.ToString(), rows.Count, exhibits.Count));
         return new(output, files.ToDictionary(f => f.Key, f => f.Value.Replace("\r\n", "\n"), StringComparer.OrdinalIgnoreCase),
             exhibits.ToArray(), sourceRecords, rows.Count);
@@ -268,7 +275,7 @@ public static class WelfareOutcomeExhibits
                  @"\shortstack{Liable-D\\excess burden}", @"\shortstack{Gross outcome\\error}", @"\shortstack{Total\\expenditures}"],
                 group.Select(row => new PublicationTables.Row(new[] { new PublicationTables.Cell(row["Comparison Fee Rule"]) }
                     .Concat(Measures.Select(key => new PublicationTables.Cell(N(row, key).ToString("0.0000", CultureInfo.InvariantCulture), N(row, key), key))).ToArray())).ToArray())).ToArray();
-        return new("welfare-outcomes-cost-" + F(cost), "Welfare outcomes", panels, "", "",
+        return new(ArticleResultsLayout.Cost(cost) + "-welfare-outcomes", "Welfare outcomes", panels, "", "",
             sources, [], new { CostMultiplier = cost, Rows = rows, Audits = audits });
     }
 
@@ -289,11 +296,11 @@ public static class WelfareOutcomeExhibits
     private static string Readme(string coverage, int cases, int exhibits) => $"""
         # Welfare outcomes and dispositions
 
-        {cases} saved cases; {exhibits / 2} cost/specification groups, each with a separate welfare-outcomes table and disposition chart.
-        Baseline contains the three fee rules crossed with risk neutrality/risk aversion, one pair per cost.
+        {cases} saved cases; {exhibits / 2} specification/cost/risk views, each with a separate welfare-outcomes table and disposition chart.
+        Baseline contains the three fee rules crossed with risk neutrality/risk aversion. Each available risk has its own folder; Risk Comparison combines preferences. Figures and tables share these folders, one pair per cost. Sources contains editable TeX and exact data; PDF/PNG sit directly in the risk folder.
         Extensions receive exactly the same formats for their available cases. Absence of complete fee-shifting results
         in an extension is not imputed; the inventory below records coverage. Generating a saved extension does not
-        select it for the manuscript (in particular, the historical participation restrictions remain outside the main comparison).
+        select it for the manuscript (excluded participation restrictions are not part of routine production).
 
         Each PDF contains only its table or chart. Cost multipliers and extension names are in paths/filenames, not in the artwork.
         Table headings and numeric cells are centered; fee labels are left aligned. There are no titles, captions, notes or combined packets.
@@ -330,7 +337,7 @@ public static class WelfareOutcomeExhibits
         `--sources-only` writes TeX/data; `--compile-only` recompiles the inventoried TeX without reading reports.
         `--output-root` and `--jobs` work as for other diagrams. No command determines equilibria or changes reports.
         The request's Inputs list points to numerical summaries and matching individual reports. Every saved specification
-        and cost in those sources is discovered automatically, including future results added to those batches.
+        and cost in those sources is discovered automatically. New specification families also require a display-name mapping in ArticleResultsLayout.
         A new report batch needs one Inputs entry; it does not need separate figure or table selections.
         Changing any primitive beyond preferences/fee rule within a group is rejected rather than silently pooled.
 
@@ -351,9 +358,9 @@ public static class WelfareOutcomeExhibits
     public static void WriteInventory(Generation generation, bool compiled)
     {
         var artifacts = generation.Exhibits.SelectMany(e => compiled
-            ? new[] { e.TexFile, Path.ChangeExtension(e.TexFile, ".pdf"), Path.ChangeExtension(e.TexFile, ".png") }
+            ? new[] { e.TexFile, ArticleResultsLayout.RenderedArtifact(e.TexFile, ".pdf"), ArticleResultsLayout.RenderedArtifact(e.TexFile, ".png") }
             : new[] { e.TexFile });
-        WriteText(Path.Combine(generation.OutputDirectory, "exhibit-inventory.json"), JsonSerializer.Serialize(new
+        WriteText(ArticleResultsLayout.Source(generation.OutputDirectory, "exhibit-inventory", ".json"), JsonSerializer.Serialize(new
         {
             Schema = "welfare-outcomes-v2", GeneratedUtc = DateTime.UtcNow, Compiled = compiled, generation.Cases,
             generation.Inputs, generation.Exhibits, GeneratorAssembly = Source(typeof(WelfareOutcomeExhibits).Assembly.Location),
@@ -364,7 +371,7 @@ public static class WelfareOutcomeExhibits
     public static string[] ExistingSources(string requestPath)
     {
         string output = OutputDirectory(requestPath);
-        using var inventory = JsonDocument.Parse(File.ReadAllText(Path.Combine(output, "exhibit-inventory.json")));
+        using var inventory = JsonDocument.Parse(File.ReadAllText(ArticleResultsLayout.Source(output, "exhibit-inventory", ".json")));
         return inventory.RootElement.GetProperty("Exhibits").EnumerateArray()
             .Select(e => e.GetProperty("TexFile").GetString()).ToArray();
     }

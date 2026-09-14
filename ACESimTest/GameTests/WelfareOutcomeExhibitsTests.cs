@@ -77,8 +77,8 @@ public class WelfareOutcomeExhibitsTests
             var generation = WelfareOutcomeExhibits.Prepare(Fixture(temp.FullName));
             Assert.IsFalse(Directory.Exists(generation.OutputDirectory));
             Assert.AreEqual(5, generation.Cases);
-            Assert.AreEqual(6, generation.Exhibits.Length);
-            Assert.AreEqual(2, generation.Exhibits.Count(e => e.Family == "low-noise"));
+            Assert.AreEqual(14, generation.Exhibits.Length);
+            Assert.AreEqual(6, generation.Exhibits.Count(e => e.Family == "low-noise"));
             foreach (var e in generation.Exhibits)
             {
                 string tex = generation.Files[e.TexFile];
@@ -94,7 +94,7 @@ public class WelfareOutcomeExhibitsTests
                     Assert.IsFalse(tex.Contains(@"\large\bfseries"));
                 }
             }
-            string extensionTable = generation.Files[generation.Exhibits.Single(e => e.Family == "low-noise" && e.Kind == "welfare-outcomes").TexFile];
+            string extensionTable = generation.Files[generation.Exhibits.Single(e => e.Family == "low-noise" && e.Kind == "welfare-outcomes" && e.TexFile.Contains("Risk Comparison")).TexFile];
             StringAssert.Contains(extensionTable, "Trial Fee-Shifting");
             Assert.IsFalse(extensionTable.Contains("Complete Fee-Shifting"));
             Assert.IsFalse(generation.Files.Keys.Any(p => p.EndsWith(".txt") || p.Contains("packet")));
@@ -118,7 +118,7 @@ public class WelfareOutcomeExhibitsTests
             string output = Path.Combine(temp.FullName, "Results");
             Assert.IsFalse(Directory.Exists(output));
             Assert.AreEqual(0, await ArticleDiagramCommand.RunAsync(args.Append("--sources-only").ToArray()));
-            Assert.AreEqual(6, Directory.GetFiles(output, "*.tex", SearchOption.AllDirectories).Length);
+            Assert.AreEqual(14, Directory.GetFiles(output, "*.tex", SearchOption.AllDirectories).Length);
             File.Delete(Path.Combine(temp.FullName, "summary.csv"));
             Assert.AreEqual(0, await ArticleDiagramCommand.RunAsync(args.Concat(new[] { "--compile-only", "--list" }).ToArray()));
             string failed = Path.Combine(temp.FullName, "failed");

@@ -15,6 +15,7 @@ public static class DiagramCompiler
         string previewDirectory = null)
     {
         var errors = new ConcurrentQueue<string>();
+        var cacheRetries = new ConcurrentQueue<string>();
         int completed = 0;
         await Parallel.ForEachAsync(sources, new ParallelOptions { MaxDegreeOfParallelism = parallelism }, async (source, _) =>
         {
@@ -23,8 +24,23 @@ public static class DiagramCompiler
                 await CompileAsync(source, config, passes, previewDirectory);
                 Console.WriteLine($"[{Interlocked.Increment(ref completed)}/{sources.Length}] {Path.GetFileNameWithoutExtension(source)}");
             }
+            catch (Exception ex) when (ex.Message.Contains("no writeable cache path", StringComparison.Ordinal))
+            {
+                // MiKTeX's shared font-cache initialization can race under many parallel compilers.
+                // Retry these known transient failures once, serially after the parallel batch.
+                cacheRetries.Enqueue(source);
+            }
             catch (Exception ex) { errors.Enqueue(source + ": " + ex.Message); }
         });
+        foreach (string source in cacheRetries)
+        {
+            try
+            {
+                await CompileAsync(source, config, passes, previewDirectory);
+                Console.WriteLine($"[{Interlocked.Increment(ref completed)}/{sources.Length}] {Path.GetFileNameWithoutExtension(source)} (font-cache retry)");
+            }
+            catch (Exception ex) { errors.Enqueue(source + ": " + ex.Message); }
+        }
         if (!errors.IsEmpty)
             throw new InvalidOperationException($"{errors.Count} compilation(s) failed; {completed} succeeded.\n" + string.Join("\n", errors));
     }
@@ -49,8 +65,8 @@ public static class DiagramCompiler
                 "-png", "-singlefile", "-r", "150", pdf, Path.Combine(temp.FullName, "diagram"));
             string png = Path.Combine(temp.FullName, "diagram.png");
             if (!File.Exists(png)) throw new IOException("Preview tool did not produce its expected PNG.");
-            File.Copy(pdf, Path.ChangeExtension(source, ".pdf"), overwrite: true);
-            string preview = previewDirectory == null ? Path.ChangeExtension(source, ".png")
+            File.Copy(pdf, ArticleResultsLayout.RenderedArtifact(source, ".pdf"), overwrite: true);
+            string preview = previewDirectory == null ? ArticleResultsLayout.RenderedArtifact(source, ".png")
                 : Path.Combine(Path.GetFullPath(previewDirectory), Path.GetFileNameWithoutExtension(source) + ".png");
             Directory.CreateDirectory(Path.GetDirectoryName(preview));
             File.Copy(png, preview, overwrite: true);

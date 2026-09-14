@@ -2,7 +2,7 @@
 
 From the ACESim4 repository:
 
-    dotnet run --project LitigCharts -c Release -- equilibrium-changes --request "C:/Users/Admin/source/repos/correlated-signals-article/Results/Equilibrium diagnostics/Original/equilibrium-changes.request.json" --calculate-only
+    dotnet run --project LitigCharts -c Release -- equilibrium-changes --request "C:/Users/Admin/source/repos/correlated-signals-article/Supplemental materials/Equilibrium strategy changes/Calculations/Original/equilibrium-changes.request.json" --calculate-only
 
 --calculate-only runs diagnostics; --render-only assembles verified saved
 calculations. The pressure command remains an alias, but the old table generator
@@ -115,9 +115,9 @@ ECTA trace inputs.
 
 The article request selects four fee/preference contrasts at costs 1 and 4.
 The four accepted ordinary-cost TeX/PDF pairs and editable methodology are in
-`Tables/Equilibrium strategy changes`. The superseded combined and per-contrast
+`Supplemental materials/Equilibrium strategy changes/Published source tables`. The superseded combined and per-contrast
 presentation reports have been removed. All eight original calculations,
-including the high-cost cases, remain in `Results/Equilibrium diagnostics/Original`.
+including the high-cost cases, remain in `Supplemental materials/Equilibrium strategy changes/Calculations/Original`.
 Full JSON contains source and
 target strategies, primary and sensitivity responses, action values, reaches,
 beliefs, exclusions, and explicit residuals. Original production files are
@@ -201,7 +201,7 @@ information set while its conditional comparison remains defined. Marker
 definitions and interpretation belong in the editable methodology, not table notes.
 
 ```text
-dotnet run --project LitigCharts -c Release -- equilibrium-publication --original <equilibrium-changes.request.json> --mixed <equilibrium-changes-mixed.request.json> --check <equilibrium-changes-mixed-forward.request.json> --output <article/Tables/Equilibrium strategy changes> --previews <temporary-QA-directory>
+dotnet run --project LitigCharts -c Release -- equilibrium-publication --original <equilibrium-changes.request.json> --mixed <equilibrium-changes-mixed.request.json> --check <equilibrium-changes-mixed-forward.request.json> --output <article/Supplemental materials/Equilibrium strategy changes/Published source tables> --previews <temporary-QA-directory>
 ```
 
 Quote paths containing spaces. The command compiles through the existing
@@ -212,7 +212,7 @@ README files, request files, calculation JSON, or PNG previews in this directory
 The command never writes `Methodology.tex`, so the author may edit it freely.
 
 In the article repository, the three request arguments sit with their cached
-inputs in `Results/Equilibrium diagnostics/Original`, `Mixed`, and
+inputs in `Supplemental materials/Equilibrium strategy changes/Calculations/Original`, `Mixed`, and
 `Mixed tighter check`, respectively. The `Mixing` subdirectory retains
 the profile searches and their tighter-tolerance checks. Cached manifest input
 and output hashes are still verified. `OriginalRequest` preserves each original

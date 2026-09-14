@@ -1,6 +1,6 @@
 param(
     [Parameter(Mandatory=$true)][string[]]$EquilibriumSourceDirectory,
-    [string]$ProvenanceFile = (Join-Path $PSScriptRoot 'equilibrium-reuse.json')
+    [string]$ProvenanceFile = (Join-Path ([IO.Path]::GetTempPath()) 'acesim-equilibrium-reuse.json')
 )
 $ErrorActionPreference = 'Stop'
 $repo = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '..')).Path

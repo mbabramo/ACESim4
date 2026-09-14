@@ -17,6 +17,7 @@ public static class ArticleDiagramCommand
     public sealed record AdditionalDispositionFigure(string Request, string Output);
     public sealed record Configuration
     {
+        public bool UseArticleResultsLayout { get; init; }
         public string GameTreesDirectory { get; init; }
         public string WorkedPathRequest { get; init; }
         public string PublicationFiguresDirectory { get; init; }
@@ -49,7 +50,7 @@ public static class ArticleDiagramCommand
     {
         "all" => ["game-trees", "worked-path", "signals", "inverse-signals", "party-to-party", "selection-offers", "dispositions", "individual-results", "multiple-equilibria", "aggregates", "welfare-outcomes"],
         "publication" => ["selection-offers", "dispositions", "welfare-outcomes"],
-        "results" => ["individual-results", "multiple-equilibria", "aggregates", "welfare-outcomes"],
+        "results" => ["individual-results", "aggregates", "welfare-outcomes"],
         "game-trees" or "worked-path" or "worked-path-data" or "individual-results"
             or "multiple-equilibria" or "aggregates" or "endogenous" or "signals" or "inverse-signals" or "party-to-party" or "damages-signals"
             or "selection-offers" or "dispositions" or "welfare-outcomes" => [target],
@@ -131,6 +132,13 @@ public static class ArticleDiagramCommand
                 throw new ArgumentException("Jobs must be 1–64 and process timeout must be positive.");
 
             string Resolve(string p) => ResolvePath(configFile, p);
+            if (config.UseArticleResultsLayout && targets.Any(ArticleResultsCommand.Targets.Contains))
+            {
+                await ArticleResultsCommand.RunAsync(Resolve(config.WelfareExhibitsRequest), targets, config,
+                    parallelism, list, sourcesOnly, compileOnly, outputRoot);
+                targets = targets.Where(t => !ArticleResultsCommand.Targets.Contains(t)).ToArray();
+                if (targets.Length == 0) return 0;
+            }
             string Output(string configured, string group) => outputRoot == null ? Resolve(configured) : Path.Combine(outputRoot, group);
             var planned = new List<Job>();
             var sources = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);

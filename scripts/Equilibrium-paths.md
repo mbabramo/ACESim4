@@ -156,7 +156,7 @@ ordering, coverage and source/frame fingerprints.
 
 The active `equilibrium-paths.request.json` sits beside the animations and raw
 traces. The source-equilibrium request sits beside its calculation in
-`Results/Equilibrium diagnostics/Original`. Each has an adjacent
+`Supplemental materials/Equilibrium strategy changes/Calculations/Original`. Each has an adjacent
 `.recorded-request.json` preserving its exact historical bytes; relocated trace input
 fingerprints reference these originals without changing their hashes. Only
 metadata paths and the rendered viewer changed during the directory cleanup;

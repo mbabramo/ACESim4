@@ -1,22 +1,25 @@
 # Fee liability on unilateral exit
 
-The required no-argument Release suite now runs CS004 (134 cases), CS004ME
-(two multiple-start cases), and CS006EF (ten new cases). CS006EF can also run
-independently, without touching the original plans, reports, or equilibria:
+Complete Fee-Shifting is now a core rule. The required no-argument Release suite
+runs the 114 retained CS004 cases and ten CS006EF cases. Multiple starts are a
+separate workflow. See [Article-results.md](Article-results.md) for the current
+clean rebuild, output organization and manuscript assembly commands. The batch
+name CS006EF identifies provenance; it does not designate a supplemental extension.
+The commands below remain useful for operating on that batch alone:
 
 ```powershell
 dotnet build ACESimDistributedSaturate -c Release
 dotnet run --project ACESimDistributedSaturate -c Release --no-build -- preflight --plan exit-fees
-dotnet run --project ACESimDistributedSaturate -c Release --no-build -- run --plan exit-fees --processors 4 --hidden-workers --results-directory "C:/Users/Admin/Documents/GitHub/ACESim4/ReportResults/Exit fee extension"
-dotnet run --project ACESimDistributedSaturate -c Release --no-build -- aggregate --plan exit-fees --results-directory "C:/Users/Admin/Documents/GitHub/ACESim4/ReportResults/Exit fee extension"
+dotnet run --project ACESimDistributedSaturate -c Release --no-build -- run --plan exit-fees --processors all --hidden-workers --results-directory "C:/Users/Admin/Documents/GitHub/ACESim4/ReportResults/Run records/Complete Fee-Shifting batch"
+dotnet run --project ACESimDistributedSaturate -c Release --no-build -- aggregate --plan exit-fees --results-directory "C:/Users/Admin/Documents/GitHub/ACESim4/ReportResults/Run records/Complete Fee-Shifting batch"
 ```
 
 Use a fresh directory for a changed source/build. The manifest rejects mixing
 commits or binaries. Existing coordinator state supports resuming this exact
 plan/build. Copying the old CS004 equilibria is unnecessary for this separate
-extension, and their trial-only payoffs must not be reused as extension solutions.
+batch, and their trial-only payoffs must not be reused as extension solutions.
 
-The ten new cases cross costs 0.25, 0.5, 1, 2, and 4 with risk neutrality and
+The ten cases cross costs 0.25, 0.5, 1, 2, and 4 with risk neutrality and
 symmetric CARA alpha 2. Signals, the ten-offer grid, prior, cost timing, and
 voluntary filing/answering and later exit match their CS004 controls. The fee
 multiplier is one. The American-rule controls and trial-only fee-shifting controls
@@ -42,21 +45,16 @@ charts must identify their original CS004 source rows separately.
 Primary reported disposition probabilities and monetary outcomes use all potential
 disputes. Conditional rates remain available in the saved diagnostic reports.
 
-After importing the new reports to the article repository, generate the complete
-extension chart set and its matched-control CSV with:
+The earlier two-rule trigger charts are superseded by the routine three-rule
+baseline figures. The retained separate strategy-change packet is under
+`Supplemental materials/Equilibrium strategy changes/Fee trigger comparison`.
+Its calculations can be reproduced with:
 
 ```powershell
-dotnet run --project LitigCharts -c Release -- exit-fees --request "C:/Users/Admin/source/repos/correlated-signals-article/Supplemental materials/Fee shifting on exit/exit-fees.request.json"
-dotnet run --project LitigCharts -c Release -- equilibrium-changes --request "C:/Users/Admin/source/repos/correlated-signals-article/Supplemental materials/Fee shifting on exit/Equilibrium strategy changes/equilibrium-changes.request.json"
+dotnet run --project LitigCharts -c Release -- equilibrium-changes --request "C:/Users/Admin/source/repos/correlated-signals-article/Supplemental materials/Equilibrium strategy changes/Fee trigger comparison/equilibrium-changes.request.json"
 ```
 
-The first command produces two five-cost disposition comparisons, one ordinary-cost
-disposition comparison with both preferences, two ordinary-cost
-participation/offer comparisons, and two monetary-outcome figures with six panels
-each, plus all sixty individual-result diagrams when requested. It validates ten
-new cases against twenty archived control rows, population-weights monetary
-components, and records source and output hashes. `--sources-only` omits compilation.
-The second command calculates and renders the ordinary/high-cost strategy-change
+This separate command calculates and renders the ordinary/high-cost strategy-change
 diagnostics under each preference, with unchanged signal/offer grids and voluntary
 entry/exit. It permits exactly one intervention (fee regime, fee trigger, or risk
 preferences) per contrast. The trigger extension jointly changes fees on initial
