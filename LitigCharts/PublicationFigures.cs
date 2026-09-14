@@ -359,11 +359,11 @@ public static class PublicationFigures
         }
         return Finish(b);
     }
-    public static string RenderDispositions(DispositionData data)
+    public static string RenderDispositions(DispositionData data, bool groupHeadingsAbove = false)
     {
         var b = Start();
         var groups = data.Bars.GroupBy(bar => bar.Group).ToArray();
-        double y = groups.Sum(g => g.Count() * .72 + .48) + .4;
+        double y = groups.Sum(g => g.Count() * .72 + .48 + (groupHeadingsAbove ? .55 : 0)) + .4;
         for (int tick = 0; tick <= 5; tick++)
         {
             double x = 5.1 + tick * 2.2;
@@ -375,7 +375,13 @@ public static class PublicationFigures
             double center = y - (group.Count() - 1) * .36;
             // Allow wrapping between words, but never split short scenario labels with hyphens.
             string groupLabel = string.Join(" ", group.Key.Split(' ').Select(word => $@"\mbox{{{Label(word)}}}"));
-            b.AppendLine($@"\node[anchor=west,text width=3cm,align=left] at (0,{N(center)}) {{{groupLabel}}};");
+            if (groupHeadingsAbove)
+            {
+                b.AppendLine($@"\node[anchor=west,font=\bfseries] at (0,{N(y)}) {{{groupLabel}}};");
+                y -= .55;
+            }
+            else
+                b.AppendLine($@"\node[anchor=west,text width=3cm,align=left] at (0,{N(center)}) {{{groupLabel}}};");
             foreach (var bar in group)
             {
                 b.AppendLine($@"\node[anchor=east] at (4.95,{N(y)}) {{{Label(bar.Regime)}}};");

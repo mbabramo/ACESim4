@@ -308,7 +308,7 @@ public class PublicationFiguresTests
     [TestMethod]
     public async Task PublicationTargetsSupportReadOnlyPreflightAndSourceIndependentCompilation()
     {
-        CollectionAssert.AreEqual(new[] { "selection-offers", "dispositions" }, ArticleDiagramCommand.ExpandTarget("publication"));
+        CollectionAssert.AreEqual(new[] { "selection-offers", "dispositions", "welfare-outcomes" }, ArticleDiagramCommand.ExpandTarget("publication"));
         CollectionAssert.Contains(ArticleDiagramCommand.ExpandTarget("all"), "dispositions");
         var temp = Directory.CreateTempSubdirectory("acesim-publication-tests-");
         try

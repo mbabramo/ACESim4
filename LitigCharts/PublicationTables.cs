@@ -456,7 +456,8 @@ public static class PublicationTables
             }
             tex.AppendLine(@"\bottomrule\end{tabularx}\par\medskip");
         }
-        tex.AppendLine(@"{\footnotesize\noindent " + table.Notes + @"\par}");
+        if (!string.IsNullOrWhiteSpace(table.Notes))
+            tex.AppendLine(@"{\footnotesize\noindent " + table.Notes + @"\par}");
         tex.AppendLine(@"\endgroup");
         return tex.ToString();
     }
@@ -464,5 +465,5 @@ public static class PublicationTables
     public static string Standalone(string title, string fragment) =>
         "\\documentclass[10pt,border=5pt,varwidth=17cm]{standalone}\n\\usepackage[T1]{fontenc}\n" +
         "\\usepackage{lmodern,booktabs,tabularx,array,amsmath}\n\\begin{document}\n" +
-        "\\noindent{\\large\\bfseries " + Escape(title) + "}\\par\\medskip\n" + fragment + "\\end{document}\n";
+        (string.IsNullOrWhiteSpace(title) ? "" : "\\noindent{\\large\\bfseries " + Escape(title) + "}\\par\\medskip\n") + fragment + "\\end{document}\n";
 }

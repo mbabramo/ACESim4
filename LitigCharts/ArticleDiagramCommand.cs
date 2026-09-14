@@ -21,6 +21,7 @@ public static class ArticleDiagramCommand
         public string WorkedPathRequest { get; init; }
         public string PublicationFiguresDirectory { get; init; }
         public string PublicationFiguresRequest { get; init; }
+        public string WelfareExhibitsRequest { get; init; }
         public AdditionalDispositionFigure[] AdditionalDispositionFigures { get; init; } = [];
         public string IndividualResultsDirectory { get; init; }
         public string MultipleEquilibriaDirectory { get; init; }
@@ -46,19 +47,19 @@ public static class ArticleDiagramCommand
     ];
     public static string[] ExpandTarget(string target) => target switch
     {
-        "all" => ["game-trees", "worked-path", "signals", "inverse-signals", "party-to-party", "selection-offers", "dispositions", "individual-results", "multiple-equilibria", "aggregates"],
-        "publication" => ["selection-offers", "dispositions"],
-        "results" => ["individual-results", "multiple-equilibria", "aggregates"],
+        "all" => ["game-trees", "worked-path", "signals", "inverse-signals", "party-to-party", "selection-offers", "dispositions", "individual-results", "multiple-equilibria", "aggregates", "welfare-outcomes"],
+        "publication" => ["selection-offers", "dispositions", "welfare-outcomes"],
+        "results" => ["individual-results", "multiple-equilibria", "aggregates", "welfare-outcomes"],
         "game-trees" or "worked-path" or "worked-path-data" or "individual-results"
             or "multiple-equilibria" or "aggregates" or "endogenous" or "signals" or "inverse-signals" or "party-to-party" or "damages-signals"
-            or "selection-offers" or "dispositions" => [target],
+            or "selection-offers" or "dispositions" or "welfare-outcomes" => [target],
         _ => throw new ArgumentException("Unknown diagram target: " + target)
     };
 
     public const string Help = """
         LitigCharts diagrams <target> --config <article-diagrams.json> [options]
         Targets: all, results, game-trees, worked-path, worked-path-data,
-                 signals, inverse-signals, party-to-party, damages-signals, publication, selection-offers, dispositions,
+                 signals, inverse-signals, party-to-party, damages-signals, publication, selection-offers, dispositions, welfare-outcomes,
                  individual-results, multiple-equilibria, aggregates, endogenous
         Options:
           --list             Validate required input paths and show counts; write nothing.
@@ -135,8 +136,17 @@ public static class ArticleDiagramCommand
             var sources = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             var companions = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             string requestFile = null, extractionFile = null;
+            WelfareOutcomeExhibits.Generation welfare = null;
             foreach (string target in targets)
             {
+                // A configured welfare request replaces the old fixed disposition selection.
+                // Both exhibit families are generated together, each in a separate file.
+                if (target == "welfare-outcomes" || target == "dispositions" && !string.IsNullOrWhiteSpace(config.WelfareExhibitsRequest))
+                {
+                    if (target == "welfare-outcomes" && args[1] == "welfare-outcomes" && string.IsNullOrWhiteSpace(config.WelfareExhibitsRequest))
+                        throw new ArgumentException("welfare-outcomes requires WelfareExhibitsRequest in the configuration.");
+                    continue;
+                }
                 string inputDir, outputDir;
                 string[] files;
                 int? expected = null;
@@ -273,9 +283,36 @@ public static class ArticleDiagramCommand
                 }
                 Console.WriteLine($"{target}: {files.Length} diagrams{(target == "worked-path-data" ? " (JSON extraction only)" : "")} -> {outputDir}");
             }
+            if (!string.IsNullOrWhiteSpace(config.WelfareExhibitsRequest) &&
+                targets.Any(t => t is "welfare-outcomes" or "dispositions"))
+            {
+                string welfareRequest = Resolve(config.WelfareExhibitsRequest);
+                RequireFile(welfareRequest);
+                string originalDirectory = WelfareOutcomeExhibits.OutputDirectory(welfareRequest);
+                string destination = outputRoot == null ? originalDirectory : Path.Combine(outputRoot, "Welfare outcomes and dispositions");
+                if (compileOnly)
+                {
+                    foreach (string source in WelfareOutcomeExhibits.ExistingSources(welfareRequest))
+                    {
+                        RequireFile(source);
+                        if (!(await File.ReadAllTextAsync(source)).Contains(@"\documentclass", StringComparison.Ordinal))
+                            throw new InvalidDataException("Not a standalone LaTeX exhibit: " + source);
+                        planned.Add(new Job("welfare-outcomes", source, Path.Combine(destination, Path.GetRelativePath(originalDirectory, source))));
+                    }
+                }
+                else
+                {
+                    welfare = WelfareOutcomeExhibits.Prepare(welfareRequest, destination);
+                    foreach (var exhibit in welfare.Exhibits)
+                        planned.Add(new Job("welfare-outcomes", exhibit.TexFile, exhibit.TexFile));
+                    foreach (var file in welfare.Files)
+                        (file.Key.EndsWith(".tex", StringComparison.Ordinal) ? sources : companions).Add(file.Key, file.Value);
+                }
+                Console.WriteLine($"welfare outcomes/dispositions: {planned.Count(j => j.Target == "welfare-outcomes")} separate exhibits -> {destination}");
+            }
             // Standalone extension comparisons share the publication renderer, but have independent
             // selections and destinations. Included automatically in dispositions/publication/all.
-            if (targets.Contains("dispositions"))
+            if (targets.Contains("dispositions") && string.IsNullOrWhiteSpace(config.WelfareExhibitsRequest))
                 foreach (var extra in config.AdditionalDispositionFigures ?? [])
                 {
                     string source = Resolve(extra.Output);
@@ -345,6 +382,7 @@ public static class ArticleDiagramCommand
             }
             if (!sourcesOnly && planned.Count != 0)
                 await DiagramCompiler.CompileAllAsync(planned.Select(j => j.Output).ToArray(), config, parallelism);
+            if (welfare != null) WelfareOutcomeExhibits.WriteInventory(welfare, !sourcesOnly);
             Console.WriteLine("Completed.");
             return 0;
         }
