@@ -128,6 +128,26 @@ public static class ExitFeeCharts
                     "Fees are transfers, separate from real litigation expenditure. American and trial-only results are archived controls; trial-plus-exit results are new. Lines connect computed specifications and do not establish behavior at intermediate costs.");
                 sources.Add(outcomeStem + ".tex");
             }
+            string ordinaryRequest = Path.Combine(output, "ordinary-cost-dispositions.request.json");
+            var ordinaryCases = new[] {
+                new PublicationFigures.StrategyCase("Trial only", Name("Baseline", 1, "British"), "unused-by-dispositions.csv"),
+                new PublicationFigures.StrategyCase("Trial + exit", Name("Baseline", 1, "British", true), "unused-by-dispositions.csv")
+            };
+            var ordinaryGroups = Specifications.Select((spec, index) => new PublicationFigures.DispositionGroup(
+                index == 0 ? "Risk neutral" : "Risk averse",
+                [Name(spec, 1, "British"), Name(spec, 1, "British", true)])).ToArray();
+            File.WriteAllText(ordinaryRequest, JsonSerializer.Serialize(new PublicationFigures.Request(ordinaryCases,
+                "matched-comparisons.csv", ordinaryGroups,
+                "Ordinary costs (multiplier 1), with risk neutrality and symmetric CARA alpha 2. Trial + exit includes " +
+                "fees on initial nonanswer and later unilateral exit. All bars use all potential disputes. " +
+                "Filing, answering and later exit remain voluntary. Trial-only controls are archived CS004 cases; " +
+                "the expanded trigger uses new CS006EF cases.", "Comparison Regime"), Json));
+            var ordinaryFigure = PublicationFigures.Generate(ordinaryRequest, "dispositions");
+            string ordinaryStem = Path.Combine(output, "ordinary-cost-dispositions");
+            File.WriteAllText(ordinaryStem + ".tex", ordinaryFigure.Latex);
+            File.WriteAllText(ordinaryStem + ".txt", ordinaryFigure.Caption);
+            File.WriteAllText(ordinaryStem + ".json", JsonSerializer.Serialize(ordinaryFigure.Data, Json));
+            sources.Add(ordinaryStem + ".tex");
             if (request.CompileIndividualResults)
             {
                 string directory = Resolve(request.ExtensionIndividualDirectory);

@@ -50,7 +50,8 @@ dotnet run --project LitigCharts -c Release -- exit-fees --request "C:/Users/Adm
 dotnet run --project LitigCharts -c Release -- equilibrium-changes --request "C:/Users/Admin/source/repos/correlated-signals-article/Supplemental materials/Fee shifting on exit/Equilibrium strategy changes/equilibrium-changes.request.json"
 ```
 
-The first command produces two five-cost disposition comparisons, two ordinary-cost
+The first command produces two five-cost disposition comparisons, one ordinary-cost
+disposition comparison with both preferences, two ordinary-cost
 participation/offer comparisons, and two monetary-outcome figures with six panels
 each, plus all sixty individual-result diagrams when requested. It validates ten
 new cases against twenty archived control rows, population-weights monetary
