@@ -48,14 +48,14 @@ namespace ACESimTest
                         feePairs,
                         signalStrategies);
 
-                summary.NumericalResultCount.Should().Be(134);
-                summary.SpecificationComparisonCount.Should().Be(122);
-                summary.FeeRegimeComparisonCount.Should().Be(67);
-                summary.SignalStrategyCount.Should().Be(2680);
-                File.ReadLines(numericalResults).Should().HaveCount(135);
-                File.ReadLines(specificationPairs).Should().HaveCount(123);
-                File.ReadLines(feePairs).Should().HaveCount(68);
-                File.ReadLines(signalStrategies).Should().HaveCount(2681);
+                summary.NumericalResultCount.Should().Be(114);
+                summary.SpecificationComparisonCount.Should().Be(102);
+                summary.FeeRegimeComparisonCount.Should().Be(57);
+                summary.SignalStrategyCount.Should().Be(2280);
+                File.ReadLines(numericalResults).Should().HaveCount(115);
+                File.ReadLines(specificationPairs).Should().HaveCount(103);
+                File.ReadLines(feePairs).Should().HaveCount(58);
+                File.ReadLines(signalStrategies).Should().HaveCount(2281);
                 File.ReadAllText(numericalResults).Should()
                     .Contain("Settlement Conditional on Reaching Bargaining")
                     .And.Contain("Real Litigation Costs")

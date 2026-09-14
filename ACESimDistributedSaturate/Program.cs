@@ -88,7 +88,7 @@ namespace ACESimDistributedSaturate
             Console.WriteLine(
                 "The four required 15-offer cases are integrated into CS004; " +
                 "CS005O15 is not required by the suite.");
-            Console.WriteLine("CS006EF adds ten exit-fee cases; --plan exit-fees runs only that extension.");
+            Console.WriteLine("CS006EF supplies ten Complete Fee-Shifting core cases; multiple starts remain a separate --plan multiple-equilibria workflow.");
             return 0;
         }
 
@@ -161,7 +161,7 @@ namespace ACESimDistributedSaturate
                     : gitCommit[..Math.Min(12, gitCommit.Length)];
                 fullPath = Path.Combine(
                     reportRoot,
-                    "Production Runs",
+                    "Run records",
                     $"{ProductionSuiteDirectoryName} {revision}");
             }
             if (createDirectory)
@@ -1140,7 +1140,7 @@ namespace ACESimDistributedSaturate
         {
             // DEBUG: Temporarily default to 16 workers so this production run leaves capacity
             // for interactive computer use. Revisit before the next unattended saturation run.
-            string text = OptionalArgument(args, "--processors") ?? "16";
+            string text = OptionalArgument(args, "--processors") ?? "all";
             if (string.Equals(text, "all", StringComparison.OrdinalIgnoreCase))
                 return Environment.ProcessorCount;
             if (!int.TryParse(text, NumberStyles.None, CultureInfo.InvariantCulture, out int count) || count <= 0)
@@ -1175,7 +1175,7 @@ namespace ACESimDistributedSaturate
         private static int ShowHelp()
         {
             Console.WriteLine("ACESim4 correlated-signals production commands:");
-            Console.WriteLine("  <no arguments>              (required CS004 + CS004ME + CS006EF suite; 16 workers; aggregate and validate)");
+            Console.WriteLine("  <no arguments>              (required CS004 + CS006EF suite; all processors; aggregate and validate)");
             Console.WriteLine("  preflight-suite [--results-directory PATH]");
             Console.WriteLine("  run-suite [--processors all|N] [--results-directory PATH]");
             Console.WriteLine("  preflight [--plan focused|multiple-equilibria|offers-15|unified|supplemental|legacy]");

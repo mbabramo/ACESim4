@@ -88,10 +88,10 @@ namespace ACESim
         public const int UnifiedOptionSetCount = 300;
         public const int UnifiedCoreCombinationCount = 75;
         public const int UnifiedComparisonGroupCount = 100;
-        public const int FocusedOptionSetCount = 134;
+        public const int FocusedOptionSetCount = 114;
         public const int FocusedCoreCombinationCount = 10;
-        public const int FocusedSpecificationComparisonCount = 122;
-        public const int FocusedFeeRegimeComparisonCount = 67;
+        public const int FocusedSpecificationComparisonCount = 102;
+        public const int FocusedFeeRegimeComparisonCount = 57;
         public const int MultipleEquilibriaOptionSetCount = 2;
         public const int MultipleEquilibriaInitializationCount = 50;
         public const int IncreasedOfferGridOptionSetCount = 4;
@@ -106,7 +106,6 @@ namespace ACESim
             new[]
             {
                 ProductionRunPlan.FocusedContinuousMerits,
-                ProductionRunPlan.MultipleEquilibriaRobustness,
                 ProductionRunPlan.ExitFeeShifting,
             };
 
@@ -124,8 +123,6 @@ namespace ACESim
                 new FocusedSpecificationDefinition(FocusedSpecification.PolarizedContinuousMerits, "Polarized continuous merits"),
                 new FocusedSpecificationDefinition(FocusedSpecification.AllCostsAvoidable, "All litigation costs avoidable at bargaining"),
                 new FocusedSpecificationDefinition(FocusedSpecification.AllCostsSunk, "All litigation costs sunk before bargaining"),
-                new FocusedSpecificationDefinition(FocusedSpecification.MandatoryFilingAndAnswering, "Mandatory filing and answering"),
-                new FocusedSpecificationDefinition(FocusedSpecification.MandatoryFilingAnsweringNoExit, "Mandatory filing and answering; no later exit"),
             };
 
         public static readonly IReadOnlyList<FocusedSpecification> IncreasedOfferGridSpecifications =
@@ -554,8 +551,9 @@ namespace ACESim
             {
                 existingModifier?.Invoke(settings);
                 settings.GenerateInformationSetActionReport = true;
-                if (options.NumOffers == IncreasedOfferGridOfferCount)
-                    settings.UseExistingEquilibriaIfAvailable = true;
+                // A report rebuild revalidates saved profiles against the current game.
+                // Multiple-start recovery accounting still requires its separate solve workflow.
+                settings.UseExistingEquilibriaIfAvailable = RunPlan != ProductionRunPlan.MultipleEquilibriaRobustness;
                 if (RunPlan == ProductionRunPlan.MultipleEquilibriaRobustness)
                 {
                     settings.SequenceFormNumPriorsToUseToGenerateEquilibria =
@@ -1523,7 +1521,7 @@ namespace ACESim
             FocusedSpecifications.SingleOrDefault(definition => definition.Label == label)?.Specification
             ?? throw new InvalidOperationException($"Unknown CS004 specification '{label}'.");
 
-        private static void ValidateFocusedOptionSet(
+        private void ValidateFocusedOptionSet(
             LitigGameOptions options,
             ICollection<string> errors,
             int expectedOffers = 10,
@@ -1566,8 +1564,8 @@ namespace ACESim
             if (!evolutionSettings.GenerateInformationSetActionReport)
                 errors.Add(prefix + "does not enable information-set/action reporting.");
             if (evolutionSettings.UseExistingEquilibriaIfAvailable !=
-                    (expectedOffers == IncreasedOfferGridOfferCount))
-                errors.Add(prefix + "does not apply pre-existing-equilibrium reuse exclusively to the 15-offer grid.");
+                    (RunPlan != ProductionRunPlan.MultipleEquilibriaRobustness))
+                errors.Add(prefix + "does not apply validated equilibrium reuse to the routine report rebuild.");
             if (options.NumPotentialBargainingRounds != 1 || !options.BargainingRoundsSimultaneous)
                 errors.Add(prefix + "does not retain the one-round simultaneous-offer bargaining model.");
             if (options.LiabilitySignalShapeParameters.Mode != SignalShapeMode.Identity ||

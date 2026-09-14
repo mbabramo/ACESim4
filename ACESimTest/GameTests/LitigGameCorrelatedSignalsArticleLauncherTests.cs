@@ -242,11 +242,11 @@ namespace ACESimTest.GameTests
             var audit = launcher.ValidateProductionMatrix(options.Cast<GameOptions>().ToList());
 
             launcher.MasterReportNameForDistributedProcessing.Should().Be("CS004");
-            audit.OptionSetCount.Should().Be(134);
+            audit.OptionSetCount.Should().Be(114);
             audit.CoreCombinationCount.Should().Be(10);
-            audit.PairedComparisonCount.Should().Be(122);
-            audit.FeeRegimeComparisonCount.Should().Be(67);
-            audit.CountsByInformationAndRisk.Should().HaveCount(13);
+            audit.PairedComparisonCount.Should().Be(102);
+            audit.FeeRegimeComparisonCount.Should().Be(57);
+            audit.CountsByInformationAndRisk.Should().HaveCount(11);
             audit.CountsByInformationAndRisk[LitigGameCorrelatedSignalsArticleLauncher.FocusedBaselineLabel]
                 .Should().Be(12);
             audit.CountsByInformationAndRisk["Moderate symmetric risk aversion"]
@@ -267,8 +267,8 @@ namespace ACESimTest.GameTests
                 })
                 .Should().HaveCount(10)
                 .And.OnlyContain(group =>
-                    group.Count() == 13 &&
-                    group.Select(option => Setting(option, "Specification")).Distinct().Count() == 13);
+                    group.Count() == 11 &&
+                    group.Select(option => Setting(option, "Specification")).Distinct().Count() == 11);
             options.Where(option => option.NumOffers == 15)
                 .Should().HaveCount(4)
                 .And.OnlyContain(option =>
@@ -291,7 +291,7 @@ namespace ACESimTest.GameTests
                 option.ModifyEvolutionSettings.Should().NotBeNull();
                 option.ModifyEvolutionSettings(settings);
                 settings.GenerateInformationSetActionReport.Should().BeTrue();
-                settings.UseExistingEquilibriaIfAvailable.Should().Be(option.NumOffers == 15);
+                settings.UseExistingEquilibriaIfAvailable.Should().BeTrue();
             }
 
             options.Count(option =>
@@ -314,7 +314,7 @@ namespace ACESimTest.GameTests
                         launcher,
                         variation))
                     .ToList();
-            allRowsVariations.Should().HaveCount(12);
+            allRowsVariations.Should().HaveCount(10);
             allRowsVariations.Should().OnlyContain(variation =>
                 !variation.nameOfSet.Contains("offer-grid sensitivity", StringComparison.Ordinal));
             EveryReportIdentifierShouldSelectOneOption(launcher);
@@ -332,7 +332,7 @@ namespace ACESimTest.GameTests
                     option.NumOffers == 10)
                 .ToList();
 
-            representativeOptions.Should().HaveCount(13);
+            representativeOptions.Should().HaveCount(11);
             foreach (LitigGameOptions options in representativeOptions)
             {
                 var definition = new LitigGameDefinition();
@@ -382,12 +382,11 @@ namespace ACESimTest.GameTests
         }
 
         [TestMethod]
-        public void RequiredArticleProductionPlans_IncludeFocusedMultipleEquilibriaAndExitFees()
+        public void RequiredArticleProductionPlans_KeepMultipleStartsSeparate()
         {
             LitigGameCorrelatedSignalsArticleLauncher.RequiredArticleProductionPlans.Should()
                 .Equal(
                     LitigGameCorrelatedSignalsArticleLauncher.ProductionRunPlan.FocusedContinuousMerits,
-                    LitigGameCorrelatedSignalsArticleLauncher.ProductionRunPlan.MultipleEquilibriaRobustness,
                     LitigGameCorrelatedSignalsArticleLauncher.ProductionRunPlan.ExitFeeShifting);
         }
 
