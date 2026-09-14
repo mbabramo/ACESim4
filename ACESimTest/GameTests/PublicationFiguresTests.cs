@@ -101,6 +101,29 @@ public class PublicationFiguresTests
     }
 
     [TestMethod]
+    public void SeparateExitHistoriesRetainDistinctPoliciesAndOffPathGaps()
+    {
+        var rows = new[] {
+            Row(1, 10, 1, "0.2", 1), Row(1, 10, 2, "0.9", 0),
+            Row(1, 11, 1, "0.2", .3), Row(1, 11, 2, "0.9", .7),
+            Row(2, 20, 1, "0.2", 0), Row(2, 20, 2, "0.9", 1),
+            Row(2, 21, 1, "0.2", 1, reach: 0), Row(2, 21, 2, "0.9", 0, reach: 0)
+        };
+        foreach (var row in rows.Where(r => r["Information Set Number"] is "11" or "21"))
+            row["Information Set Labels"] = row["Information Set Labels"].Replace("P Abandons: 2", "P Abandons: 1");
+        Assert.ThrowsException<InvalidDataException>(() => PublicationFigures.BuildStrategySeries(rows, Selection, "P Offer"));
+        var continuation = PublicationFigures.BuildStrategySeries(rows, Selection, "P Offer", 2, exitCommitment: 2);
+        var exit = PublicationFigures.BuildStrategySeries(rows, Selection, "P Offer", 2, exitCommitment: 1);
+        Assert.AreEqual(1, continuation[0].Actions.Single(a => a.Value == .2).Probability);
+        Assert.AreEqual(.3, exit[0].Actions.Single(a => a.Value == .2).Probability);
+        CollectionAssert.AreEqual(new[] { 11 }, exit[0].InformationSets);
+        Assert.IsTrue(exit[1].OffPath);
+        Assert.AreEqual(0, exit[1].Actions.Length);
+        rows[0]["Information Set Labels"] = "P Liability Signal: 1";
+        Assert.ThrowsException<InvalidDataException>(() => PublicationFigures.BuildStrategySeries(rows, Selection, "P Offer", 2, exitCommitment: 1));
+    }
+
+    [TestMethod]
     public void MissingDuplicateAndInvalidActionDataFailClosed()
     {
         Dictionary<string, string>[] Valid() => [

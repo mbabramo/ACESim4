@@ -68,7 +68,7 @@ participation, and multiple-start recovery/range accounting before writing any t
 | inverse-signals | Reverse the configured party-signal flows, with the same lower-middle reference signal; destinations are merits or binary truth, as appropriate. |
 | party-to-party | Predict the other party's signal from one party's signal, using the full production joint distribution; same middle-signal reference across models. |
 | damages-signals | Generate the legacy damages illustration separately; excluded from all. |
-| selection-offers | Generate four baseline participation/offer panels from selected action-report rows. |
+| selection-offers | Generate participation/offer panels from selected action-report rows. The default has four panels; `SeparateExitHistories: true` gives six, separating offers after commitments to continue and exit. |
 | dispositions | Generate paired disposition bars from selected All/Only Eq summary rows. |
 | publication | Generate selection-offers and dispositions (main Figures 3 and 4). |
 | individual-results | Compile every saved individual-result .tex, recursively. |

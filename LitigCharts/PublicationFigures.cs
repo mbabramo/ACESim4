@@ -19,12 +19,12 @@ public static class PublicationFigures
     public sealed record StrategyCase(string Label, string OptionSetName, string ActionReport, int EquilibriumNumber = 1);
     public sealed record DispositionGroup(string Label, string[] OptionSetNames);
     public sealed record Request(StrategyCase[] StrategyCases, string NumericalResultsCsv, DispositionGroup[] DispositionGroups,
-        string DispositionIntroduction = null, string RegimeColumn = "Fee Regime");
+        string DispositionIntroduction = null, string RegimeColumn = "Fee Regime", bool SeparateExitHistories = false);
     public sealed record Source(string Path, string Sha256);
     public sealed record ActionValue(int Action, double Value, double Probability);
     public sealed record StrategyPoint(int Signal, double SignalValue, int[] InformationSets,
         double Reach, bool OffPath, ActionValue[] Actions);
-    public sealed record StrategyPanel(string Decision, string Label, StrategyPoint[][] Series);
+    public sealed record StrategyPanel(string Decision, string Label, StrategyPoint[][] Series, int? ExitCommitment = null);
     public sealed record StrategyData(string[] Labels, string[] OptionSets, int[] Equilibria, Source RequestSource, Source[] Sources, StrategyPanel[] Panels);
     public sealed record DispositionBar(string Group, string Regime, string OptionSetName,
         double[] Values, double Sum, double MutualGiveUpAudit, double Trial);
@@ -73,17 +73,26 @@ public static class PublicationFigures
             var files = request.StrategyCases.Select(c => Resolve(c.ActionReport)).ToArray();
             var rows = files.Select(ReadCsv).ToArray();
             var grids = request.StrategyCases.Select(c => GridForOptionSet(c.OptionSetName)).ToArray();
-            string[] decisions = ["P Files", "D Answers", "P Offer", "D Offer"];
-            string[] labels = ["Filing", "Answering", "Plaintiff demand", "Defendant offer"];
+            string[] decisions = request.SeparateExitHistories
+                ? ["P Files", "D Answers", "P Offer", "D Offer", "P Offer", "D Offer"]
+                : ["P Files", "D Answers", "P Offer", "D Offer"];
+            string[] labels = request.SeparateExitHistories
+                ? ["Filing", "Answering", "P demand / continue", "D offer / continue", "P demand / abandon", "D offer / default"]
+                : ["Filing", "Answering", "Plaintiff demand", "Defendant offer"];
+            int?[] commitments = request.SeparateExitHistories ? [null, null, 2, 2, 1, 1] : [null, null, null, null];
             var panels = decisions.Select((decision, i) => new StrategyPanel(decision, labels[i],
                 request.StrategyCases.Select((c, j) => BuildStrategySeries(rows[j], c, decision,
-                    grids[j].SignalCount, grids[j].Offers)).ToArray())).ToArray();
+                    grids[j].SignalCount, grids[j].Offers, commitments[i])).ToArray(), commitments[i])).ToArray();
             if (panels.SelectMany(p => p.Series).Select(s => s.Length).Distinct().Count() != 1)
                 throw new InvalidDataException("All strategy panels must use the same signal grid.");
             var data = new StrategyData(request.StrategyCases.Select(c => c.Label).ToArray(),
                 request.StrategyCases.Select(c => c.OptionSetName).ToArray(),
                 request.StrategyCases.Select(c => c.EquilibriumNumber).ToArray(), Fingerprint(requestFile), files.Select(Fingerprint).ToArray(), panels);
-            return new Figure(Stem(target), RenderStrategies(data), StrategyCaption, data);
+            string strategyCaption = request.SeparateExitHistories
+                ? "Offer panels separately condition on the party's commitment to continue or to abandon/default if bargaining fails. " +
+                  "An exit commitment is not an actual exit: settlement can intervene. Unreached commitment histories remain blank.\n\n" + StrategyCaption
+                : StrategyCaption;
+            return new Figure(Stem(target), RenderStrategies(data), strategyCaption, data);
         }
         if (target != "dispositions") throw new ArgumentException("Unknown target: " + target);
         string numericalFile = Resolve(request.NumericalResultsCsv);
@@ -143,10 +152,23 @@ public static class PublicationFigures
     }
 
     public static StrategyPoint[] BuildStrategySeries(Dictionary<string, string>[] rows, StrategyCase selection, string decision,
-        int? expectedSignalCount = null, double[] offerValues = null)
+        int? expectedSignalCount = null, double[] offerValues = null, int? exitCommitment = null)
     {
         var selected = rows.Where(r => r["OptionSetName"] == selection.OptionSetName &&
             int.Parse(r["Equilibrium Number"], CultureInfo.InvariantCulture) == selection.EquilibriumNumber && r["Decision"] == decision).ToArray();
+        if (exitCommitment.HasValue)
+        {
+            if (!decision.EndsWith("Offer", StringComparison.Ordinal) || exitCommitment is not (1 or 2))
+                throw new ArgumentException("Exit histories apply only to offers, with commitment 1 (exit) or 2 (continue).");
+            string history = decision.StartsWith("P", StringComparison.Ordinal) ? "P Abandons" : "D Defaults";
+            int Commitment(Dictionary<string, string> row)
+            {
+                var match = Regex.Match(row["Information Set Labels"], @"(?:^|;)" + history + @": ([12])(?:;|$)");
+                if (!match.Success) throw new InvalidDataException("Missing or invalid exit-commitment history.");
+                return int.Parse(match.Groups[1].Value, CultureInfo.InvariantCulture);
+            }
+            selected = selected.Where(row => Commitment(row) == exitCommitment.Value).ToArray();
+        }
         if (selected.Length == 0) throw new InvalidDataException("Missing decision: " + decision);
         var canonicalActions = selected.GroupBy(r => r["Information Set Number"]).First()
             .OrderBy(r => int.Parse(r["Action"], CultureInfo.InvariantCulture))
@@ -265,19 +287,21 @@ public static class PublicationFigures
     public static string RenderStrategies(StrategyData data)
     {
         var b = Start();
+        int panelRows = (data.Panels.Length + 1) / 2;
+        double legendY = panelRows * 6.2 - .4;
         // Global series key; explanation and conditioning belong in the caption.
         for (int s = 0; s < data.Labels.Length; s++)
         {
             double x = 4 + s * 5.5;
-            b.AppendLine($@"\draw[{LineStyle(s)}] ({N(x)},12) -- ({N(x + .7)},12);");
-            Marker(b, s, x + .35, 12);
-            b.AppendLine($@"\node[anchor=west] at ({N(x + .85)},12) {{{Label(data.Labels[s])}}};");
+            b.AppendLine($@"\draw[{LineStyle(s)}] ({N(x)},{N(legendY)}) -- ({N(x + .7)},{N(legendY)});");
+            Marker(b, s, x + .35, legendY);
+            b.AppendLine($@"\node[anchor=west] at ({N(x + .85)},{N(legendY)}) {{{Label(data.Labels[s])}}};");
         }
         for (int k = 0; k < data.Panels.Length; k++)
         {
             var panel = data.Panels[k];
             bool offers = panel.Decision.EndsWith("Offer", StringComparison.Ordinal);
-            double x0 = (k % 2) * 8.6 + 1.0, y0 = k < 2 ? 6.6 : 0.4;
+            double x0 = (k % 2) * 8.6 + 1.0, y0 = (panelRows - 1 - k / 2) * 6.2 + .4;
             b.AppendLine($@"\begin{{scope}}[shift={{({N(x0)},{N(y0)})}},x=6.4cm,y=4.1cm]");
             b.AppendLine($@"\node[anchor=west,font=\bfseries] at (0,1.14) {{({(char)('a' + k)}) {Label(panel.Label)}}};");
             for (int tick = 0; tick <= 4; tick++)
@@ -372,7 +396,7 @@ public static class PublicationFigures
         return Finish(b);
     }
     public const string StrategyCaption = """
-        Figure 3. Participation and offer strategies by own signal, comparing the two requested equilibria.
+        Participation and offer strategies by own signal, comparing the two requested equilibria.
         Filing probabilities condition on the plaintiff's own signal. Answering probabilities additionally
         condition on observed filing. Offer strategies condition on own signal and the complete on-path
         information set after participation and the party's exit commitment. A circle denotes the first
