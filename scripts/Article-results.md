@@ -61,6 +61,7 @@ There are 937 routine exhibits: 744 individual diagrams, 68 welfare tables,
 use nested circles, outlined squares and larger outlined diamonds for American,
 Trial Fee-Shifting and Complete Fee-Shifting, respectively, where available.
 These fixed-size markers are centered on the exact signal and probability.
+Participation strategies use symbols without connecting lines.
 The lower panels show separate offer strips for each available fee rule and preserve continue/exit
 histories and mixing probabilities. No conditional mean-offer substitution is
 used. The history legend appears when an exit-committed offer history is reached;

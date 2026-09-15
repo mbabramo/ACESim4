@@ -16,7 +16,6 @@ public static class ArticleStrategyFigures
         PublicationFigures.StrategyPoint[] OfferContinue, PublicationFigures.StrategyPoint[] OfferExit);
     public sealed record Figure(string Latex, CaseData[] Cases, string Caption);
     private static string N(double x) => x.ToString("0.######", CultureInfo.InvariantCulture);
-    private static string Style(int s) => s switch { 0 => "solid", 1 => "dashed", _ => "densely dotted" };
     public static Figure Generate(PublicationFigures.StrategyCase[] cases)
     {
         if (cases.Length is < 1 or > 3 || cases.Select(c => c.Label).Distinct().Count() != cases.Length)
@@ -63,7 +62,6 @@ public static class ArticleStrategyFigures
         for (int s = 0; s < data.Length; s++)
         {
             double x = .6 + s * 5.5;
-            b.AppendLine($@"\draw[{Style(s)},line width=.7pt] ({N(x)},12.95)--({N(x+.65)},12.95);");
             ParticipationMarker(b,s,x+.325,12.95);
             b.AppendLine($@"\node[anchor=west] at ({N(x+.8)},12.95) {{{data[s].Label}}};");
         }
@@ -104,20 +102,7 @@ public static class ArticleStrategyFigures
                 }
                 else
                 {
-                    // Draw every step first, then nest markers from largest to smallest at the exact coordinates.
-                    for (int s = 0; s < data.Length; s++)
-                    {
-                        var points = plaintiff ? data[s].Filing : data[s].Answering;
-                        for (int i = 0; i < points.Length; i++)
-                        {
-                            var point = points[i]; if (point.OffPath) continue;
-                            double probability = point.Actions.Single(a => a.Value == 1).Probability;
-                            double half = .5 / points.Length;
-                            b.AppendLine($@"\draw[{Style(s)},line width=.6pt] ({N(point.SignalValue-half)},{N(probability)})--({N(point.SignalValue+half)},{N(probability)});");
-                            if (i > 0 && !points[i-1].OffPath)
-                                b.AppendLine($@"\draw[{Style(s)},line width=.6pt] ({N(point.SignalValue-half)},{N(points[i-1].Actions.Single(a=>a.Value==1).Probability)})--({N(point.SignalValue-half)},{N(probability)});");
-                        }
-                    }
+                    // Nest markers from largest to smallest at exact signal-bin centers, without connecting lines.
                     for (int s = data.Length - 1; s >= 0; s--)
                     foreach (var point in (plaintiff ? data[s].Filing : data[s].Answering).Where(p => !p.OffPath))
                         ParticipationMarker(b, s, point.SignalValue, point.Actions.Single(a => a.Value == 1).Probability);
@@ -152,7 +137,7 @@ public static class ArticleStrategyFigures
         return b.AppendLine("\\end{tikzpicture}\n\\end{document}").ToString();
     }
     private static string Caption(CaseData[] data) =>
-        "Filing and answering strategies by own signal, and offer supports conditional on each reached continue or exit-commitment history. All four panels use common signal orientation toward stronger plaintiff merits. Filing conditions on own signal; answering also conditions on filing. American uses circles, Trial Fee-Shifting squares and Complete Fee-Shifting diamonds, where available. In the upper panels, a small filled circle, outlined square and larger outlined diamond nest at coincident values; their fixed sizes identify fee rules, and their centers use exact signal and probability coordinates without offsets. Lower panels use aligned fee-rule strips. " +
+        "Filing and answering strategies by own signal, and offer supports conditional on each reached continue or exit-commitment history. All four panels use common signal orientation toward stronger plaintiff merits. Filing conditions on own signal; answering also conditions on filing. American uses circles, Trial Fee-Shifting squares and Complete Fee-Shifting diamonds, where available. In the upper panels, a small filled circle, outlined square and larger outlined diamond nest at coincident values; their fixed sizes identify fee rules, and their centers use exact signal and probability coordinates without offsets. Symbols mark signal-bin centers; no strategy lines connect them. Lower panels use aligned fee-rule strips. " +
         (HasHistory(data, true) ? "Filled offer symbols denote commitment to continue, open symbols commitment to exit if bargaining fails; settlement may prevent that exit. " :
             HasHistory(data, false) ? "All displayed offers are conditional on commitment to continue; no exit-committed offer history is reached. " : "No offer history is reached. ") +
         (HasMixedOffers(data) ? "Offer-marker size increases with the conditional action probability according to the displayed probability key. " :
