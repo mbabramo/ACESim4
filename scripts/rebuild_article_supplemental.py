@@ -30,8 +30,8 @@ def contrasts(cases):
     return [(a,b) for a,b in itertools.permutations(cases,2)
             if a['cost']==b['cost'] and ((a['fee']!=b['fee']) != (a['alpha']!=b['alpha']))]
 
-def describe(plan,output):
-    """Generate a browsable index without claiming pending calculations completed."""
+def describe(plan,output,include_paths=True):
+    """Generate reader-facing navigation and the shared methodology."""
     cases=plan['Cases'];pairs=contrasts(cases)
     costs=sorted({c['cost'] for c in cases},key=float)
     labels={'american':'American','trial':'Trial Fee-Shifting','complete':'Complete Fee-Shifting'}
@@ -43,32 +43,36 @@ def describe(plan,output):
         groups.setdefault((stem,label),{})[a['cost']]=stem+'-cost-'+a['cost']+'.pdf'
     table=['| Directed comparison | '+' | '.join('Cost '+c for c in costs)+' |', '|---|'+'---|'*len(costs)]
     for (_,label),files in sorted(groups.items()):
-        table.append('| '+label+' | '+' | '.join('[PDF](<Published source tables/'+files[c]+'>)' if c in files else 'Unavailable' for c in costs)+' |')
+        table.append('| '+label+' | '+' | '.join('[PDF](<Tables/'+files[c]+'>)' if c in files else 'Unavailable' for c in costs)+' |')
     text=f'''# Equilibrium strategy changes
 
-The requested coverage is {len(pairs)} independently calculated directed comparisons across {len(cases)} saved core profiles. Each fee-rule transition is included in both directions at every available risk level, and every ordered risk change is included within each fee rule, holding costs fixed. Both parties' preferences change together. A comparison never changes both fees and preferences. Reverse contributions are calculated independently.
+These tables examine how equilibrium litigation strategies change when the fee rule or the parties' risk preferences change. They separate the direct effect of the intervention from contributions associated with the opponent's entry, offers and exit decisions.
 
-The plan and scheduler state at the supplemental root record requested coverage and completion separately. Sources/comparison-verification.json records a completed comparison audit when available; its presence and hashes, rather than this index, establish completion. Numerical solver paths and multiple-start searches have separate completion records.
+The collection contains {len(pairs)} directed comparisons across {len(cases)} equilibrium profiles. It covers American, Trial Fee-Shifting and Complete Fee-Shifting at cost multipliers {', '.join(costs)}. RN means risk neutral; RA means both parties have CARA risk aversion with coefficient 2. Other available coefficients are labeled explicitly. Each fee change is evaluated in both directions within each risk level, and each risk change in both directions within each fee rule. Costs are held fixed; a risk comparison changes both parties' preferences together.
 
-## Tables
+Start with the [table index](#table-index) below. Read [Methodology and Explanation](<Methodology and Explanation.md>) for the column definitions, row-selection criteria, calculation types and limitations. The decompositions describe selected equilibria; their contributions are not uniquely identified causal effects or observed paths of adjustment.
 
-Each link is one directed intervention at one cost. PDF and PNG sit together; editable TeX, exact JSON and caption TXT are in Published source tables/Sources. Cost and contrast are in filenames, not artwork titles. Main Table 3 is an illustrative selection assembled by the article's scripts/assemble_manuscript_exhibits.py, not a representative sample of every diagnostic coordinate.
+## Folder guide
+
+| Folder | Contents |
+|---|---|
+| [Tables](Tables) | One PDF and PNG per directed comparison and cost. These are a collection of candidate rows and panels for manuscript selection. |
+| [Tables/Sources](Tables/Sources) | C#-generated TeX and JSON for each table. The JSON contains selected values, scenario identifiers and input fingerprints. |
+| [Calculations](Calculations) | Full comparisons using original profiles, mixed profiles and a tighter mixing check; the Mixing subfolder holds the searches that produce the alternative profiles. |
+| [Sources/Profiles](Sources/Profiles) | Frozen equilibrium and action-report inputs used by the comparisons and solution-path verification. These preserve the exact input bytes independently of later report regeneration. |
+| [Sources/Process Logs](<Sources/Process Logs>) | Execution logs and process records for these calculations and tables. |
+
+Table 3 in the article's top-level Tables folder draws selected rows from this collection. Inclusion here does not imply inclusion in the article or online appendix. The table PDFs have no captions embedded in the artwork; their filenames and this index identify the comparison and cost. The shared methodology supplies the explanation for all tables.
+
+## Table index
 
 {chr(10).join(table)}
 
-## Calculation and interpretation
+## Reproduction and verification
 
-Calculations/Original, Mixed and Mixed tighter check each contain cost/contrast folders with the full policies, coalition responses, reaches, sensitivity checks and accounting residuals. Calculations/Mixing contains each profile's verified forward/reverse search and tighter forward check. Sources/Profiles preserves the exact equilibrium/action-report inputs. Sources/Run records holds this workflow's process logs; the shared supplemental-state.json records durations, commands and input/output hashes.
+The ACESim4 code repository's scripts/Rebuild-ArticleSupplemental.ps1 generates the separate analyses; scripts/Article-supplemental.md documents its options. Python prepares requests and this index; C# calculates the comparisons, selects table rows, and generates TeX and JSON. The article repository's scripts/assemble_manuscript_exhibits.py assembles the manuscript selection.
 
-Direct changes the rule or preferences first with the old opponent fixed. Opponent entry, offers and exit contributions average all six component-replacement orders. Remaining is the endpoint-selection residual and is always retained. These are counterfactual strategy coordinates, not aggregate welfare contributions, observed adjustment paths or uniquely identified causal effects.
-
-Rows retain the common focus or offsetting-effect selection across original, mixed and tighter mixed representations. Displayed numbers come from the original representation; common selection does not imply invariant numerical allocations. Probabilities use percentage points; pure offer amounts use damages units; mixed offers identify the specific action and its probability. Strategies condition on own signals and histories, while the article's disposition and welfare outcomes average over all potential disputes. Conditional comparisons with zero chance-and-opponent reach are undefined and are not imputed. Asterisks mark unreached intermediate responses; sensitivity flags ties and donor-unvisited completions.
-
-Mixing searches are local, have a six-sweep limit, and verify both players' full best responses. The normal gain limit is 1e-9, the tighter limit 1e-10; tie tolerance tightens from 1e-10 to 1e-11. They establish neither uniqueness nor global maximal mixing. An empty table means no coordinates satisfy the implemented selection, not that the full strategies coincide.
-
-## Regeneration
-
-Run scripts/Rebuild-ArticleSupplemental.ps1 in ACESim4 with the desired OutputDirectory and original solve-log directories. It includes multiple-start production, all directed comparisons, mixing checks, publication tables and original solution paths. Use SkipMultipleEquilibria when that independent plan is already handled. Repeated Python scheduler runs skip only jobs whose input, binary and output hashes still match. Full instructions are in ACESim4/scripts/Article-supplemental.md. No archive or separate fee-trigger folder is needed.
+Sources/profile-provenance.json identifies the retained inputs. Sources/comparison-verification.json records the comparison audit. The supplemental-plan.json and supplemental-state.json files one directory above this folder record the jobs, completion states, commands and file hashes. An index entry specifies coverage; the completion records establish which calculations have finished. Solution-path and multiple-equilibrium studies have their own folders and verification records.
 '''
     path_text=f'''# Equilibrium solution paths
 
@@ -80,8 +84,13 @@ After all replays verify, all-equilibrium-solution-paths.html combines them and 
 
 The generalized supplemental rebuild performs these replays and builds the collection automatically. Its path cache reuses completed traces only after checking their request, input, frame and assembly hashes. A separate multiple-start study is in Multiple equilibria.
 '''
-    for folder,content in [('Equilibrium strategy changes',text),('Equilibrium solution paths',path_text)]:
+    documents=[('Equilibrium strategy changes',text)]
+    if include_paths:documents.append(('Equilibrium solution paths',path_text))
+    for folder,content in documents:
         p=output/folder/'README.md';p.parent.mkdir(parents=True,exist_ok=True);p.write_text(content,encoding='utf-8',newline='\n')
+    methodology=CODE/'scripts/templates/equilibrium-strategy-methodology.md'
+    (output/'Equilibrium strategy changes/Methodology and Explanation.md').write_text(
+        methodology.read_text(encoding='utf-8'),encoding='utf-8',newline='\n')
 
 def prepare(results,output,exe,log_roots):
     request=read(results/'welfare-exhibits.json')
@@ -161,7 +170,7 @@ def prepare(results,output,exe,log_roots):
             jid='change-'+representation+'-'+id;calculated[representation]=(req,jid,directory)
             job(jid,'original' if representation=='Original' else 'mixed',[exe,'equilibrium-changes','--request',req,'--calculate-only'],
                 dependencies,inputs,[directory/'equilibrium-changes-manifest.json'],[(str(directory),'*.json')])
-        pub=changes/'Published source tables'
+        pub=changes/'Tables'
         args=[exe,'equilibrium-publication','--original',calculated['Original'][0],'--mixed',calculated['Mixed'][0],
               '--check',calculated['Mixed tighter check'][0],'--output',pub]
         job('publication-'+id,'publication',args,[v[1] for v in calculated.values()],
@@ -217,7 +226,8 @@ def run(plan,output,jobs,phases):
     def execute(job):
         started=time.time();sig=signature(job);stem=re.sub(r'[^a-zA-Z0-9.-]','-',job['id'])
         family='Equilibrium solution paths' if job['phase']=='paths' else 'Equilibrium strategy changes'
-        records=output/family/'Sources/Run records';records.mkdir(parents=True,exist_ok=True)
+        records=output/family/('Sources/Run records' if job['phase']=='paths' else 'Sources/Process Logs')
+        records.mkdir(parents=True,exist_ok=True)
         with (records/(stem+'.log')).open('w',encoding='utf-8') as log:
             p=subprocess.Popen(job['command'],cwd=CODE,stdout=log,stderr=subprocess.STDOUT,creationflags=getattr(subprocess,'CREATE_NO_WINDOW',0))
             write(records/(stem+'-process.json'),{'pid':p.pid,'started':started,'command':job['command']})

@@ -57,14 +57,22 @@ processes with bounded concurrency. This prevents shared static solver state fro
 crossing between games. Mixed calculations depend on their two mixing results;
 publication depends on all three representations. Logs, process identities,
 durations, input/binary hashes and output hashes are in supplemental-state.json;
-logs and process identities are in each workflow's Sources/Run records. Repeating the
+strategy-change logs and process identities are in Sources/Process Logs; solution-path
+logs remain in Sources/Run records. Repeating the
 same command skips only jobs whose recorded inputs, binaries and outputs still
 match. Independent jobs continue after a failure; failed dependencies remain
 blocked until repaired. Use `--phase` to select original, mixing, mixed,
 publication or paths for intervention; prerequisites must already be verified.
 
-Figures/tables share descriptive source folders; editable TeX/JSON and separate
-captions are in Sources. Cost and contrast are in filenames, not artwork titles.
+The strategy-change displays are in Equilibrium strategy changes/Tables, with
+C#-generated TeX and selected-value JSON in Tables/Sources. One shared Methodology
+and Explanation.md at the workflow root explains all table columns, selection
+criteria and calculation types. The planner copies this document from
+scripts/templates/equilibrium-strategy-methodology.md and generates the reader's
+README/index. Per-table explanatory TXT files are not generated. Frozen copies
+of the equilibrium and action-report inputs stay in Sources/Profiles so later
+routine report regeneration cannot silently change the calculation inputs.
+Cost and contrast are in filenames, not artwork titles.
 Never remove a nonzero residual, fabricate a conditional value at zero reach,
 pool distinct offer histories, or infer reverse contributions from forward ones.
 

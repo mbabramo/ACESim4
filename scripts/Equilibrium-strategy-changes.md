@@ -113,11 +113,13 @@ ECTA trace inputs.
   matched intervention checks, calculation manifest and file hashes.
 - EquilibriumChangeTables.cs: change-only PDF/TeX/TXT and grouped paper tables.
 
-The article request selects four fee/preference contrasts at costs 1 and 4.
-The four accepted ordinary-cost TeX/PDF pairs and editable methodology are in
-`Supplemental materials/Equilibrium strategy changes/Published source tables`. The superseded combined and per-contrast
-presentation reports have been removed. All eight original calculations,
-including the high-cost cases, remain in `Supplemental materials/Equilibrium strategy changes/Calculations/Original`.
+The article collection contains all 90 directed fee/preference comparisons across
+five costs, with original, mixed and tighter mixed calculations. Its PDF/PNG
+displays are in `Supplemental materials/Equilibrium strategy changes/Tables`,
+with generated TeX/JSON in `Tables/Sources`. The shared reader-facing methodology
+is `Methodology and Explanation.md` at the strategy-change root. Full original
+calculations remain in `Calculations/Original`; the other representations have
+their own calculation folders.
 Full JSON contains source and
 target strategies, primary and sensitivity responses, action values, reaches,
 beliefs, exclusions, and explicit residuals. Original production files are
@@ -190,8 +192,8 @@ intervention makes positive original mass strictly suboptimal (using the same
 response restores the original/target distribution. Require defined conditional
 comparisons, a nonzero direct coordinate contribution, and zero remainder.
 Intersect this filter across the original, mixed and forward/tighter pairs too.
-Eight information sets survive (0, 3, 3, 2); the complete packet has 47 information
-sets in 34 rows (2, 9, 15, 8). Original coordinates and allocations are preserved.
+The verification inventory records the selected coordinates for the current
+collection. Original coordinates and allocations are preserved.
 
 `BuildRows(..., includeUnchanged: true)` reconstructs these allocations from
 cached scenarios without changing the default changed-only export or any saved
@@ -201,15 +203,20 @@ information set while its conditional comparison remains defined. Marker
 definitions and interpretation belong in the editable methodology, not table notes.
 
 ```text
-dotnet run --project LitigCharts -c Release -- equilibrium-publication --original <equilibrium-changes.request.json> --mixed <equilibrium-changes-mixed.request.json> --check <equilibrium-changes-mixed-forward.request.json> --output <article/Supplemental materials/Equilibrium strategy changes/Published source tables> --previews <temporary-QA-directory>
+dotnet run --project LitigCharts -c Release -- equilibrium-publication --original <equilibrium-changes.request.json> --mixed <equilibrium-changes-mixed.request.json> --check <equilibrium-changes-mixed-forward.request.json> --output <article/Supplemental materials/Equilibrium strategy changes/Tables> --previews <temporary-QA-directory>
 ```
 
 Quote paths containing spaces. The command compiles through the existing
 LaTeX compiler, sending raster QA previews to the separate requested directory.
-The publication directory contains only the four `.tex`/`.pdf` pairs and the
-author-owned `Methodology.tex` fragment. There are no generated table notes,
-README files, request files, calculation JSON, or PNG previews in this directory.
-The command never writes `Methodology.tex`, so the author may edit it freely.
+The Tables directory contains one PDF/PNG pair per comparison. Its Sources
+subfolder contains generated TeX and selected-value/provenance JSON. Individual
+explanatory TXT files are not generated; JSON links to the common Methodology
+and Explanation.md. The Python planner creates that file from
+scripts/templates/equilibrium-strategy-methodology.md, which is the source to
+edit when changing the shared explanation for future runs. It also creates the
+README index. Execution logs are in Sources/Process Logs at the strategy-change
+root. These displays provide candidate rows for a separately assembled article
+table; the collection is not a commitment to publish every table.
 
 In the article repository, the three request arguments sit with their cached
 inputs in `Supplemental materials/Equilibrium strategy changes/Calculations/Original`, `Mixed`, and

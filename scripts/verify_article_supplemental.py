@@ -51,10 +51,13 @@ def verify(output,changes_only=False):
             assert all(math.isfinite(v) and v<=mix['Settings']['ValidationTolerance'] for v in chosen['FinalGains'])
             counts['Mixing checks']+=1
     numeric=0;empty=[]
-    sources=changes/'Published source tables/Sources'
+    sources=changes/'Tables/Sources'
+    assert (changes/'Methodology and Explanation.md').is_file()
+    assert not list(sources.glob('*.txt')), 'Per-table explanations belong in the shared methodology'
     publication_pairs=set()
     for p in sources.glob('*-cost-*.json'):
         j=read(p);publication_pairs.add((j['Contrast']['Source'],j['Contrast']['Target']))
+        assert (p.parent/j['Methodology']).resolve()==(changes/'Methodology and Explanation.md').resolve()
         for f in j['Inputs']:check(f);checks+=1
         pdf=p.parent.parent/(p.stem+'.pdf');png=pdf.with_suffix('.png')
         assert png.is_file() and png.stat().st_size>1000,str(png)
