@@ -274,7 +274,7 @@ public static class WelfareOutcomeExhibits
                 ["Fee rule", @"\shortstack{Meritorious-P\\shortfall}", @"\shortstack{Nonliable-D\\burden}",
                  @"\shortstack{Liable-D\\excess burden}", @"\shortstack{Gross outcome\\error}", @"\shortstack{Total\\expenditures}"],
                 group.Select(row => new PublicationTables.Row(new[] { new PublicationTables.Cell(row["Comparison Fee Rule"]) }
-                    .Concat(Measures.Select(key => new PublicationTables.Cell(N(row, key).ToString("0.0000", CultureInfo.InvariantCulture), N(row, key), key))).ToArray())).ToArray())).ToArray();
+                    .Concat(Measures.Select(key => new PublicationTables.Cell(N(row, key).ToString("0.000", CultureInfo.InvariantCulture), N(row, key), key))).ToArray())).ToArray())).ToArray();
         return new(ArticleResultsLayout.Cost(cost) + "-welfare-outcomes", "Welfare outcomes", panels, "", "",
             sources, [], new { CostMultiplier = cost, Rows = rows, Audits = audits });
     }
@@ -315,7 +315,7 @@ public static class WelfareOutcomeExhibits
         All displayed measures and disposition shares average over all potential disputes, including unfiled disputes.
         The three net monetary measures are prior-weighted meritorious-plaintiff recovery shortfall,
         nonliable-defendant burden, and liable-defendant excess burden above deserved damages. They include legal costs and fee transfers.
-        Total expenditures count real resource costs and exclude transfers. Values are in damages units and shown to four decimals.
+        Total expenditures count real resource costs and exclude transfers. Values are in damages units and shown to three decimals.
 
         {ErrorDescription}
 
