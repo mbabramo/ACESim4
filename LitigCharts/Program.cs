@@ -24,6 +24,8 @@ namespace LitigCharts
                 return await ExitFeeCharts.RunAsync(args.Skip(1).ToArray());
             if (args.Length > 0 && args[0] == "equilibrium-publication")
                 return await EquilibriumPublicationTables.RunAsync(args.Skip(1).ToArray());
+            if (args.Length > 0 && args[0] == "equilibrium-manuscript")
+                return await EquilibriumManuscriptTable.RunAsync(args.Skip(1).ToArray());
             if (args.Length > 0 && args[0] == "equilibrium-change-focus")
                 return await EquilibriumChangeFocusCommand.RunAsync(args.Skip(1).ToArray());
             if (args.Length > 0 && args[0] == "equilibrium-mixing")

@@ -175,6 +175,14 @@ public static class EquilibriumPublicationTables
             \begin{document}
             \begin{minipage}{7.5in}
             """);
+        return b.Append(LatexBody(rows)).AppendLine(@"\end{minipage}\end{document}").ToString();
+    }
+
+    /// <summary>The complete selected table, shared by individual contrasts and manuscript panels.</summary>
+    public static string LatexBody(ChangeRow[] rows)
+    {
+        ValidateRows(rows);
+        var b = new StringBuilder();
         b.AppendLine(@"{\fontsize{9.5}{11.5}\selectfont\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{1.35in}>{\centering\arraybackslash}p{.45in}>{\centering\arraybackslash}p{1.05in}*{5}{>{\centering\arraybackslash}X}>{\centering\arraybackslash}p{.65in}@{}}");
         b.AppendLine(@"\toprule Decision & Signal & Original $\to$ Target & Direct & \shortstack{Opponent\\entry} & \shortstack{Opponent\\offers} & \shortstack{Opponent\\exit} & Remaining & Sensitive \\\midrule");
         bool hasOffsets = rows.Any(Unchanged);
@@ -211,6 +219,8 @@ public static class EquilibriumPublicationTables
                 b.AppendLine(" & " + group.Sensitivity + @"\\");
             }
         }
-        return b.AppendLine(@"\bottomrule\end{tabularx}}\end{minipage}\end{document}").ToString();
+        if (rows.Length == 0)
+            b.AppendLine(@"\multicolumn{9}{l}{No qualifying coordinates.}\\");
+        return b.AppendLine(@"\bottomrule\end{tabularx}}").ToString();
     }
 }

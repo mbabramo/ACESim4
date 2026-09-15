@@ -24,6 +24,32 @@ def check(f):
     assert sha(f['Path']).lower()==f['Sha256'].lower(),f['Path']
 def close(a,b):assert math.isfinite(a) and math.isfinite(b) and abs(a-b)<=1e-6,(a,b)
 
+def verify_manuscript(changes):
+    stem='manuscript-strategy-mechanisms'
+    packet=read(changes/'Sources/Json'/(stem+'.json'))
+    config=read(Path(__file__).resolve().parents[1]/'LitigCharts/ArticleStrategyComparisons.json')
+    assert [p['Comparison'] for p in packet['Panels']]==config
+    counts=Counter()
+    for panel in packet['Panels']:
+        for fingerprint in panel['Inputs']:check(fingerprint)
+        individual=read(changes/'Sources/Json'/(panel['Contrast']['Id']+'.json'))
+        assert panel['SelectedRows']==individual['SelectedRows'], 'Manuscript must retain every qualifying coordinate'
+        counts['Coordinates']+=len(panel['SelectedRows'])
+        counts['DisplayedRows']+=panel['DisplayedRows']
+    document=PdfReader(changes/'Tables'/(stem+'.pdf'))
+    tex=(changes/'Sources/Tex'/(stem+'.tex')).read_text(encoding='utf-8-sig')
+    rows='\n'.join(line for line in tex.splitlines() if re.match(r'^[PD] ',line))
+    printed='\n'.join(p.extract_text() for p in document.pages)
+    def signed(s):
+        s=s.replace('\u2212','-').replace('\u2013',' ').replace('--',' ')
+        s=re.sub(r'(?<=\d)\s*\.\s*(?=\d)', '.', s)
+        return [float(re.sub(r'\s','',v)) for v in re.findall(r'[+-]?\s*\d+(?:\.\d+)?',s)]
+    assert signed(printed)==signed(rows), 'Manuscript printed values differ from full TeX rows'
+    for n in range(1,len(document.pages)+1):
+        png=changes/'Tables'/(stem+('' if n==1 else f'-page-{n:02}')+'.png')
+        assert png.is_file() and png.stat().st_size>1000
+    return {'Panels':len(packet['Panels']),'Pages':len(document.pages),**dict(counts)}
+
 def verify(output,changes_only=False):
     plan=read(output/'supplemental-plan.json');cases=plan['Cases']
     pairs={(a['id'],b['id']) for a in cases for b in cases if a['cost']==b['cost'] and
@@ -82,6 +108,8 @@ def verify(output,changes_only=False):
         'SelectedResidualCoordinates':sum(abs(r['Allocation']['SelectionResidual'])>1e-6 for r in selected),
         'SelectedSensitiveCoordinates':sum(r['TieSensitive'] or r['CompletionSensitive'] for r in selected),
         'EmptySelections':empty,'FingerprintsVerified':checks,'Scope':'strategy comparisons only' if changes_only else 'complete supplemental expansion'}
+    if any(j['id']=='table-manuscript' for j in plan.get('Jobs',[])) or (sources/'manuscript-strategy-mechanisms.json').exists():
+        report['ManuscriptTable']=verify_manuscript(changes)
     if not changes_only:
         paths=output/'Equilibrium solution paths'
         collection=read(paths/'equilibrium-paths-collection-manifest.json')

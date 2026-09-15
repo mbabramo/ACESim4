@@ -14,6 +14,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Update="ArticleStrategyComparisons.json" CopyToOutputDirectory="PreserveNewest" />
     <ProjectReference Include="..\ACESimBase\ACESimBase.csproj" />
   </ItemGroup>
 

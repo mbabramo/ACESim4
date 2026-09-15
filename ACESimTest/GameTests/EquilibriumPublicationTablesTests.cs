@@ -14,6 +14,24 @@ namespace ACESimTest.GameTests;
 [TestClass]
 public class EquilibriumPublicationTablesTests
 {
+    [TestMethod]
+    public void ManuscriptUsesTheSevenOrderedComparisonsAndAllSuppliedCoordinates()
+    {
+        EquilibriumManuscriptTable.Comparisons().Select(c => c.Id).Should().Equal(
+            "american-to-trial-risk-neutral", "trial-to-complete-risk-neutral",
+            "american-to-trial-risk-averse", "trial-to-complete-risk-averse",
+            "risk-neutral-to-risk-averse-american", "risk-neutral-to-risk-averse-trial",
+            "risk-neutral-to-risk-averse-complete");
+        var offset = EquilibriumPublicationTables.Select(OffsetFixture()).Single();
+        var rows = new[] { Row(), Row(2, true), Row(8), offset };
+        var latex = EquilibriumManuscriptTable.Latex(new[] {
+            new EquilibriumManuscriptTable.Panel(new("example", "Example"), rows) });
+        // Includes formerly omitted low signals, a distant signal, and an unchanged offset.
+        latex.Should().Contain(EquilibriumPublicationTables.LatexBody(rows))
+            .And.Contain("0.05--0.15").And.Contain("0.75")
+            .And.Contain("Unchanged actions with offsetting effects").And.Contain("At some signals");
+    }
+
     private static ChangeRow Row(int signal = 1, bool sensitive = false) => new(
         "p-file-" + signal, 0, "P Files", signal, (signal - .5) / 10, null,
         "decision probability", null, new[] { "Yes", "No" }, new[] { 1.0, 0 }, new[] { 0.0, 1 },

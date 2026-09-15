@@ -46,7 +46,7 @@ public static class DiagramCompiler
     }
 
     public static async Task CompileAsync(string source, ArticleDiagramCommand.Configuration config, int passes = 1,
-        string previewDirectory = null, string renderedDirectory = null)
+        string previewDirectory = null, string renderedDirectory = null, bool allPages = false)
     {
         if (passes < 1 || passes > 3) throw new ArgumentOutOfRangeException(nameof(passes));
         source = Path.GetFullPath(source);
@@ -78,6 +78,23 @@ public static class DiagramCompiler
                 : Path.Combine(Path.GetFullPath(previewDirectory), Path.GetFileNameWithoutExtension(source) + ".png");
             Directory.CreateDirectory(Path.GetDirectoryName(preview));
             File.Copy(png, preview, overwrite: true);
+            if (allPages)
+            {
+                await RunProcessAsync(config.PreviewExecutable, temp.FullName, config.ProcessTimeoutSeconds,
+                    "-png", "-r", "150", pdf, Path.Combine(temp.FullName, "page"));
+                string stem = Path.GetFileNameWithoutExtension(source);
+                var kept = new System.Collections.Generic.HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                foreach (string page in Directory.GetFiles(temp.FullName, "page-*.png"))
+                {
+                    int number = int.Parse(Path.GetFileNameWithoutExtension(page)[5..]);
+                    if (number == 1) continue; // The ordinary .png is the first page.
+                    string destination = Path.Combine(Path.GetDirectoryName(preview), stem + $"-page-{number:00}.png");
+                    File.Copy(page, destination, overwrite: true);
+                    kept.Add(destination);
+                }
+                foreach (string page in Directory.GetFiles(Path.GetDirectoryName(preview), stem + "-page-*.png"))
+                    if (!kept.Contains(page)) File.Delete(page);
+            }
             success = true;
         }
         catch (Exception ex)

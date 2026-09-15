@@ -53,6 +53,24 @@ Their explicit Remaining column preserves selection residuals; mixed offer-actio
 probabilities and undefined conditional comparisons are represented explicitly.
 An empty selected table is a valid result, not proof of identical strategies.
 
+The manuscript packet includes every qualifying coordinate for seven ordinary-cost
+comparisons, in the order in `LitigCharts/ArticleStrategyComparisons.json`:
+American to Trial and Trial to Complete under RN, the same two fee changes under
+RA, and RN to RA within American, Trial and Complete. It uses the same C# selection,
+grouping and row-rendering functions as the individual tables, with no additional
+hand-selected examples. Residuals, offer-action probabilities and sensitivity flags
+remain visible. The combined PDF uses continued pages, with a PNG for each page.
+
+`LitigCharts equilibrium-manuscript --input <Equilibrium strategy changes>` rebuilds
+this packet from saved, fingerprint-checked calculations without re-solving.
+Add `--article <article repository>` to refresh the numbered Table 3, its caption,
+source files, page previews and manuscript manifest. The canonical packet is
+`Tables/manuscript-strategy-mechanisms.pdf`, with TeX/JSON in the usual Sources
+subfolders and its manuscript caption in Sources/manuscript-strategy-mechanisms-caption.txt.
+The existing small-gap American-to-Trial filing attribution remains qualified
+in that caption while the documented condition persists; this assembly does not
+replace the pending payoff-grid sensitivity audit.
+
 Six independent ordinary-cost paths replay exact seed-zero uniform-prior solves,
 matching original pivot counts and every saved action probability. These are
 numerical solver paths, not fee-rule transitions. The combined HTML viewer uses
@@ -67,8 +85,8 @@ internally intact trace is not silently presented as a replay under new code.
 `rebuild_article_supplemental.py` writes supplemental-plan.json and runs isolated
 processes with bounded concurrency. This prevents shared static solver state from
 crossing between games. Each table depends on its saved-equilibrium calculation.
-With 90 comparisons and six paths, the planner creates 187 jobs: 90 calculations,
-90 tables, six replays and one path collection. Logs, process identities,
+With 90 comparisons and six paths, the planner creates 188 jobs: 90 calculations,
+90 individual tables, one manuscript packet, six replays and one path collection. Logs, process identities,
 durations, input/binary hashes and output hashes are in supplemental-state.json;
 strategy-change logs and process identities are in Sources/Process Logs; solution-path
 logs remain in Sources/Run records. Repeating the

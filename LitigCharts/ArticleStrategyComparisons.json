@@ -1,0 +1,9 @@
+[
+  { "Id": "american-to-trial-risk-neutral", "Label": "American to Trial Fee-Shifting; risk neutral" },
+  { "Id": "trial-to-complete-risk-neutral", "Label": "Trial to Complete Fee-Shifting; risk neutral" },
+  { "Id": "american-to-trial-risk-averse", "Label": "American to Trial Fee-Shifting; risk averse" },
+  { "Id": "trial-to-complete-risk-averse", "Label": "Trial to Complete Fee-Shifting; risk averse" },
+  { "Id": "risk-neutral-to-risk-averse-american", "Label": "Risk neutral to risk averse; American" },
+  { "Id": "risk-neutral-to-risk-averse-trial", "Label": "Risk neutral to risk averse; Trial Fee-Shifting" },
+  { "Id": "risk-neutral-to-risk-averse-complete", "Label": "Risk neutral to risk averse; Complete Fee-Shifting" }
+]

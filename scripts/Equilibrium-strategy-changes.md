@@ -8,7 +8,7 @@ comparison within each fee rule. Reverse comparisons are calculated separately.
 Run `scripts/Rebuild-ArticleSupplemental.ps1` to prepare, calculate and render
 the collection. See [Article-supplemental.md](Article-supplemental.md) for
 scheduling, prerequisites and cache verification. The current six scenarios at
-five costs produce 90 comparisons and 90 tables.
+five costs produce 90 comparisons and 90 individual tables, plus the seven-panel manuscript packet.
 
 ## Individual commands
 
@@ -61,3 +61,7 @@ misleading. The separate multiple-equilibrium study remains independent.
 Use `scripts/verify_article_supplemental.py --output <supplemental-directory>
 --changes-only` to check coverage, fingerprints, accounting and every printed
 number against its TeX source. Inspect changed PDF/PNG layouts before use.
+
+## Manuscript packet
+
+`LitigCharts equilibrium-manuscript --input <Equilibrium strategy changes> [--article <article repository>]` assembles every qualifying coordinate for the seven ordered comparisons in `LitigCharts/ArticleStrategyComparisons.json`. It reuses saved calculations and the individual tables' selection and formatting code. No row allowlist narrows the result. The optional article argument updates the numbered Table 3 and its manifest. The supplemental scheduler includes this assembly after the seven source tables. PDF page previews and the separate caption are generated automatically; the numerical qualification in that caption remains distinct from source-value verification.
