@@ -52,7 +52,8 @@ all six verified traces; each also has its own viewer.
 processes with bounded concurrency. This prevents shared static solver state from
 crossing between games. Mixed calculations depend on their two mixing results;
 publication depends on all three representations. Logs, process identities,
-durations, input/binary hashes and output hashes are in Run records. Repeating the
+durations, input/binary hashes and output hashes are in supplemental-state.json;
+logs and process identities are in each workflow's Sources/Run records. Repeating the
 same command skips only jobs whose recorded inputs, binaries and outputs still
 match. Independent jobs continue after a failure; failed dependencies remain
 blocked until repaired. Use `--phase` to select original, mixing, mixed,
@@ -78,3 +79,10 @@ legacy truth-specific conditional columns remain explicitly documented diagnosti
 Ranges concern recovered profiles, not confidence intervals, and recovery shares
 are not behavioral selection probabilities. The original production manifest is
 preserved separately from the reporting inventory and its input/output hashes.
+
+The wrapper finishes with `verify_article_supplemental.py` (requires pypdf).
+It checks complete directed coverage, calculation accounting and fingerprints,
+mixing verification, every printed table magnitude in reading order, the six
+path endpoints and multiple-start exhibit provenance. `--changes-only` audits
+the comparison stage while independent expensive calculations are still running.
+PDF numeric verification is combined with visual inspection before manuscript use.

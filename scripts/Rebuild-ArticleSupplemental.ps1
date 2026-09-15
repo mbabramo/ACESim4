@@ -30,6 +30,12 @@ try {
     foreach ($directory in $OriginalSolveLogDirectory) { $arguments+=@('--original-logs',$directory) }
     if ($PrepareOnly) { $arguments+='--prepare-only' }
     & $Python @arguments
-    if ($LASTEXITCODE -ne 0) { throw 'Supplemental analyses failed; inspect Run records and resume the same command.' }
+    if ($LASTEXITCODE -ne 0) { throw 'Supplemental analyses failed; inspect supplemental-state.json and the workflow Sources/Run records, then resume the same command.' }
+    if (!$PrepareOnly) {
+        $verification=@((Join-Path $PSScriptRoot 'verify_article_supplemental.py'),'--output',$OutputDirectory)
+        if ($SkipMultipleEquilibria) { $verification+='--changes-only' }
+        & $Python @verification
+        if ($LASTEXITCODE -ne 0) { throw 'Supplemental verification failed.' }
+    }
 }
 finally { Pop-Location }

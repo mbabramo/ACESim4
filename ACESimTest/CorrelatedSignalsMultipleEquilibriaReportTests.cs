@@ -66,6 +66,12 @@ namespace ACESimTest
                 for (int i = 0; i < expected.Length; i++)
                     double.Parse(row[CorrelatedSignalsMultipleEquilibriaReport.WelfareMeasures[i]], CultureInfo.InvariantCulture)
                         .Should().BeApproximately(expected[i], 1e-12);
+                string exhibits = Path.Combine(directory, "exhibits");
+                MultipleEquilibriaExhibits.RunAsync(new[] { "--input", directory, "--output", exhibits, "--sources-only" })
+                    .GetAwaiter().GetResult().Should().Be(0);
+                Directory.GetFiles(exhibits, "*.tex", SearchOption.AllDirectories).Should().HaveCount(7);
+                File.ReadAllText(Path.Combine(exhibits, "Risk Comparison", "Sources", "cost-1-welfare-outcome-ranges.tex"))
+                    .Should().Contain(@"Risk Neutral & Complete Fee-Shifting & 0.2000--0.2000 & 0.2000--0.2000 & 0.0500--0.0500 & 0.5000--0.5000 & 0.3000--0.3000 \\");
                 string outcomes = File.ReadAllText(outcomesPath);
                 outcomes.Should()
                     .Contain(CorrelatedSignalsFocusedReport.MeritoriousPlaintiffRecoveryShortfallColumn)
