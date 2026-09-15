@@ -173,6 +173,7 @@ def run(plan,output,jobs,phases):
         running={}
         while pending or running:
             ready=[j for j in pending.values() if all(d in complete for d in j['dependencies'])]
+            ready.sort(key=lambda j:{'paths':0,'original':1,'mixing':2,'mixed':3,'publication':4}[j['phase']])
             for j in ready[:jobs-len(running)]:
                 pending.pop(j['id']);running[pool.submit(execute,j)]=j
                 print('Start '+j['id'],flush=True)

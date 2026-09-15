@@ -20,6 +20,9 @@ namespace LitigCharts
     public static class CorrelatedSignalsMultipleEquilibriaReport
     {
         private const double ValidationTolerance = 1E-4;
+        public static readonly string[] WelfareMeasures =
+        ["Plaintiff shortfall contribution", "Nonliable defendant contribution", "Liable defendant contribution",
+            WelfareOutcomeExhibits.ErrorColumn, "Real Litigation Costs"];
 
         public sealed record ValidationSummary(
             int OptionSetCount,
@@ -84,6 +87,8 @@ namespace LitigCharts
             CorrelatedSignalsFocusedReport.NetOutcomeFidelityLossColumn,
             "Total Wealth",
             "Source File",
+            "Plaintiff shortfall contribution", "Nonliable defendant contribution", "Liable defendant contribution",
+            WelfareOutcomeExhibits.ErrorColumn, "Real Litigation Costs", "Does Not File", "Does Not Answer",
         };
 
         private static readonly string[] RangeMetrics =
@@ -108,6 +113,8 @@ namespace LitigCharts
             CorrelatedSignalsFocusedReport.NetOutcomeFidelityLossColumn,
             "Total Wealth",
             "Exploitability",
+            "Plaintiff shortfall contribution", "Nonliable defendant contribution", "Liable defendant contribution",
+            WelfareOutcomeExhibits.ErrorColumn, "Real Litigation Costs", "Does Not File", "Does Not Answer",
         };
 
         public static ValidationSummary BuildAndValidate(
@@ -188,6 +195,16 @@ namespace LitigCharts
             double plaintiffAggregate = RequiredValue(all, "False-", reportPath);
             double defendantAggregate = RequiredValue(all, "False+", reportPath);
             double fidelityLoss = plaintiffAggregate + defendantAggregate;
+            WelfareOutcomeExhibits.PaymentAudit Payment(Dictionary<string, string> row)
+            {
+                var mapped = new Dictionary<string, string>(row);
+                foreach (string column in new[] { "Settles", "PAbandons", "DDefaults" })
+                    mapped[column] = row[column + "BR1"];
+                return WelfareOutcomeExhibits.GrossPayment(mapped);
+            }
+            var error = WelfareOutcomeExhibits.OutcomeError(probabilityLiable, Payment(liable), Payment(nonliable));
+            RequireApproximately(reportPath, "gross payment truth weighting", Payment(all).MeanPayment,
+                probabilityLiable * error.Liable.MeanPayment + probabilityNonliable * error.Nonliable.MeanPayment);
 
             RequireApproximately(
                 reportPath,
@@ -237,6 +254,13 @@ namespace LitigCharts
                 [CorrelatedSignalsFocusedReport.PlaintiffRecoveryShortfallColumn] = plaintiffAggregate,
                 [CorrelatedSignalsFocusedReport.NetOutcomeFidelityLossColumn] = fidelityLoss,
                 ["Total Wealth"] = RequiredValue(all, "TotWealth", reportPath),
+                [WelfareMeasures[0]] = probabilityLiable * meritoriousPlaintiff,
+                [WelfareMeasures[1]] = probabilityNonliable * nonliableDefendant,
+                [WelfareMeasures[2]] = probabilityLiable * liableDefendant,
+                [WelfareMeasures[3]] = error.Error,
+                [WelfareMeasures[4]] = RequiredValue(all, "TotExpense", reportPath),
+                ["Does Not File"] = RequiredValue(all, "PDoesntFile", reportPath),
+                ["Does Not Answer"] = RequiredValue(all, "DDoesntAnswer", reportPath),
             };
 
             var fields = new Dictionary<string, string>(StringComparer.Ordinal)

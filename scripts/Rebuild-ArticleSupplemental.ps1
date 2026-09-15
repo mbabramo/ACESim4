@@ -16,11 +16,15 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Supplemental build failed.' }
     if (!$SkipMultipleEquilibria -and !$PrepareOnly) {
         $multiple=Join-Path $OutputDirectory 'Multiple equilibria'
+        $multipleProduction=Join-Path $multiple 'Sources\Production'
         $production=Join-Path $repo 'ACESimDistributedSaturate\bin\Release\net9.0\ACESimDistributedSaturate.exe'
-        & $production run --plan multiple-equilibria --processors $Processors --hidden-workers --results-directory $multiple
+        & $production run --plan multiple-equilibria --processors $Processors --hidden-workers --results-directory $multipleProduction
         if ($LASTEXITCODE -ne 0) { throw 'Multiple-start production failed.' }
-        & $production aggregate --plan multiple-equilibria --results-directory $multiple
+        & $production aggregate --plan multiple-equilibria --results-directory $multipleProduction
         if ($LASTEXITCODE -ne 0) { throw 'Multiple-start aggregation failed.' }
+        $charts=Join-Path $repo 'LitigCharts\bin\Release\net9.0\LitigCharts.exe'
+        & $charts multiple-equilibria-report --input $multipleProduction --output $multiple --jobs $Processors
+        if ($LASTEXITCODE -ne 0) { throw 'Multiple-start exhibits failed.' }
     }
     $arguments=@((Join-Path $PSScriptRoot 'rebuild_article_supplemental.py'),'--output',$OutputDirectory,'--jobs',"$Processors")
     foreach ($directory in $OriginalSolveLogDirectory) { $arguments+=@('--original-logs',$directory) }

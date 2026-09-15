@@ -61,6 +61,11 @@ namespace ACESimTest
                 File.ReadLines(outcomesPath).Should().HaveCount(13);
                 File.ReadLines(rangesPath).Should().HaveCount(7);
                 File.ReadAllText(rangesPath).Should().Contain("Complete Fee-Shifting").And.Contain("Moderately Risk Averse");
+                var row = PublicationFigures.ReadCsv(outcomesPath).First();
+                var expected = new[] { 0.2, 0.2, 0.05, 0.5, 0.3 };
+                for (int i = 0; i < expected.Length; i++)
+                    double.Parse(row[CorrelatedSignalsMultipleEquilibriaReport.WelfareMeasures[i]], CultureInfo.InvariantCulture)
+                        .Should().BeApproximately(expected[i], 1e-12);
                 string outcomes = File.ReadAllText(outcomesPath);
                 outcomes.Should()
                     .Contain(CorrelatedSignalsFocusedReport.MeritoriousPlaintiffRecoveryShortfallColumn)
@@ -69,6 +74,8 @@ namespace ACESimTest
                     .And.Contain(CorrelatedSignalsFocusedReport.NetOutcomeFidelityLossColumn)
                     .And.Contain("Attempted Solves")
                     .And.Contain("Equilibrium Recovery Count")
+                    .And.Contain("Plaintiff shortfall contribution")
+                    .And.Contain(WelfareOutcomeExhibits.ErrorColumn)
                     .And.Contain("\"0.45000000000000001\"");
             }
             finally
@@ -88,13 +95,13 @@ namespace ACESimTest
                 "Filter", "Exploit", "Seconds", "PFiles", "DAnswers", "POffer1", "DOffer1",
                 "SettlesBR1", "PAbandonsBR1", "DDefaultsBR1", "BothReadyToGiveUp", "Trial",
                 "P Loses", "P Wins", "TotExpense", "False+", "False-", "TotWealth",
-                "PDoesntFile", "DDoesntAnswer",
+                "PDoesntFile", "DDoesntAnswer", "ValIfSettled",
             };
             string[] all =
             {
                 "All", "0", "12", "0.8", "0.7", Format(plaintiffOffer), "0.1",
                 "0.2", "0.1", "0.1", "0.1", "0.2", "0.1", "0.1", "0.3",
-                "0.25", "0.2", "19.7", "0.2", "0.1",
+                "0.25", "0.2", "19.7", "0.2", "0.1", "0.5",
             };
             string[] liable = all.ToArray();
             liable[0] = "Truly Liable";

@@ -56,7 +56,7 @@ public static class EquilibriumMixingCommand
         if (orders.Length == 0 || orders.Distinct().Count() != orders.Length || orders.Any(o => o is not ("forward" or "reverse")))
             throw new InvalidDataException("Use distinct forward/reverse search orders.");
         if (request.Sources == null || request.Sources.Length == 0 || request.Sources.Any(s =>
-            string.IsNullOrWhiteSpace(s.Id) || s.Id.Any(c => !char.IsAsciiLetterOrDigit(c) && c != '-') || s.EquilibriumNumber < 1 || s.ProfileFile != null) ||
+            !ArticlePressureAnalysis.SafeId(s.Id) || s.EquilibriumNumber < 1 || s.ProfileFile != null) ||
             request.Sources.Select(s => s.Id).Distinct().Count() != request.Sources.Length)
             throw new InvalidDataException("Supply uniquely identified saved sources without profile overrides.");
         string Resolve(string p) => Path.GetFullPath(p, Path.GetDirectoryName(Path.GetFullPath(requestFile)));

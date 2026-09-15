@@ -66,3 +66,15 @@ pool distinct offer histories, or infer reverse contributions from forward ones.
 Multiple-start recovery frequencies are computational diagnostics, not behavioral
 selection probabilities. Risk and fee-rule metadata identify each of the six
 range rows independently; Trial and Complete are never pooled as “British.”
+
+The multiple-start production is stored in `Multiple equilibria/Sources/Production`.
+After aggregation, `multiple-equilibria-report` validates recovery counts and
+truth-weighted outcomes, generates separate welfare-range and disposition-range
+tables for Risk Comparison and each risk, and compiles every distinct equilibrium's
+individual diagrams in risk/fee folders. The recovery table reports all six cases.
+Editable sources and captions accompany the rendered PDF/PNG files. The five
+headline welfare measures use the routine study's population-weighted definitions;
+legacy truth-specific conditional columns remain explicitly documented diagnostics.
+Ranges concern recovered profiles, not confidence intervals, and recovery shares
+are not behavioral selection probabilities. The original production manifest is
+preserved separately from the reporting inventory and its input/output hashes.

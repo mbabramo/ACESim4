@@ -12,6 +12,14 @@ namespace ACESimTest.GameTests;
 public class CoreDirectedInterventionTests
 {
     [TestMethod]
+    public void DecimalIdentifiersAreSafeButPathsAreNot()
+    {
+        foreach(var id in new[]{"risk-neutral-american-cost-0.25","risk-alpha-0.5-trial-cost-1"})
+            ArticlePressureAnalysis.SafeId(id).Should().BeTrue();
+        foreach(var id in new[]{"../profile","a..b",".a","a.","a/b","a\\b","C:profile",""})
+            ArticlePressureAnalysis.SafeId(id).Should().BeFalse();
+    }
+    [TestMethod]
     public void EveryCoreDirectedFeeAndRiskChangeIsAdmissibleButJointChangesAreRejected()
     {
         var cases=new[] { LitigGameCorrelatedSignalsArticleLauncher.ProductionRunPlan.FocusedContinuousMerits,

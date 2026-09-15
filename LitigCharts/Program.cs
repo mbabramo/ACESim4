@@ -16,6 +16,8 @@ namespace LitigCharts
 
         static async System.Threading.Tasks.Task<int> Main(string[] args)
         {
+            if (args.Length > 0 && args[0] == "multiple-equilibria-report")
+                return await MultipleEquilibriaExhibits.RunAsync(args.Skip(1).ToArray());
             if (args.Length > 0 && args[0] == "welfare-outcomes")
                 return await WelfareOutcomeExhibits.RunAsync(args.Skip(1).ToArray());
             if (args.Length > 0 && args[0] == "exit-fees")

@@ -219,7 +219,10 @@ public static class ArticlePressureAnalysis
             throw new InvalidDataException("Signal/offer grids must match.");
     }
 
-    private static bool SafeId(string value) => !string.IsNullOrWhiteSpace(value) && value.All(c => char.IsAsciiLetterOrDigit(c) || c == '-');
+    public static bool SafeId(string value) => !string.IsNullOrWhiteSpace(value) &&
+        char.IsAsciiLetterOrDigit(value[0]) && char.IsAsciiLetterOrDigit(value[^1]) &&
+        !value.Contains("..", StringComparison.Ordinal) &&
+        value.All(c => char.IsAsciiLetterOrDigit(c) || c is '-' or '.');
     private static bool Inside(string path, string directory) => Path.GetFullPath(path).TrimEnd(Path.DirectorySeparatorChar)
         .StartsWith(Path.GetFullPath(directory).TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase)
         || Path.GetFullPath(path).TrimEnd(Path.DirectorySeparatorChar).Equals(Path.GetFullPath(directory).TrimEnd(Path.DirectorySeparatorChar), StringComparison.OrdinalIgnoreCase);
