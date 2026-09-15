@@ -30,9 +30,10 @@ def verify(output,changes_only=False):
            ((a['fee']!=b['fee']) != (a['alpha']!=b['alpha']))}
     assert len(pairs)==plan['DirectedContrasts']
     changes=output/'Equilibrium strategy changes'; counts=Counter();selected=[]; checks=0
-    assert {p.name for p in (changes/'Calculations').iterdir() if p.is_dir()}=={'cost-'+c['cost'] for c in cases}
+    assert not (changes/'Calculations').exists() and not (changes/'Tables/Sources').exists()
+    assert {p.name for p in (changes/'Data').iterdir() if p.is_dir()}=={'cost-'+c['cost'] for c in cases}
     seen=set()
-    for p in (changes/'Calculations').glob('cost-*/*/equilibrium-changes-manifest.json'):
+    for p in (changes/'Data').glob('cost-*/*/equilibrium-changes-manifest.json'):
         manifest=read(p);assert manifest['Schema']=='2'
         for f in fingerprints(manifest):check(f);checks+=1
         request=read(p.parent/'equilibrium-changes.request.json')
@@ -46,19 +47,19 @@ def verify(output,changes_only=False):
                     a=row['Allocation'];close(a['Change'],a['Direct']+a['Entry']+a['Offers']+a['Exit']+a['SelectionResidual'])
     assert seen==pairs,(len(seen),len(pairs))
     numeric=0;empty=[]
-    sources=changes/'Tables/Sources'
+    sources=changes/'Sources/Json';tex_sources=changes/'Sources/Tex'
     assert (changes/'Methodology and Explanation.md').is_file()
-    assert not list(sources.glob('*.txt')), 'Per-table explanations belong in the shared methodology'
+    assert not list(sources.glob('*.txt')) and not list(tex_sources.glob('*.txt')), 'Per-table explanations belong in the shared methodology'
     publication_pairs=set()
     for p in sources.glob('*-cost-*.json'):
         j=read(p);publication_pairs.add((j['Contrast']['Source'],j['Contrast']['Target']))
         assert len(j['Inputs'])==1 and 'saved equilibria' in j['Selection']
         assert (p.parent/j['Methodology']).resolve()==(changes/'Methodology and Explanation.md').resolve()
         for f in j['Inputs']:check(f);checks+=1
-        pdf=p.parent.parent/(p.stem+'.pdf');png=pdf.with_suffix('.png')
+        pdf=changes/'Tables'/(p.stem+'.pdf');png=pdf.with_suffix('.png')
         assert png.is_file() and png.stat().st_size>1000,str(png)
         document=PdfReader(pdf);assert len(document.pages)==1,str(pdf)
-        tex=p.with_suffix('.tex').read_text(encoding='utf-8-sig')
+        tex=(tex_sources/(p.stem+'.tex')).read_text(encoding='utf-8-sig')
         body='\n'.join(line for line in tex.splitlines() if re.match(r'^[PD] ',line))
         # Compare printed magnitudes and signs in reading order, including signal ranges.
         numbers=lambda s:re.findall(r'\d+(?:\.\d+)?',re.sub(r'(?<=\d)\s*\.\s*(?=\d)', '.', s))

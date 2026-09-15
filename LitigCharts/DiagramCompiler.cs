@@ -12,7 +12,7 @@ namespace LitigCharts;
 public static class DiagramCompiler
 {
     public static async Task CompileAllAsync(string[] sources, ArticleDiagramCommand.Configuration config, int parallelism, int passes = 1,
-        string previewDirectory = null)
+        string previewDirectory = null, string renderedDirectory = null)
     {
         var errors = new ConcurrentQueue<string>();
         var cacheRetries = new ConcurrentQueue<string>();
@@ -21,7 +21,7 @@ public static class DiagramCompiler
         {
             try
             {
-                await CompileAsync(source, config, passes, previewDirectory);
+                await CompileAsync(source, config, passes, previewDirectory, renderedDirectory);
                 Console.WriteLine($"[{Interlocked.Increment(ref completed)}/{sources.Length}] {Path.GetFileNameWithoutExtension(source)}");
             }
             catch (Exception ex) when (ex.Message.Contains("no writeable cache path", StringComparison.Ordinal))
@@ -36,7 +36,7 @@ public static class DiagramCompiler
         {
             try
             {
-                await CompileAsync(source, config, passes, previewDirectory);
+                await CompileAsync(source, config, passes, previewDirectory, renderedDirectory);
                 Console.WriteLine($"[{Interlocked.Increment(ref completed)}/{sources.Length}] {Path.GetFileNameWithoutExtension(source)} (font-cache retry)");
             }
             catch (Exception ex) { errors.Enqueue(source + ": " + ex.Message); }
@@ -46,11 +46,19 @@ public static class DiagramCompiler
     }
 
     public static async Task CompileAsync(string source, ArticleDiagramCommand.Configuration config, int passes = 1,
-        string previewDirectory = null)
+        string previewDirectory = null, string renderedDirectory = null)
     {
         if (passes < 1 || passes > 3) throw new ArgumentOutOfRangeException(nameof(passes));
         source = Path.GetFullPath(source);
         if (!File.Exists(source)) throw new FileNotFoundException("Missing LaTeX source.", source);
+        if (renderedDirectory != null)
+        {
+            renderedDirectory = Path.GetFullPath(renderedDirectory);
+            Directory.CreateDirectory(renderedDirectory);
+        }
+        string Rendered(string extension) => renderedDirectory == null
+            ? ArticleResultsLayout.RenderedArtifact(source, extension)
+            : Path.Combine(renderedDirectory, Path.GetFileNameWithoutExtension(source) + extension);
         var temp = Directory.CreateTempSubdirectory("acesim-diagram-");
         bool success = false;
         try
@@ -65,8 +73,8 @@ public static class DiagramCompiler
                 "-png", "-singlefile", "-r", "150", pdf, Path.Combine(temp.FullName, "diagram"));
             string png = Path.Combine(temp.FullName, "diagram.png");
             if (!File.Exists(png)) throw new IOException("Preview tool did not produce its expected PNG.");
-            File.Copy(pdf, ArticleResultsLayout.RenderedArtifact(source, ".pdf"), overwrite: true);
-            string preview = previewDirectory == null ? ArticleResultsLayout.RenderedArtifact(source, ".png")
+            File.Copy(pdf, Rendered(".pdf"), overwrite: true);
+            string preview = previewDirectory == null ? Rendered(".png")
                 : Path.Combine(Path.GetFullPath(previewDirectory), Path.GetFileNameWithoutExtension(source) + ".png");
             Directory.CreateDirectory(Path.GetDirectoryName(preview));
             File.Copy(png, preview, overwrite: true);

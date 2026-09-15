@@ -57,8 +57,9 @@ Start with the [table index](#table-index) below. Read [Methodology and Explanat
 | Folder | Contents |
 |---|---|
 | [Tables](Tables) | One PDF and PNG per directed comparison and cost. These are a collection of candidate rows and panels for manuscript selection. |
-| [Tables/Sources](Tables/Sources) | C#-generated TeX and JSON for each table. The JSON contains selected values, scenario identifiers and input fingerprints. |
-| [Calculations](Calculations) | Full comparisons of the saved equilibrium profiles, arranged by cost and directed contrast, with counterfactual best responses, tie/completion checks and residuals. |
+| [Sources/Tex](Sources/Tex) | C#-generated editable table layouts. |
+| [Sources/Json](Sources/Json) | Selected table values, scenario identifiers and input fingerprints. Filenames match the TeX, PDF and PNG files. |
+| [Data](Data) | Complete numerical results arranged by cost and directed contrast, including counterfactual best responses, tie/completion checks and residuals, with requests and provenance records. |
 | [Sources/Profiles](Sources/Profiles) | Frozen equilibrium and action-report inputs used by the comparisons and solution-path verification. These preserve the exact input bytes independently of later report regeneration. |
 | [Sources/Process Logs](<Sources/Process Logs>) | Execution logs and process records for these calculations and tables. |
 
@@ -141,7 +142,7 @@ def prepare(results,output,exe,log_roots):
     pairs=contrasts(cases)
     for a,b in pairs:
         id=(a['fee']+'-to-'+b['fee']+'-'+a['risk'] if a['fee']!=b['fee'] else a['risk']+'-to-'+b['risk']+'-'+a['fee'])+'-cost-'+a['cost']
-        directory=changes/'Calculations'/('cost-'+a['cost'])/id
+        directory=changes/'Data'/('cost-'+a['cost'])/id
         req=directory/'equilibrium-changes.request.json';inputs=[req]
         for c in [a,b]:inputs.extend([c['equilibrium'],c['actions']])
         write(req,{'OutputDirectory':'.','Sources':[source(c,directory) for c in [a,b]],'Contrasts':[
@@ -154,7 +155,8 @@ def prepare(results,output,exe,log_roots):
         args=[exe,'equilibrium-publication','--request',req,'--output',pub]
         job('table-'+id,'tables',args,[jid],
             [req,directory/'equilibrium-changes-manifest.json',directory/(id+'.json')],
-            [pub/(id+'.pdf'),pub/(id+'.png'),pub/'Sources'/(id+'.json')],[(str(pub),id+'.*'),(str(pub/'Sources'),id+'.*')])
+            [pub/(id+'.pdf'),pub/(id+'.png'),changes/'Sources/Tex'/(id+'.tex'),changes/'Sources/Json'/(id+'.json')],
+            [(str(pub),id+'.*'),(str(changes/'Sources/Tex'),id+'.tex'),(str(changes/'Sources/Json'),id+'.json')])
     ordinary=[c for c in cases if c['cost']=='1']
     log_candidates=[]
     for root in [*(Path(r) for r in log_roots),results/'Run records']:

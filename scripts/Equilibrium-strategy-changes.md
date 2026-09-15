@@ -26,15 +26,20 @@ dotnet run --project LitigCharts -c Release -- equilibrium-publication --request
 
 `--previews` is optional. The table command validates the request, numerical
 outputs and source fingerprints before selecting rows. It writes one PDF and
-PNG per contrast, with TeX and selected-value JSON in `Tables/Sources`.
+PNG per contrast in the output directory, with sibling `Sources/Tex` and
+`Sources/Json` directories for layouts and selected values. Pass the workflow's
+`Tables` directory as `--output`.
 
 ## Output organization
 
-Under `Equilibrium strategy changes`, `Calculations/cost-N/<contrast>/` contains
-one request, a calculation manifest and the full numerical result. There is no
+Under `Equilibrium strategy changes`, `Data/cost-N/<contrast>/` contains
+one request, a calculation manifest and the full numerical result. Data holds computed
+results and reproduction records; the C# implementation and shared methodology
+explain the calculations. There is no
 representation subfolder. `Tables` contains the rendered comparisons;
 `Sources/Profiles` preserves exact equilibrium and action-report inputs, and
-`Sources/Process Logs` contains execution records. The planner generates a
+`Sources/Process Logs` contains execution records. Table layouts and selected
+values are in `Sources/Tex` and `Sources/Json`, with matching filenames. The planner generates a
 reader-facing README and copies the shared methodology template to
 `Methodology and Explanation.md` at the workflow root.
 

@@ -67,13 +67,14 @@ blocked until repaired. Use `--phase` to select calculations, tables or paths
 for intervention; prerequisites must already be verified.
 
 The strategy-change displays are in Equilibrium strategy changes/Tables, with
-C#-generated TeX and selected-value JSON in Tables/Sources. One shared Methodology
+C#-generated TeX in Sources/Tex and selected-value JSON in Sources/Json. One shared Methodology
 and Explanation.md at the workflow root explains all table columns, selection
 criteria and interpretation. The planner copies this document from
 scripts/templates/equilibrium-strategy-methodology.md and generates the reader's
 README/index. Per-table explanatory TXT files are not generated. Frozen copies
 of the equilibrium and action-report inputs stay in Sources/Profiles so later
 routine report regeneration cannot silently change the calculation inputs.
+Full numerical results, requests and provenance records are in Data/cost-N/<contrast>/.
 Cost and contrast are in filenames, not artwork titles.
 Never remove a nonzero residual, fabricate a conditional value at zero reach,
 pool distinct offer histories, or infer reverse contributions from forward ones.
