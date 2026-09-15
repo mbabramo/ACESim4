@@ -118,7 +118,7 @@ public static class ArticleStrategyFigures
                 }
                 b.AppendLine(@"\end{scope}");
             }
-            b.AppendLine($@"\node at ({N(x0+3.2)},{(offer?".18":"6.80")}) {{{(plaintiff?"Plaintiff":"Defendant")} signal}};");
+            b.AppendLine($@"\node at ({N(x0+3.2)},{(offer?".18":"6.58")}) {{{(plaintiff?"Plaintiff":"Defendant")} signal}};");
             b.AppendLine($@"\node[rotate=90] at ({N(x0-.8)},{(offer?"3.0":"9.70")}) {{{(offer?"Offer":"Probability")}}};");
         }
         OfferMarker(b,0,2,-.48); b.AppendLine(@"\node[anchor=west] at (2.18,-.48) {Continue};");
