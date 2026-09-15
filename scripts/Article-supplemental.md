@@ -46,6 +46,10 @@ matching original pivot counts and every saved action probability. These are
 numerical solver paths, not fee-rule transitions. The combined HTML viewer uses
 all six verified traces; each also has its own viewer.
 
+Completed path caches require the same core assembly hash as the running code.
+A different model/solver build requires a fresh output directory; an old but
+internally intact trace is not silently presented as a replay under new code.
+
 ## Scheduling and resumption
 
 `rebuild_article_supplemental.py` writes supplemental-plan.json and runs isolated

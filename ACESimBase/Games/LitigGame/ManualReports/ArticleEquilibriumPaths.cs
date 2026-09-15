@@ -57,10 +57,13 @@ public static class ArticleEquilibriumPaths
             if(root.GetProperty("Request").GetProperty("Sha256").GetString()!=Hash(requestFile).Sha256)
                 throw new IOException("Completed replay has a different request; choose a fresh output directory.");
             var cached=root.GetProperty("Results").Deserialize<Fingerprint[]>(JsonOptions);
+            string currentCoreHash=Hash(typeof(SequenceForm).Assembly.Location).Sha256;
             foreach(var f in cached)
             {
                 if(Hash(f.Path).Sha256!=f.Sha256)throw new IOException("Changed completed trace metadata.");
                 var metadata=JsonSerializer.Deserialize<PathResult>(File.ReadAllText(f.Path),JsonOptions);
+                if(metadata.CoreAssembly.Sha256!=currentCoreHash)
+                    throw new IOException("Completed replay used a different core build; choose a fresh output directory.");
                 foreach(var input in metadata.Inputs.Append(metadata.Frames).Append(metadata.CoreAssembly))
                     if(Hash(input.Path).Sha256!=input.Sha256)throw new IOException("Changed completed replay input: "+input.Path);
             }
@@ -71,7 +74,7 @@ public static class ArticleEquilibriumPaths
         foreach (var solve in request.Equilibria)
         {
             var selection = sources.Single(s => s.Id == solve.Source);
-            if (!Regex.IsMatch(selection.Id, @"\A[a-z0-9-]+\z")) throw new InvalidDataException("Unsafe source ID.");
+            if (!SafeId(selection.Id)) throw new InvalidDataException("Unsafe source ID.");
             var options = ArticleWorkedPathExtraction.CreateOptions(selection.OptionSetName); RequireProtocol(options);
             var game = (SequenceForm)await ArticleWorkedPathExtraction.InitializeAsync(options);
             string file = Path.GetFullPath(selection.EquilibriumFile, sourceDirectory);
