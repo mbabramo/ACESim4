@@ -92,7 +92,7 @@ namespace ACESim
         public const int FocusedCoreCombinationCount = 10;
         public const int FocusedSpecificationComparisonCount = 102;
         public const int FocusedFeeRegimeComparisonCount = 57;
-        public const int MultipleEquilibriaOptionSetCount = 2;
+        public const int MultipleEquilibriaOptionSetCount = 6;
         public const int MultipleEquilibriaInitializationCount = 50;
         public const int IncreasedOfferGridOptionSetCount = 4;
         public const int IncreasedOfferGridOfferCount = 15;
@@ -347,6 +347,8 @@ namespace ACESim
                     IncreasedOfferGridOfferCount.ToString(CultureInfo.InvariantCulture));
             if (RunPlan == ProductionRunPlan.MultipleEquilibriaRobustness)
             {
+                values.Add(("Fee Shifting Trigger", "Trial only"));
+                values.Add(("Fees After Nonanswer", "false"));
                 values.Add((
                     "Initialization Starts",
                     MultipleEquilibriaInitializationCount.ToString(CultureInfo.InvariantCulture)));
@@ -458,8 +460,9 @@ namespace ACESim
         {
             var optionSets = new List<GameOptions>();
             foreach (FocusedSpecification specification in RobustnessSpecifications())
-            foreach (double feeMultiplier in new[] { 0.0, 1.0 })
+            foreach (int feeRule in RunPlan == ProductionRunPlan.MultipleEquilibriaRobustness ? new[] { 0, 1, 2 } : new[] { 0, 1 })
             {
+                double feeMultiplier = feeRule == 0 ? 0.0 : 1.0;
                 LitigGameOptions options = LitigGameOptionsGenerator.CorrelatedSignalsBase(smallerTree: false);
                 foreach ((string key, string value) in FocusedDefaultVariableValuesForRun())
                     options.VariableSettings[key] = value;
@@ -471,6 +474,7 @@ namespace ACESim
                 options.LoserPaysMultiple = feeMultiplier;
                 options.VariableSettings["Fee Shifting Multiplier"] = FormatNumber(feeMultiplier);
                 options.VariableSettings["Fee Regime"] = feeMultiplier == 0.0 ? "American" : "British";
+                if (feeRule == 2) ApplyExitFeeSettings(options);
                 ApplyRunSpecificRobustnessSettings(options);
                 options.Name = CreateStableOptionSetIdentifier(options);
                 optionSets.Add(options);
@@ -500,6 +504,11 @@ namespace ACESim
             return options;
         }
 
+        public static string FeeRuleLabel(LitigGameOptions options) => options.LoserPaysMultiple == 0
+            ? "American" : options.LoserPaysAfterAbandonment && options.LoserPaysAfterNonAnswer
+                ? "Complete Fee-Shifting" : !options.LoserPaysAfterAbandonment && !options.LoserPaysAfterNonAnswer
+                    ? "Trial Fee-Shifting" : "Selected-exit Fee-Shifting";
+
         private static void ApplyExitFeeSettings(LitigGameOptions options)
         {
             options.LoserPays = true;
@@ -517,7 +526,7 @@ namespace ACESim
             ProductionRunPlan.FocusedContinuousMerits =>
                 FocusedSpecifications.Select(definition => definition.Specification).ToArray(),
             ProductionRunPlan.MultipleEquilibriaRobustness =>
-                new[] { FocusedSpecification.Baseline },
+                IncreasedOfferGridSpecifications,
             ProductionRunPlan.IncreasedOfferGridRobustness =>
                 IncreasedOfferGridSpecifications,
             ProductionRunPlan.ExitFeeShifting => IncreasedOfferGridSpecifications,
@@ -1083,7 +1092,8 @@ namespace ACESim
 
             foreach (LitigGameOptions option in options)
             {
-                ValidateFocusedOptionSet(option, errors, expectedOffers);
+                ValidateFocusedOptionSet(option, errors, expectedOffers,
+                    exitFees: RunPlan == ProductionRunPlan.MultipleEquilibriaRobustness && option.LoserPaysAfterAbandonment);
                 FocusedSpecification specification = ParseFocusedSpecification(
                     GetSetting(option, "Specification"));
                 if (!expectedSpecifications.Contains(specification))
@@ -1112,10 +1122,13 @@ namespace ACESim
                 .ToList();
             foreach (IGrouping<string, LitigGameOptions> group in feeGroups)
             {
-                string[] regimes = group.Select(option => GetSetting(option, "Fee Regime"))
+                string[] regimes = group.Select(FeeRuleLabel)
                     .OrderBy(value => value, StringComparer.Ordinal)
                     .ToArray();
-                if (!regimes.SequenceEqual(new[] { "American", "British" }))
+                string[] expectedRegimes = RunPlan == ProductionRunPlan.MultipleEquilibriaRobustness
+                    ? new[] { "American", "Complete Fee-Shifting", "Trial Fee-Shifting" }
+                    : new[] { "American", "Trial Fee-Shifting" };
+                if (!regimes.SequenceEqual(expectedRegimes))
                     errors.Add($"Specification '{group.Key}' does not contain exactly one run under each fee regime.");
             }
 
@@ -1189,7 +1202,7 @@ namespace ACESim
                                 .Where(option => GetSetting(option, "Specification") == label)
                                 .OrderBy(option => GetSetting(option, "Fee Regime"), StringComparer.Ordinal)
                                 .Select(option => CreateExactSimulationIdentifier(
-                                    GetSetting(option, "Fee Regime"),
+                                    FeeRuleLabel(option),
                                     option))
                                 .ToList());
                     })
@@ -1491,7 +1504,7 @@ namespace ACESim
                     "Specification-" + specification,
                     "Cost-" + FormatNumber(options.CostsMultiplier),
                     "Fee-" + GetSetting(options, "Fee Regime"),
-                    RunPlan == ProductionRunPlan.ExitFeeShifting ? "ExitFees-AllUnilateralExits" : null,
+                    options.LoserPaysAfterAbandonment && options.LoserPaysAfterNonAnswer ? "ExitFees-AllUnilateralExits" : null,
                     RunPlan == ProductionRunPlan.MultipleEquilibriaRobustness
                         ? "Starts-" + MultipleEquilibriaInitializationCount
                         : null,

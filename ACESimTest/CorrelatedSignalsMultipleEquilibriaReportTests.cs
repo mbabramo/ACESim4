@@ -55,11 +55,12 @@ namespace ACESimTest
                         outcomesPath,
                         rangesPath);
 
-                summary.OptionSetCount.Should().Be(2);
-                summary.EquilibriumCount.Should().Be(4);
-                summary.RangeRowCount.Should().Be(2);
-                File.ReadLines(outcomesPath).Should().HaveCount(5);
-                File.ReadLines(rangesPath).Should().HaveCount(3);
+                summary.OptionSetCount.Should().Be(6);
+                summary.EquilibriumCount.Should().Be(12);
+                summary.RangeRowCount.Should().Be(6);
+                File.ReadLines(outcomesPath).Should().HaveCount(13);
+                File.ReadLines(rangesPath).Should().HaveCount(7);
+                File.ReadAllText(rangesPath).Should().Contain("Complete Fee-Shifting").And.Contain("Moderately Risk Averse");
                 string outcomes = File.ReadAllText(outcomesPath);
                 outcomes.Should()
                     .Contain(CorrelatedSignalsFocusedReport.MeritoriousPlaintiffRecoveryShortfallColumn)

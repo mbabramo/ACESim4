@@ -45,6 +45,7 @@ namespace LitigCharts
 
         private static readonly string[] OutcomeHeaders =
         {
+            "OptionSetName", "Risk Aversion", "CARA Alpha", "Fee Rule",
             "Specification",
             "Fee Regime",
             "Offers",
@@ -240,6 +241,10 @@ namespace LitigCharts
 
             var fields = new Dictionary<string, string>(StringComparer.Ordinal)
             {
+                ["OptionSetName"] = option.Name,
+                ["Risk Aversion"] = Setting(option, "Risk Aversion"),
+                ["CARA Alpha"] = Setting(option, "CARA Alpha"),
+                ["Fee Rule"] = LitigGameCorrelatedSignalsArticleLauncher.FeeRuleLabel(option),
                 ["Specification"] = Setting(option, "Specification"),
                 ["Fee Regime"] = Setting(option, "Fee Regime"),
                 ["Offers"] = option.NumOffers.ToString(CultureInfo.InvariantCulture),
@@ -270,6 +275,7 @@ namespace LitigCharts
         {
             string[] headers = new[]
             {
+                "OptionSetName", "Specification", "Risk Aversion", "CARA Alpha", "Fee Rule",
                 "Fee Regime",
                 "Requested Priors",
                 "Attempted Solves",
@@ -288,13 +294,18 @@ namespace LitigCharts
             })).ToArray();
 
             List<Dictionary<string, string>> rows = outcomes
-                .GroupBy(outcome => outcome.Fields["Fee Regime"], StringComparer.Ordinal)
+                .GroupBy(outcome => outcome.Fields["OptionSetName"], StringComparer.Ordinal)
                 .OrderBy(group => group.Key, StringComparer.Ordinal)
                 .Select(group =>
                 {
                     var row = new Dictionary<string, string>(StringComparer.Ordinal)
                     {
-                        ["Fee Regime"] = group.Key,
+                        ["OptionSetName"] = group.Key,
+                        ["Specification"] = group.First().Fields["Specification"],
+                        ["Risk Aversion"] = group.First().Fields["Risk Aversion"],
+                        ["CARA Alpha"] = group.First().Fields["CARA Alpha"],
+                        ["Fee Rule"] = group.First().Fields["Fee Rule"],
+                        ["Fee Regime"] = group.First().Fields["Fee Regime"],
                         ["Requested Priors"] = group.First().Fields["Requested Priors"],
                         ["Attempted Solves"] = group.First().Fields["Attempted Solves"],
                         ["Inexact Attempts"] = group.First().Fields["Inexact Attempts"],

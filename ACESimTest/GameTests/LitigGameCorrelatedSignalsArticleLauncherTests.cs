@@ -348,7 +348,7 @@ namespace ACESimTest.GameTests
         }
 
         [TestMethod]
-        public void MultipleEquilibriaPlan_UsesFiftyVerifiedStartsForBothPrincipalFeeRegimes()
+        public void MultipleEquilibriaPlan_UsesFiftyVerifiedStartsForAllSixCoreCases()
         {
             var launcher = new LitigGameCorrelatedSignalsArticleLauncher(
                 LitigGameCorrelatedSignalsArticleLauncher.ProductionRunPlan.MultipleEquilibriaRobustness);
@@ -356,12 +356,13 @@ namespace ACESimTest.GameTests
             var audit = launcher.ValidateProductionMatrix(options.Cast<GameOptions>().ToList());
 
             launcher.MasterReportNameForDistributedProcessing.Should().Be("CS004ME");
-            audit.OptionSetCount.Should().Be(2);
-            audit.FeeRegimeComparisonCount.Should().Be(1);
-            options.Select(option => Setting(option, "Fee Regime"))
-                .Should().BeEquivalentTo("American", "British");
+            audit.OptionSetCount.Should().Be(6);
+            audit.FeeRegimeComparisonCount.Should().Be(2);
+            foreach (var risk in options.GroupBy(option => Setting(option, "CARA Alpha")))
+                risk.Select(LitigGameCorrelatedSignalsArticleLauncher.FeeRuleLabel)
+                    .Should().BeEquivalentTo("American", "Trial Fee-Shifting", "Complete Fee-Shifting");
+            options.Count(option => option.LoserPaysAfterAbandonment && option.LoserPaysAfterNonAnswer).Should().Be(2);
             options.Should().OnlyContain(option =>
-                Setting(option, "Specification") == LitigGameCorrelatedSignalsArticleLauncher.FocusedBaselineLabel &&
                 Setting(option, "Costs Multiplier") == "1" &&
                 option.NumLiabilitySignals == 10 &&
                 option.NumCourtLiabilitySignals == 2 &&
