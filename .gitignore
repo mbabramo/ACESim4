@@ -167,6 +167,7 @@ WebSite/wwwroot/js/ViewTable.js
 csvreport.csv
 standardreport
 /ReportResults
+/SupplementalResults/
 /ReportResultsOld
 /Strategies/result.h5
 /Strategies/result.npy

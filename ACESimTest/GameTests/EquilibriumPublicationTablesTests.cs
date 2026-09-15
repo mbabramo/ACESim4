@@ -41,7 +41,7 @@ public class EquilibriumPublicationTablesTests
     }
 
     [TestMethod]
-    public void CompactLayoutRejectsHiddenRemaindersUndefinedValuesAndMixedOfferMetrics()
+    public void GeneralizedLayoutAcceptsExplicitRemaindersUndefinedValuesAndMixedOfferMetrics()
     {
         foreach (var row in new[]
         {
@@ -51,7 +51,7 @@ public class EquilibriumPublicationTablesTests
         })
         {
             Action validate = () => EquilibriumPublicationTables.ValidateRows(new[] { row });
-            validate.Should().Throw<System.IO.InvalidDataException>();
+            validate.Should().NotThrow();
         }
     }
 
@@ -62,9 +62,9 @@ public class EquilibriumPublicationTablesTests
             "Specification-ModerateRiskAversion__Cost-1__Fee-American", "Specification-ModerateRiskAversion__Cost-1__Fee-British",
             new(), null, null, Array.Empty<Scenario>(), Array.Empty<string>(), new[] { Row() }, Array.Empty<ExcludedHistory>(), null);
         var latex = EquilibriumPublicationTables.Latex(result, new[] { Row(), Row(2, true) });
-        latex.Should().Contain("At some signals").And.Contain(@"\mathrm{pp}").And.Contain(@"100\%");
-        latex.Should().NotContain("footnote").And.NotContain("Remaining").And.NotContain("Methodology");
-        EquilibriumPublicationTables.FileName(result).Should().Be("American to British - moderate risk aversion");
+        latex.Should().Contain("At some signals").And.Contain("Remaining").And.Contain(@"100\%");
+        latex.Should().NotContain("footnote").And.NotContain("ordinary costs").And.NotContain("Methodology");
+        EquilibriumPublicationTables.FileName(result).Should().Be("fee-shifting-risk-averse-cost-1");
     }
 
     private static ContrastResult OffsetFixture(double directLoss = .02)
@@ -113,8 +113,8 @@ public class EquilibriumPublicationTablesTests
         var tied = OffsetFixture(1e-7);
         EquilibriumPublicationTables.OffsettingEffects(tied).Should().BeEmpty();
         var strict = OffsetFixture();
-        Action select = () => EquilibriumPublicationTables.Select(strict, tied, strict);
-        select.Should().Throw<System.IO.InvalidDataException>("the only candidate fails a mixing check, leaving no display rows");
+        EquilibriumPublicationTables.Select(strict, tied, strict).Should().BeEmpty(
+            "the only candidate fails a mixing check; an empty selection is a valid reported result");
         var unchangedResponse = strict with { Scenarios = strict.Scenarios.Select(s => s with {
             Result = s.Result with { InformationSets = strict.SourceEquilibrium.InformationSets }
         }).ToArray() };

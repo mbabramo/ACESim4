@@ -203,12 +203,15 @@ public static class ArticlePressureAnalysis
             "Fee Shifting Trigger", "Fees After Nonanswer" };
         var left = source.VariableSettings.ToDictionary(x => x.Key, x => Convert.ToString(x.Value, System.Globalization.CultureInfo.InvariantCulture));
         var right = target.VariableSettings.ToDictionary(x => x.Key, x => Convert.ToString(x.Value, System.Globalization.CultureInfo.InvariantCulture));
-        bool feeChanged = left.GetValueOrDefault("Fee Regime") != right.GetValueOrDefault("Fee Regime");
-        bool riskChanged = left.GetValueOrDefault("Risk Aversion") != right.GetValueOrDefault("Risk Aversion");
-        bool triggerChanged = source.LoserPaysAfterAbandonment != target.LoserPaysAfterAbandonment ||
+        // A legal fee-rule intervention may change both the reimbursement amount
+        // and its trigger (American <-> Complete Fee-Shifting).
+        bool feeChanged = source.LoserPays != target.LoserPays || source.LoserPaysMultiple != target.LoserPaysMultiple ||
+            source.LoserPaysAfterAbandonment != target.LoserPaysAfterAbandonment ||
             source.LoserPaysAfterNonAnswer != target.LoserPaysAfterNonAnswer;
-        if ((feeChanged ? 1 : 0) + (riskChanged ? 1 : 0) + (triggerChanged ? 1 : 0) != 1)
-            throw new InvalidDataException("Change exactly one intervention: fee regime, fee trigger, OR risk preferences.");
+        bool riskChanged = left.GetValueOrDefault("Risk Aversion") != right.GetValueOrDefault("Risk Aversion") ||
+            left.GetValueOrDefault("CARA Alpha") != right.GetValueOrDefault("CARA Alpha");
+        if (feeChanged == riskChanged)
+            throw new InvalidDataException("Change exactly one intervention: the fee rule (amount and/or trigger), OR risk preferences.");
         foreach (string key in left.Keys.Union(right.Keys))
             if (!allowed.Contains(key) && left.GetValueOrDefault(key) != right.GetValueOrDefault(key))
                 throw new InvalidDataException("Unmatched intervention primitive: " + key);

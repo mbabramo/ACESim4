@@ -14,6 +14,7 @@ namespace LitigCharts;
 /// <summary>Original equilibrium coordinates, selected by the common focus checks, without table notes.</summary>
 public static class EquilibriumPublicationTables
 {
+    public const string Caption = "Selected strategy coordinates supported by the focus or offsetting-effect checks in the original, mixed and tighter mixed representations. Endpoints are local policies at the indicated own-signal information set; offers retain the player's private exit commitment. Probability contributions use percentage points; pure offer amounts use damages units. Direct changes the primitive first with the original opponent fixed. Opponent contributions average all six replacement orders. Remaining is the endpoint-selection residual, not an additional mechanism. Undefined conditional comparisons are shown as dashes. Sensitivity flags ties or donor-unvisited completions; an asterisk marks an unreached intermediate response. Empty tables mean that no rows satisfy this selection, not that all equilibrium strategies are identical. Full original and hybrid policies, reach and excluded histories remain in the calculation JSON. This accounting is not uniquely identified causation or an observed adjustment process.";
     public sealed record Group(ChangeRow[] Rows)
     {
         public ChangeRow First => Rows[0];
@@ -32,9 +33,10 @@ public static class EquilibriumPublicationTables
                     !arguments.TryAdd(args[i], Path.GetFullPath(args[i + 1])))
                     throw new ArgumentException("equilibrium-publication --original <request> --mixed <request> --check <request> --output <directory> --previews <QA directory>");
             }
-            if (arguments.Count != 5) throw new ArgumentException("Supply all five publication arguments.");
-            string output = arguments["--output"], previews = arguments["--previews"];
-            if (output.Equals(previews, StringComparison.OrdinalIgnoreCase))
+            if (new[] { "--original", "--mixed", "--check", "--output" }.Any(k => !arguments.ContainsKey(k)))
+                throw new ArgumentException("Supply original, mixed, check and output; previews is optional.");
+            string output = arguments["--output"], previews = arguments.GetValueOrDefault("--previews");
+            if (previews != null && output.Equals(previews, StringComparison.OrdinalIgnoreCase))
                 throw new ArgumentException("Keep QA previews outside the publication directory.");
             var original = EquilibriumChangeTables.LoadCalculated(arguments["--original"]);
             var mixed = EquilibriumChangeTables.LoadCalculated(arguments["--mixed"]);
@@ -46,23 +48,31 @@ public static class EquilibriumPublicationTables
                 var selected = Select(o, m, c);
                 return (Original: o, Rows: selected, Name: FileName(o));
             }).ToArray();
-            if (publications.Length != 4 || publications.Select(p => p.Name).Distinct().Count() != 4)
-                throw new InvalidDataException("This publication packet requires the four ordinary-cost interventions.");
+            if (publications.Length == 0 || publications.Select(p => p.Name).Distinct().Count() != publications.Length ||
+                original.Results.Length != publications.Length || check.Results.Length != publications.Length)
+                throw new InvalidDataException("All three requests must contain the same nonempty directed contrast set.");
             foreach (var manifest in new[] { original.Manifest, mixed.Manifest, check.Manifest })
                 if (manifest.OutputJsonFiles.Any(p => Path.GetDirectoryName(p).Equals(output, StringComparison.OrdinalIgnoreCase)))
                     throw new InvalidDataException("Do not write publication files in a calculation directory.");
             Directory.CreateDirectory(output);
+            Directory.CreateDirectory(Path.Combine(output, "Sources"));
             var sources = new List<string>();
             foreach (var p in publications)
             {
-                string path = Path.Combine(output, p.Name + ".tex");
+                string path = Path.Combine(output, "Sources", p.Name + ".tex");
                 string provenance = string.Join("\n", new[] { "--original", "--mixed", "--check" }
                     .Select(k => "% Input request SHA-256: " + Hash(arguments[k]).Sha256));
                 await File.WriteAllTextAsync(path, provenance + "\n" + Latex(p.Original, p.Rows));
+                await File.WriteAllTextAsync(Path.ChangeExtension(path, ".json"), System.Text.Json.JsonSerializer.Serialize(new {
+                    p.Original.Contrast, p.Original.SourceOptionSet, p.Original.TargetOptionSet,
+                    SelectedRows = p.Rows, Inputs = new[] {"--original","--mixed","--check"}.Select(k=>Hash(arguments[k])),
+                    Caption = Caption }, JsonOptions));
+                await File.WriteAllTextAsync(Path.ChangeExtension(path, ".txt"), Caption + "\n" +
+                    EquilibriumChangeTables.Heading(p.Original.SourceOptionSet,p.Original.TargetOptionSet));
                 sources.Add(path);
                 Console.WriteLine($"{p.Name}: {p.Rows.Length} information sets, {GroupRows(p.Rows).Length} displayed rows.");
             }
-            await DiagramCompiler.CompileAllAsync(sources.ToArray(), new(), 2, previewDirectory: previews);
+            await DiagramCompiler.CompileAllAsync(sources.ToArray(), new(), Environment.ProcessorCount, previewDirectory: previews);
             Console.WriteLine("Publication directory: " + output);
             // Methodology.tex is deliberately NOT generated or overwritten: it belongs to the author.
             return 0;
@@ -123,12 +133,12 @@ public static class EquilibriumPublicationTables
 
     public static void ValidateRows(ChangeRow[] rows)
     {
-        if (rows.Length == 0 || rows.Select(r => r.Key).Distinct().Count() != rows.Length ||
-            rows.Any(r => r.CounterfactualUndefined || Math.Abs(r.Allocation.SelectionResidual) > PolicyTolerance ||
-                r.Metric is not ("decision probability" or "offer amount")))
-            throw new InvalidDataException("The compact layout requires defined, zero-remainder decisions/pure offer amounts. Add explicit columns for other cases; do not hide them.");
-        foreach (var r in rows)
-            InformationSetPressureAnalysis.Near(r.Allocation.Change, r.Allocation.Explained, PolicyTolerance, "Publication accounting");
+        if (rows.Select(r => (r.Key,r.Action)).Distinct().Count() != rows.Length ||
+            rows.Any(r => r.Metric is not ("decision probability" or "offer amount" or "offer action probability")))
+            throw new InvalidDataException("Duplicate or unsupported strategy coordinates.");
+        foreach (var r in rows.Where(r=>!r.CounterfactualUndefined))
+            InformationSetPressureAnalysis.Near(r.Allocation.Change, r.Allocation.Explained + r.Allocation.SelectionResidual,
+                PolicyTolerance, "Publication accounting including residual");
     }
 
     public static Group[] GroupRows(ChangeRow[] rows)
@@ -150,6 +160,7 @@ public static class EquilibriumPublicationTables
             r.Allocation.Entry, r.Allocation.Offers, r.Allocation.Exit, r.Allocation.SelectionResidual };
         return a.Player == b.Player && a.Decision == b.Decision && a.Signal + 1 == b.Signal &&
             a.ExitCommitment == b.ExitCommitment && a.Metric == b.Metric && a.Action == b.Action &&
+            a.CounterfactualUndefined == b.CounterfactualUndefined && a.UnreachedCoalitions.SequenceEqual(b.UnreachedCoalitions) &&
             Same(a.OriginalPolicy, b.OriginalPolicy) && Same(a.TargetPolicy, b.TargetPolicy) && Same(Values(a), Values(b));
         // Unlike the audit packet, combine equal numerical rows with different flags.
         // The displayed group explicitly distinguishes sensitivity at all/some/no signals.
@@ -163,11 +174,8 @@ public static class EquilibriumPublicationTables
 
     public static string FileName(ContrastResult r)
     {
-        var h = EquilibriumChangeTables.Heading(r.SourceOptionSet, r.TargetOptionSet);
-        if (h.Cost != "1") throw new InvalidDataException("Only ordinary costs belong in this packet.");
-        bool fees = r.Contrast.Id.StartsWith("fee-shifting-");
-        return fees ? "American to British - " + (r.SourceOptionSet.Contains("ModerateRiskAversion") ? "moderate risk aversion" : "risk neutral")
-            : "Risk neutral to risk averse - " + (r.SourceOptionSet.EndsWith("American") ? "American rule" : "British rule");
+        EquilibriumChangeTables.Heading(r.SourceOptionSet, r.TargetOptionSet);
+        return r.Contrast.Id;
     }
 
     public static string Latex(ContrastResult result, ChangeRow[] rows)
@@ -184,16 +192,13 @@ public static class EquilibriumPublicationTables
             \begin{document}
             \begin{minipage}{7.5in}
             """);
-        b.AppendLine("\n{\\large\\bfseries " + EquilibriumChangeTables.Escape(h.Title) + @"}\par");
-        b.AppendLine(EquilibriumChangeTables.Escape(h.HeldFixed) + @"; ordinary costs\par\medskip");
-        b.AppendLine(@"{\fontsize{9.5}{11.5}\selectfont\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{1.38in}>{\centering\arraybackslash}p{.54in}>{\centering\arraybackslash}p{1.07in}*{4}{>{\raggedleft\arraybackslash}p{.61in}}>{\centering\arraybackslash}X@{}}");
-        b.AppendLine(@"\toprule & & & \multicolumn{4}{c}{Contributions to change} & \\");
-        b.AppendLine(@"\cmidrule(lr){4-7} Decision & Own signal & Original $\to$ Target & Direct & \shortstack{Opponent\\entry} & \shortstack{Opponent\\offers} & \shortstack{Opponent\\exit} & \shortstack{Tie/off-path\\sensitivity} \\\midrule");
+        b.AppendLine(@"{\fontsize{9.5}{11.5}\selectfont\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{1.35in}>{\centering\arraybackslash}p{.45in}>{\centering\arraybackslash}p{1.05in}*{5}{>{\centering\arraybackslash}X}>{\centering\arraybackslash}p{.65in}@{}}");
+        b.AppendLine(@"\toprule Decision & Signal & Original $\to$ Target & Direct & \shortstack{Opponent\\entry} & \shortstack{Opponent\\offers} & \shortstack{Opponent\\exit} & Remaining & Sensitive \\\midrule");
         bool hasOffsets = rows.Any(Unchanged);
         foreach (var section in rows.GroupBy(Unchanged).OrderBy(g => g.Key))
         {
             if (hasOffsets)
-                b.AppendLine((section.Key ? @"\midrule " : "") + @"\multicolumn{8}{l}{\textit{" +
+                b.AppendLine((section.Key ? @"\midrule " : "") + @"\multicolumn{9}{l}{\textit{" +
                     (section.Key ? "Unchanged actions with offsetting effects" : "Changed actions") + @"}}\\[2pt]");
             foreach (var group in GroupRows(section.ToArray()))
             {
@@ -213,12 +218,13 @@ public static class EquilibriumPublicationTables
                     "D Defaults" => "D commits to default",
                     _ => (row.Player == 0 ? "P demand" : "D offer") + (row.ExitCommitment == 2 ? ", continue" : ", exit")
                 };
+                if (row.Action.HasValue) label += " " + EquilibriumChangeTables.Escape(row.ActionLabels[row.Action.Value-1]);
                 string signal = row.SignalValue.ToString("0.00", CultureInfo.InvariantCulture) +
                     (group.Rows.Length > 1 ? "--" + group.Last.SignalValue.ToString("0.00", CultureInfo.InvariantCulture) : "");
                 if (group.Rows.Any(r => r.UnreachedCoalitions.Length > 0)) label += "$^{*}$";
                 b.Append(label + " & " + signal + " & " + endpoint);
-                foreach (double effect in new[] { a.Direct, a.Entry, a.Offers, a.Exit })
-                    b.Append(" & $" + Num(effect, true) + (!amount && Math.Abs(effect) >= .05 ? @"\,\mathrm{pp}" : "") + "$");
+                foreach (double effect in new[] { a.Direct, a.Entry, a.Offers, a.Exit, a.SelectionResidual })
+                    b.Append(row.CounterfactualUndefined ? " & ---" : " & $" + Num(effect, true) + "$");
                 b.AppendLine(" & " + group.Sensitivity + @"\\");
             }
         }

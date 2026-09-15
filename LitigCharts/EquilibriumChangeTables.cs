@@ -27,20 +27,9 @@ public static class EquilibriumChangeTables
         ValidateMatchedOptions(source, target);
         string From(string key) => Convert.ToString(source.VariableSettings[key], Invariant);
         string To(string key) => Convert.ToString(target.VariableSettings[key], Invariant);
-        string fromFee = From("Fee Regime"), toFee = To("Fee Regime");
+        string fromFee = ACESim.LitigGameCorrelatedSignalsArticleLauncher.FeeRuleLabel(source);
+        string toFee = ACESim.LitigGameCorrelatedSignalsArticleLauncher.FeeRuleLabel(target);
         string fromRisk = From("Risk Aversion").ToLowerInvariant(), toRisk = To("Risk Aversion").ToLowerInvariant();
-        bool triggerChanged = source.LoserPaysAfterAbandonment != target.LoserPaysAfterAbandonment ||
-            source.LoserPaysAfterNonAnswer != target.LoserPaysAfterNonAnswer;
-        if (triggerChanged)
-        {
-            string Trigger(ACESim.LitigGameOptions option) => option.LoserPaysAfterAbandonment && option.LoserPaysAfterNonAnswer
-                ? "Trial + exit" : !option.LoserPaysAfterAbandonment && !option.LoserPaysAfterNonAnswer
-                    ? "Trial only" : "Selected exits";
-            return new("Fee liability: " + Trigger(source) + " to " + Trigger(target),
-                "Both players remain " + fromRisk + "; fee multiplier " + From("Fee Shifting Multiplier"),
-                From("Costs Multiplier"), Trigger(source) + ", " + fromRisk, Trigger(target) + ", " + toRisk,
-                Trigger(source), Trigger(target));
-        }
         bool fees = fromFee != toFee;
         string ShortRisk(string risk) => risk == "moderately risk averse" ? "risk averse" : risk;
         return new(fees ? $"Fee shifting: {fromFee} to {toFee}" : $"Preferences: {fromRisk} to {toRisk}",
@@ -93,7 +82,7 @@ public static class EquilibriumChangeTables
             bool ordinary = group.Key == "1";
             string directory = ordinary && request.PublicationDirectory != null ? Resolve(request.PublicationDirectory) : output;
             Directory.CreateDirectory(directory);
-            string stem = Path.Combine(directory, ordinary ? "Equilibrium strategy changes" : "High-cost equilibrium strategy changes");
+            string stem = Path.Combine(directory, "cost-" + group.Key + "-equilibrium-strategy-changes");
             await WriteReport(stem, group.ToArray());
             await File.WriteAllTextAsync(stem + ".json", JsonSerializer.Serialize(group.Select(r => new
             {
