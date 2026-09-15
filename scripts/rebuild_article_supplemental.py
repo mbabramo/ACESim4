@@ -50,7 +50,7 @@ These tables examine how equilibrium litigation strategies change when the fee r
 
 The collection contains {len(pairs)} directed comparisons across {len(cases)} equilibrium profiles. It covers American, Trial Fee-Shifting and Complete Fee-Shifting at cost multipliers {', '.join(costs)}. RN means risk neutral; RA means both parties have CARA risk aversion with coefficient 2. Other available coefficients are labeled explicitly. Each fee change is evaluated in both directions within each risk level, and each risk change in both directions within each fee rule. Costs are held fixed; a risk comparison changes both parties' preferences together.
 
-Start with the [table index](#table-index) below. Read [Methodology and Explanation](<Methodology and Explanation.md>) for the column definitions, row-selection criteria, calculation types and limitations. The decompositions describe selected equilibria; their contributions are not uniquely identified causal effects or observed paths of adjustment.
+Start with the [table index](#table-index) below. Read [Methodology and Explanation](<Methodology and Explanation.md>) for the column definitions, row-selection criteria and limitations. The tables use the same saved equilibria as the strategy figures and outcome reports. Their contributions are not uniquely identified causal effects or observed paths of adjustment.
 
 ## Folder guide
 
@@ -58,7 +58,7 @@ Start with the [table index](#table-index) below. Read [Methodology and Explanat
 |---|---|
 | [Tables](Tables) | One PDF and PNG per directed comparison and cost. These are a collection of candidate rows and panels for manuscript selection. |
 | [Tables/Sources](Tables/Sources) | C#-generated TeX and JSON for each table. The JSON contains selected values, scenario identifiers and input fingerprints. |
-| [Calculations](Calculations) | Full comparisons using original profiles, mixed profiles and a tighter mixing check; the Mixing subfolder holds the searches that produce the alternative profiles. |
+| [Calculations](Calculations) | Full comparisons of the saved equilibrium profiles, arranged by cost and directed contrast, with counterfactual best responses, tie/completion checks and residuals. |
 | [Sources/Profiles](Sources/Profiles) | Frozen equilibrium and action-report inputs used by the comparisons and solution-path verification. These preserve the exact input bytes independently of later report regeneration. |
 | [Sources/Process Logs](<Sources/Process Logs>) | Execution logs and process records for these calculations and tables. |
 
@@ -134,47 +134,26 @@ def prepare(results,output,exe,log_roots):
         jobs.append({'id':id,'phase':phase,'command':[str(x) for x in command],
                      'dependencies':dependencies,'inputs':[str(x) for x in inputs],
                      'expected':[str(x) for x in expected],'outputs':outputs})
-    def source(c,parent,profile=None):
+    def source(c,parent):
         s={'Id':c['id'],'OptionSetName':c['option'],'EquilibriumFile':relative(c['equilibrium'],parent),
            'ActionReportFile':relative(c['actions'],parent),'EquilibriumNumber':1}
-        if profile:s['ProfileFile']=relative(profile,parent)
         return s
-    settings={'MaxSweeps':6,'MaxCutsPerBlock':60,'GainLimit':1e-9,'ValidationTolerance':1e-7,
-              'TieTolerance':1e-10,'ImprovementTolerance':1e-7,'SourceReachThreshold':1e-12,'SupportThreshold':1e-6}
-    for c in cases:
-        for representation in ['Mixed','Mixed tighter check']:
-            directory=changes/'Calculations/Mixing'/representation/c['id']
-            req=directory/'equilibrium-mixing.request.json'
-            control={**settings}
-            if representation!='Mixed':control.update(GainLimit=1e-10,TieTolerance=1e-11)
-            write(req,{'OutputDirectory':'.','Sources':[source(c,directory)],'Settings':control,
-                       'Orders':['forward','reverse'] if representation=='Mixed' else ['forward']})
-            job('mix-'+representation+'-'+c['id'],'mixing',[exe,'equilibrium-mixing','--request',req],[],
-                [req,c['equilibrium'],c['actions']],[directory/(c['id']+'-profile.json')],[(str(directory),'*.json')])
     pairs=contrasts(cases)
     for a,b in pairs:
         id=(a['fee']+'-to-'+b['fee']+'-'+a['risk'] if a['fee']!=b['fee'] else a['risk']+'-to-'+b['risk']+'-'+a['fee'])+'-cost-'+a['cost']
-        calculated={}
-        for representation in ['Original','Mixed','Mixed tighter check']:
-            directory=changes/'Calculations'/representation/('cost-'+a['cost'])/id
-            req=directory/'equilibrium-changes.request.json';sources=[];inputs=[req];dependencies=[]
-            for c in [a,b]:
-                profile=None
-                if representation!='Original':
-                    profile=changes/'Calculations/Mixing'/representation/c['id']/(c['id']+'-profile.json')
-                    inputs.append(profile);dependencies.append('mix-'+representation+'-'+c['id'])
-                inputs.extend([c['equilibrium'],c['actions']]);sources.append(source(c,directory,profile))
-            write(req,{'OutputDirectory':'.','Sources':sources,'Contrasts':[
-                {'Id':id,'Label':id,'Source':a['id'],'Target':b['id']}],
-                'CheckOffPathCompletions':True,'CheckTieSensitivity':True})
-            jid='change-'+representation+'-'+id;calculated[representation]=(req,jid,directory)
-            job(jid,'original' if representation=='Original' else 'mixed',[exe,'equilibrium-changes','--request',req,'--calculate-only'],
-                dependencies,inputs,[directory/'equilibrium-changes-manifest.json'],[(str(directory),'*.json')])
+        directory=changes/'Calculations'/('cost-'+a['cost'])/id
+        req=directory/'equilibrium-changes.request.json';inputs=[req]
+        for c in [a,b]:inputs.extend([c['equilibrium'],c['actions']])
+        write(req,{'OutputDirectory':'.','Sources':[source(c,directory) for c in [a,b]],'Contrasts':[
+            {'Id':id,'Label':id,'Source':a['id'],'Target':b['id']}],
+            'CheckOffPathCompletions':True,'CheckTieSensitivity':True})
+        jid='change-'+id
+        job(jid,'calculations',[exe,'equilibrium-changes','--request',req,'--calculate-only'],
+            [],inputs,[directory/'equilibrium-changes-manifest.json'],[(str(directory),'*.json')])
         pub=changes/'Tables'
-        args=[exe,'equilibrium-publication','--original',calculated['Original'][0],'--mixed',calculated['Mixed'][0],
-              '--check',calculated['Mixed tighter check'][0],'--output',pub]
-        job('publication-'+id,'publication',args,[v[1] for v in calculated.values()],
-            [p for req,_,d in calculated.values() for p in [req,d/'equilibrium-changes-manifest.json',d/(id+'.json')]],
+        args=[exe,'equilibrium-publication','--request',req,'--output',pub]
+        job('table-'+id,'tables',args,[jid],
+            [req,directory/'equilibrium-changes-manifest.json',directory/(id+'.json')],
             [pub/(id+'.pdf'),pub/(id+'.png'),pub/'Sources'/(id+'.json')],[(str(pub),id+'.*'),(str(pub/'Sources'),id+'.*')])
     ordinary=[c for c in cases if c['cost']=='1']
     log_candidates=[]
@@ -207,7 +186,7 @@ def prepare(results,output,exe,log_roots):
     plan={'Schema':1,'Cases':cases,'DirectedContrasts':len(pairs),'PathCases':len(ordinary),'Jobs':jobs}
     write(output/'supplemental-plan.json',plan)
     describe(plan,output)
-    print(f'Prepared {len(cases)} core profiles, {len(pairs)} directed contrasts x three representations, {2*len(cases)} mixing checks, {len(ordinary)} paths.',flush=True)
+    print(f'Prepared {len(cases)} core profiles, {len(pairs)} directed calculations and tables, {len(ordinary)} paths.',flush=True)
     return plan
 
 def run(plan,output,jobs,phases):
@@ -241,7 +220,7 @@ def run(plan,output,jobs,phases):
         running={}
         while pending or running:
             ready=[j for j in pending.values() if all(d in complete for d in j['dependencies'])]
-            ready.sort(key=lambda j:{'paths':0,'original':1,'mixing':2,'mixed':3,'publication':4}[j['phase']])
+            ready.sort(key=lambda j:{'paths':0,'calculations':1,'tables':2}[j['phase']])
             for j in ready[:jobs-len(running)]:
                 pending.pop(j['id']);running[pool.submit(execute,j)]=j
                 print('Start '+j['id'],flush=True)
@@ -267,7 +246,7 @@ if __name__=='__main__':
     parser.add_argument('--original-logs',type=Path,action='append',default=[])
     parser.add_argument('--jobs',type=int,default=os.cpu_count())
     parser.add_argument('--prepare-only',action='store_true')
-    parser.add_argument('--phase',action='append',choices=['original','mixing','mixed','publication','paths'])
+    parser.add_argument('--phase',action='append',choices=['calculations','tables','paths'])
     args=parser.parse_args()
     if args.jobs<1:parser.error('--jobs must be positive')
     plan=prepare(args.results.resolve(),args.output.resolve(),args.exe.resolve(),args.original_logs)

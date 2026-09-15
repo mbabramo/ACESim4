@@ -30,26 +30,21 @@ def verify(output,changes_only=False):
            ((a['fee']!=b['fee']) != (a['alpha']!=b['alpha']))}
     assert len(pairs)==plan['DirectedContrasts']
     changes=output/'Equilibrium strategy changes'; counts=Counter();selected=[]; checks=0
-    for rep in ['Original','Mixed','Mixed tighter check']:
-        seen=set()
-        for p in (changes/'Calculations'/rep).glob('cost-*/*/equilibrium-changes-manifest.json'):
-            manifest=read(p);assert manifest['Schema']=='2'
-            for f in fingerprints(manifest):check(f);checks+=1
-            for name in manifest['OutputJsonFiles']:
-                result=read(name);contrast=result['Contrast'];seen.add((contrast['Source'],contrast['Target']))
-                for row in result['Changes']:
-                    counts[rep+' full coordinates']+=1
-                    if not row['CounterfactualUndefined']:
-                        a=row['Allocation'];close(a['Change'],a['Direct']+a['Entry']+a['Offers']+a['Exit']+a['SelectionResidual'])
-        assert seen==pairs,(rep,len(seen),len(pairs))
-    for rep in ['Mixed','Mixed tighter check']:
-        for case in cases:
-            directory=changes/'Calculations/Mixing'/rep/case['id'];mix=read(directory/(case['id']+'.json'))
-            for f in fingerprints(mix):check(f);checks+=1
-            assert mix['ValidatedRows']>0
-            chosen=next(r for r in mix['Runs'] if r['Order']==mix['SelectedOrder'])
-            assert all(math.isfinite(v) and v<=mix['Settings']['ValidationTolerance'] for v in chosen['FinalGains'])
-            counts['Mixing checks']+=1
+    assert {p.name for p in (changes/'Calculations').iterdir() if p.is_dir()}=={'cost-'+c['cost'] for c in cases}
+    seen=set()
+    for p in (changes/'Calculations').glob('cost-*/*/equilibrium-changes-manifest.json'):
+        manifest=read(p);assert manifest['Schema']=='2'
+        for f in fingerprints(manifest):check(f);checks+=1
+        request=read(p.parent/'equilibrium-changes.request.json')
+        assert request['CheckOffPathCompletions'] and request['CheckTieSensitivity']
+        assert all(s.get('ProfileFile') is None for s in request['Sources'])
+        for name in manifest['OutputJsonFiles']:
+            result=read(name);contrast=result['Contrast'];seen.add((contrast['Source'],contrast['Target']))
+            for row in result['Changes']:
+                counts['Full coordinates']+=1
+                if not row['CounterfactualUndefined']:
+                    a=row['Allocation'];close(a['Change'],a['Direct']+a['Entry']+a['Offers']+a['Exit']+a['SelectionResidual'])
+    assert seen==pairs,(len(seen),len(pairs))
     numeric=0;empty=[]
     sources=changes/'Tables/Sources'
     assert (changes/'Methodology and Explanation.md').is_file()
@@ -57,6 +52,7 @@ def verify(output,changes_only=False):
     publication_pairs=set()
     for p in sources.glob('*-cost-*.json'):
         j=read(p);publication_pairs.add((j['Contrast']['Source'],j['Contrast']['Target']))
+        assert len(j['Inputs'])==1 and 'saved equilibria' in j['Selection']
         assert (p.parent/j['Methodology']).resolve()==(changes/'Methodology and Explanation.md').resolve()
         for f in j['Inputs']:check(f);checks+=1
         pdf=p.parent.parent/(p.stem+'.pdf');png=pdf.with_suffix('.png')
@@ -77,7 +73,8 @@ def verify(output,changes_only=False):
         assert signed(printed)==signed(body),('Printed signs',str(pdf))
         numeric+=len(expected)
         if not j['SelectedRows']:empty.append(j['Contrast']['Id'])
-        selected.extend(j['SelectedRows']);counts['Publication tables']+=1
+        selected.extend(j['SelectedRows']);counts['Tables']+=1
+        counts['Displayed rows']+=len(body.splitlines()) if body else 0
     assert publication_pairs==pairs
     report={'CoreProfiles':len(cases),'DirectedContrasts':len(pairs),'Counts':dict(counts),
         'PublicationNumericEntriesVerified':numeric,'SelectedCoordinates':len(selected),

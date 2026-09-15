@@ -8,20 +8,11 @@ At each cost, the three rules are American, Trial Fee-Shifting and Complete Fee-
 
 With risk neutrality and symmetric CARA risk aversion at coefficient 2, there are 18 comparisons per cost, or 90 across the five standard cost multipliers. The README lists the available tables. The table collection provides candidate rows and panels for manuscript selection; it does not prescribe what belongs in the article or appendix.
 
-The Calculations folder contains four types of records:
-
-| Folder | Role |
-|---|---|
-| Original | Full strategy-change calculations using the equilibria originally computed by the solver. These supply the displayed table values. |
-| Mixing | Searches for alternative profiles with more mixing among utility-tied actions, subject to checks of both players' unrestricted best responses. There is one search record per endpoint profile and search setting. These records supply inputs to the next two folders. |
-| Mixed | Recalculates each directed comparison using the mixed profiles selected by the main search. |
-| Mixed tighter check | Recalculates each directed comparison using profiles from the search with tighter gain and tie tolerances. |
-
-Original, Mixed and Mixed tighter check contain the same directed comparisons, arranged by cost and contrast. Mixing contains the profile searches used to construct the two alternative sets of endpoints. These searches and recalculations assess sensitivity to the representation of equilibrium indifference; they are separate from the multiple-start equilibrium study.
+Calculations contains one set of comparisons, arranged by cost and directed contrast. Every comparison uses the saved equilibrium profiles underlying the strategy figures and outcome reports. Mixed strategies present in those saved equilibria are preserved; no auxiliary search changes their mixing probabilities. The separate multiple-start equilibrium study examines other recovered equilibria and their outcome dispersion.
 
 Tables contains the PDF and PNG displays. Tables/Sources contains the C#-generated TeX and JSON: selected coordinates, unrounded values, scenario identifiers and input fingerprints. Each JSON file links to this shared explanation. Scenario-specific information is retained in those records and in the filenames; the methodology is common to all tables. The full calculations retain excluded coordinates, original and hybrid policies, reach probabilities, utility comparisons and sensitivity checks.
 
-Sources/Profiles contains frozen copies of the equilibrium and action-report inputs. The equilibrium CSV gives the saved strategy probabilities; the action report connects them to information sets and reported values. Preserving the exact input bytes makes the calculations reproducible even if routine reports are later regenerated or reserialized. The profile-provenance.json file identifies these inputs and their hashes. They are inputs, not extra equilibrium estimates. Sources/Process Logs records execution of the comparisons, mixing searches and table generation.
+Sources/Profiles contains frozen copies of the equilibrium and action-report inputs. The equilibrium CSV gives the saved strategy probabilities; the action report connects them to information sets and reported values. Preserving the exact input bytes makes the calculations reproducible even if routine reports are later regenerated or reserialized. The profile-provenance.json file identifies these inputs and their hashes. They are inputs, not extra equilibrium estimates. Sources/Process Logs records execution of the comparisons and table generation.
 
 ## Reading a table
 
@@ -66,13 +57,13 @@ This convention applies the direct intervention first. Interactions between that
 
 ## Which coordinates appear
 
-The table selection is restricted to information sets reached with positive probability in both endpoint equilibria. It includes two kinds of coordinates, evaluated separately in Original, Mixed and Mixed tighter check and retained only when they qualify in all three.
+The table selection is restricted to information sets reached with positive probability in both saved endpoint equilibria. It includes two kinds of coordinates, evaluated on those same profiles. Tie and off-path completion checks remain explicit; selection does not require stability across alternative equilibria.
 
 ### Changed actions
 
 A changed information set qualifies for the focus criterion if, against the target opponent and with subsequent own decisions optimized, its original local policy assigns probability mass greater than 10⁻⁶ to actions whose conditional utility is more than 10⁻⁶ below the best action. The utility threshold uses the target specification's reported utility units. This compares local actions, not the payoff loss from reverting the entire strategy.
 
-Disjoint strategy supports do not suffice: an action absent from the target support can remain optimal. The displayed set is the intersection of the focus selections in the three representations. Consecutive signals are grouped when their original and target distributions and numerical contributions agree within 10⁻⁶; sensitivity flags may differ within a group.
+Disjoint strategy supports do not suffice: an action absent from the target support can remain optimal. Consecutive signals are grouped when their original and target distributions and numerical contributions agree within 10⁻⁶ and their definedness and intermediate reach patterns match; sensitivity flags may differ within a group.
 
 The Remaining column always preserves the endpoint-selection residual. Changes involving newly reached or no-longer-reached histories, and redistribution among actions that remain optimal, are outside this restricted display. Their absence does not establish that they are unimportant or that the full strategies coincide.
 
@@ -80,25 +71,11 @@ The Remaining column always preserves the endpoint-selection residual. Changes i
 
 An unchanged equilibrium action can conceal counteracting incentives. Additional rows retain information sets whose original and target local distributions agree within 10⁻⁶, but whose direct best response changes. Against the original opponent under the target specification, the original local policy must assign probability mass greater than 10⁻⁶ to actions more than 10⁻⁶ below the best conditional action, with subsequent own decisions optimized. This excludes switches caused solely by selecting differently among tied or nearly tied actions.
 
-The best response to the fully updated opponent must reproduce the target local distribution within 10⁻⁶. All eight conditional comparisons must be defined, Direct must be nonzero, and Remaining must be no larger than 10⁻⁶ in the reported coordinate. These requirements must hold separately for the original profiles and both tested mixed representations.
+The best response to the fully updated opponent must reproduce the target local distribution within 10⁻⁶. All eight conditional comparisons must be defined, Direct must be nonzero, and Remaining must be no larger than 10⁻⁶ in the reported coordinate.
 
 For these rows, x equals y and R is numerically zero, so the direct contribution is offset by the opponent contributions. One example is plaintiff filing at signal 0.35 under American fees: filing occurs under both risk neutrality and risk aversion. Changing preferences with the original opponent fixed produces a best response of not filing (−100 percentage points), while the opponent-offer contribution is +100 points. This illustrates offsetting incentives under the accounting convention; it does not establish a uniquely necessary causal mechanism.
 
-An empty table means that no coordinates satisfy the implemented selection criteria. Displayed values always come from Original. Passing the selection in all three representations does not imply that the numerical allocation is identical across them; sensitivity flags remain relevant.
-
-## How the mixing checks work
-
-The auxiliary search increases the mean normalized quadratic mixing score:
-
-$$\frac{1-\sum_a p_a^2}{1-1/A},$$
-
-over information sets reached in the original equilibrium, where A is the full number of available actions. A player's information sets for the same decision are varied jointly. Candidate actions comprise the current support and actions tied in conditional utility under current continuation play. Source-unvisited policies remain fixed.
-
-Each proposed complete profile is checked against both players' unrestricted best responses. A utility tie for the acting player alone does not justify adding an action to equilibrium support: doing so can change the opponent's incentives.
-
-The main search uses a maximum unilateral root-payoff gain constraint of 10⁻⁹ in reported utility units and examines both forward and reverse decision-block orders. The higher-scoring verified result is selected. The tighter search uses forward order, a gain constraint of 10⁻¹⁰, and a conditional tie threshold tightened from 10⁻¹⁰ to 10⁻¹¹. The separate final best-response validation tolerance is 10⁻⁷. Each search is limited to six sweeps, and its stopping record is retained.
-
-These are local searches. They do not establish global maximal mixing, uniqueness, or robustness across every equilibrium. Common row selection establishes stability only across the tested representations, and even those representations can produce different decompositions.
+An empty table means that no coordinates satisfy the implemented selection criteria. Displayed values describe the selected saved equilibria. A different equilibrium or a different selection among tied best responses can produce a different decomposition; sensitivity flags and the separate multiple-equilibrium analysis help define the scope of the interpretation.
 
 ## Ties, reach and numerical verification
 

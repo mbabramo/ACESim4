@@ -95,7 +95,7 @@ public class EquilibriumPublicationTablesTests
     public void IncludesStrictDirectEffectOffsetByOpponentDespiteIdenticalEndpoints()
     {
         var result = OffsetFixture();
-        var rows = EquilibriumPublicationTables.Select(result, result, result);
+        var rows = EquilibriumPublicationTables.Select(result);
         rows.Should().ContainSingle();
         EquilibriumPublicationTables.Unchanged(rows[0]).Should().BeTrue();
         rows[0].Allocation.Direct.Should().Be(-100);
@@ -108,13 +108,14 @@ public class EquilibriumPublicationTablesTests
     }
 
     [TestMethod]
-    public void OffsetsRejectDirectTiesAndMustQualifyInEveryRepresentation()
+    public void OffsetsRejectDirectTiesAndUnchangedBestResponses()
     {
         var tied = OffsetFixture(1e-7);
         EquilibriumPublicationTables.OffsettingEffects(tied).Should().BeEmpty();
         var strict = OffsetFixture();
-        EquilibriumPublicationTables.Select(strict, tied, strict).Should().BeEmpty(
-            "the only candidate fails a mixing check; an empty selection is a valid reported result");
+        EquilibriumPublicationTables.Select(tied).Should().BeEmpty(
+            "a direct switch among tied actions does not establish offsetting incentives");
+        EquilibriumPublicationTables.Select(strict).Should().ContainSingle();
         var unchangedResponse = strict with { Scenarios = strict.Scenarios.Select(s => s with {
             Result = s.Result with { InformationSets = strict.SourceEquilibrium.InformationSets }
         }).ToArray() };

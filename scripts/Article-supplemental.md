@@ -6,7 +6,7 @@ available risk level. Current coverage is RN and symmetric CARA alpha 2.
 
 From a committed ACESim4 source tree, run `scripts/Rebuild-ArticleSupplemental.ps1`.
 It builds the code, runs and aggregates the six ordinary-cost 50-start cases,
-then prepares and executes the directed strategy comparisons, mixing checks,
+then prepares and executes the directed strategy comparisons,
 original solution paths and publication tables. `-Processors` defaults to all
 processors. `-OutputDirectory` selects the separate output collection; the default
 is SupplementalResults, outside routine ReportResults. For an article-side run,
@@ -33,10 +33,11 @@ fee changes under each risk preference, plus both risk directions under each of
 three rules. Five costs give 90 comparisons. Additional available risk levels
 expand the same pair-generation rule without a new handwritten contrast list.
 
-Each of the 30 profiles has a forward/reverse mixing search and a tighter forward
-check, with full equilibrium verification. Each directed contrast is calculated
-under the original, selected mixed and tighter mixed representations. The 90
-publication tables select the common supported coordinates and offsetting effects.
+Each directed contrast uses the same saved profiles as the strategy and welfare
+exhibits. The 90 tables select strict conditional action-loss and offsetting-effect
+coordinates from these calculations, retaining tie and off-path completion checks.
+Auxiliary mixing searches and the intersection across alternative mixed profiles
+are disabled. The saved equilibria's own mixed strategies remain unchanged.
 Their explicit Remaining column preserves selection residuals; mixed offer-action
 probabilities and undefined conditional comparisons are represented explicitly.
 An empty selected table is a valid result, not proof of identical strategies.
@@ -54,20 +55,21 @@ internally intact trace is not silently presented as a replay under new code.
 
 `rebuild_article_supplemental.py` writes supplemental-plan.json and runs isolated
 processes with bounded concurrency. This prevents shared static solver state from
-crossing between games. Mixed calculations depend on their two mixing results;
-publication depends on all three representations. Logs, process identities,
+crossing between games. Each table depends on its saved-equilibrium calculation.
+With 90 comparisons and six paths, the planner creates 187 jobs: 90 calculations,
+90 tables, six replays and one path collection. Logs, process identities,
 durations, input/binary hashes and output hashes are in supplemental-state.json;
 strategy-change logs and process identities are in Sources/Process Logs; solution-path
 logs remain in Sources/Run records. Repeating the
 same command skips only jobs whose recorded inputs, binaries and outputs still
 match. Independent jobs continue after a failure; failed dependencies remain
-blocked until repaired. Use `--phase` to select original, mixing, mixed,
-publication or paths for intervention; prerequisites must already be verified.
+blocked until repaired. Use `--phase` to select calculations, tables or paths
+for intervention; prerequisites must already be verified.
 
 The strategy-change displays are in Equilibrium strategy changes/Tables, with
 C#-generated TeX and selected-value JSON in Tables/Sources. One shared Methodology
 and Explanation.md at the workflow root explains all table columns, selection
-criteria and calculation types. The planner copies this document from
+criteria and interpretation. The planner copies this document from
 scripts/templates/equilibrium-strategy-methodology.md and generates the reader's
 README/index. Per-table explanatory TXT files are not generated. Frozen copies
 of the equilibrium and action-report inputs stay in Sources/Profiles so later
@@ -94,7 +96,7 @@ preserved separately from the reporting inventory and its input/output hashes.
 
 The wrapper finishes with `verify_article_supplemental.py` (requires pypdf).
 It checks complete directed coverage, calculation accounting and fingerprints,
-mixing verification, every printed table magnitude in reading order, the six
+retained sensitivity settings, every printed table magnitude in reading order, the six
 path endpoints and multiple-start exhibit provenance. `--changes-only` audits
 the comparison stage while independent expensive calculations are still running.
 PDF numeric verification is combined with visual inspection before manuscript use.

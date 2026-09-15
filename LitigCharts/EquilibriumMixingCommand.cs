@@ -29,20 +29,10 @@ public static class EquilibriumMixingCommand
     public sealed record Outcome(string Profile, double NotFiled, double NotAnswered,
         double Settlement, double Trial, double ExitAfterFailedBargaining);
 
-    public static async Task<int> RunAsync(string[] args)
+    public static Task<int> RunAsync(string[] args)
     {
-        try
-        {
-            if (args.Length == 0 || args.Contains("--help"))
-            {
-                Console.WriteLine("equilibrium-mixing --request <json> (diagnostic only; no source profile writes)");
-                return 0;
-            }
-            if (args.Length != 2 || args[0] != "--request") throw new ArgumentException("Supply --request <json>.");
-            await ExecuteAsync(Path.GetFullPath(args[1]), Console.WriteLine);
-            return 0;
-        }
-        catch (Exception e) { Console.Error.WriteLine(e); return 1; }
+        Console.Error.WriteLine("Auxiliary equilibrium mixing is disabled. Strategy tables use the saved equilibrium profiles; run equilibrium-publication with --request and --output.");
+        return Task.FromResult(2);
     }
 
     public static async Task ExecuteAsync(string requestFile, Action<string> progress)

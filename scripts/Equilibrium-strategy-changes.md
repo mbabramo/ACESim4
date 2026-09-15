@@ -1,234 +1,58 @@
-# Changed equilibrium strategies
+# Equilibrium strategy changes
 
-From the ACESim4 repository:
+The supplemental workflow compares the same saved equilibrium profiles used by
+the strategy figures and welfare reports. For each cost it generates every
+directed fee-rule comparison within each risk level, and every directed risk
+comparison within each fee rule. Reverse comparisons are calculated separately.
 
-    dotnet run --project LitigCharts -c Release -- equilibrium-changes --request "C:/Users/Admin/source/repos/correlated-signals-article/Supplemental materials/Equilibrium strategy changes/Calculations/Original/equilibrium-changes.request.json" --calculate-only
+Run `scripts/Rebuild-ArticleSupplemental.ps1` to prepare, calculate and render
+the collection. See [Article-supplemental.md](Article-supplemental.md) for
+scheduling, prerequisites and cache verification. The current six scenarios at
+five costs produce 90 comparisons and 90 tables.
 
---calculate-only runs diagnostics; --render-only assembles verified saved
-calculations. The pressure command remains an alias, but the old table generator
-has been deleted (recoverable in checkpoint e0f7f45b).
+## Individual commands
 
-## Question and accounting convention
+Calculate a request, retaining tie and off-path completion checks:
 
-For each changed decision reached in both selected endpoint equilibria, compare
-the actual old and new policies. Unchanged rows are omitted. Changes in reach
-are recorded separately; an unplayed endpoint action is never manufactured.
-
-Let x be the original policy coordinate and y the target coordinate. With the
-new rules fixed, v(S) is the focal player's complete unrestricted best response
-against an opponent whose components in S use their actual target-equilibrium
-policies and whose remaining components use their original policies.
-
-Compute all eight subsets of entry, offers, and exit:
-
-- Direct = v(empty) - x.
-- For each of the six orders, replace opponent components cumulatively and
-  record the marginal increment v(S + component) - v(S).
-- Each opponent contribution is its average marginal increment across those
-  six orders.
-- Retain residual = y - v(all). Direct + the three opponent contributions +
-  residual must equal y - x, before rounding.
-
-This is a **direct-first** convention. Interactions with the primitive change
-are assigned to opponent adjustment. It is not a unique causal attribution.
-Full direct explanation implies zero net opponent contribution only when the
-selected all-opponent response matches the observed target coordinate.
-
-Each response optimizes all focal continuation choices. This is neither the
-two-round dynamics exercise nor the fixed-current-policy regret/misalignment
-proposal. It uses the existing GEBR algorithm; it does not solve new equilibria.
-
-## Selection, mixtures, and reach
-
-Retain original probability on optimal actions (within 1e-10 by default),
-renormalizing it if some original support ceases to be optimal. If no original
-probability can be retained, choose the first optimum. Independently replay the
-entire selected policy to verify its root payoff against GEBR (1e-7 by default).
-Never retain a strictly inferior original action merely for smoothness.
-
-An observed target mix may differ from this original-preserving response even
-when both are optimal. The table now retains the four numerical contributions
-and shows its selection residual in **Remaining**, with an asterisk. The four
-contributions plus Remaining equal the observed change; the remainder is not
-presented as a fifth mechanism. Low/high optimal-action selections flag other tie-sensitive
-allocations. They are stress tests, not exhaustive identification bounds.
-
-Pure offer comparisons use exact monetary grid coordinates only if all
-compared primary and sensitivity policies are pure. Otherwise decompose each
-changed offer-action probability separately, never the mean offer.
-
-Intermediate hybrids may not reach a history that both endpoint equilibria
-reach. Their conditional policies can still be compared if opponent-and-chance
-reach is positive; those rows receive a double dagger. If that reach is zero,
-the table suppresses the attribution as **Undefined counterfactual**.
-Posterior beliefs always reflect the hybrid opponent's selection.
-
-Opponent policies unvisited in their donor equilibria are audited even if
-exposed only by a focal deviation. Low/high completion stresses alter only
-these donor-unvisited policies. Completion-sensitive allocations receive a
-section sign, not an assertion that all hybrids are credible equilibria. Asterisks
-are reserved for unmatched endpoint residuals; daggers retain tie sensitivity.
-
-## Relative-payoff supplement
-
-For each information set with a partial or undefined policy decomposition, show
-one additional comparison, not one row per changed offer probability. Let d(a)
-be target probability minus original probability. Normalize positive d(a) to
-unit mass and, separately, negative d(a) to unit mass. Compare the conditional
-utility of the gaining-action mixture against the losing-action mixture. This
-weights the actual probability transfer, not mean offer amounts. For an original
-pure 0.85 demand changing to a mixture of 0.75 and 0.85, it is Q(0.75) - Q(0.85).
-
-Calculate that payoff gap in the original and target references and all eight
-saved opponent-component hybrids. Apply the same direct-first allocation to
-the gaps. Original/target Q uses actual endpoint continuations; hybrid Q uses
-optimized focal continuations. Therefore the first column is explicitly labeled
-Direct/reopt., and any target-reference versus all-target-opponent continuation
-mismatch stays in Remaining. It is not silently assigned to opponent changes.
-
-Payoff supplements are appended after the strategy tables. All their PDF values
-are 1000 times utility differences for readability; JSON and text keep unscaled
-values. These are never percentage points, money, or a welfare comparison across
-utility specifications. Preference-regime comparisons depend on the chosen
-utility normalization. They can explain why an action becomes competitive but
-cannot determine an exact equilibrium mixing probability or reconstruct dynamics.
-
-Tie/completion stress tests apply to payoff allocations separately from policy
-allocations. A hybrid off the focal best-response path is marked but remains
-conditionally defined if chance-and-opponent reach is positive. Missing Q values
-or zero chance-and-opponent reach yield null gaps and no fabricated allocation.
-All intermediate gaps, weights, flags and residuals are exported in
-`*-payoff-gaps.json`; combined publication JSON also includes them. Render-only
-derives these quantities from the verified saved calculations, without changing
-the source calculation JSON, its manifest, the production equilibria or the
-ECTA trace inputs.
-
-## Reports and verification
-
-- EquilibriumChangeDecomposition.cs: eight-subset construction, allocation,
-  changed-row selection, exact action-share representation, sensitivity flags.
-- InformationSetPressureAnalysis.cs: reusable profile mapping and validated
-  unrestricted best response and independent policy replay.
-- ArticlePressureAnalysis.cs: source loading, source equilibrium controls,
-  matched intervention checks, calculation manifest and file hashes.
-- EquilibriumChangeTables.cs: change-only PDF/TeX/TXT and grouped paper tables.
-
-The article collection contains all 90 directed fee/preference comparisons across
-five costs, with original, mixed and tighter mixed calculations. Its PDF/PNG
-displays are in `Supplemental materials/Equilibrium strategy changes/Tables`,
-with generated TeX/JSON in `Tables/Sources`. The shared reader-facing methodology
-is `Methodology and Explanation.md` at the strategy-change root. Full original
-calculations remain in `Calculations/Original`; the other representations have
-their own calculation folders.
-Full JSON contains source and
-target strategies, primary and sensitivity responses, action values, reaches,
-beliefs, exclusions, and explicit residuals. Original production files are
-hash-checked before and after calculation and again before rendering.
-
-Active equilibrium request files sit beside their corresponding calculations,
-with adjacent `.recorded-request.json` files preserving exact historical bytes.
-The old combined-table
-renderer remains available for diagnostics, but its request no longer writes
-to `Tables`. Use `equilibrium-publication` below for the accepted presentation.
-
-## Diagnostic profile replacements and compact focus
-
-An optional `ProfileFile` on a source loads a semantic behavioral profile instead
-of using the saved equilibrium as the endpoint. The saved equilibrium/action
-report are still validated together first: their 480 rows are NOT claimed to
-describe the replacement. The replacement must match the option set and complete
-semantic action menus, have valid probabilities, and pass BOTH unrestricted
-best-response controls. Conditional values, beliefs and donor reaches are
-recomputed. Its own SHA-256 is included in the manifest and checked again before
-reading/rendering cached results. Ordinary requests without overrides work as
-before. No saved equilibrium file is rewritten.
-
-For the four mixed ordinary-cost profiles:
-
-```text
-dotnet run --project LitigCharts -c Release -- equilibrium-changes --request <equilibrium-changes-mixed.request.json> --calculate-only
-dotnet run --project LitigCharts -c Release -- equilibrium-change-focus --request <equilibrium-changes-mixed.request.json> --original <equilibrium-changes.request.json>
+```powershell
+dotnet run --project LitigCharts -c Release -- equilibrium-changes --request <calculation-request.json> --calculate-only
 ```
 
-The second command writes experimental `Focused strategy changes.md` and JSON
-beside the separate calculation, not into the original table or animation folders.
-It compares original and mixed endpoints and retains ALL changed information sets
-in the audit output, with one row per set. For each set, G is the set of actions
-whose probability increases by more than `PolicyTolerance`. Decompose probability
-assigned to G, in percentage points, using the same eight-coalition calculation.
-This is not a mean offer or an average of action utilities. The full calculation
-still contains the separate action-share rows; aggregation can mask offsetting
-redistribution within G, so it is explicitly a compact summary.
+Render its verified saved calculations:
 
-The focus subset requires original probability mass greater than 1e-6 on actions
-that lose more than `NearTie` (default 1e-6 target-utility units) relative to the
-best action against the target opponent, with ALL subsequent own choices
-reoptimized. Fixed-target-continuation losses are exported separately. The test
-avoids mistaking an unfavorable off-path own completion for a necessary action
-change. It is neither a full-strategy regret measure nor a welfare comparison.
-
-This filter allows overlapping supports and can reject disjoint supports when
-the actions remain tied. It can be applied to original equilibria too: increasing
-mixing is not required for the filter, and does not guarantee a shorter table.
-Changes omitted from the focused portion can still be important for opponent
-incentives or outcomes. The actual mixture, support, and opponent's incentive
-constraints may change even when the player's actions are tied. Remaining and
-tie/completion sensitivity are never forcibly zeroed. The compact allocation
-does not reconstruct equilibrium dynamics or resolve equilibrium selection.
-
-## Four publication tables
-
-`equilibrium-publication` renders the accepted compact table as four separate
-standalone LaTeX/PDF pairs. It reads the original, selected-mixed and
-forward/tighter calculation manifests (including their input hashes), intersects
-their focus sets, and takes every displayed coordinate and contribution from
-the ORIGINAL calculation. It does not reuse the mixed-report aggregation of
-probability on gaining actions. The changed-action selection has 39 information sets
-grouped into 26 rows (2, 6, 12 and 6 rows in the four tables).
-
-An additional section retains unchanged local policies when the direct
-intervention makes positive original mass strictly suboptimal (using the same
-1e-6 mass and target-utility thresholds), but the all-target-opponent best
-response restores the original/target distribution. Require defined conditional
-comparisons, a nonzero direct coordinate contribution, and zero remainder.
-Intersect this filter across the original, mixed and forward/tighter pairs too.
-The verification inventory records the selected coordinates for the current
-collection. Original coordinates and allocations are preserved.
-
-`BuildRows(..., includeUnchanged: true)` reconstructs these allocations from
-cached scenarios without changing the default changed-only export or any saved
-calculation. `OffsettingEffects` applies the strict-direct-loss and restoration
-tests. Asterisks identify primary hybrids that do not actually reach the
-information set while its conditional comparison remains defined. Marker
-definitions and interpretation belong in the editable methodology, not table notes.
-
-```text
-dotnet run --project LitigCharts -c Release -- equilibrium-publication --original <equilibrium-changes.request.json> --mixed <equilibrium-changes-mixed.request.json> --check <equilibrium-changes-mixed-forward.request.json> --output <article/Supplemental materials/Equilibrium strategy changes/Tables> --previews <temporary-QA-directory>
+```powershell
+dotnet run --project LitigCharts -c Release -- equilibrium-publication --request <calculation-request.json> --output <table-directory> --previews <temporary-QA-directory>
 ```
 
-Quote paths containing spaces. The command compiles through the existing
-LaTeX compiler, sending raster QA previews to the separate requested directory.
-The Tables directory contains one PDF/PNG pair per comparison. Its Sources
-subfolder contains generated TeX and selected-value/provenance JSON. Individual
-explanatory TXT files are not generated; JSON links to the common Methodology
-and Explanation.md. The Python planner creates that file from
-scripts/templates/equilibrium-strategy-methodology.md, which is the source to
-edit when changing the shared explanation for future runs. It also creates the
-README index. Execution logs are in Sources/Process Logs at the strategy-change
-root. These displays provide candidate rows for a separately assembled article
-table; the collection is not a commitment to publish every table.
+`--previews` is optional. The table command validates the request, numerical
+outputs and source fingerprints before selecting rows. It writes one PDF and
+PNG per contrast, with TeX and selected-value JSON in `Tables/Sources`.
 
-In the article repository, the three request arguments sit with their cached
-inputs in `Supplemental materials/Equilibrium strategy changes/Calculations/Original`, `Mixed`, and
-`Mixed tighter check`, respectively. The `Mixing` subdirectory retains
-the profile searches and their tighter-tolerance checks. Cached manifest input
-and output hashes are still verified. `OriginalRequest` preserves each original
-calculation request fingerprint alongside the relocated active request.
+## Output organization
 
-Consecutive signal rows with the same numerical policies and contributions may
-be combined despite differing sensitivity flags. The last column then reports
-`No`, `Yes`, or `At some signals` depending on whether none, all, or some of the
-group's signals have a tie/off-path-sensitive original-profile allocation.
-The compact layout rejects nonzero remainders, undefined allocations and
-mixed-offer probability coordinates rather than silently mislabeling or dropping
-those quantities. Adding them requires an explicit layout extension.
+Under `Equilibrium strategy changes`, `Calculations/cost-N/<contrast>/` contains
+one request, a calculation manifest and the full numerical result. There is no
+representation subfolder. `Tables` contains the rendered comparisons;
+`Sources/Profiles` preserves exact equilibrium and action-report inputs, and
+`Sources/Process Logs` contains execution records. The planner generates a
+reader-facing README and copies the shared methodology template to
+`Methodology and Explanation.md` at the workflow root.
+
+## Interpretation and selection
+
+The [methodology template](templates/equilibrium-strategy-methodology.md) defines
+the direct-first decomposition, conditional action-loss selection, offsetting
+effects, grouping rules, reach and sensitivity flags, units and limitations.
+It is the shared explanation for all tables. Four contributions plus the
+explicit selection residual account for the observed strategy change before
+rounding. Undefined conditional counterfactuals remain labeled as such.
+
+Tables select qualifying coordinates from each saved-equilibrium calculation.
+The auxiliary mixing searches and intersection across alternative profiles are
+disabled. Native mixed strategies in the saved equilibria remain intact,
+including action-specific offer probabilities when a scalar offer would be
+misleading. The separate multiple-equilibrium study remains independent.
+
+Use `scripts/verify_article_supplemental.py --output <supplemental-directory>
+--changes-only` to check coverage, fingerprints, accounting and every printed
+number against its TeX source. Inspect changed PDF/PNG layouts before use.

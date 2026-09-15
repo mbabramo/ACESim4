@@ -154,10 +154,10 @@ Player-control regression tests (fake DOM/canvas and clock; no browser dependenc
 The C# EquilibriumPathAnimationTests additionally validate packed information-set
 ordering, coverage and source/frame fingerprints.
 
-The active `equilibrium-paths.request.json` sits beside the animations and raw
-traces. The source-equilibrium request sits beside its calculation in
-`Supplemental materials/Equilibrium strategy changes/Calculations/Original`. Each has an adjacent
-`.recorded-request.json` preserving its exact historical bytes; relocated trace input
-fingerprints reference these originals without changing their hashes. Only
-metadata paths and the rendered viewer changed during the directory cleanup;
-the JSONL pivot streams did not change.
+Each scenario has a replay request and source-equilibrium request in
+`Equilibrium solution paths/Sources/Requests`. Verified traces are in
+`Sources/Traces/<scenario>`, and original solve logs are retained separately.
+The strategy-change calculations use the same frozen equilibrium/action-report
+inputs in `Equilibrium strategy changes/Sources/Profiles`. Relocation records,
+where present, preserve historical request bytes without changing numerical
+outputs or JSONL pivot streams.
