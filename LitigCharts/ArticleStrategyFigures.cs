@@ -34,11 +34,16 @@ public static class ArticleStrategyFigures
         }).ToArray();
         return new(Render(data), data, Caption);
     }
-    private static void Marker(StringBuilder b, int series, double x, double y, bool exit = false, double p = 1)
+    private static string Shape(int series) => series switch { 0 => "circle", 1 => "rectangle", _ => "diamond,aspect=1" };
+    private static void ParticipationMarker(StringBuilder b, int series, double x, double y)
     {
-        string shape = series switch { 0 => "circle", 1 => "rectangle", _ => "regular polygon,regular polygon sides=3" };
+        double size = series switch { 0 => 3.5, 1 => 6.8, _ => 16 };
+        b.AppendLine($@"\node[draw=black,fill={(series == 0 ? "black" : "white")},{Shape(series)},inner sep=0pt,minimum size={N(size)}pt,line width=.45pt] at ({N(x)},{N(y)}) {{}};");
+    }
+    private static void OfferMarker(StringBuilder b, int series, double x, double y, bool exit = false, double p = 1)
+    {
         double size = 2.4 + 3.4 * Math.Sqrt(p);
-        b.AppendLine($@"\node[draw=black,fill={(exit ? "white" : "black")},{shape},inner sep=0pt,minimum size={N(size)}pt,line width=.5pt] at ({N(x)},{N(y)}) {{}};");
+        b.AppendLine($@"\node[draw=black,fill={(exit ? "white" : "black")},{Shape(series)},inner sep=0pt,minimum size={N(size)}pt,line width=.5pt] at ({N(x)},{N(y)}) {{}};");
     }
     private static string Render(CaseData[] data)
     {
@@ -52,21 +57,21 @@ public static class ArticleStrategyFigures
         for (int s = 0; s < data.Length; s++)
         {
             double x = .6 + s * 5.5;
-            b.AppendLine($@"\draw[{Style(s)},line width=.7pt] ({N(x)},12.3)--({N(x+.65)},12.3);");
-            Marker(b,s,x+.325,12.3);
-            b.AppendLine($@"\node[anchor=west] at ({N(x+.8)},12.3) {{{data[s].Label}}};");
+            b.AppendLine($@"\draw[{Style(s)},line width=.7pt] ({N(x)},12.95)--({N(x+.65)},12.95);");
+            ParticipationMarker(b,s,x+.325,12.95);
+            b.AppendLine($@"\node[anchor=west] at ({N(x+.8)},12.95) {{{data[s].Label}}};");
         }
         for (int panel = 0; panel < 4; panel++)
         {
             bool offer = panel >= 2, plaintiff = panel % 2 == 0;
             double x0 = 1 + (panel % 2)*8.4;
             string title = panel switch {0=>"Filing",1=>"Answering",2=>"Plaintiff demand",_=>"Defendant offer"};
-            b.AppendLine($@"\node[anchor=west,font=\bfseries] at ({N(x0)},{(offer?"6.0":"11.6")}) {{({(char)('a'+panel)}) {title}}};");
+            b.AppendLine($@"\node[anchor=west,font=\bfseries] at ({N(x0)},{(offer?"6.0":"12.25")}) {{({(char)('a'+panel)}) {title}}};");
             int strips = offer ? data.Length : 1;
             for(int strip=0;strip<strips;strip++)
             {
                 double height=offer? 3.9/strips : 3.9;
-                double y0=offer? .85+(strips-strip-1)*(height+.36) : 7.1;
+                double y0=offer? .85+(strips-strip-1)*(height+.36) : 7.75;
                 b.AppendLine($@"\begin{{scope}}[shift={{({N(x0)},{N(y0)})}},x=6.4cm,y={N(height)}cm]");
                 foreach(double tick in offer?new[]{0.0,.5,1.0}:new[]{0.0,.25,.5,.75,1.0})
                 {
@@ -78,44 +83,53 @@ public static class ArticleStrategyFigures
                 if(!offer || strip==strips-1)
                 {
                     foreach(var point in data[0].Filing)
-                        b.AppendLine($@"\node[anchor=north,font=\footnotesize] at ({N(point.SignalValue)},-.04) {{{point.SignalValue.ToString("0.00",CultureInfo.InvariantCulture)}}};");
+                        b.AppendLine($@"\node[anchor=north,font=\footnotesize] at ({N(point.SignalValue)},{(offer?"-.04":"-.13")}) {{{point.SignalValue.ToString("0.00",CultureInfo.InvariantCulture)}}};");
                 }
-                foreach(int s in offer?new[]{strip}:Enumerable.Range(0,data.Length))
-                foreach(bool exit in offer?new[]{false,true}:new[]{false})
+                if (offer)
                 {
-                    var points=offer?(plaintiff?(exit?data[s].DemandExit:data[s].DemandContinue):(exit?data[s].OfferExit:data[s].OfferContinue)):
-                        (plaintiff?data[s].Filing:data[s].Answering);
-                    for(int i=0;i<points.Length;i++)
+                    foreach (bool exit in new[] { false, true })
                     {
-                        var point=points[i]; if(point.OffPath)continue;
-                        var actions=offer?point.Actions.Where(a=>a.Probability>0).ToArray():
-                            new[]{new PublicationFigures.ActionValue(1,point.Actions.Single(a=>a.Value==1).Probability,1)};
-                        // Pure participation steps preserve signal bins; support markers never imply mean offers.
-                        if(!offer)
-                        {
-                            double half=.5/points.Length;
-                            b.AppendLine($@"\draw[{Style(s)},line width=.6pt] ({N(point.SignalValue-half)},{N(actions[0].Value)})--({N(point.SignalValue+half)},{N(actions[0].Value)});");
-                            if(i>0&&!points[i-1].OffPath)
-                                b.AppendLine($@"\draw[{Style(s)},line width=.6pt] ({N(point.SignalValue-half)},{N(points[i-1].Actions.Single(a=>a.Value==1).Probability)})--({N(point.SignalValue-half)},{N(actions[0].Value)});");
-                        }
-                        foreach(var a in actions)
-                            Marker(b,s,point.SignalValue+(offer?(exit?.009:-.009):(s-(data.Length-1)/2.0)*.009),a.Value,exit,a.Probability);
+                        var points = plaintiff ? (exit ? data[strip].DemandExit : data[strip].DemandContinue) :
+                            (exit ? data[strip].OfferExit : data[strip].OfferContinue);
+                        foreach (var point in points.Where(p => !p.OffPath))
+                        foreach (var action in point.Actions.Where(a => a.Probability > 0))
+                            OfferMarker(b, strip, point.SignalValue + (exit ? .009 : -.009), action.Value, exit, action.Probability);
                     }
+                }
+                else
+                {
+                    // Draw every step first, then nest markers from largest to smallest at the exact coordinates.
+                    for (int s = 0; s < data.Length; s++)
+                    {
+                        var points = plaintiff ? data[s].Filing : data[s].Answering;
+                        for (int i = 0; i < points.Length; i++)
+                        {
+                            var point = points[i]; if (point.OffPath) continue;
+                            double probability = point.Actions.Single(a => a.Value == 1).Probability;
+                            double half = .5 / points.Length;
+                            b.AppendLine($@"\draw[{Style(s)},line width=.6pt] ({N(point.SignalValue-half)},{N(probability)})--({N(point.SignalValue+half)},{N(probability)});");
+                            if (i > 0 && !points[i-1].OffPath)
+                                b.AppendLine($@"\draw[{Style(s)},line width=.6pt] ({N(point.SignalValue-half)},{N(points[i-1].Actions.Single(a=>a.Value==1).Probability)})--({N(point.SignalValue-half)},{N(probability)});");
+                        }
+                    }
+                    for (int s = data.Length - 1; s >= 0; s--)
+                    foreach (var point in (plaintiff ? data[s].Filing : data[s].Answering).Where(p => !p.OffPath))
+                        ParticipationMarker(b, s, point.SignalValue, point.Actions.Single(a => a.Value == 1).Probability);
                 }
                 b.AppendLine(@"\end{scope}");
             }
-            b.AppendLine($@"\node at ({N(x0+3.2)},{(offer?".18":"6.43")}) {{{(plaintiff?"Plaintiff":"Defendant")} signal}};");
-            b.AppendLine($@"\node[rotate=90] at ({N(x0-.8)},{(offer?"3.0":"9.05")}) {{{(offer?"Offer":"Probability")}}};");
+            b.AppendLine($@"\node at ({N(x0+3.2)},{(offer?".18":"6.80")}) {{{(plaintiff?"Plaintiff":"Defendant")} signal}};");
+            b.AppendLine($@"\node[rotate=90] at ({N(x0-.8)},{(offer?"3.0":"9.70")}) {{{(offer?"Offer":"Probability")}}};");
         }
-        Marker(b,0,2,-.48); b.AppendLine(@"\node[anchor=west] at (2.18,-.48) {Continue};");
-        Marker(b,0,5.4,-.48,true);b.AppendLine(@"\node[anchor=west] at (5.58,-.48) {Exit committed};");
+        OfferMarker(b,0,2,-.48); b.AppendLine(@"\node[anchor=west] at (2.18,-.48) {Continue};");
+        OfferMarker(b,0,5.4,-.48,true);b.AppendLine(@"\node[anchor=west] at (5.58,-.48) {Exit committed};");
         b.AppendLine(@"\node[anchor=east] at (10,-.48) {$p$:};");
         int n=0;foreach(double p in new[]{.25,.5,1.0})
         {
-            double x=10.3+n++*1.7;Marker(b,0,x,-.48,false,p);
+            double x=10.3+n++*1.7;OfferMarker(b,0,x,-.48,false,p);
             b.AppendLine($@"\node[anchor=west] at ({N(x+.18)},-.48) {{{N(p)}}};");
         }
         return b.AppendLine("\\end{tikzpicture}\n\\end{document}").ToString();
     }
-    public const string Caption = "Filing and answering strategies by own signal, and offer supports conditional on each reached continue or exit-commitment history. All four panels use common signal orientation toward stronger plaintiff merits. Filing conditions on own signal; answering also conditions on filing. Lower panels use aligned fee-rule strips. Filled offer symbols denote commitment to continue, open symbols commitment to exit if bargaining fails; settlement may prevent that exit. Offer-marker size increases with the conditional action probability according to the displayed probability key; exact probabilities and reach are in JSON. Marker offsets of at most 0.009 signal units are graphical only. Unreached histories are blank, and no mean offers are substituted. Results describe the selected equilibria. The filename and selection data identify costs, preferences and other primitives; all displayed cases use a matched specification and cost.";
+    public const string Caption = "Filing and answering strategies by own signal, and offer supports conditional on each reached continue or exit-commitment history. All four panels use common signal orientation toward stronger plaintiff merits. Filing conditions on own signal; answering also conditions on filing. American uses circles, Trial Fee-Shifting squares and Complete Fee-Shifting diamonds, where available. In the upper panels, a small filled circle, outlined square and larger outlined diamond nest at coincident values; their fixed sizes identify fee rules, and their centers use exact signal and probability coordinates without offsets. Lower panels use aligned fee-rule strips. Filled offer symbols denote commitment to continue, open symbols commitment to exit if bargaining fails; settlement may prevent that exit. Offer-marker size increases with the conditional action probability according to the displayed probability key; exact probabilities and reach are in JSON. Only offer markers have graphical offsets of 0.009 signal units. Unreached histories are blank, and no mean offers are substituted. Results describe the selected equilibria. The filename and selection data identify costs, preferences and other primitives; all displayed cases use a matched specification and cost.";
 }

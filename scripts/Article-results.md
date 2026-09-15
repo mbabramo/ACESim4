@@ -57,8 +57,11 @@ diagram command also supports `--compile-only` and `--output-root`.
 - `Run records/diagram-inventory.json` records the generated collection.
 
 There are 937 routine exhibits: 744 individual diagrams, 68 welfare tables,
-68 disposition charts and 57 four-panel strategy figures. The latter show
-separate offer strips for each available fee rule and preserve continue/exit
+68 disposition charts and 57 four-panel strategy figures. Filing and answering
+use nested circles, outlined squares and larger outlined diamonds for American,
+Trial Fee-Shifting and Complete Fee-Shifting, respectively, where available.
+These fixed-size markers are centered on the exact signal and probability.
+The lower panels show separate offer strips for each available fee rule and preserve continue/exit
 histories and mixing probabilities. No conditional mean-offer substitution is
 used. All welfare measures and disposition shares average over potential disputes.
 
