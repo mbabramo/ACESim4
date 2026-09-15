@@ -6,6 +6,8 @@ using System.Linq;
 using System.Security.Cryptography;
 using System.Text.Json;
 using System.Text;
+using ACESim;
+using System.Globalization;
 using ACESimBase.Games.LitigGame.ManualReports;
 using static ACESimBase.Games.LitigGame.ManualReports.ArticleEquilibriumPaths;
 
@@ -138,8 +140,9 @@ public static class EquilibriumPathAnimation
             }
             double maximumGain = run.Frames.SelectMany(f => f.Strategy.ActionAdvantages)
                 .Where(a => a.HasValue).Select(a => Math.Max(0, a.Value)).DefaultIfEmpty().Max();
-            string title = (m.OptionSet.Contains("__Fee-American") ? "American rule" : "British rule") + " · " +
-                (m.OptionSet.Contains("ModerateRiskAversion") ? "Moderate risk aversion" : "Risk-neutral");
+            var options = ArticleWorkedPathExtraction.CreateOptions(m.OptionSet);
+            string title = LitigGameCorrelatedSignalsArticleLauncher.FeeRuleLabel(options) + " · " +
+                ArticleResultsLayout.Risk(Convert.ToDouble(options.VariableSettings["CARA Alpha"], CultureInfo.InvariantCulture));
             return new
             {
                 id = m.Id, title, pivots = m.Pivots, maxGain = maximumGain, groups,

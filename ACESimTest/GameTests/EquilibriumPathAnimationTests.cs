@@ -15,6 +15,25 @@ namespace ACESimTest.GameTests;
 [TestClass]
 public class EquilibriumPathAnimationTests
 {
+    [TestMethod]
+    public void RendererDistinguishesEveryCoreFeeAndRiskCase()
+    {
+        var runs = (from risk in new[] { "Baseline", "ModerateRiskAversion" }
+                    from fee in new[] { "American", "British", "British__ExitFees-AllUnilateralExits" }
+                    let toy = Toy()
+                    select toy with { Metadata = toy.Metadata with {
+                        Id = risk + fee, OptionSet = "Specification-" + risk + "__Cost-1__Fee-" + fee } }).ToArray();
+        string html = EquilibriumPathAnimation.BuildHtml(runs);
+        string encoded = Regex.Match(html, "<script id=\"trace-data\" type=\"application/gzip\">(.*?)</script>", RegexOptions.Singleline).Groups[1].Value;
+        using var packed = new MemoryStream(Convert.FromBase64String(encoded));
+        using var gzip = new GZipStream(packed, CompressionMode.Decompress);
+        using var data = JsonDocument.Parse(gzip);
+        var titles = data.RootElement.EnumerateArray().Select(x => x.GetProperty("title").GetString()).ToArray();
+        titles.Distinct().Should().HaveCount(6);
+        foreach (string fee in new[] { "American", "Trial Fee-Shifting", "Complete Fee-Shifting" })
+            foreach (string risk in new[] { "Risk Neutral", "Risk Averse" })
+                titles.Should().Contain(fee + " · " + risk);
+    }
     private static EquilibriumPathAnimation.Run Toy()
     {
         var sets = Enumerable.Range(0, 16).Select(i =>

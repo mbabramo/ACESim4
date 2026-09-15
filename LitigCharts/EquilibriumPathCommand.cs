@@ -29,7 +29,9 @@ public static class EquilibriumPathCommand
                     File.WriteAllText(Path.Combine(output,run.Metadata.Id+".html"),EquilibriumPathAnimation.BuildHtml(new[]{run}));
                 File.WriteAllText(Path.Combine(output,"all-equilibrium-solution-paths.html"),EquilibriumPathAnimation.BuildHtml(runs));
                 File.WriteAllText(Path.Combine(output,"equilibrium-paths-collection-manifest.json"),JsonSerializer.Serialize(new {
-                    Schema="1",Request=ArticlePressureAnalysis.Hash(file),Results=files.Select(ArticlePressureAnalysis.Hash).ToArray()
+                    Schema="1",Request=ArticlePressureAnalysis.Hash(file),Results=files.Select(ArticlePressureAnalysis.Hash).ToArray(),
+                    RendererAssembly=ArticlePressureAnalysis.Hash(typeof(EquilibriumPathCommand).Assembly.Location),
+                    CoreAssembly=ArticlePressureAnalysis.Hash(typeof(ArticlePressureAnalysis).Assembly.Location)
                 },ArticlePressureAnalysis.JsonOptions));
                 Console.WriteLine($"Combined {runs.Length} independently verified original solution paths.");
                 return 0;
