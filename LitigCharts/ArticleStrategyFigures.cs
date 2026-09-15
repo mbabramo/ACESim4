@@ -32,8 +32,14 @@ public static class ArticleStrategyFigures
                 Points("P Files"), Points("D Answers"), Points("P Offer", 2), Points("P Offer", 1),
                 Points("D Offer", 2), Points("D Offer", 1));
         }).ToArray();
-        return new(Render(data), data, Caption);
+        return new(Render(data), data, Caption(data));
     }
+    private static bool HasHistory(CaseData[] data, bool exit) => data.Any(c =>
+        (exit ? c.DemandExit.Concat(c.OfferExit) : c.DemandContinue.Concat(c.OfferContinue))
+        .Any(p => !p.OffPath && p.Actions.Any(a => a.Probability > 0)));
+    private static bool HasMixedOffers(CaseData[] data) => data.Any(c =>
+        c.DemandContinue.Concat(c.DemandExit).Concat(c.OfferContinue).Concat(c.OfferExit)
+        .Any(p => !p.OffPath && p.Actions.Any(a => a.Probability > 0 && a.Probability < 1)));
     private static string Shape(int series) => series switch { 0 => "circle", 1 => "rectangle", _ => "diamond,aspect=1" };
     private static void ParticipationMarker(StringBuilder b, int series, double x, double y)
     {
@@ -121,15 +127,35 @@ public static class ArticleStrategyFigures
             b.AppendLine($@"\node at ({N(x0+3.2)},{(offer?".18":"6.58")}) {{{(plaintiff?"Plaintiff":"Defendant")} signal}};");
             b.AppendLine($@"\node[rotate=90] at ({N(x0-.8)},{(offer?"3.0":"9.70")}) {{{(offer?"Offer":"Probability")}}};");
         }
-        OfferMarker(b,0,2,-.48); b.AppendLine(@"\node[anchor=west] at (2.18,-.48) {Continue};");
-        OfferMarker(b,0,5.4,-.48,true);b.AppendLine(@"\node[anchor=west] at (5.58,-.48) {Exit committed};");
-        b.AppendLine(@"\node[anchor=east] at (10,-.48) {$p$:};");
-        int n=0;foreach(double p in new[]{.25,.5,1.0})
+        bool hasExit = HasHistory(data, true), hasMixing = HasMixedOffers(data);
+        if (hasExit)
         {
-            double x=10.3+n++*1.7;OfferMarker(b,0,x,-.48,false,p);
-            b.AppendLine($@"\node[anchor=west] at ({N(x+.18)},-.48) {{{N(p)}}};");
+            b.AppendLine($@"\begin{{scope}}[xshift={(hasMixing ? "0" : "3")}cm]");
+            if (HasHistory(data, false))
+            {
+                OfferMarker(b,0,2,-.48); b.AppendLine(@"\node[anchor=west] at (2.18,-.48) {Continue};");
+            }
+            OfferMarker(b,0,5.4,-.48,true); b.AppendLine(@"\node[anchor=west] at (5.58,-.48) {Exit committed};");
+            b.AppendLine(@"\end{scope}");
+        }
+        if (hasMixing)
+        {
+            b.AppendLine($@"\begin{{scope}}[xshift={(hasExit ? "0" : "-4.5")}cm]");
+            b.AppendLine(@"\node[anchor=east] at (10,-.48) {$p$:};");
+            int n=0;foreach(double p in new[]{.25,.5,1.0})
+            {
+                double x=10.3+n++*1.7;OfferMarker(b,0,x,-.48,false,p);
+                b.AppendLine($@"\node[anchor=west] at ({N(x+.18)},-.48) {{{N(p)}}};");
+            }
+            b.AppendLine(@"\end{scope}");
         }
         return b.AppendLine("\\end{tikzpicture}\n\\end{document}").ToString();
     }
-    public const string Caption = "Filing and answering strategies by own signal, and offer supports conditional on each reached continue or exit-commitment history. All four panels use common signal orientation toward stronger plaintiff merits. Filing conditions on own signal; answering also conditions on filing. American uses circles, Trial Fee-Shifting squares and Complete Fee-Shifting diamonds, where available. In the upper panels, a small filled circle, outlined square and larger outlined diamond nest at coincident values; their fixed sizes identify fee rules, and their centers use exact signal and probability coordinates without offsets. Lower panels use aligned fee-rule strips. Filled offer symbols denote commitment to continue, open symbols commitment to exit if bargaining fails; settlement may prevent that exit. Offer-marker size increases with the conditional action probability according to the displayed probability key; exact probabilities and reach are in JSON. Only offer markers have graphical offsets of 0.009 signal units. Unreached histories are blank, and no mean offers are substituted. Results describe the selected equilibria. The filename and selection data identify costs, preferences and other primitives; all displayed cases use a matched specification and cost.";
+    private static string Caption(CaseData[] data) =>
+        "Filing and answering strategies by own signal, and offer supports conditional on each reached continue or exit-commitment history. All four panels use common signal orientation toward stronger plaintiff merits. Filing conditions on own signal; answering also conditions on filing. American uses circles, Trial Fee-Shifting squares and Complete Fee-Shifting diamonds, where available. In the upper panels, a small filled circle, outlined square and larger outlined diamond nest at coincident values; their fixed sizes identify fee rules, and their centers use exact signal and probability coordinates without offsets. Lower panels use aligned fee-rule strips. " +
+        (HasHistory(data, true) ? "Filled offer symbols denote commitment to continue, open symbols commitment to exit if bargaining fails; settlement may prevent that exit. " :
+            HasHistory(data, false) ? "All displayed offers are conditional on commitment to continue; no exit-committed offer history is reached. " : "No offer history is reached. ") +
+        (HasMixedOffers(data) ? "Offer-marker size increases with the conditional action probability according to the displayed probability key. " :
+            HasHistory(data, true) || HasHistory(data, false) ? "Every displayed offer is chosen with conditional probability one. " : "") +
+        "Exact probabilities and reach are in JSON. Only offer markers have graphical offsets of 0.009 signal units. Unreached histories are blank, and no mean offers are substituted. Results describe the selected equilibria. The filename and selection data identify costs, preferences and other primitives; all displayed cases use a matched specification and cost.";
 }
