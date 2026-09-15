@@ -78,6 +78,22 @@ namespace ACESimTest
             restored.StatusAsByteArray().Should().Equal(first);
         }
 
+        [TestMethod]
+        public void RecoveryAfterInterruptionPreservesTheCompletedCase()
+        {
+            var coordinator = CreateCoordinator(6);
+            coordinator.Update(null, null, true, 6, out var claims, out _);
+            coordinator.Update(claims.Where(task => task.ID == 1).ToList(),
+                claims.Where(task => task.ID == 4).ToList(), false, 1, out _, out _);
+            var restored = CreateCoordinator(6);
+            restored.StatusFromByteArray(coordinator.StatusAsByteArray());
+            restored.ResetFailedTasks().Should().Be(1);
+            restored.ResetPendingTasks().Should().Be(4);
+            restored.NumTasksComplete.Should().Be(1);
+            restored.Update(null, null, true, 6, out var retry, out _);
+            retry.Select(task => task.ID).Should().BeEquivalentTo(new[] { 0, 2, 3, 4, 5 });
+        }
+
         private static TaskCoordinator CreateCoordinator(int taskCount, string planPrefix = "option") =>
             new(new List<TaskStage>
             {

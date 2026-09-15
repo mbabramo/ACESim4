@@ -893,6 +893,14 @@ namespace ACESimBase.GameSolvingSupport.Settings
             {
                 throw; // don't try again
             }
+            catch (Exception) when (developer is SequenceForm)
+            {
+                // DevelopStrategies initializes the game tree. Re-entering it on this
+                // partially initialized instance loses its terminal/information-set lists.
+                // Exact fallback is handled inside SequenceForm; other failures must be
+                // recorded by the coordinator and retried in a fresh worker via recover.
+                throw;
+            }
             catch (Exception e)
             {
                 logAction(e.Message + e.StackTrace);
@@ -902,22 +910,24 @@ namespace ACESimBase.GameSolvingSupport.Settings
                 failuresSoFar++;
                 if (retriesRemaining >= 0)
                 {
-                    int delay = (int)Math.Pow(1.3, failuresSoFar);
-                    if (delay > 60000)
-                        delay = 50_000;
-                    if (failuresSoFar > 1 && delay < 100000)
-                        delay += (int)(10000.0 * new Random((int)DateTime.Now.Ticks).Next());
-                    if (delay > 100_000)
-                        delay = 100_000;
+                    int delay = StrategyRetryDelayMilliseconds(failuresSoFar, Random.Shared.NextDouble());
                     logAction($"Delaying {delay} milliseconds");
                     TabbedText.WriteLine($"Delaying {delay} milliseconds");
                     await Task.Delay(delay);
                     goto retry;
                 }
-                throw new Exception("Repeated failures");
+                throw new Exception("Repeated failures", e);
             }
             string singleRepetitionReport = addOptionSetColumns ? SimpleReportMerging.AddCSVReportInformationColumns(reportCollection.csvReports.FirstOrDefault(), optionSetName, reportIteration, i == 0) : reportCollection.csvReports.FirstOrDefault();
             return reportCollection;
+        }
+
+        internal static int StrategyRetryDelayMilliseconds(int failures, double jitter)
+        {
+            if (failures < 1 || jitter < 0 || jitter >= 1 || double.IsNaN(jitter))
+                throw new ArgumentOutOfRangeException();
+            double backoff = Math.Min(60_000, Math.Pow(1.3, failures));
+            return (int)Math.Min(100_000, backoff + (failures > 1 ? 10_000 * jitter : 0));
         }
 
         #endregion

@@ -48,14 +48,14 @@ namespace ACESimTest
                         feePairs,
                         signalStrategies);
 
-                summary.NumericalResultCount.Should().Be(114);
-                summary.SpecificationComparisonCount.Should().Be(102);
-                summary.FeeRegimeComparisonCount.Should().Be(57);
-                summary.SignalStrategyCount.Should().Be(2280);
-                File.ReadLines(numericalResults).Should().HaveCount(115);
-                File.ReadLines(specificationPairs).Should().HaveCount(103);
-                File.ReadLines(feePairs).Should().HaveCount(58);
-                File.ReadLines(signalStrategies).Should().HaveCount(2281);
+                summary.NumericalResultCount.Should().Be(184);
+                summary.SpecificationComparisonCount.Should().Be(172);
+                summary.FeeRegimeComparisonCount.Should().Be(92);
+                summary.SignalStrategyCount.Should().Be(3680);
+                File.ReadLines(numericalResults).Should().HaveCount(185);
+                File.ReadLines(specificationPairs).Should().HaveCount(173);
+                File.ReadLines(feePairs).Should().HaveCount(93);
+                File.ReadLines(signalStrategies).Should().HaveCount(3681);
                 File.ReadAllText(numericalResults).Should()
                     .Contain("Settlement Conditional on Reaching Bargaining")
                     .And.Contain("Real Litigation Costs")
@@ -115,16 +115,17 @@ namespace ACESimTest
                 var summary = CorrelatedSignalsFocusedReport.BuildAndValidate(launcher,
                     numerical, signals, results, Path.Combine(directory, "preferences.csv"),
                     Path.Combine(directory, "fees.csv"), Path.Combine(directory, "strategies.csv"));
-                summary.NumericalResultCount.Should().Be(10);
-                summary.SpecificationComparisonCount.Should().Be(5);
+                summary.NumericalResultCount.Should().Be(92);
+                summary.SpecificationComparisonCount.Should().Be(86);
                 summary.FeeRegimeComparisonCount.Should().Be(0);
-                summary.SignalStrategyCount.Should().Be(200);
+                summary.SignalStrategyCount.Should().Be(1840);
                 var row = ReadFirstRow(results);
                 // Trial win/loss masses cancel. The fixture has 10% nonanswers and,
                 // after allocating mutual exit, 8% defaults versus 2% abandonment.
                 double cost = double.Parse(row["Costs Multiplier"], CultureInfo.InvariantCulture);
                 double.Parse(row["Fee-Shifting Transfer to Plaintiff"], CultureInfo.InvariantCulture)
-                    .Should().BeApproximately((0.1 + 0.08 - 0.02) * 0.15 * cost, 1E-12);
+                    .Should().BeApproximately((0.1 + 0.08 - 0.02) * 0.30 *
+                        double.Parse(row["Proportion of Costs at Beginning"], CultureInfo.InvariantCulture) * cost, 1E-12);
                 File.Exists(Path.Combine(directory, "fees.csv")).Should().BeFalse();
             }
             finally { Directory.Delete(directory, recursive: true); }

@@ -2,11 +2,12 @@ param(
     [switch]$DiagramsOnly,
     [switch]$SourcesOnly,
     [switch]$List,
+    [string]$ResultsDirectory,
     [int]$Processors = [Environment]::ProcessorCount
 )
 $ErrorActionPreference = 'Stop'
 $repo = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '..')).Path
-$results = Join-Path $repo 'ReportResults'
+$results = if ($ResultsDirectory) { [IO.Path]::GetFullPath($ResultsDirectory) } else { Join-Path $repo 'ReportResults' }
 $batch = Join-Path $results 'Run records\Retained study'
 Push-Location -LiteralPath $repo
 try {
@@ -23,7 +24,7 @@ try {
         [ordered]@{ NumericalResultsCsv="Run records/Retained study/$_ numerical results.csv";
             IndividualDirectory='Run records/Retained study'; ReportPrefix=$_ }
     }
-    [ordered]@{Inputs=@($inputs);OutputDirectory='Aggregated Data'} | ConvertTo-Json -Depth 5 |
+    [ordered]@{Inputs=@($inputs);OutputDirectory='Aggregated Data';RequireCompleteRoutineMatrix=$true} | ConvertTo-Json -Depth 5 |
         Set-Content -LiteralPath (Join-Path $results 'welfare-exhibits.json') -Encoding utf8
     [ordered]@{UseArticleResultsLayout=$true;WelfareExhibitsRequest='welfare-exhibits.json';
         MaxParallelCompilers=$Processors;ProcessTimeoutSeconds=300;LatexExecutable='lualatex';PreviewExecutable='pdftoppm'} |

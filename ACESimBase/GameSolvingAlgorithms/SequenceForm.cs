@@ -80,37 +80,12 @@ namespace ACESimBase.GameSolvingAlgorithms
 
             if (Approach == SequenceFormApproach.ECTA)
             {
-                List<(double[] equilibrium, int frequency)> equilibria = new List<(double[] equilibrium, int frequency)>(), additionalEquilibria;
-                int exactSolverAttempts = 0;
-                int inexactSolverAttempts = 0;
-                TabbedText.WriteLine($"Using exact arithmetic for initial prior");
-                if (!EvolutionSettings.ParallelOptimization)
-                {
-                    exactSolverAttempts++;
-                    var centroidEquilibrium = DetermineEquilibria<ExactValue>(1).First(); // first equilibrium should always be accomplished with exact values
-                    equilibria.Add(centroidEquilibrium);
-                }
-                if (EvolutionSettings.TryInexactArithmeticForAdditionalEquilibria)
-                {
-                    int numPriorsToGet = EvolutionSettings.SequenceFormNumPriorsToUseToGenerateEquilibria - equilibria.Count();
-                    if (numPriorsToGet > 0)
-                    {
-                        inexactSolverAttempts += numPriorsToGet;
-                        TabbedText.WriteLine($"Trying inexact arithmetic for up to {numPriorsToGet} random priors");
-                        additionalEquilibria = DetermineEquilibria<InexactValue>(numPriorsToGet);
-                        AddAdditionalEquilibria(equilibria, additionalEquilibria);
-                    }
-                }
-                if (equilibria == null || equilibria.Count() < EvolutionSettings.SequenceFormNumPriorsToUseToGenerateEquilibria)
-                {
-                    // Suppose our target is 100 equilibria, and we've found 1 with a frequency of 10. 
-                    int numPriorsToGet = EvolutionSettings.SequenceFormNumPriorsToUseToGenerateEquilibria - equilibria.Sum(x => x.frequency);
-                    if (EvolutionSettings.TryInexactArithmeticForAdditionalEquilibria)
-                        TabbedText.WriteLine($"Resorting to exact arithmetic for up to {numPriorsToGet} random priors");
-                    exactSolverAttempts += numPriorsToGet;
-                    additionalEquilibria = DetermineEquilibria<ExactValue>(numPriorsToGet);
-                    AddAdditionalEquilibria(equilibria, additionalEquilibria);
-                }
+                var equilibria = CollectEquilibriumRecoveries(
+                    EvolutionSettings.SequenceFormNumPriorsToUseToGenerateEquilibria,
+                    EvolutionSettings.ParallelOptimization,
+                    EvolutionSettings.TryInexactArithmeticForAdditionalEquilibria,
+                    DetermineEquilibria<ExactValue>, DetermineEquilibria<InexactValue>,
+                    out int exactSolverAttempts, out int inexactSolverAttempts);
 
                 List<double[]> equilibriumStrategies = equilibria
                     .Select(item => item.equilibrium)
@@ -162,6 +137,45 @@ namespace ACESimBase.GameSolvingAlgorithms
             else throw new NotImplementedException();
 
             return reportCollection;
+        }
+
+        internal static List<(double[] equilibrium, int frequency)> CollectEquilibriumRecoveries(
+            int requested, bool parallel, bool tryInexact,
+            Func<int, List<(double[] equilibrium, int frequency)>> exact,
+            Func<int, List<(double[] equilibrium, int frequency)>> inexact,
+            out int exactAttempts, out int inexactAttempts)
+        {
+            if (requested < 1) throw new ArgumentOutOfRangeException(nameof(requested));
+            var equilibria = new List<(double[] equilibrium, int frequency)>();
+            exactAttempts = inexactAttempts = 0;
+            if (!parallel)
+            {
+                TabbedText.WriteLine("Using exact arithmetic for initial prior");
+                exactAttempts++;
+                var initial = exact(1);
+                if (initial.Count == 0)
+                    throw new InvalidOperationException("The initial exact prior returned no verified equilibrium.");
+                equilibria.Add(initial.First());
+            }
+            int remaining = requested - equilibria.Sum(x => x.frequency);
+            if (tryInexact && remaining > 0)
+            {
+                TabbedText.WriteLine($"Trying inexact arithmetic for up to {remaining} random priors");
+                inexactAttempts += remaining;
+                AddAdditionalEquilibria(equilibria, inexact(remaining));
+            }
+            remaining = requested - equilibria.Sum(x => x.frequency);
+            if (remaining > 0)
+            {
+                TabbedText.WriteLine($"Using exact arithmetic for {remaining} remaining random priors");
+                exactAttempts += remaining;
+                AddAdditionalEquilibria(equilibria, exact(remaining));
+            }
+            if (equilibria.Count == 0)
+                throw new InvalidOperationException("No verified equilibrium was recovered after exact fallback.");
+            // Failed exact attempts remain failures in the recovery report, not invented recoveries.
+            TabbedText.WriteLine($"Verified recoveries: {equilibria.Sum(x => x.frequency)}; requested: {requested}; distinct profiles: {equilibria.Count}.");
+            return equilibria;
         }
 
         internal static string BuildEquilibriumRecoveryCsv(
@@ -272,6 +286,7 @@ namespace ACESimBase.GameSolvingAlgorithms
 
         private List<(double[] equilibrium, int frequency)> DetermineEquilibria<T>(int numPriorsToGet) where T : IMaybeExact<T>, new()
         {
+            if (numPriorsToGet < 1) throw new ArgumentOutOfRangeException(nameof(numPriorsToGet));
             DetermineGameNodeRelationships();
             bool useManuallyDefinedEquilibria = false; // use this as a shortcut to replay some equilibrium
             List<(double[] equilibrium, int frequency)> equilibria = null;
@@ -322,8 +337,8 @@ namespace ACESimBase.GameSolvingAlgorithms
                         var individualResults = ecta.Execute(t => SetupECTA(t), scenarioUpdater, priorNumber);
                         lock (results)
                         {
-                            var individualResult = individualResults.First();
-                            AddEquilibriumToEquilibriaListIfUnique(results, individualResult);
+                            foreach (var individualResult in individualResults)
+                                AddEquilibriumToEquilibriaListIfUnique(results, individualResult);
                         }
                     });
                     if (EvolutionSettings.SequenceFormBlockDistantActionsWhenTracingEquilibrium)
@@ -332,7 +347,7 @@ namespace ACESimBase.GameSolvingAlgorithms
                 else
                 {
                     List<IMaybeExact<T>> initialProbabilities = null;
-                    if (EvolutionSettings.ConsiderInitializingToMostRecentEquilibrium && GameDefinition.GameOptions.InitializeToMostRecentEquilibrium && MostRecentEquilibrium != null)
+                    if (EvolutionSettings.ConsiderInitializingToMostRecentEquilibrium && GameDefinition.GameOptions.InitializeToMostRecentEquilibrium && MostRecentEquilibrium is IMaybeExact<T>[])
                     {
                         initialProbabilities = ((IMaybeExact<T>[])MostRecentEquilibrium).ToList();
                         TabbedText.WriteLine($"Initializing probabilities to {String.Join(",", initialProbabilities.Select(x => x.ToString()))}");
@@ -355,10 +370,11 @@ namespace ACESimBase.GameSolvingAlgorithms
                     results = ecta.Execute(t => SetupECTA(t), scenarioUpdater, seed, initialProbabilities?.ToArray());
                 }
                 results = results.Select(x => (ReverseEffectsOfCuttingOffProbabilityZeroNodes(x.equilibrium), x.frequency)).ToList();
-                MostRecentEquilibrium = results.Last().equilibrium;
                 NarrowDownToValidEquilibria<T>(results);
+                if (results.Count > 0)
+                    MostRecentEquilibrium = results.Last().equilibrium;
                 equilibria = results.Select(x => (x.equilibrium.Select(y => y.AsDouble).ToArray(), x.frequency)).ToList();
-                if (EvolutionSettings.SequenceFormBlockDistantActionsWhenTracingEquilibrium)
+                if (EvolutionSettings.SequenceFormBlockDistantActionsWhenTracingEquilibrium && results.Count > 0)
                     IdentifyProbabilitiesToBlockWhenTracingPath<T>((IMaybeExact<T>[])MostRecentEquilibrium);
                 else
                     BlockedPlayerActions = null;

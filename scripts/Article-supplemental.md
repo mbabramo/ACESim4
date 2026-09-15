@@ -1,6 +1,6 @@
 # Complete core supplemental analyses
 
-The routine 124-case study remains separate. This workflow covers its three-rule
+The routine 276-case design remains separate. This workflow covers its three-rule
 baseline: American, Trial Fee-Shifting and Complete Fee-Shifting, with every
 available risk level. Current coverage is RN and symmetric CARA alpha 2.
 
@@ -16,9 +16,20 @@ cached equilibria. The script never substitutes a cache-validation log for an
 original solve log. `-Python` can specify the bundled Python executable.
 
 `-PrepareOnly` writes requests without starting calculations. Use
-`-SkipMultipleEquilibria` only when that separate production plan is already
+`-SkipMultipleEquilibria` to leave that separate production plan stopped, or when it is
 complete or running independently. As with other production plans, changed
 source/build manifests require a fresh output directory; do not bypass checks.
+
+Multiple-start solving retains the initial exact equilibrium when an approximate
+batch returns no verified profiles and then attempts the exact fallback. Recovery
+counts determine the remaining attempts, rather than the number of distinct
+profiles. Failed exact attempts remain failures in the recovery report. An
+unexpected SequenceForm exception is reported immediately; it is not retried on
+a partially initialized game tree. The coordinator waits for already-active
+cases to save their outputs before returning a failed status. After every worker
+has exited, `recover --failed --include-pending` resets only unfinished tasks on
+the same source/build; it preserves completed cases. A changed build still
+requires a fresh directory, and old results retain their original provenance.
 
 ## Automatically generated coverage
 

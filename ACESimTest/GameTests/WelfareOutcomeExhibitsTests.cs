@@ -64,8 +64,23 @@ public class WelfareOutcomeExhibitsTests
         WriteCsv(Path.Combine(root, "summary.csv"), rows.ToArray());
         string request = Path.Combine(root, "request.json");
         File.WriteAllText(request, JsonSerializer.Serialize(new WelfareOutcomeExhibits.Request(
-            [new("summary.csv", "details", "Test")], "Results")));
+            [new("summary.csv", "details", "Test")], "Results", RequireCompleteRoutineMatrix: false)));
         return request;
+    }
+
+    [TestMethod]
+    public void RoutineDiagramsRejectIncompleteSourcesBeforeWritingAnything()
+    {
+        var temp = Directory.CreateTempSubdirectory("acesim-incomplete-routine-");
+        try
+        {
+            string path = Fixture(temp.FullName);
+            var request = JsonSerializer.Deserialize<WelfareOutcomeExhibits.Request>(File.ReadAllText(path));
+            File.WriteAllText(path, JsonSerializer.Serialize(new WelfareOutcomeExhibits.Request(request.Inputs, request.OutputDirectory)));
+            Assert.ThrowsException<InvalidDataException>(() => WelfareOutcomeExhibits.Prepare(path));
+            Assert.IsFalse(Directory.Exists(Path.Combine(temp.FullName, "Results")));
+        }
+        finally { temp.Delete(true); }
     }
 
     [TestMethod]

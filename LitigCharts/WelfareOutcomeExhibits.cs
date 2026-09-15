@@ -18,7 +18,7 @@ namespace LitigCharts;
 public static class WelfareOutcomeExhibits
 {
     public sealed record Input(string NumericalResultsCsv, string IndividualDirectory, string ReportPrefix);
-    public sealed record Request(Input[] Inputs, string OutputDirectory);
+    public sealed record Request(Input[] Inputs, string OutputDirectory, bool RequireCompleteRoutineMatrix = true);
     public sealed record Exhibit(string Family, double Cost, string Kind, string TexFile, string[] OptionSets);
     public sealed record Generation(string OutputDirectory, Dictionary<string, string> Files, Exhibit[] Exhibits,
         PublicationTables.Source[] Inputs, int Cases);
@@ -117,7 +117,8 @@ public static class WelfareOutcomeExhibits
         if (!spec.StartsWith("Specification-", StringComparison.Ordinal))
             throw new InvalidDataException("Missing specification identity.");
         spec = spec["Specification-".Length..];
-        spec = spec switch { "ModerateRiskAversion" => "Baseline", "LowNoiseModerateRiskAversion" => "LowNoise", _ => spec };
+        spec = LitigGameCorrelatedSignalsArticleLauncher.TransformationOf(
+            Enum.Parse<LitigGameCorrelatedSignalsArticleLauncher.FocusedSpecification>(spec)).ToString();
         string slug = Regex.Replace(spec, "([a-z0-9])([A-Z])", "$1-$2").ToLowerInvariant();
         if (!Regex.IsMatch(slug, "^[a-z0-9-]+$")) throw new InvalidDataException("Unsafe specification filename.");
         int offers = checked((int)N(row, "Number of Offers"));
@@ -225,6 +226,8 @@ public static class WelfareOutcomeExhibits
         var files = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         var exhibits = new List<Exhibit>();
         var coverage = new StringBuilder("| Family | Cost | Cases | Available fee rules |\n|---|---:|---:|---|\n");
+        if (request.RequireCompleteRoutineMatrix)
+            LitigGameCorrelatedSignalsArticleLauncher.ValidateRoutineCaseCoverage(rows.Select(row => row["OptionSetName"]));
         foreach (var group in rows.GroupBy(r => (Family: r["Comparison Family"], Cost: N(r, "Costs Multiplier"))))
         {
             var selected = group.ToArray();

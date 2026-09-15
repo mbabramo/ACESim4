@@ -13,7 +13,7 @@ Those do not determine the current article selection or folder layout.
 # Article diagrams
 
 The routine suite includes the ten-case [Complete Fee-Shifting batch](../scripts/Exit-fee-extension.md).
-Use `--plan exit-fees` to operate on that batch alone. CS004 contains 114 retained cases; CS004ME is a separate multiple-start workflow.
+Use `--plan exit-fees` to operate on that batch alone. CS004 contains 184 cases and CS006EF contains 92: every retained transformation covers all six fee/risk cases. CS004ME is a separate multiple-start workflow.
 
 Optional ECTA numerical-path exports are described in
 [Equilibrium paths](../scripts/Equilibrium-paths.md). The equilibrium-paths

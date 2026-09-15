@@ -8,6 +8,7 @@ using ACESimBase.Util.Mathematics;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.IO;
 using System.Linq;
 
 namespace ACESim
@@ -45,6 +46,13 @@ namespace ACESim
             AllCostsSunk,
             MandatoryFilingAndAnswering,
             MandatoryFilingAnsweringNoExit,
+            HighNoiseModerateRiskAversion,
+            DirectBinaryStateSignalsModerateRiskAversion,
+            TruthConditionedLatentMeritsModerateRiskAversion,
+            CenterWeightedContinuousMeritsModerateRiskAversion,
+            PolarizedContinuousMeritsModerateRiskAversion,
+            AllCostsAvoidableModerateRiskAversion,
+            AllCostsSunkModerateRiskAversion,
         }
 
         public enum ArticleSignalStructure
@@ -88,16 +96,17 @@ namespace ACESim
         public const int UnifiedOptionSetCount = 300;
         public const int UnifiedCoreCombinationCount = 75;
         public const int UnifiedComparisonGroupCount = 100;
-        public const int FocusedOptionSetCount = 114;
+        public const int FocusedOptionSetCount = 184;
         public const int FocusedCoreCombinationCount = 10;
-        public const int FocusedSpecificationComparisonCount = 102;
-        public const int FocusedFeeRegimeComparisonCount = 57;
+        public const int FocusedSpecificationComparisonCount = 172;
+        public const int FocusedFeeRegimeComparisonCount = 92;
         public const int MultipleEquilibriaOptionSetCount = 6;
         public const int MultipleEquilibriaInitializationCount = 50;
-        public const int IncreasedOfferGridOptionSetCount = 4;
+        public const int IncreasedOfferGridOptionSetCount = 6;
+        public const int FocusedFinerOfferOptionSetCount = 4;
         public const int IncreasedOfferGridOfferCount = 15;
-        public const int ExitFeeOptionSetCount = 10;
-        public const int ExitFeeSpecificationComparisonCount = 5;
+        public const int ExitFeeOptionSetCount = 92;
+        public const int ExitFeeSpecificationComparisonCount = 86;
         public const string ExitFeeTriggerLabel = "Trial and unilateral exit";
         private const double PublishedTotalPerPartyLitigationCosts = 0.30;
         private const double PublishedProportionOfCostsAtBeginning = 0.5;
@@ -123,7 +132,63 @@ namespace ACESim
                 new FocusedSpecificationDefinition(FocusedSpecification.PolarizedContinuousMerits, "Polarized continuous merits"),
                 new FocusedSpecificationDefinition(FocusedSpecification.AllCostsAvoidable, "All litigation costs avoidable at bargaining"),
                 new FocusedSpecificationDefinition(FocusedSpecification.AllCostsSunk, "All litigation costs sunk before bargaining"),
+                new FocusedSpecificationDefinition(FocusedSpecification.HighNoiseModerateRiskAversion, "High noise plus moderate risk aversion"),
+                new FocusedSpecificationDefinition(FocusedSpecification.DirectBinaryStateSignalsModerateRiskAversion, "Direct binary-state signals plus moderate risk aversion"),
+                new FocusedSpecificationDefinition(FocusedSpecification.TruthConditionedLatentMeritsModerateRiskAversion, "Truth-conditioned latent merits plus moderate risk aversion"),
+                new FocusedSpecificationDefinition(FocusedSpecification.CenterWeightedContinuousMeritsModerateRiskAversion, "Center-weighted continuous merits plus moderate risk aversion"),
+                new FocusedSpecificationDefinition(FocusedSpecification.PolarizedContinuousMeritsModerateRiskAversion, "Polarized continuous merits plus moderate risk aversion"),
+                new FocusedSpecificationDefinition(FocusedSpecification.AllCostsAvoidableModerateRiskAversion, "All litigation costs avoidable at bargaining plus moderate risk aversion"),
+                new FocusedSpecificationDefinition(FocusedSpecification.AllCostsSunkModerateRiskAversion, "All litigation costs sunk before bargaining plus moderate risk aversion"),
             };
+
+        public enum CoreFeeRule { American, Trial, Complete }
+        public sealed record CoreCase(bool RiskAverse, CoreFeeRule FeeRule);
+        public static readonly IReadOnlyList<CoreCase> CoreCases =
+            (from risk in new[] { false, true }
+             from fee in Enum.GetValues<CoreFeeRule>()
+             select new CoreCase(risk, fee)).ToArray();
+
+        public static readonly IReadOnlyList<FocusedSpecification> RetainedTransformations = new[]
+        {
+            FocusedSpecification.Baseline, FocusedSpecification.LowNoise, FocusedSpecification.HighNoise,
+            FocusedSpecification.DirectBinaryStateSignals, FocusedSpecification.TruthConditionedLatentMerits,
+            FocusedSpecification.CenterWeightedContinuousMerits, FocusedSpecification.PolarizedContinuousMerits,
+            FocusedSpecification.AllCostsAvoidable, FocusedSpecification.AllCostsSunk,
+        };
+
+        // Preserve the identifiers of existing profiles, including the two historical risk labels.
+        public static FocusedSpecification WithRisk(FocusedSpecification transformation, bool riskAverse) =>
+            !riskAverse ? transformation : transformation == FocusedSpecification.Baseline
+                ? FocusedSpecification.ModerateRiskAversion
+                : Enum.Parse<FocusedSpecification>(transformation + "ModerateRiskAversion");
+
+        public static FocusedSpecification TransformationOf(FocusedSpecification specification) =>
+            specification == FocusedSpecification.ModerateRiskAversion ? FocusedSpecification.Baseline
+                : Enum.Parse<FocusedSpecification>(specification.ToString().Replace("ModerateRiskAversion", ""));
+
+        public sealed record RoutineCaseDefinition(string ReportPrefix, string OptionSetName,
+            string EquilibriumFileName, string Transformation, string Risk, string FeeRule, double Cost, int Offers);
+
+        public static IReadOnlyList<RoutineCaseDefinition> RoutineCaseMatrix() => RequiredArticleProductionPlans
+            .Select(plan => new LitigGameCorrelatedSignalsArticleLauncher(plan))
+            .SelectMany(launcher => launcher.GetOptionsSets().Cast<LitigGameOptions>().Select(option =>
+                new RoutineCaseDefinition(launcher.MasterReportNameForDistributedProcessing, option.Name,
+                    launcher.GetReportFilename(option.Name, "-equ.csv"),
+                    TransformationOf(ParseFocusedSpecification(GetSetting(option, "Specification"))).ToString(),
+                    GetSetting(option, "Risk Aversion"), FeeRuleLabel(option), option.CostsMultiplier, option.NumOffers)))
+            .ToArray();
+
+        public static void ValidateRoutineCaseCoverage(IEnumerable<string> optionSetNames)
+        {
+            string[] names = optionSetNames.ToArray();
+            var expected = RoutineCaseMatrix().Select(row => row.OptionSetName).ToHashSet(StringComparer.Ordinal);
+            string[] missing = expected.Except(names, StringComparer.Ordinal).ToArray();
+            string[] unexpected = names.Except(expected, StringComparer.Ordinal).ToArray();
+            if (missing.Length != 0 || unexpected.Length != 0 || names.Distinct(StringComparer.Ordinal).Count() != names.Length)
+                throw new InvalidDataException($"Routine six-case coverage is incomplete: {missing.Length} missing, " +
+                    $"{unexpected.Length} unexpected; duplicates: {names.Length - names.Distinct(StringComparer.Ordinal).Count()}. " +
+                    "Missing: " + string.Join(", ", missing));
+        }
 
         public static readonly IReadOnlyList<FocusedSpecification> IncreasedOfferGridSpecifications =
             new[]
@@ -226,7 +291,7 @@ namespace ACESim
             ProductionRunPlan.FocusedContinuousMerits => FocusedCoreCombinationCount,
             ProductionRunPlan.MultipleEquilibriaRobustness => IncreasedOfferGridSpecifications.Count,
             ProductionRunPlan.IncreasedOfferGridRobustness => IncreasedOfferGridSpecifications.Count,
-            ProductionRunPlan.ExitFeeShifting => ExitFeeSpecificationComparisonCount,
+            ProductionRunPlan.ExitFeeShifting => CriticalCostsMultipliers.Length,
             _ => throw new NotSupportedException(),
         };
 
@@ -342,9 +407,13 @@ namespace ACESim
                 values.Add(("Fees After Nonanswer", "true"));
             }
             if (RunPlan == ProductionRunPlan.IncreasedOfferGridRobustness)
+            {
                 values = values.WithReplacement(
                     "Number of Offers",
                     IncreasedOfferGridOfferCount.ToString(CultureInfo.InvariantCulture));
+                values.Add(("Fee Shifting Trigger", "Trial only"));
+                values.Add(("Fees After Nonanswer", "false"));
+            }
             if (RunPlan == ProductionRunPlan.MultipleEquilibriaRobustness)
             {
                 values.Add(("Fee Shifting Trigger", "Trial only"));
@@ -402,16 +471,14 @@ namespace ACESim
 
         public override List<GameOptions> GetOptionsSets()
         {
-            if (RunPlan == ProductionRunPlan.ExitFeeShifting)
-                return GetExitFeeOptionSets();
+            if (RunPlan is ProductionRunPlan.FocusedContinuousMerits or ProductionRunPlan.ExitFeeShifting)
+                return GetRoutineOptionSets();
             if (RunPlan is ProductionRunPlan.MultipleEquilibriaRobustness or
                 ProductionRunPlan.IncreasedOfferGridRobustness)
                 return GetRobustnessOptionSets();
 
             var optionSets = new List<GameOptions>();
             AddToOptionsSets(optionSets);
-            if (RunPlan == ProductionRunPlan.FocusedContinuousMerits)
-                optionSets.AddRange(CreateIntegratedFinerOfferOptionSets());
 
             foreach (LitigGameOptions options in optionSets.Cast<LitigGameOptions>())
                 options.Name = CreateStableOptionSetIdentifier(options);
@@ -432,77 +499,56 @@ namespace ACESim
                 .ToList();
         }
 
-        private IEnumerable<GameOptions> CreateIntegratedFinerOfferOptionSets()
+        private LitigGameOptions CreateCoreCase(FocusedSpecification transformation, CoreCase core, double cost, byte offers)
         {
-            foreach (FocusedSpecification specification in IncreasedOfferGridSpecifications)
-            foreach (double feeMultiplier in new[] { 0.0, 1.0 })
-            {
-                LitigGameOptions options = LitigGameOptionsGenerator.CorrelatedSignalsBase(smallerTree: false);
-                foreach ((string key, string value) in FocusedDefaultVariableValues())
-                    options.VariableSettings[key] = value;
-                SetPublishedCostStructure(options);
-                ConfigureFocusedSpecification(options, specification);
-                options.CostsMultiplier = 1.0;
-                options.VariableSettings["Costs Multiplier"] = "1";
-                options.LoserPays = true;
-                options.LoserPaysMultiple = feeMultiplier;
-                options.VariableSettings["Fee Shifting Multiplier"] = FormatNumber(feeMultiplier);
-                options.VariableSettings["Fee Regime"] = feeMultiplier == 0.0 ? "American" : "British";
-                options.NumOffers = IncreasedOfferGridOfferCount;
-                options.VariableSettings["Number of Offers"] =
-                    IncreasedOfferGridOfferCount.ToString(CultureInfo.InvariantCulture);
-                ApplyRunSpecificRobustnessSettings(options);
-                yield return options;
-            }
+            var options = LitigGameOptionsGenerator.CorrelatedSignalsBase(smallerTree: false);
+            foreach ((string key, string value) in FocusedDefaultVariableValuesForRun())
+                options.VariableSettings[key] = value;
+            ConfigureFocusedSpecification(options, WithRisk(transformation, core.RiskAverse));
+            options.CostsMultiplier = cost;
+            options.VariableSettings["Costs Multiplier"] = FormatNumber(cost);
+            options.LoserPays = true;
+            options.LoserPaysMultiple = core.FeeRule == CoreFeeRule.American ? 0 : 1;
+            options.VariableSettings["Fee Shifting Multiplier"] = FormatNumber(options.LoserPaysMultiple);
+            options.VariableSettings["Fee Regime"] = core.FeeRule == CoreFeeRule.American ? "American" : "British";
+            if (core.FeeRule == CoreFeeRule.Complete) ApplyExitFeeSettings(options);
+            options.NumOffers = offers;
+            options.VariableSettings["Number of Offers"] = offers.ToString(CultureInfo.InvariantCulture);
+            ApplyRunSpecificRobustnessSettings(options);
+            options.Name = CreateStableOptionSetIdentifier(options);
+            return options;
+        }
+
+        private List<GameOptions> GetRoutineOptionSets()
+        {
+            // Two historical file prefixes partition one six-case design. Every transformation
+            // is applied separately; this does not cross the transformations with one another.
+            var coreCases = CoreCases.Where(core => (core.FeeRule == CoreFeeRule.Complete) ==
+                (RunPlan == ProductionRunPlan.ExitFeeShifting)).ToArray();
+            var options = new List<GameOptions>();
+            foreach (FocusedSpecification transformation in RetainedTransformations)
+            foreach (CoreCase core in coreCases)
+            foreach (double cost in CriticalCostsMultipliers)
+                options.Add(CreateCoreCase(transformation, core, cost, 10));
+            foreach (CoreCase core in coreCases)
+                options.Add(CreateCoreCase(FocusedSpecification.Baseline, core, 1, IncreasedOfferGridOfferCount));
+            options = options.OrderBy(option => option.Name, StringComparer.Ordinal).ToList();
+            ValidateProductionMatrix(options);
+            return options;
         }
 
         private List<GameOptions> GetRobustnessOptionSets()
         {
             var optionSets = new List<GameOptions>();
-            foreach (FocusedSpecification specification in RobustnessSpecifications())
-            foreach (int feeRule in RunPlan == ProductionRunPlan.MultipleEquilibriaRobustness ? new[] { 0, 1, 2 } : new[] { 0, 1 })
-            {
-                double feeMultiplier = feeRule == 0 ? 0.0 : 1.0;
-                LitigGameOptions options = LitigGameOptionsGenerator.CorrelatedSignalsBase(smallerTree: false);
-                foreach ((string key, string value) in FocusedDefaultVariableValuesForRun())
-                    options.VariableSettings[key] = value;
-                SetPublishedCostStructure(options);
-                ConfigureFocusedSpecification(options, specification);
-                options.CostsMultiplier = 1.0;
-                options.VariableSettings["Costs Multiplier"] = "1";
-                options.LoserPays = true;
-                options.LoserPaysMultiple = feeMultiplier;
-                options.VariableSettings["Fee Shifting Multiplier"] = FormatNumber(feeMultiplier);
-                options.VariableSettings["Fee Regime"] = feeMultiplier == 0.0 ? "American" : "British";
-                if (feeRule == 2) ApplyExitFeeSettings(options);
-                ApplyRunSpecificRobustnessSettings(options);
-                options.Name = CreateStableOptionSetIdentifier(options);
-                optionSets.Add(options);
-            }
+            foreach (CoreCase core in CoreCases)
+                optionSets.Add(CreateCoreCase(FocusedSpecification.Baseline, core, 1,
+                    RunPlan == ProductionRunPlan.IncreasedOfferGridRobustness ? (byte)IncreasedOfferGridOfferCount : (byte)10));
 
             optionSets = optionSets.OrderBy(option => option.Name, StringComparer.Ordinal).ToList();
             ValidateProductionMatrix(optionSets);
             return optionSets;
         }
 
-        private List<GameOptions> GetExitFeeOptionSets()
-        {
-            var options = new List<GameOptions>();
-            foreach (FocusedSpecification specification in IncreasedOfferGridSpecifications)
-            foreach (double cost in CriticalCostsMultipliers)
-            {
-                var option = (LitigGameOptions)GetDefaultSingleGameOptions();
-                ConfigureFocusedSpecification(option, specification);
-                option.CostsMultiplier = cost;
-                option.VariableSettings["Costs Multiplier"] = FormatNumber(cost);
-                ApplyExitFeeSettings(option);
-                option.Name = CreateStableOptionSetIdentifier(option);
-                options.Add(option);
-            }
-            options = options.OrderBy(option => option.Name, StringComparer.Ordinal).ToList();
-            ValidateProductionMatrix(options);
-            return options;
-        }
 
         public static string FeeRuleLabel(LitigGameOptions options) => options.LoserPaysMultiple == 0
             ? "American" : options.LoserPaysAfterAbandonment && options.LoserPaysAfterNonAnswer
@@ -523,13 +569,12 @@ namespace ACESim
 
         private IReadOnlyList<FocusedSpecification> RobustnessSpecifications() => RunPlan switch
         {
-            ProductionRunPlan.FocusedContinuousMerits =>
+            ProductionRunPlan.FocusedContinuousMerits or ProductionRunPlan.ExitFeeShifting =>
                 FocusedSpecifications.Select(definition => definition.Specification).ToArray(),
             ProductionRunPlan.MultipleEquilibriaRobustness =>
                 IncreasedOfferGridSpecifications,
             ProductionRunPlan.IncreasedOfferGridRobustness =>
                 IncreasedOfferGridSpecifications,
-            ProductionRunPlan.ExitFeeShifting => IncreasedOfferGridSpecifications,
             _ => Array.Empty<FocusedSpecification>(),
         };
 
@@ -661,6 +706,16 @@ namespace ACESim
             LitigGameOptions options,
             FocusedSpecification specification)
         {
+            FocusedSpecification transformation = TransformationOf(specification);
+            if (transformation != specification)
+            {
+                ConfigureFocusedSpecification(options, transformation);
+                SetModerateRiskAversion(options);
+                options.VariableSettings["Specification"] = GetFocusedSpecificationDefinition(specification).Label;
+                options.VariableSettings["Risk Aversion"] = "Moderately Risk Averse";
+                options.VariableSettings["CARA Alpha"] = "2";
+                return;
+            }
             InformationLevel baselineInformation = GetInformationLevel(BaselineInformationLevelLabel);
             options.NumOffers = 10;
             options.NumLiabilitySignals = 10;
@@ -974,9 +1029,9 @@ namespace ACESim
                 .ToList();
             if (options.Count != coreOptions.Count + finerOfferOptions.Count)
                 errors.Add("CS004 contains an offer count outside the planned 10- and 15-offer grids.");
-            if (finerOfferOptions.Count != IncreasedOfferGridOptionSetCount)
+            if (finerOfferOptions.Count != FocusedFinerOfferOptionSetCount)
                 errors.Add(
-                    $"Expected {IncreasedOfferGridOptionSetCount} integrated 15-offer rows " +
+                    $"Expected {FocusedFinerOfferOptionSetCount} integrated 15-offer rows " +
                     $"but found {finerOfferOptions.Count}.");
             if (finerOfferOptions.Any(option =>
                     !IncreasedOfferGridSpecifications.Contains(ParseFocusedSpecification(
@@ -1093,7 +1148,7 @@ namespace ACESim
             foreach (LitigGameOptions option in options)
             {
                 ValidateFocusedOptionSet(option, errors, expectedOffers,
-                    exitFees: RunPlan == ProductionRunPlan.MultipleEquilibriaRobustness && option.LoserPaysAfterAbandonment);
+                    exitFees: option.LoserPaysAfterAbandonment);
                 FocusedSpecification specification = ParseFocusedSpecification(
                     GetSetting(option, "Specification"));
                 if (!expectedSpecifications.Contains(specification))
@@ -1125,9 +1180,7 @@ namespace ACESim
                 string[] regimes = group.Select(FeeRuleLabel)
                     .OrderBy(value => value, StringComparer.Ordinal)
                     .ToArray();
-                string[] expectedRegimes = RunPlan == ProductionRunPlan.MultipleEquilibriaRobustness
-                    ? new[] { "American", "Complete Fee-Shifting", "Trial Fee-Shifting" }
-                    : new[] { "American", "Trial Fee-Shifting" };
+                string[] expectedRegimes = new[] { "American", "Complete Fee-Shifting", "Trial Fee-Shifting" };
                 if (!regimes.SequenceEqual(expectedRegimes))
                     errors.Add($"Specification '{group.Key}' does not contain exactly one run under each fee regime.");
             }
@@ -1159,21 +1212,28 @@ namespace ACESim
         {
             foreach (LitigGameOptions option in options)
             {
-                ValidateFocusedOptionSet(option, errors, exitFees: true);
+                ValidateFocusedOptionSet(option, errors, option.NumOffers, exitFees: true);
                 if (option.LoserPaysMultiple != 1.0 ||
-                    !IncreasedOfferGridSpecifications.Contains(ParseFocusedSpecification(GetSetting(option, "Specification"))) ||
                     GetSetting(option, "Fee Shifting Trigger") != ExitFeeTriggerLabel ||
                     GetSetting(option, "Fees After Nonanswer") != "true")
-                    errors.Add(option.Name + ": invalid exit-fee extension configuration.");
+                    errors.Add(option.Name + ": invalid Complete Fee-Shifting configuration.");
+                if (option.NumOffers != 10 && (option.NumOffers != IncreasedOfferGridOfferCount ||
+                    option.CostsMultiplier != 1 || !IncreasedOfferGridSpecifications.Contains(
+                        ParseFocusedSpecification(GetSetting(option, "Specification")))))
+                    errors.Add(option.Name + ": invalid finer-offer case.");
             }
             foreach (double cost in CriticalCostsMultipliers)
+            foreach (FocusedSpecificationDefinition specification in FocusedSpecifications)
+                if (options.Count(option => option.CostsMultiplier == cost && option.NumOffers == 10 &&
+                    GetSetting(option, "Specification") == specification.Label) != 1)
+                    errors.Add($"Expected one Complete Fee-Shifting case for {specification.Label} at cost {cost}.");
             foreach (FocusedSpecification specification in IncreasedOfferGridSpecifications)
-                if (options.Count(option => option.CostsMultiplier == cost &&
+                if (options.Count(option => option.CostsMultiplier == 1 && option.NumOffers == IncreasedOfferGridOfferCount &&
                     GetSetting(option, "Specification") == GetFocusedSpecificationDefinition(specification).Label) != 1)
-                    errors.Add($"Expected one exit-fee case for {specification} at cost {cost}.");
+                    errors.Add($"Expected one Complete Fee-Shifting finer-offer case for {specification}.");
             if (errors.Count != 0)
                 throw new InvalidOperationException(string.Join(Environment.NewLine, errors));
-            return new ProductionMatrixAudit(options.Count, ExitFeeSpecificationComparisonCount,
+            return new ProductionMatrixAudit(options.Count, CriticalCostsMultipliers.Length,
                 ExitFeeSpecificationComparisonCount, options.GroupBy(option => GetSetting(option, "Risk Aversion"))
                     .ToDictionary(group => group.Key, group => group.Count()));
         }
@@ -1183,8 +1243,11 @@ namespace ACESim
             if (RunPlan == ProductionRunPlan.ExitFeeShifting)
             {
                 var exitResults = GetOptionsSets().Cast<LitigGameOptions>()
-                    .GroupBy(option => option.CostsMultiplier).OrderBy(group => group.Key)
-                    .Select(group => new SimulationSetsIdentifier("Exit fees, cost " + FormatNumber(group.Key),
+                    .GroupBy(option => (Cost: option.CostsMultiplier, Offers: option.NumOffers,
+                        Family: TransformationOf(ParseFocusedSpecification(GetSetting(option, "Specification")))))
+                    .OrderBy(group => group.Key.Family).ThenBy(group => group.Key.Cost).ThenBy(group => group.Key.Offers)
+                    .Select(group => new SimulationSetsIdentifier("Complete Fee-Shifting, " + group.Key.Family +
+                        ", cost " + FormatNumber(group.Key.Cost) + ", offers " + group.Key.Offers,
                         group.Select(option => CreateExactSimulationIdentifier(
                             GetSetting(option, "Risk Aversion"), option)).ToList())).ToList();
                 return PerformArticleVariationInfoSetsTransformation(transformer, exitResults);
@@ -1593,9 +1656,7 @@ namespace ACESim
                 Math.Abs(options.PerPartyCostsLeadingUpToBargainingRound) > 1E-12)
                 errors.Add(prefix + "does not retain the published zero bargaining-round cost.");
 
-            bool riskAverse = specification is
-                FocusedSpecification.ModerateRiskAversion or
-                FocusedSpecification.LowNoiseModerateRiskAversion;
+            bool riskAverse = TransformationOf(specification) != specification;
             if (riskAverse)
             {
                 if (options.PUtilityCalculator is not CARARiskAverseUtilityCalculator pUtility ||
@@ -1610,6 +1671,7 @@ namespace ACESim
                 errors.Add(prefix + "contains unintended risk aversion.");
             }
 
+            specification = TransformationOf(specification);
             double expectedPartySigma = specification switch
             {
                 FocusedSpecification.LowNoise or

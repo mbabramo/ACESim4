@@ -1,7 +1,7 @@
 # Correlated-signals article results
 
-The routine study has 124 cases: 114 CS004 cases plus ten CS006EF Complete
-Fee-Shifting cases. The baseline crosses American, Trial Fee-Shifting and
+The routine design has 276 cases: 184 CS004 cases plus 92 CS006EF Complete
+Fee-Shifting cases. Each retained transformation crosses American, Trial Fee-Shifting and
 Complete Fee-Shifting with risk neutrality and symmetric CARA alpha 2, at costs
 0.25, 0.5, 1, 2 and 4. Mandatory participation cases are excluded. Multiple-start
 equilibrium analysis remains a separate `--plan multiple-equilibria` workflow.
@@ -19,13 +19,27 @@ are regenerated. A failed equilibrium validation stops the run. A missing
 profile is solved normally. Source/build manifests prevent mixing incompatible
 production runs. Do not bypass these checks for final results.
 
+The nine ten-offer families are Baseline, Low noise, High noise, the three
+alternative merits distributions/architectures, Direct binary-state signals,
+All costs avoidable, and All costs sunk. Each contains 30 cases. The 15-offer
+sensitivity check adds six cases at cost 1. Transformations are applied separately.
+
 For a clean report rebuild, first commit and use `Prepare-ArticleRebuild.ps1`
-with the directories holding the 124 retained `CS004`/`CS006EF` equilibrium files.
-It stages and hashes those profiles, clears only this repository's ReportResults,
-then seeds `Run records/Retained study` with exactly 124 equilibrium files.
+with the directories holding reusable `CS004`/`CS006EF` equilibrium files.
+It obtains the expected filenames from the C# `export-case-matrix` command,
+stages and hashes the available profiles, clears only this repository's ReportResults,
+then seeds `Run records/Retained study`. The original 124 profiles remain valid
+inputs; 152 additional cases complete the expanded design. The provenance
+record lists missing cases explicitly. No fixed cache count is assumed.
 Preserve the returned provenance record with the final run records. Separate
 analyses and their exact source profiles belong in the article's Supplemental
 materials and must not be replaced with profiles from a report rebuild.
+Use `Prepare-ArticleRebuild.ps1 -ResultsDirectory <fresh-directory>` with the
+source directories to seed an isolated rebuild; this option never clears an
+existing destination. Then use `Rebuild-ArticleResults.ps1 -ResultsDirectory`
+with the same directory. It generates the same organization before the verified files
+are copied into Results. Routine chart requests require the complete case matrix;
+missing fee/risk cases cause an error before any figure or table is replaced.
 
 To regenerate diagrams from completed raw reports without running production:
 
@@ -42,9 +56,8 @@ diagram command also supports `--compile-only` and `--output-root`.
 
 - `Aggregated Data/<Specification>/<Risk Neutral|Risk Averse|Risk Comparison>`
   contains related figures and tables together, with one file per cost. A Risk
-  Comparison folder exists only when both preferences are available. Baseline,
-  Low noise and Offer-grid sensitivity pair their RN/RA cases. Other retained
-  extensions currently have RN results only.
+  Comparison folder holds the six-case comparison. Every retained family has
+  Risk Neutral, Risk Averse and Risk Comparison folders for its tables and charts.
 - `Individual simulations/<Specification>/<Risk>/<Fee rule>` contains each
   case's six report diagrams and its source records.
 - `Sources` below each display folder contains standalone TeX and CSV/JSON data.
@@ -56,8 +69,10 @@ diagram command also supports `--compile-only` and `--output-root`.
   remain identifiable by full option-set name in the batch records.
 - `Run records/diagram-inventory.json` records the generated collection.
 
-There are 937 routine exhibits: 744 individual diagrams, 68 welfare tables,
-68 disposition charts and 57 four-panel strategy figures. Filing and answering
+A complete 276-case run generates 2,024 routine exhibits: 1,656 individual diagrams,
+138 welfare tables, 138 disposition charts and 92 four-panel strategy figures.
+These are planned counts, not a claim that a particular output directory is complete;
+its generated inventory records completion. Filing and answering
 use nested circles, outlined squares and larger outlined diamonds for American,
 Trial Fee-Shifting and Complete Fee-Shifting, respectively, where available.
 These fixed-size markers are centered on the exact signal and probability.
@@ -77,7 +92,6 @@ Supplemental materials is reserved for separate solution-path, game-tree,
 liability-signal, multiple-equilibrium and strategy-change analyses. Standard
 parameter variations remain in Results. There is no archive directory.
 
-After validating the complete collection, use the article repository's
-`scripts/Import-ArticleResults.ps1`, then `scripts/assemble_manuscript_exhibits.py`
-to produce the numbered four main figures and three main tables. Git history
-retains superseded material; no push is part of this workflow.
+After validating the complete collection, copy it to the article's Results and
+refresh the numbered four main figures and three main tables with caption and
+source records. Git history retains superseded material; no push is part of this workflow.

@@ -242,11 +242,11 @@ namespace ACESimTest.GameTests
             var audit = launcher.ValidateProductionMatrix(options.Cast<GameOptions>().ToList());
 
             launcher.MasterReportNameForDistributedProcessing.Should().Be("CS004");
-            audit.OptionSetCount.Should().Be(114);
+            audit.OptionSetCount.Should().Be(184);
             audit.CoreCombinationCount.Should().Be(10);
-            audit.PairedComparisonCount.Should().Be(102);
-            audit.FeeRegimeComparisonCount.Should().Be(57);
-            audit.CountsByInformationAndRisk.Should().HaveCount(11);
+            audit.PairedComparisonCount.Should().Be(172);
+            audit.FeeRegimeComparisonCount.Should().Be(92);
+            audit.CountsByInformationAndRisk.Should().HaveCount(18);
             audit.CountsByInformationAndRisk[LitigGameCorrelatedSignalsArticleLauncher.FocusedBaselineLabel]
                 .Should().Be(12);
             audit.CountsByInformationAndRisk["Moderate symmetric risk aversion"]
@@ -267,8 +267,8 @@ namespace ACESimTest.GameTests
                 })
                 .Should().HaveCount(10)
                 .And.OnlyContain(group =>
-                    group.Count() == 11 &&
-                    group.Select(option => Setting(option, "Specification")).Distinct().Count() == 11);
+                    group.Count() == 18 &&
+                    group.Select(option => Setting(option, "Specification")).Distinct().Count() == 18);
             options.Where(option => option.NumOffers == 15)
                 .Should().HaveCount(4)
                 .And.OnlyContain(option =>
@@ -300,9 +300,7 @@ namespace ACESimTest.GameTests
                 .Should().Be(10, "only the expressly combined specification has both changes");
             options.Where(option => Setting(option, "Risk Aversion") == "Moderately Risk Averse")
                 .Select(option => Setting(option, "Specification")).Distinct()
-                .Should().BeEquivalentTo(
-                    "Moderate symmetric risk aversion",
-                    "Low noise plus moderate risk aversion");
+                .Should().HaveCount(9);
             launcher.GetSimulationSetsIdentifiers()
                 .SelectMany(set => set.simulationIdentifiers)
                 .Should().OnlyContain(identifier => identifier.columnMatches.All(match =>
@@ -314,7 +312,7 @@ namespace ACESimTest.GameTests
                         launcher,
                         variation))
                     .ToList();
-            allRowsVariations.Should().HaveCount(10);
+            allRowsVariations.Should().HaveCount(17);
             allRowsVariations.Should().OnlyContain(variation =>
                 !variation.nameOfSet.Contains("offer-grid sensitivity", StringComparison.Ordinal));
             EveryReportIdentifierShouldSelectOneOption(launcher);
@@ -332,7 +330,7 @@ namespace ACESimTest.GameTests
                     option.NumOffers == 10)
                 .ToList();
 
-            representativeOptions.Should().HaveCount(11);
+            representativeOptions.Should().HaveCount(18);
             foreach (LitigGameOptions options in representativeOptions)
             {
                 var definition = new LitigGameDefinition();
@@ -392,7 +390,7 @@ namespace ACESimTest.GameTests
         }
 
         [TestMethod]
-        public void IncreasedOfferGridPlan_IsTheFourIntegratedCasesAsAConvenientRerunSubset()
+        public void IncreasedOfferGridPlan_IsTheSixIntegratedCasesAsAConvenientRerunSubset()
         {
             var launcher = new LitigGameCorrelatedSignalsArticleLauncher(
                 LitigGameCorrelatedSignalsArticleLauncher.ProductionRunPlan.IncreasedOfferGridRobustness);
@@ -400,7 +398,7 @@ namespace ACESimTest.GameTests
             var audit = launcher.ValidateProductionMatrix(options.Cast<GameOptions>().ToList());
 
             launcher.MasterReportNameForDistributedProcessing.Should().Be("CS005O15");
-            audit.OptionSetCount.Should().Be(4);
+            audit.OptionSetCount.Should().Be(6);
             audit.FeeRegimeComparisonCount.Should().Be(2);
             options.Select(option => Setting(option, "Specification")).Distinct()
                 .Should().BeEquivalentTo(
@@ -417,9 +415,9 @@ namespace ACESimTest.GameTests
             options.GroupBy(option => Setting(option, "Specification"))
                 .Should().HaveCount(2)
                 .And.OnlyContain(group =>
-                    group.Select(option => Setting(option, "Fee Regime"))
+                    group.Select(LitigGameCorrelatedSignalsArticleLauncher.FeeRuleLabel)
                         .OrderBy(value => value)
-                        .SequenceEqual(new[] { "American", "British" }));
+                        .SequenceEqual(new[] { "American", "Complete Fee-Shifting", "Trial Fee-Shifting" }));
             EveryReportIdentifierShouldSelectOneOption(launcher);
         }
 
@@ -461,7 +459,7 @@ namespace ACESimTest.GameTests
 
             foreach (LitigGameOptions option in options)
             {
-                double expectedBeginningShare = Setting(option, "Specification") switch
+                double expectedBeginningShare = Setting(option, "Specification").Replace(" plus moderate risk aversion", "") switch
                 {
                     "All litigation costs avoidable at bargaining" => 0,
                     "All litigation costs sunk before bargaining" => 1,

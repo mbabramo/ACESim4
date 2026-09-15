@@ -58,7 +58,7 @@ namespace ACESimBase.Games.LitigGame.ManualReports
 
         public static LitigGameOptions CreateOptions(string name)
         {
-            var launcher = name.EndsWith("__ExitFees-AllUnilateralExits", StringComparison.Ordinal)
+            var launcher = name.Split("__").Contains("ExitFees-AllUnilateralExits", StringComparer.Ordinal)
                 ? new LitigGameCorrelatedSignalsArticleLauncher(
                     LitigGameCorrelatedSignalsArticleLauncher.ProductionRunPlan.ExitFeeShifting)
                 : NewLauncher();

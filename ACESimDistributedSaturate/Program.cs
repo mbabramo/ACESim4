@@ -36,6 +36,7 @@ namespace ACESimDistributedSaturate
                 {
                     "preflight" => RunPreflight(args.Skip(1).ToArray()),
                     "preflight-suite" => RunSuitePreflight(args.Skip(1).ToArray()),
+                    "export-case-matrix" => ExportCaseMatrix(args.Skip(1).ToArray()),
                     "run" => await RunProductionAsync(args.Skip(1).ToArray()),
                     "run-suite" => await RunProductionSuiteAsync(args.Skip(1).ToArray()),
                     "status" => ShowStatus(args.Skip(1).ToArray()),
@@ -86,9 +87,21 @@ namespace ACESimDistributedSaturate
                     $"plan {coordinator.PlanFingerprint}");
             }
             Console.WriteLine(
-                "The four required 15-offer cases are integrated into CS004; " +
+                "The six required 15-offer cases are integrated into CS004 and CS006EF; " +
                 "CS005O15 is not required by the suite.");
-            Console.WriteLine("CS006EF supplies ten Complete Fee-Shifting core cases; multiple starts remain a separate --plan multiple-equilibria workflow.");
+            Console.WriteLine("Every retained transformation covers three fee rules and two risk settings. Multiple starts remain a separate --plan multiple-equilibria workflow.");
+            return 0;
+        }
+
+        private static int ExportCaseMatrix(string[] args)
+        {
+            string output = OptionalArgument(args, "--output")
+                ?? throw new ArgumentException("Supply --output for the routine case matrix JSON.");
+            var matrix = LitigGameCorrelatedSignalsArticleLauncher.RoutineCaseMatrix();
+            LitigGameCorrelatedSignalsArticleLauncher.ValidateRoutineCaseCoverage(matrix.Select(row => row.OptionSetName));
+            File.WriteAllText(Path.GetFullPath(output), JsonSerializer.Serialize(matrix,
+                new JsonSerializerOptions { WriteIndented = true }));
+            Console.WriteLine($"Wrote {matrix.Count} routine cases to {Path.GetFullPath(output)}.");
             return 0;
         }
 
@@ -329,10 +342,12 @@ namespace ACESimDistributedSaturate
                         lastStatus = status;
                     }
 
-                    if (coordinator.HasFailures)
+                    if (coordinator.HasFailures && workers.All(x => x.HasExited))
                         throw new InvalidOperationException(
-                            "Production stopped with failed tasks. Run 'status', inspect failure logs, then use " +
-                            "'recover --failed --include-pending' after all workers have stopped.");
+                            "Production has failed tasks; all workers have now exited and completed tasks were preserved. " +
+                            "Run 'status', inspect failure logs, then use 'recover --failed --include-pending'.");
+                    if (coordinator.HasFailures)
+                        continue; // Let already-claimed tasks save their results before ending this run.
                     if (coordinator.AllComplete)
                     {
                         int artifactCount = ValidateEquilibriumArtifacts(launcher);
@@ -347,10 +362,26 @@ namespace ACESimDistributedSaturate
                             "All worker processes exited before the coordinator completed. Run 'status' and recover pending tasks after confirming no workers remain.");
                 }
             }
+            catch
+            {
+                try { WritePlanManifest(launcher, "Failed", source, processorCount, null); }
+                catch (Exception manifestError) { Console.Error.WriteLine("Could not record failed status: " + manifestError.Message); }
+                throw;
+            }
             finally
             {
                 foreach (Process worker in workers)
+                {
+                    // An unexpected coordinator exception must not leave detached CPU work.
+                    // Kill only processes this invocation started; retain completed files.
+                    if (!worker.HasExited)
+                    {
+                        try { worker.Kill(entireProcessTree: true); }
+                        catch (InvalidOperationException) when (worker.HasExited) { }
+                        await worker.WaitForExitAsync();
+                    }
                     worker.Dispose();
+                }
             }
         }
 
@@ -1182,6 +1213,7 @@ namespace ACESimDistributedSaturate
             Console.WriteLine("  run --processors all|N [--plan focused|multiple-equilibria|offers-15|unified|supplemental|legacy]");
             Console.WriteLine("  status [--plan focused|multiple-equilibria|offers-15|unified|supplemental|legacy]");
             Console.WriteLine("  recover --failed [--include-pending] [--plan focused|multiple-equilibria|offers-15|unified|supplemental|legacy]");
+            Console.WriteLine("  export-case-matrix --output FILE.json  Export the complete routine design without solving.");
             Console.WriteLine("  aggregate [--plan focused|multiple-equilibria|offers-15|unified|supplemental|legacy]");
             Console.WriteLine("  smoke-test");
             Console.WriteLine("  --plan exit-fees is also supported by preflight, run, status, recover, and aggregate.");
