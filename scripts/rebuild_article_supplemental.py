@@ -71,7 +71,7 @@ The [manuscript strategy table](Tables/manuscript-strategy-mechanisms.pdf) inclu
 
 ## Reproduction and verification
 
-The ACESim4 code repository's scripts/Rebuild-ArticleSupplemental.ps1 generates the separate analyses; scripts/Article-supplemental.md documents its options. Python prepares requests and this index; C# calculates the comparisons, selects table rows, and generates TeX and JSON. The article repository's scripts/assemble_manuscript_exhibits.py assembles the manuscript selection.
+The ACESim4 code repository's scripts/Rebuild-ArticleSupplemental.ps1 generates the separate analyses; scripts/Article-supplemental.md documents its options. Python prepares requests and this index; C# calculates the comparisons, selects table rows, and generates TeX and JSON. LitigCharts equilibrium-manuscript assembles the complete seven-panel manuscript table and can refresh its numbered article copy with --article.
 
 Sources/profile-provenance.json identifies the retained inputs. Sources/comparison-verification.json records the comparison audit. The supplemental-plan.json and supplemental-state.json files one directory above this folder record the jobs, completion states, commands and file hashes. An index entry specifies coverage; the completion records establish which calculations have finished. Solution-path and multiple-equilibrium studies have their own folders and verification records.
 '''

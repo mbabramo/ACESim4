@@ -15,7 +15,7 @@ public static class DiagramCompiler
         string previewDirectory = null, string renderedDirectory = null)
     {
         var errors = new ConcurrentQueue<string>();
-        var cacheRetries = new ConcurrentQueue<string>();
+        var transientRetries = new ConcurrentQueue<string>();
         int completed = 0;
         await Parallel.ForEachAsync(sources, new ParallelOptions { MaxDegreeOfParallelism = parallelism }, async (source, _) =>
         {
@@ -24,26 +24,29 @@ public static class DiagramCompiler
                 await CompileAsync(source, config, passes, previewDirectory, renderedDirectory);
                 Console.WriteLine($"[{Interlocked.Increment(ref completed)}/{sources.Length}] {Path.GetFileNameWithoutExtension(source)}");
             }
-            catch (Exception ex) when (ex.Message.Contains("no writeable cache path", StringComparison.Ordinal))
+            catch (Exception ex) when (Retryable(ex))
             {
-                // MiKTeX's shared font-cache initialization can race under many parallel compilers.
-                // Retry these known transient failures once, serially after the parallel batch.
-                cacheRetries.Enqueue(source);
+                // Retry timeouts and MiKTeX font-cache races once, serially after the parallel batch.
+                transientRetries.Enqueue(source);
             }
             catch (Exception ex) { errors.Enqueue(source + ": " + ex.Message); }
         });
-        foreach (string source in cacheRetries)
+        foreach (string source in transientRetries)
         {
             try
             {
                 await CompileAsync(source, config, passes, previewDirectory, renderedDirectory);
-                Console.WriteLine($"[{Interlocked.Increment(ref completed)}/{sources.Length}] {Path.GetFileNameWithoutExtension(source)} (font-cache retry)");
+                Console.WriteLine($"[{Interlocked.Increment(ref completed)}/{sources.Length}] {Path.GetFileNameWithoutExtension(source)} (serial retry)");
             }
             catch (Exception ex) { errors.Enqueue(source + ": " + ex.Message); }
         }
         if (!errors.IsEmpty)
             throw new InvalidOperationException($"{errors.Count} compilation(s) failed; {completed} succeeded.\n" + string.Join("\n", errors));
     }
+
+    private static bool Retryable(Exception exception) => exception is TimeoutException ||
+        exception.Message.Contains("no writeable cache path", StringComparison.Ordinal) ||
+        exception.InnerException != null && Retryable(exception.InnerException);
 
     public static async Task CompileAsync(string source, ArticleDiagramCommand.Configuration config, int passes = 1,
         string previewDirectory = null, string renderedDirectory = null, bool allPages = false)

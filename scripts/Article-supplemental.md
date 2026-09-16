@@ -20,6 +20,13 @@ original solve log. `-Python` can specify the bundled Python executable.
 complete or running independently. As with other production plans, changed
 source/build manifests require a fresh output directory; do not bypass checks.
 
+To run only the multiple-equilibrium study, without repeating completed strategy
+comparisons or solution paths, use `scripts/Run-ArticleMultipleEquilibria.ps1
+-OutputDirectory <fresh Multiple equilibria directory>`. It solves and aggregates
+the six 50-start cases and generates their reports, recording phase and failures
+in Sources/multiple-equilibria-run.json. Use a committed frozen checkout for a
+long run so ongoing repository edits cannot change its production provenance.
+
 Multiple-start solving retains the initial exact equilibrium when an approximate
 batch returns no verified profiles and then attempts the exact fallback. Recovery
 counts determine the remaining attempts, rather than the number of distinct

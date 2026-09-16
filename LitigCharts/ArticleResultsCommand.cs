@@ -68,23 +68,11 @@ public static class ArticleResultsCommand
         {
             string destination=ArticleResultsLayout.Individual(Path.Combine(root,"Individual simulations"),c.Row);
             string casePrefix=c.Prefix+" "+c.Row["OptionSetName"];
-            var sources=Directory.GetFiles(c.Directory,casePrefix+"*").Where(p=>
-                Path.GetFileName(p)==casePrefix+".csv"||Path.GetFileName(p).StartsWith(casePrefix+" -",StringComparison.Ordinal))
-                .Where(p=>Path.GetExtension(p) is ".csv" or ".tex").ToArray();
-            int diagrams=0;
-            foreach(string source in sources)
+            foreach(var source in IndividualSources(destination,c.Directory,casePrefix,PublicationTables.Number(c.Row,"Costs Multiplier")))
             {
-                string suffix=Path.GetFileNameWithoutExtension(source)[casePrefix.Length..].Trim().TrimStart('-');
-                string stem=ArticleResultsLayout.Cost(PublicationTables.Number(c.Row,"Costs Multiplier"))+"-"+(suffix==""?"report":suffix);
-                string target=ArticleResultsLayout.Source(destination,stem,Path.GetExtension(source));
-                string content = File.ReadAllText(source);
-                if (Path.GetExtension(source) == ".tex")
-                    content = string.Join("\n", content.Replace("\r\n", "\n").Split('\n')
-                        .Where(line => !line.Contains(@"node[midway] {\huge Costs:", StringComparison.Ordinal)));
-                files.Add(target,content);
-                if(Path.GetExtension(source)==".tex") {artifactsToWrite.Add(new("individual-results",target));diagrams++;}
+                files.Add(source.Key,source.Value);
+                if(Path.GetExtension(source.Key)==".tex") artifactsToWrite.Add(new("individual-results",source.Key));
             }
-            if(diagrams!=6)throw new InvalidDataException($"Expected six individual diagrams for {casePrefix}; found {diagrams}.");
         }
         if(strategies)
         foreach(var group in cases.GroupBy(c=>(Family:WelfareOutcomeExhibits.Family(c.Row),
@@ -126,5 +114,26 @@ public static class ArticleResultsCommand
         File.WriteAllText(inventory,JsonSerializer.Serialize(new {Schema="article-results-v1",Root=root,GeneratedUtc=DateTime.UtcNow,
             Cases=cases.Count,Compiled=compiled,Artifacts=allArtifacts.OrderBy(a=>a.Source).ToArray(),
             GeneratorSha256=Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(typeof(ArticleResultsCommand).Assembly.Location)))},Json));
+    }
+
+    public static Dictionary<string,string> IndividualSources(string destination,string directory,string casePrefix,double cost)
+    {
+        var files=new Dictionary<string,string>(StringComparer.OrdinalIgnoreCase);
+        var sources=Directory.GetFiles(directory,casePrefix+"*").Where(p=>
+            Path.GetFileName(p)==casePrefix+".csv"||Path.GetFileName(p).StartsWith(casePrefix+" -",StringComparison.Ordinal))
+            .Where(p=>Path.GetExtension(p) is ".csv" or ".tex").ToArray();
+        foreach(string source in sources)
+        {
+            string suffix=Path.GetFileNameWithoutExtension(source)[casePrefix.Length..].Trim().TrimStart('-');
+            string stem=ArticleResultsLayout.Cost(cost)+"-"+(suffix==""?"report":suffix);
+            string content=File.ReadAllText(source);
+            if(Path.GetExtension(source)==".tex")
+                content=string.Join("\n",content.Replace("\r\n","\n").Split('\n')
+                    .Where(line=>!line.Contains(@"node[midway] {\huge Costs:",StringComparison.Ordinal)));
+            files.Add(ArticleResultsLayout.Source(destination,stem,Path.GetExtension(source)),content);
+        }
+        if(files.Keys.Count(p=>Path.GetExtension(p)==".tex")!=6)
+            throw new InvalidDataException($"Expected six individual diagrams for {casePrefix}.");
+        return files;
     }
 }

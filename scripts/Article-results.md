@@ -95,3 +95,39 @@ parameter variations remain in Results. There is no archive directory.
 After validating the complete collection, copy it to the article's Results and
 refresh the numbered four main figures and three main tables with caption and
 source records. Git history retains superseded material; no push is part of this workflow.
+
+## Organizing completed cases and publishing the collection
+
+While production continues, `LitigCharts completed-cases --input <raw production records>
+--output <article Results> --jobs 32` imports only cases marked complete by their
+coordinator. It shares the final generator's individual-case layout and TeX processing.
+It verifies previous source/render hashes before reusing diagrams, records completed
+case input/output hashes in Run records/completed-cases.json, and skips unchanged
+imports on repetition. It does not replace aggregate comparisons or modify production.
+`--list` inspects the same completion state without writing anything.
+`python -B scripts/publish_article_results.py verify-completed --results <article Results>`
+checks every imported source/render hash and PDF/PNG before recording incremental
+verification. Diagram compilation retries timeouts and known MiKTeX cache races
+once, serially after the parallel batch; repeated failures remain explicit errors.
+
+After the entire routine collection is generated, run from ACESim4:
+
+```powershell
+.\scripts\Publish-ArticleResults.ps1 -ResultsSource <completed Results> -ArticleDirectory <article repository> -Python <python with pypdf>
+```
+
+The publisher derives required coverage from the C# case matrix, checks complete
+production manifests, every routine PDF/PNG, all printed three-decimal welfare
+values, and the previous collection's reused equilibria/reports. It stages and
+hash-checks a copy before replacing only Results, then refreshes main Figures 3/4
+and Table 2 and their captions/source manifest. The other main exhibits, including
+all pages of Table 3, and separate supplemental analyses are preserved. The model
+primitives table's data references are updated to the expanded reports. `-VerifyOnly`
+does not replace article outputs. Visual review and the final commit remain explicit
+completion steps. No scripts are required inside the article repository.
+
+Numbered main renders may be retained when the standalone TeX is byte-identical
+and all previous TeX/PDF/PNG hashes match the manuscript manifest. This permits
+refreshing source records while an unchanged PDF is open. The canonical result
+and numbered copy then share those verified renders; `main-render-reuse.json`
+records the reuse and the artifact-hash inventory is updated.
