@@ -304,6 +304,7 @@ namespace ACESim
             bool priorCurrent = EvolutionSettings.UseCurrentStrategyForBestResponse;
             bool priorAccelerated = EvolutionSettings.UseAcceleratedBestResponse;
             bool priorRefinement = EvolutionSettings.CalculatePerturbedBestResponseRefinement;
+            bool priorRounding = EvolutionSettings.RoundOffLowProbabilitiesBeforeAcceleratedBestResponse;
             try
             {
                 // A running average of different equilibria need not itself be an equilibrium.
@@ -311,6 +312,7 @@ namespace ACESim
                 EvolutionSettings.UseCurrentStrategyForBestResponse = true;
                 EvolutionSettings.UseAcceleratedBestResponse = true;
                 EvolutionSettings.CalculatePerturbedBestResponseRefinement = false;
+                EvolutionSettings.RoundOffLowProbabilitiesBeforeAcceleratedBestResponse = false;
                 var reportResult = await ConsiderGeneratingReports(EvolutionSettings.ReportEveryNIterations ?? 0,
                     () =>
                         $"{GameDefinition.OptionSetName}{(EvolutionSettings.SequenceFormNumPriorsToUseToGenerateEquilibria > 1 ? $"-Eq{eqNum + 1}" : "")}",
@@ -322,6 +324,7 @@ namespace ACESim
                 EvolutionSettings.UseCurrentStrategyForBestResponse = priorCurrent;
                 EvolutionSettings.UseAcceleratedBestResponse = priorAccelerated;
                 EvolutionSettings.CalculatePerturbedBestResponseRefinement = priorRefinement;
+                EvolutionSettings.RoundOffLowProbabilitiesBeforeAcceleratedBestResponse = priorRounding;
             }
             TabbedText.WriteLine($"Elapsed milliseconds report for eq {eqNum + 1} of {numEquilibria}: {s.ElapsedMilliseconds}");
         }

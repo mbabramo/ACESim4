@@ -24,6 +24,7 @@ public static class MultipleEquilibriaStrategyAudit
             var developer = await ArticleWorkedPathExtraction.InitializeAsync(option);
             developer.EvolutionSettings.UseAcceleratedBestResponse = true;
             developer.EvolutionSettings.UseCurrentStrategyForBestResponse = true;
+            developer.EvolutionSettings.RoundOffLowProbabilitiesBeforeAcceleratedBestResponse = false;
             string profileFile = Path.Combine(input, "CS004ME " + option.Name + " -equ.csv");
             var profiles = File.ReadLines(profileFile).Where(s => !string.IsNullOrWhiteSpace(s)).ToArray();
             for (int i = 0; i < profiles.Length; i++)
