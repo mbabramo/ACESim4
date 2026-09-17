@@ -305,6 +305,10 @@ namespace ACESim
             bool priorAccelerated = EvolutionSettings.UseAcceleratedBestResponse;
             bool priorRefinement = EvolutionSettings.CalculatePerturbedBestResponseRefinement;
             bool priorRounding = EvolutionSettings.RoundOffLowProbabilitiesBeforeAcceleratedBestResponse;
+            // Keep cumulative paths for the separate correlated-profile report, but
+            // an individual equilibrium's diagrams must see only its own paths.
+            var cumulativeProgresses = SavedWeightedGameProgresses;
+            SavedWeightedGameProgresses = new List<(GameProgress theProgress, double weight)>();
             try
             {
                 // A running average of different equilibria need not itself be an equilibrium.
@@ -321,6 +325,8 @@ namespace ACESim
             }
             finally
             {
+                cumulativeProgresses.AddRange(SavedWeightedGameProgresses);
+                SavedWeightedGameProgresses = cumulativeProgresses;
                 EvolutionSettings.UseCurrentStrategyForBestResponse = priorCurrent;
                 EvolutionSettings.UseAcceleratedBestResponse = priorAccelerated;
                 EvolutionSettings.CalculatePerturbedBestResponseRefinement = priorRefinement;

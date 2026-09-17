@@ -73,12 +73,12 @@ public static class MultipleEquilibriaExhibits
                 if(!Path.GetFullPath(source).Equals(destination,StringComparison.OrdinalIgnoreCase))File.Copy(source,destination,true);
             }
             string summary=Path.Combine(output,"Sources","equilibrium-outcomes.csv"), ranges=Path.Combine(output,"Sources","equilibrium-ranges.csv");
-            var audit = sourcesOnly ? null : await MultipleEquilibriaStrategyAudit.RunAsync(options, raw);
+            var audit = sourcesOnly ? null : await MultipleEquilibriaStrategyAudit.RunAsync(options, raw, output);
             string auditPath=Path.Combine(output,"Sources","strategy-verification.json");
             if(audit!=null)Write(auditPath,JsonSerializer.Serialize(new {
-                Method="Reload every saved profile, reproduce its full information-set action report, and compute both players' best responses against that current profile. No equilibrium search is run.",
+                Method="Reload every saved profile, reproduce its full information-set action report and outcome report, compute both players' best responses against that current profile, and regenerate individual diagrams from that profile's paths alone. No equilibrium search is run.",
                 Tolerance=1e-7,Profiles=audit,
-                Inputs=audit.SelectMany(p=>new[]{p.ProfileFile,p.ActionReport}).Distinct().Select(Fingerprint).ToArray(),
+                Inputs=audit.SelectMany(p=>new[]{p.ProfileFile,p.ActionReport,p.ReplayReport}).Distinct().Select(Fingerprint).ToArray(),
                 ModelAssembly=Fingerprint(typeof(LitigGameOptions).Assembly.Location),
                 ReportingAssembly=Fingerprint(typeof(MultipleEquilibriaExhibits).Assembly.Location)
             },Json)+"\n");
@@ -119,7 +119,8 @@ public static class MultipleEquilibriaExhibits
                     .Append(string.Join(" & ",new[]{"Requested Priors","Attempted Solves","Exact Attempts","Verified Recoveries","Distinct Reported Strategy Profiles"}.Select(k=>row[k])))
                     .Append(" & ").Append(N(row,"Maximum Exploitability").ToString("0.00E+00",CultureInfo.InvariantCulture)).AppendLine(@" \\");
             Table(ArticleResultsLayout.RiskComparison,"cost-1-equilibrium-recoveries",Wrapper(recovery.AppendLine("\\bottomrule\\end{tabular}").ToString()),caption+"Exact attempts include the initial exact solve and any exact fallback. Attempts can exceed priors. Maximum gain is recomputed for both players against each saved current profile; the original report statistic is retained separately in the full outcome CSV.",rows);
-            foreach(var option in options)
+            if (audit != null) tex.AddRange(audit.SelectMany(p => p.DiagramSources));
+            else foreach(var option in options)
             {
                 string risk=ArticleResultsLayout.Risk(Convert.ToDouble(option.VariableSettings["CARA Alpha"],CultureInfo.InvariantCulture));
                 string fee=LitigGameCorrelatedSignalsArticleLauncher.FeeRuleLabel(option);
@@ -139,6 +140,7 @@ public static class MultipleEquilibriaExhibits
             },Json)+"\n");
             Write(Path.Combine(output,"README.md"),$"# Multiple equilibria\n\nSix ordinary-cost scenarios cross three fee rules with risk neutrality and symmetric CARA alpha 2. {validation.EquilibriumCount} distinct profiles were recovered from 50 initializations per case.\n\n"+
                 "Risk Comparison and each risk folder contain separate welfare-range and disposition-range tables; recovery diagnostics are in Risk Comparison. Individual simulations contains each equilibrium's generated figures, grouped by risk and fee rule. Sources contains exact data, editable TeX and captions. The production manifest identifies the solving build; the exhibit inventory separately records reporting inputs and output hashes.\n\n"+
+                "Individual diagrams are regenerated from each saved profile separately, and each replay is checked against the original numeric outcome report. Sources/Replayed reports contains these checks' report inputs. Original production TeX is preserved as historical source material; older builds pooled preceding profiles' paths in individual diagrams, so those raw TeX files must not be used as individual-equilibrium exhibits.\n\n"+
                 caption+WelfareOutcomeExhibits.ErrorDescription+"\n\nAdditional approximate attempts are capped at 500 pivots and additional exact attempts at 1,000; the initial exact solve is uncapped. A cutoff ends that attempt; failed exact attempts are not replaced with additional starts. Read the actual recovery totals and the saved solve logs together.\n\nSources/strategy-verification.json records a fresh best-response check for every saved profile and reproduction of its action report. The recovery table uses these current-profile gains. The original report statistic is retained separately because older reporting builds measured the running average of profiles instead.\n\nThe legacy truth-specific burden columns in the full CSV remain conditional diagnostics. The five headline columns and all displayed disposition shares are population averages. Conditional offer means describe reached bargaining decisions. Distinctness follows the production recovery catalog; behavioral/outcome differences must be assessed separately.\n\n"+
                 "Regenerate with `LitigCharts multiple-equilibria-report --input <completed production directory> --output <this folder> --jobs 32`. The supplemental rebuild script runs this automatically after multiple-start aggregation.\n");
             Console.WriteLine($"Verified {validation.OptionSetCount} scenarios, {validation.EquilibriumCount} profiles; generated {tex.Count} exhibits.");

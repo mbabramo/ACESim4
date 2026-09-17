@@ -5,6 +5,8 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Globalization;
+using System.Text;
 using System.Threading.Tasks;
 
 namespace LitigCharts;
@@ -13,9 +15,10 @@ namespace LitigCharts;
 public static class MultipleEquilibriaStrategyAudit
 {
     public sealed record Profile(string OptionSet, int Equilibrium, int ActionRows,
-        double[] PlayerGains, double MaximumGain, string ProfileFile, string ActionReport);
+        double[] PlayerGains, double MaximumGain, string ProfileFile, string ActionReport,
+        string ReplayReport, int ReproducedOutcomeCells, string[] DiagramSources);
 
-    public static async Task<Profile[]> RunAsync(LitigGameOptions[] options, string input)
+    public static async Task<Profile[]> RunAsync(LitigGameOptions[] options, string input, string output)
     {
         var results = new List<Profile>();
         // Model initialization uses static caches, so keep cases sequential.
@@ -25,6 +28,8 @@ public static class MultipleEquilibriaStrategyAudit
             developer.EvolutionSettings.UseAcceleratedBestResponse = true;
             developer.EvolutionSettings.UseCurrentStrategyForBestResponse = true;
             developer.EvolutionSettings.RoundOffLowProbabilitiesBeforeAcceleratedBestResponse = false;
+            developer.EvolutionSettings.RoundOffLowProbabilitiesBeforeReporting = false;
+            developer.SaveWeightedGameProgressesAfterEachReport = true;
             string profileFile = Path.Combine(input, "CS004ME " + option.Name + " -equ.csv");
             var profiles = File.ReadLines(profileFile).Where(s => !string.IsNullOrWhiteSpace(s)).ToArray();
             for (int i = 0; i < profiles.Length; i++)
@@ -38,10 +43,58 @@ public static class MultipleEquilibriaStrategyAudit
                 if (!developer.Status.BestResponseReflectsCurrentStrategy ||
                     gains.Any(g => !double.IsFinite(g) || Math.Abs(g) > 1e-7))
                     throw new InvalidDataException($"Saved profile {option.Name} Eq{i + 1} failed the current-strategy best-response audit: {string.Join(", ", gains)}");
-                results.Add(new(option.Name, i + 1, rows, gains, Math.Max(0, gains.Max()), profileFile, actions));
+                // Rebuild diagrams from this profile alone. Older raw TeX accumulated
+                // all preceding profiles' paths and cannot describe a single equilibrium.
+                developer.SavedWeightedGameProgresses.Clear();
+                developer.ActionStrategy = ActionStrategies.CurrentProbability;
+                var replay = await developer.GenerateReportsByPlaying(false);
+                string stem = $"CS004ME {option.Name} -Eq{i + 1}";
+                string replayFile = Path.Combine(output, "Sources", "Replayed reports", stem + ".csv");
+                Directory.CreateDirectory(Path.GetDirectoryName(replayFile));
+                File.WriteAllText(replayFile, replay.csvReports.Single(), new UTF8Encoding(false));
+                int outcomeCells = ValidateReplay(Path.Combine(input, stem + ".csv"), replayFile);
+                string risk = ArticleResultsLayout.Risk(Convert.ToDouble(option.VariableSettings["CARA Alpha"], CultureInfo.InvariantCulture));
+                string fee = LitigGameCorrelatedSignalsArticleLauncher.FeeRuleLabel(option);
+                string diagrams = Path.Combine(output, "Individual simulations", risk, fee, "Sources");
+                Directory.CreateDirectory(diagrams);
+                var diagramSources = new List<string>();
+                foreach (var report in developer.GameDefinition.ProduceManualReports(developer.SavedWeightedGameProgresses, $"-Eq{i + 1}"))
+                {
+                    if (!report.suffix.EndsWith(".tex", StringComparison.Ordinal)) continue;
+                    string path = Path.Combine(diagrams, $"CS004ME {option.Name} " + report.suffix);
+                    string contents = string.Join("\n", report.reportcontent.Replace("\r\n", "\n").Split('\n')
+                        .Where(line => !line.Contains(@"node[midway] {\huge Costs:", StringComparison.Ordinal)));
+                    File.WriteAllText(path, contents, new UTF8Encoding(false));
+                    diagramSources.Add(path);
+                }
+                if (diagramSources.Count != 6) throw new InvalidDataException("Expected six individual diagram sources for " + stem);
+                results.Add(new(option.Name, i + 1, rows, gains, Math.Max(0, gains.Max()), profileFile, actions,
+                    replayFile, outcomeCells, diagramSources.ToArray()));
             }
             Console.WriteLine($"Audited {profiles.Length} saved profiles for {option.Name}; no equilibrium searches performed.");
         }
         return results.ToArray();
+    }
+
+    public static int ValidateReplay(string original, string replay)
+    {
+        var expected = PublicationFigures.ReadCsv(original);
+        var actual = PublicationFigures.ReadCsv(replay);
+        if (expected.Length != actual.Length) throw new InvalidDataException("Replay row count mismatch: " + original);
+        int cells = 0;
+        for (int i = 0; i < expected.Length; i++)
+        {
+            if (expected[i]["Filter"] != actual[i]["Filter"]) throw new InvalidDataException("Replay filter mismatch: " + original);
+            foreach (var cell in expected[i])
+            {
+                if (cell.Key is "Exploit" or "Refine" or "Seconds" || !double.TryParse(cell.Value, NumberStyles.Float, CultureInfo.InvariantCulture, out double value)) continue;
+                if (!actual[i].TryGetValue(cell.Key, out string text) ||
+                    !double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out double observed) ||
+                    !double.IsFinite(observed) || Math.Abs(value - observed) > 1e-5 * Math.Max(1, Math.Abs(value)))
+                    throw new InvalidDataException($"Replay mismatch in {original}, {cell.Key}, row {i}: {cell.Value} vs {text}");
+                cells++;
+            }
+        }
+        return cells;
     }
 }

@@ -8,6 +8,9 @@ using System;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
+using System.Threading.Tasks;
+using ACESimBase.Games.LitigGame.ManualReports;
 
 namespace ACESimTest
 {
@@ -15,6 +18,52 @@ namespace ACESimTest
     [DoNotParallelize]
     public class CorrelatedSignalsMultipleEquilibriaReportTests
     {
+        [TestMethod]
+        [System.Runtime.Versioning.SupportedOSPlatform("windows")]
+        public async Task IndividualDiagramsExcludePreviousEquilibriumPathsButKeepCombinedReportPaths()
+        {
+            string directory = Path.Combine(Path.GetTempPath(), "ACESim4-profile-diagrams-" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(directory);
+            string previous = Environment.GetEnvironmentVariable(FolderFinder.ReportResultsDirectoryEnvironmentVariable);
+            Environment.SetEnvironmentVariable(FolderFinder.ReportResultsDirectoryEnvironmentVariable, directory);
+            try
+            {
+                var launcher = new LitigGameCorrelatedSignalsArticleLauncher(
+                    LitigGameCorrelatedSignalsArticleLauncher.ProductionRunPlan.MultipleEquilibriaRobustness);
+                var option = (LitigGameOptions)launcher.GetOptionsSets().First();
+                var developer = await ArticleWorkedPathExtraction.InitializeAsync(option);
+                developer.EvolutionSettings.GenerateReportsByPlaying = true;
+                developer.EvolutionSettings.GenerateManualReports = true;
+                developer.EvolutionSettings.ReportEveryNIterations = 1;
+                developer.EvolutionSettings.BestResponseEveryMIterations = null;
+                developer.EvolutionSettings.RoundOffLowProbabilitiesBeforeReporting = false;
+                developer.EvolutionSettings.SequenceFormNumPriorsToUseToGenerateEquilibria = 2;
+                developer.SaveWeightedGameProgressesAfterEachReport = true;
+                var nodes = developer.InformationSets.OrderBy(x => x.PlayerIndex).ThenBy(x => x.InformationSetNodeNumber).ToArray();
+                // First profile always files; second never files. Pooling their paths
+                // would incorrectly turn the second profile's filing chart into 50%.
+                var first = nodes.SelectMany(n => Enumerable.Range(1, n.NumPossibleActions).Select(a => a == 1 ? 1.0 : 0)).ToArray();
+                var second = nodes.SelectMany(n => Enumerable.Range(1, n.NumPossibleActions).Select(a => a == (n.Decision.Name == "P Files" ? 2 : 1) ? 1.0 : 0)).ToArray();
+                developer.SetInformationSetsToEquilibrium(first);
+                await developer.AddReportForEquilibrium(new ReportCollection(), 2, 0);
+                developer.SetInformationSetsToEquilibrium(second);
+                await developer.AddReportForEquilibrium(new ReportCollection(), 2, 1);
+                foreach (int eq in new[] { 1, 2 })
+                {
+                    string file = Directory.GetFiles(directory, "*-fileans-Eq" + eq + ".tex", SearchOption.AllDirectories).Single();
+                    var percentages = Regex.Matches(File.ReadAllText(file), @"\{(\d+)\\%\}")
+                        .Select(m => int.Parse(m.Groups[1].Value)).Take(10).ToArray();
+                    percentages.Should().HaveCount(10).And.OnlyContain(p => p == (eq == 1 ? 100 : 0));
+                }
+                developer.SavedWeightedGameProgresses.Sum(x => x.weight).Should().BeApproximately(2, 1e-5);
+            }
+            finally
+            {
+                Environment.SetEnvironmentVariable(FolderFinder.ReportResultsDirectoryEnvironmentVariable, previous);
+                Directory.Delete(directory, true);
+            }
+        }
+
         [DataTestMethod]
         [DataRow(50, true)]
         [DataRow(33, true)]
