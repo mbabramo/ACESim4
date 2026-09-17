@@ -131,6 +131,14 @@ individual diagrams in risk/fee folders. The recovery table reports all six case
 Editable sources and captions accompany the rendered PDF/PNG files. The five
 headline welfare measures use the routine study's population-weighted definitions;
 legacy truth-specific conditional columns remain explicitly documented diagnostics.
+Before compiling, the reporter reloads every saved profile, reproduces its complete
+information-set action report, and checks both players' best responses against
+that profile without searching again. `Sources/strategy-verification.json` records
+this audit and its input/model/reporting hashes. The recovery table's maximum gain
+uses this audit; the full CSV retains the original report statistic separately.
+Older raw reports calculated that statistic against a running average of profiles,
+which need not be an equilibrium. Individual-equilibrium reports now select the
+current strategy for their best-response statistic.
 Ranges concern recovered profiles, not confidence intervals, and recovery shares
 are not behavioral selection probabilities. The original production manifest is
 preserved separately from the reporting inventory and its input/output hashes.

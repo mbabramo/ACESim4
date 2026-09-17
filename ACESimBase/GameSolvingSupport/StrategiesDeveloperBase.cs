@@ -301,11 +301,28 @@ namespace ACESim
             Stopwatch s = new Stopwatch();
             s.Start();
             EvolutionSettings.ActionStrategiesToUseInReporting = new List<ActionStrategies>() { ActionStrategies.CurrentProbability }; // will use latest equilibrium 
-            var reportResult = await ConsiderGeneratingReports(EvolutionSettings.ReportEveryNIterations ?? 0,
-                () =>
-                    $"{GameDefinition.OptionSetName}{(EvolutionSettings.SequenceFormNumPriorsToUseToGenerateEquilibria > 1 ? $"-Eq{eqNum + 1}" : "")}",
-                reportSuffix: numEquilibria > 1 ? $"-Eq{eqNum + 1}" : "");
-            reportCollection.Add(reportResult, false, true);
+            bool priorCurrent = EvolutionSettings.UseCurrentStrategyForBestResponse;
+            bool priorAccelerated = EvolutionSettings.UseAcceleratedBestResponse;
+            bool priorRefinement = EvolutionSettings.CalculatePerturbedBestResponseRefinement;
+            try
+            {
+                // A running average of different equilibria need not itself be an equilibrium.
+                // Its best-response diagnostic does not describe this individual profile.
+                EvolutionSettings.UseCurrentStrategyForBestResponse = true;
+                EvolutionSettings.UseAcceleratedBestResponse = true;
+                EvolutionSettings.CalculatePerturbedBestResponseRefinement = false;
+                var reportResult = await ConsiderGeneratingReports(EvolutionSettings.ReportEveryNIterations ?? 0,
+                    () =>
+                        $"{GameDefinition.OptionSetName}{(EvolutionSettings.SequenceFormNumPriorsToUseToGenerateEquilibria > 1 ? $"-Eq{eqNum + 1}" : "")}",
+                    reportSuffix: numEquilibria > 1 ? $"-Eq{eqNum + 1}" : "");
+                reportCollection.Add(reportResult, false, true);
+            }
+            finally
+            {
+                EvolutionSettings.UseCurrentStrategyForBestResponse = priorCurrent;
+                EvolutionSettings.UseAcceleratedBestResponse = priorAccelerated;
+                EvolutionSettings.CalculatePerturbedBestResponseRefinement = priorRefinement;
+            }
             TabbedText.WriteLine($"Elapsed milliseconds report for eq {eqNum + 1} of {numEquilibria}: {s.ElapsedMilliseconds}");
         }
 

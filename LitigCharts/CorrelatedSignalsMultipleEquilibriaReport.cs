@@ -66,6 +66,7 @@ namespace LitigCharts
             "Verification Status",
             "Distinctness Criterion",
             "Exploitability",
+            "Original Report Exploitability",
             "Calculation Seconds",
             "P Files",
             "D Answers",
@@ -120,7 +121,8 @@ namespace LitigCharts
         public static ValidationSummary BuildAndValidate(
             LitigGameCorrelatedSignalsArticleLauncher launcher,
             string equilibriumOutcomesCsvPath,
-            string equilibriumRangesCsvPath)
+            string equilibriumRangesCsvPath,
+            IReadOnlyDictionary<(string OptionSet, int Equilibrium), double> verifiedGains = null)
         {
             if (launcher == null)
                 throw new ArgumentNullException(nameof(launcher));
@@ -156,7 +158,8 @@ namespace LitigCharts
                     outcomes.Add(ReadOutcome(
                         option,
                         recoveries[equilibrium],
-                        reportPath));
+                        reportPath,
+                        verifiedGains == null ? null : verifiedGains[(option.Name, equilibrium)]));
                 }
             }
 
@@ -175,7 +178,8 @@ namespace LitigCharts
         private static EquilibriumOutcome ReadOutcome(
             LitigGameOptions option,
             EquilibriumRecovery recovery,
-            string reportPath)
+            string reportPath,
+            double? verifiedGain)
         {
             Dictionary<string, Dictionary<string, string>> rows = ReadRowsByFilter(reportPath);
             Dictionary<string, string> all = RequiredFilter(rows, "All", reportPath);
@@ -263,6 +267,8 @@ namespace LitigCharts
                 ["Does Not Answer"] = RequiredValue(all, "DDoesntAnswer", reportPath),
             };
 
+            double originalExploitability = metrics["Exploitability"];
+            if (verifiedGain.HasValue) metrics["Exploitability"] = verifiedGain.Value;
             var fields = new Dictionary<string, string>(StringComparer.Ordinal)
             {
                 ["OptionSetName"] = option.Name,
@@ -286,6 +292,7 @@ namespace LitigCharts
                 ["Verification Status"] = recovery.VerificationStatus,
                 ["Distinctness Criterion"] = recovery.DistinctnessCriterion,
                 ["Calculation Seconds"] = Format(RequiredValue(all, "Seconds", reportPath)),
+                ["Original Report Exploitability"] = Format(originalExploitability),
                 ["Source File"] = Path.GetFileName(reportPath),
             };
             foreach ((string name, double value) in metrics)
@@ -496,7 +503,7 @@ namespace LitigCharts
             double expected,
             double actual)
         {
-            if (Math.Abs(expected - actual) > ValidationTolerance)
+            if (!double.IsFinite(expected) || !double.IsFinite(actual) || Math.Abs(expected - actual) > ValidationTolerance)
                 throw new InvalidDataException(
                     $"CS004ME {identity} identity failed in '{path}': " +
                     $"expected {Format(expected)}, found {Format(actual)}.");
