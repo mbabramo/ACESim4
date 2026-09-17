@@ -86,7 +86,7 @@ public static class MultipleEquilibriaExhibits
             var all=PublicationFigures.ReadCsv(summary);
             var tex=new List<string>();
             string caption="Ranges across distinct recovered equilibrium strategy profiles; each profile receives equal weight. " +
-                "Recovery frequencies describe numerical searches, not behavioral equilibrium selection. Fifty verified recoveries are required per scenario. " +
+                "Recovery frequencies describe numerical searches, not behavioral equilibrium selection. Each scenario requests fifty starts; failed attempts can leave fewer verified recoveries. " +
                 "These ranges are not confidence intervals or guarantees that every equilibrium has been found. Cost multiplier is 1. ";
             void Table(string folder,string stem,string source,string notes,object data)
             {
@@ -124,12 +124,12 @@ public static class MultipleEquilibriaExhibits
             }
             if(!sourcesOnly)await DiagramCompiler.CompileAllAsync(tex.ToArray(),new(),jobs);
             Write(Path.Combine(output,"multiple-equilibria-exhibits.json"),JsonSerializer.Serialize(new {
-                Schema=1,Validation=validation,Compiled=!sourcesOnly,Summary=Fingerprint(summary),Ranges=Fingerprint(ranges),
+                Schema=1,Validation=validation,Compiled=!sourcesOnly,ReportingAssembly=Fingerprint(typeof(MultipleEquilibriaExhibits).Assembly.Location),Summary=Fingerprint(summary),Ranges=Fingerprint(ranges),
                 Inputs=inputs.Select(Fingerprint).ToArray(),Artifacts=tex.Select(p=>new{Source=Fingerprint(p),Pdf=sourcesOnly?null:Fingerprint(ArticleResultsLayout.RenderedArtifact(p,".pdf")),Png=sourcesOnly?null:Fingerprint(ArticleResultsLayout.RenderedArtifact(p,".png"))}).ToArray()
             },Json)+"\n");
             Write(Path.Combine(output,"README.md"),$"# Multiple equilibria\n\nSix ordinary-cost scenarios cross three fee rules with risk neutrality and symmetric CARA alpha 2. {validation.EquilibriumCount} distinct profiles were recovered from 50 initializations per case.\n\n"+
                 "Risk Comparison and each risk folder contain separate welfare-range and disposition-range tables; recovery diagnostics are in Risk Comparison. Individual simulations contains each equilibrium's generated figures, grouped by risk and fee rule. Sources contains exact data, editable TeX and captions. The production manifest identifies the solving build; the exhibit inventory separately records reporting inputs and output hashes.\n\n"+
-                caption+WelfareOutcomeExhibits.ErrorDescription+"\n\nThe legacy truth-specific burden columns in the full CSV remain conditional diagnostics. The five headline columns and all displayed disposition shares are population averages. Conditional offer means describe reached bargaining decisions. Distinctness follows the production recovery catalog; behavioral/outcome differences must be assessed separately.\n\n"+
+                caption+WelfareOutcomeExhibits.ErrorDescription+"\n\nAdditional approximate attempts are capped at 500 pivots and additional exact attempts at 1,000; the initial exact solve is uncapped. A cutoff ends that attempt, and the search does not add replacement starts until fifty recoveries are obtained. Read the actual recovery totals and the saved solve logs together.\n\nThe legacy truth-specific burden columns in the full CSV remain conditional diagnostics. The five headline columns and all displayed disposition shares are population averages. Conditional offer means describe reached bargaining decisions. Distinctness follows the production recovery catalog; behavioral/outcome differences must be assessed separately.\n\n"+
                 "Regenerate with `LitigCharts multiple-equilibria-report --input <completed production directory> --output <this folder> --jobs 32`. The supplemental rebuild script runs this automatically after multiple-start aggregation.\n");
             Console.WriteLine($"Verified {validation.OptionSetCount} scenarios, {validation.EquilibriumCount} profiles; generated {tex.Count} exhibits.");
             return 0;

@@ -30,7 +30,11 @@ long run so ongoing repository edits cannot change its production provenance.
 Multiple-start solving retains the initial exact equilibrium when an approximate
 batch returns no verified profiles and then attempts the exact fallback. Recovery
 counts determine the remaining attempts, rather than the number of distinct
-profiles. Failed exact attempts remain failures in the recovery report. An
+profiles. Failed exact attempts remain failures in the recovery report. Completed
+cases may have fewer than fifty verified recoveries; aggregation validates their
+actual counts and shares rather than requiring every requested start to succeed.
+Additional approximate/exact attempts have 500/1,000-pivot limits, respectively;
+the initial exact solve is uncapped. Failed exact attempts are not replaced. An
 unexpected SequenceForm exception is reported immediately; it is not retried on
 a partially initialized game tree. The coordinator waits for already-active
 cases to save their outputs before returning a failed status. After every worker

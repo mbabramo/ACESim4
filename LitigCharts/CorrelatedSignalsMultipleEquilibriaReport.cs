@@ -420,8 +420,9 @@ namespace LitigCharts
                 throw new InvalidDataException(
                     $"The repeated run totals in '{path}' are inconsistent.");
             if (first.AttemptedSolves != first.InexactAttempts + first.ExactAttempts ||
+                first.InexactAttempts < 0 || first.ExactAttempts < 1 ||
                 first.AttemptedSolves < first.VerifiedRecoveries ||
-                first.VerifiedRecoveries != requested ||
+                first.VerifiedRecoveries < 1 || first.VerifiedRecoveries > requested ||
                 recoveries.Values.Sum(value => value.RecoveryCount) != first.VerifiedRecoveries ||
                 recoveries.Values.Any(value =>
                     value.RecoveryCount <= 0 ||
@@ -430,6 +431,9 @@ namespace LitigCharts
                     string.IsNullOrWhiteSpace(value.DistinctnessCriterion)))
                 throw new InvalidDataException(
                     $"The solver-attempt and recovery totals in '{path}' are inconsistent.");
+            foreach (EquilibriumRecovery recovery in recoveries.Values)
+                RequireApproximately(path, "individual recovery share", recovery.RecoveryShare,
+                    (double)recovery.RecoveryCount / first.VerifiedRecoveries);
             RequireApproximately(
                 path,
                 "recovery shares",

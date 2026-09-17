@@ -15,8 +15,13 @@ namespace ACESimTest
     [DoNotParallelize]
     public class CorrelatedSignalsMultipleEquilibriaReportTests
     {
-        [TestMethod]
-        public void BuilderExportsEveryEquilibriumAndTruthRelativeRanges()
+        [DataTestMethod]
+        [DataRow(50, true)]
+        [DataRow(33, true)]
+        [DataRow(35, true)]
+        [DataRow(0, false)]
+        [DataRow(51, false)]
+        public void BuilderExportsEveryEquilibriumAndTruthRelativeRanges(int verifiedRecoveries, bool valid)
         {
             string directory = Path.Combine(
                 Path.GetTempPath(),
@@ -38,7 +43,7 @@ namespace ACESimTest
                         new[] { "0.5,0.5", "0.4,0.6" });
                     File.WriteAllText(
                         launcher.GetReportFullPath(option.Name, "-EquilibriumRecoveries.csv"),
-                        RecoveryReport(option.Name));
+                        RecoveryReport(option.Name, verifiedRecoveries));
                     File.WriteAllText(
                         launcher.GetReportFullPath(option.Name, "-Eq1.csv"),
                         RawReport(0.60));
@@ -49,6 +54,13 @@ namespace ACESimTest
 
                 string outcomesPath = launcher.GetReportFullPath("equilibrium outcomes", ".csv");
                 string rangesPath = launcher.GetReportFullPath("equilibrium ranges", ".csv");
+                if (!valid)
+                {
+                    Action build = () => CorrelatedSignalsMultipleEquilibriaReport.BuildAndValidate(
+                        launcher, outcomesPath, rangesPath);
+                    build.Should().Throw<InvalidDataException>();
+                    return;
+                }
                 CorrelatedSignalsMultipleEquilibriaReport.ValidationSummary summary =
                     CorrelatedSignalsMultipleEquilibriaReport.BuildAndValidate(
                         launcher,
@@ -62,6 +74,7 @@ namespace ACESimTest
                 File.ReadLines(rangesPath).Should().HaveCount(7);
                 File.ReadAllText(rangesPath).Should().Contain("Complete Fee-Shifting").And.Contain("Moderately Risk Averse");
                 var row = PublicationFigures.ReadCsv(outcomesPath).First();
+                row["Verified Recoveries"].Should().Be(verifiedRecoveries.ToString(CultureInfo.InvariantCulture));
                 var expected = new[] { 0.2, 0.2, 0.05, 0.5, 0.3 };
                 for (int i = 0; i < expected.Length; i++)
                     double.Parse(row[CorrelatedSignalsMultipleEquilibriaReport.WelfareMeasures[i]], CultureInfo.InvariantCulture)
@@ -123,13 +136,19 @@ namespace ACESimTest
                 string.Join(",", nonliable) + Environment.NewLine;
         }
 
-        private static string RecoveryReport(string optionSetName) =>
+        private static string RecoveryReport(string optionSetName, int verifiedRecoveries)
+        {
+            int first = (int)Math.Ceiling(verifiedRecoveries * 0.6);
+            int second = verifiedRecoveries - first;
+            string Share(int count) => Format(verifiedRecoveries == 0 ? 0 : (double)count / verifiedRecoveries);
+            return
             "OptionSetName,Requested Priors,Attempted Solves,Inexact Attempts,Exact Attempts," +
             "Verified Recoveries,Distinct Reported Strategy Profiles,Equilibrium Number," +
             "Recovery Count,Recovery Share of Verified Recoveries,Verification Status,Distinctness Criterion" +
             Environment.NewLine +
-            $"\"{optionSetName}\",50,56,49,7,50,2,1,30,0.6,Verified,Exact equality" + Environment.NewLine +
-            $"\"{optionSetName}\",50,56,49,7,50,2,2,20,0.4,Verified,Exact equality" + Environment.NewLine;
+            $"\"{optionSetName}\",50,99,49,50,{verifiedRecoveries},2,1,{first},{Share(first)},Verified,Exact equality" + Environment.NewLine +
+            $"\"{optionSetName}\",50,99,49,50,{verifiedRecoveries},2,2,{second},{Share(second)},Verified,Exact equality" + Environment.NewLine;
+        }
 
         private static string Format(double value) =>
             value.ToString("G17", CultureInfo.InvariantCulture);
