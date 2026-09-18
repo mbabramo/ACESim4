@@ -63,7 +63,7 @@ Start with the [table index](#table-index) below. Read [Methodology and Explanat
 | [Sources/Profiles](Sources/Profiles) | Frozen equilibrium and action-report inputs used by the comparisons and solution-path verification. These preserve the exact input bytes independently of later report regeneration. |
 | [Sources/Process Logs](<Sources/Process Logs>) | Execution logs and process records for these calculations and tables. |
 
-The [manuscript strategy table](Tables/manuscript-strategy-mechanisms.pdf) includes every qualifying row for seven ordinary-cost comparisons: American to Trial and Trial to Complete under RN, the same two fee changes under RA, then RN to RA within American, Trial and Complete. The same selection function produces these panels and the individual tables; there is no additional illustrative-row filter. Its caption is in Sources/manuscript-strategy-mechanisms-caption.txt. The first PNG shows page one; additional page PNGs have numbered suffixes. The table PDFs have no captions embedded in the artwork; filenames and this index identify the comparison and cost. The shared methodology supplies the explanation for all tables.
+The [full strategy analysis](Tables/manuscript-strategy-mechanisms.pdf) retains every qualifying row for seven ordinary-cost comparisons, including sensitivity diagnostics. The [short manuscript table](Tables/selected-strategy-mechanisms.pdf) selects three risk-neutral rows: the demand change under Trial fees, and answering and filing changes under Complete fees. It omits sensitivity markers and the opponent-exit and remaining columns, which are zero in these rows. The full data and diagnostics remain available here. Captions are separate files in Sources; the shared methodology explains both displays.
 
 ## Table index
 
@@ -71,7 +71,7 @@ The [manuscript strategy table](Tables/manuscript-strategy-mechanisms.pdf) inclu
 
 ## Reproduction and verification
 
-The ACESim4 code repository's scripts/Rebuild-ArticleSupplemental.ps1 generates the separate analyses; scripts/Article-supplemental.md documents its options. Python prepares requests and this index; C# calculates the comparisons, selects table rows, and generates TeX and JSON. LitigCharts equilibrium-manuscript assembles the complete seven-panel manuscript table and can refresh its numbered article copy with --article.
+The ACESim4 code repository's scripts/Rebuild-ArticleSupplemental.ps1 generates the separate analyses; scripts/Article-supplemental.md documents its options. Python prepares requests and this index; C# calculates the comparisons, selects table rows, and generates TeX and JSON. LitigCharts equilibrium-manuscript assembles the complete seven-panel analysis and the short manuscript selection; --article refreshes the numbered Table 2 with the short selection.
 
 Sources/profile-provenance.json identifies the retained inputs. Sources/comparison-verification.json records the comparison audit. The supplemental-plan.json and supplemental-state.json files one directory above this folder record the jobs, completion states, commands and file hashes. An index entry specifies coverage; the completion records establish which calculations have finished. Solution-path and multiple-equilibrium studies have their own folders and verification records.
 '''
@@ -168,14 +168,16 @@ def prepare(results,output,exe,log_roots):
         directory=changes/'Data/cost-1'/id
         manuscript_inputs.extend([directory/'equilibrium-changes.request.json',
             directory/'equilibrium-changes-manifest.json',directory/(id+'.json')])
-    stem='manuscript-strategy-mechanisms'
+    stems=['manuscript-strategy-mechanisms','selected-strategy-mechanisms']
     job('table-manuscript','tables',[exe,'equilibrium-manuscript','--input',changes],
         dependencies,manuscript_inputs,
-        [changes/'Tables'/(stem+'.pdf'),changes/'Tables'/(stem+'.png'),
-         changes/'Sources/Tex'/(stem+'.tex'),changes/'Sources/Json'/(stem+'.json'),
-         changes/'Sources'/(stem+'-caption.txt')],
-        [(str(changes/'Tables'),stem+'*'),(str(changes/'Sources/Tex'),stem+'.tex'),
-         (str(changes/'Sources/Json'),stem+'.json'),(str(changes/'Sources'),stem+'-caption.txt')])
+        [path for stem in stems for path in
+         [changes/'Tables'/(stem+'.pdf'),changes/'Tables'/(stem+'.png'),
+          changes/'Sources/Tex'/(stem+'.tex'),changes/'Sources/Json'/(stem+'.json'),
+          changes/'Sources'/(stem+'-caption.txt')]],
+        [pattern for stem in stems for pattern in
+         [(str(changes/'Tables'),stem+'*'),(str(changes/'Sources/Tex'),stem+'.tex'),
+          (str(changes/'Sources/Json'),stem+'.json'),(str(changes/'Sources'),stem+'-caption.txt')]])
     ordinary=[c for c in cases if c['cost']=='1']
     log_candidates=[]
     for root in [*(Path(r) for r in log_roots),results/'Run records']:

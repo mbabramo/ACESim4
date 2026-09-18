@@ -27,7 +27,7 @@ public class EquilibriumPublicationTablesTests
         var latex = EquilibriumManuscriptTable.Latex(new[] {
             new EquilibriumManuscriptTable.Panel(new("example", "Example"), rows) });
         // Includes formerly omitted low signals, a distant signal, and an unchanged offset.
-        latex.Should().Contain(EquilibriumPublicationTables.LatexBody(rows))
+        latex.Should().Contain(EquilibriumPublicationTables.LatexBody(rows).Replace("\r\n", "\n"))
             .And.Contain("0.05--0.15").And.Contain("0.75")
             .And.Contain("Unchanged actions with offsetting effects").And.Contain("At some signals");
     }

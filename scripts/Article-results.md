@@ -120,8 +120,9 @@ The publisher derives required coverage from the C# case matrix, checks complete
 production manifests, every routine PDF/PNG, all printed three-decimal welfare
 values, and the previous collection's reused equilibria/reports. It stages and
 hash-checks a copy before replacing only Results, then refreshes main Figures 3/4
-and Table 2 and their captions/source manifest. The other main exhibits, including
-all pages of Table 3, and separate supplemental analyses are preserved. The model
+and the risk-neutral welfare Table 4, and rebuilds the risk-averse summary Table 3,
+with their captions/source manifest. The selected mechanism Table 2, model exhibits,
+and separate supplemental analyses are preserved. The model
 primitives table's data references are updated to the expanded reports. `-VerifyOnly`
 does not replace article outputs. Visual review and the final commit remain explicit
 completion steps. No scripts are required inside the article repository.

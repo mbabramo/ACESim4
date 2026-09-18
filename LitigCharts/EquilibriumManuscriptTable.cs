@@ -11,11 +11,11 @@ using static ACESimBase.Games.LitigGame.ManualReports.EquilibriumChangeDecomposi
 
 namespace LitigCharts;
 
-/// <summary>Assemble every qualifying coordinate for the manuscript's ordered comparisons.</summary>
+/// <summary>Assemble the complete comparison packet and the article's illustrative selection.</summary>
 public static class EquilibriumManuscriptTable
 {
     public const string Stem = "manuscript-strategy-mechanisms";
-    public const string ArticleStem = "Table 3 - Strategy mechanisms";
+    public const string ArticleStem = "Table 2 - Strategy mechanisms";
     public sealed record Comparison(string Id, string Label);
     public sealed record Panel(Comparison Comparison, ChangeRow[] Rows);
 
@@ -117,17 +117,10 @@ public static class EquilibriumManuscriptTable
             // Caption belongs outside the diagrams and Sources/Tex and Sources/Json.
             await File.WriteAllTextAsync(Path.Combine(input, "Sources", Stem + "-caption.txt"), caption + "\n");
             await DiagramCompiler.CompileAsync(tex, new(), renderedDirectory: tables, allPages: true);
-            // Retire only this workflow's superseded illustrative packet after successful replacement.
-            foreach (string legacy in new[] {
-                Path.Combine(tables, "selected-strategy-mechanisms.pdf"),
-                Path.Combine(tables, "selected-strategy-mechanisms.png"),
-                Path.Combine(texDirectory, "selected-strategy-mechanisms.tex"),
-                Path.Combine(jsonDirectory, "selected-strategy-mechanisms.json"),
-                Path.Combine(input, "Sources", "selected-strategy-mechanisms.txt") })
-                if (File.Exists(legacy)) File.Delete(legacy);
+            await SelectedEquilibriumManuscriptTable.WriteAsync(input, panels.ToArray());
             if (options.TryGetValue("--article", out string article))
                 PublishArticle(input, article);
-            Console.WriteLine($"Assembled {panels.Count} panels, {panels.Sum(p => p.Rows.Length)} coordinates; no equilibrium was rerun.");
+            Console.WriteLine($"Retained {panels.Count} full panels, {panels.Sum(p => p.Rows.Length)} coordinates; published a three-row risk-neutral selection; no equilibrium was rerun.");
             return 0;
         }
         catch (Exception e) { Console.Error.WriteLine(e); return 1; }
@@ -135,16 +128,17 @@ public static class EquilibriumManuscriptTable
 
     private static void PublishArticle(string input, string article)
     {
+        const string selectedStem = SelectedEquilibriumManuscriptTable.Stem;
         string tables = Path.Combine(article, "Tables"), sources = Path.Combine(tables, "Sources");
         Directory.CreateDirectory(sources);
         var mappings = new List<(string Source, string Output)> {
-            (Path.Combine(input, "Tables", Stem + ".pdf"), Path.Combine(tables, ArticleStem + ".pdf")),
-            (Path.Combine(input, "Tables", Stem + ".png"), Path.Combine(tables, ArticleStem + ".png")),
-            (Path.Combine(input, "Sources", "Tex", Stem + ".tex"), Path.Combine(sources, ArticleStem + ".tex")),
-            (Path.Combine(input, "Sources", "Json", Stem + ".json"), Path.Combine(sources, ArticleStem + ".json")),
-            (Path.Combine(input, "Sources", Stem + "-caption.txt"), Path.Combine(sources, ArticleStem + ".txt")) };
-        foreach (string page in Directory.GetFiles(Path.Combine(input, "Tables"), Stem + "-page-*.png"))
-            mappings.Add((page, Path.Combine(tables, ArticleStem + Path.GetFileName(page)[Stem.Length..])));
+            (Path.Combine(input, "Tables", selectedStem + ".pdf"), Path.Combine(tables, ArticleStem + ".pdf")),
+            (Path.Combine(input, "Tables", selectedStem + ".png"), Path.Combine(tables, ArticleStem + ".png")),
+            (Path.Combine(input, "Sources", "Tex", selectedStem + ".tex"), Path.Combine(sources, ArticleStem + ".tex")),
+            (Path.Combine(input, "Sources", "Json", selectedStem + ".json"), Path.Combine(sources, ArticleStem + ".json")),
+            (Path.Combine(input, "Sources", selectedStem + "-caption.txt"), Path.Combine(sources, ArticleStem + ".txt")) };
+        foreach (string page in Directory.GetFiles(Path.Combine(input, "Tables"), selectedStem + "-page-*.png"))
+            mappings.Add((page, Path.Combine(tables, ArticleStem + Path.GetFileName(page)[selectedStem.Length..])));
         foreach (var file in mappings) File.Copy(file.Source, file.Output, overwrite: true);
         // Remove only obsolete page previews of this exact exhibit after successful rendering.
         var kept = mappings.Select(m => m.Output).ToHashSet(StringComparer.OrdinalIgnoreCase);
@@ -154,10 +148,10 @@ public static class EquilibriumManuscriptTable
         if (File.Exists(readmePath))
         {
             var lines = File.ReadAllLines(readmePath).Select(line =>
-                line.StartsWith("| [Table 3 - Strategy mechanisms]")
-                    ? "| [Table 3 - Strategy mechanisms](<Table 3 - Strategy mechanisms.pdf>) | [manuscript-strategy-mechanisms](<../Supplemental materials/Equilibrium strategy changes/Tables/manuscript-strategy-mechanisms.pdf>) |"
-                    : line.StartsWith("Regenerate with `python scripts/assemble_manuscript_exhibits.py`")
-                    ? "Regenerate Table 3 from ACESim4 with `LitigCharts equilibrium-manuscript --input <strategy-change directory> --article <article repository>`. The supplemental rebuild generates its canonical source automatically. All qualifying rows in the seven specified comparisons are retained. The PDF contains every page; the ordinary PNG is page one and additional PNGs have numbered page suffixes. `manuscript-exhibits.json` records the numbered files and their source/output hashes."
+                line.StartsWith("| [Table 2 - Strategy mechanisms]")
+                    ? "| [Table 2 - Strategy mechanisms](<Table 2 - Strategy mechanisms.pdf>) | [selected-strategy-mechanisms](<../Supplemental materials/Equilibrium strategy changes/Tables/selected-strategy-mechanisms.pdf>) |"
+                    : line.StartsWith("Regenerate with `python scripts/assemble_manuscript_exhibits.py`") || line.StartsWith("Regenerate Table 2 from ACESim4")
+                    ? "Regenerate Table 2 from ACESim4 with `LitigCharts equilibrium-manuscript --input <strategy-change directory> --article <article repository>`. The article uses three risk-neutral illustrative rows, without sensitivity markers. The full seven-panel analysis and diagnostic checks remain in `Supplemental materials/Equilibrium strategy changes/Tables/manuscript-strategy-mechanisms.pdf` and its sources. Opponent-exit and remaining contributions are zero in the selected rows and omitted from the display. `manuscript-exhibits.json` records the numbered files and their source/output hashes."
                     : line);
             File.WriteAllText(readmePath, string.Join("\n", lines) + "\n");
         }

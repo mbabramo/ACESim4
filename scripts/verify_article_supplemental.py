@@ -48,7 +48,30 @@ def verify_manuscript(changes):
     for n in range(1,len(document.pages)+1):
         png=changes/'Tables'/(stem+('' if n==1 else f'-page-{n:02}')+'.png')
         assert png.is_file() and png.stat().st_size>1000
-    return {'Panels':len(packet['Panels']),'Pages':len(document.pages),**dict(counts)}
+    summary={'Panels':len(packet['Panels']),'Pages':len(document.pages),**dict(counts)}
+    selected_path=changes/'Sources/Json/selected-strategy-mechanisms.json'
+    if selected_path.exists():
+        selected=read(selected_path)
+        check(selected['FullAnalysis'])
+        assert [p['Comparison']['Id'] for p in selected['Panels']]==[
+            'american-to-trial-risk-neutral','trial-to-complete-risk-neutral']
+        for panel in selected['Panels']:
+            original=next(p for p in packet['Panels'] if p['Comparison']==panel['Comparison'])
+            assert all(row in original['SelectedRows'] for row in panel['SelectedRows'])
+            for row in panel['SelectedRows']:
+                assert not row['CounterfactualUndefined'] and not row['UnreachedCoalitions']
+                close(row['Allocation']['Exit'],0)
+                close(row['Allocation']['SelectionResidual'],0)
+        assert sum(p['DisplayedRows'] for p in selected['Panels'])==3
+        assert sum(len(p['SelectedRows']) for p in selected['Panels'])==7
+        selected_tex=(changes/'Sources/Tex/selected-strategy-mechanisms.tex').read_text(encoding='utf-8-sig')
+        assert 'Sensitive' not in selected_tex and '^{*}' not in selected_tex
+        selected_pdf=PdfReader(changes/'Tables/selected-strategy-mechanisms.pdf')
+        assert len(selected_pdf.pages)==1
+        rows='\n'.join(line for line in selected_tex.splitlines() if re.match(r'^[PD] ',line))
+        assert signed(selected_pdf.pages[0].extract_text())==signed(rows)
+        summary['ManuscriptSelection']={'DisplayedRows':3,'Coordinates':7,'Pages':1}
+    return summary
 
 def verify(output,changes_only=False):
     plan=read(output/'supplemental-plan.json');cases=plan['Cases']

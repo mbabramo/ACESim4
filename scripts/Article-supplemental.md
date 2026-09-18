@@ -74,8 +74,11 @@ remain visible. The combined PDF uses continued pages, with a PNG for each page.
 
 `LitigCharts equilibrium-manuscript --input <Equilibrium strategy changes>` rebuilds
 this packet from saved, fingerprint-checked calculations without re-solving.
-Add `--article <article repository>` to refresh the numbered Table 3, its caption,
-source files, page previews and manuscript manifest. The canonical packet is
+The same command also generates a three-row risk-neutral selection as
+`Tables/selected-strategy-mechanisms.pdf`. Add `--article <article repository>`
+to publish that short selection as Table 2, with its caption, source files and
+manuscript manifest. It omits sensitivity markers and the all-zero opponent-exit
+and remaining columns. The complete canonical packet remains
 `Tables/manuscript-strategy-mechanisms.pdf`, with TeX/JSON in the usual Sources
 subfolders and its manuscript caption in Sources/manuscript-strategy-mechanisms-caption.txt.
 The existing small-gap American-to-Trial filing attribution remains qualified
