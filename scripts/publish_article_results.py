@@ -220,18 +220,20 @@ def verify(results, matrix, existing=None):
 
 def refresh_main(article):
     article=Path(article).resolve();results=article/'Results'
-    from build_risk_averse_summary import build as build_risk_averse_summary
-    risk_averse_summary=build_risk_averse_summary(article)
+    from build_manuscript_dispositions import build as build_dispositions
+    dispositions=build_dispositions(article)
     manifest_path=article/'manuscript-exhibits.json'
     manifest=read(manifest_path)
     specs=[('Figures','Figure 4 - Participation and offers','Risk Neutral','cost-1-participation-and-offers'),
            ('Figures','Figure 3 - Dispositions','Risk Neutral','cost-1-dispositions'),
-           ('Tables','Table 4 - Welfare outcomes','Risk Neutral','cost-1-welfare-outcomes'),
-           ('Tables','Table 3 - Risk-averse outcomes',None,'risk-averse-outcomes')]
+           ('Figures','Figure 5 - Risk-averse dispositions','Risk Averse','cost-1-dispositions'),
+           ('Figures','Figure 6 - Risk-averse participation and offers','Risk Averse','cost-1-participation-and-offers'),
+           ('Tables','Table 4 - Welfare outcomes','Risk Comparison','cost-1-welfare-outcomes')]
     reused=[]
     # Preserve separate analyses and their complete main-exhibit copies, including the selected mechanism table.
     for folder,title,risk,stem in specs:
-        source=results/'Aggregated Data/Baseline'/risk/'Sources'/stem if risk is not None else risk_averse_summary
+        source=dispositions[risk] if stem=='cost-1-dispositions' else results/'Aggregated Data/Baseline'/risk/'Sources'/stem
+        source_stem=source.name
         previous_tex=article/folder/'Sources'/(title+'.tex')
         prior={Path(e['Output']).suffix:e for e in manifest['Exhibits'] if e['Exhibit']==title}
         # An unchanged, self-contained TeX document may keep its verified renders.
@@ -239,12 +241,12 @@ def refresh_main(article):
         extensions=['.tex','.pdf','.png']
         reusable=all(ext in prior and inside(article,prior[ext]['Output']).is_file() and
                      sha(inside(article,prior[ext]['Output']))==prior[ext]['Sha256'] for ext in extensions)
-        reusable=risk is not None and reusable and sha(source.with_suffix('.tex'))==sha(previous_tex)
+        reusable=source.is_relative_to(results) and reusable and sha(source.with_suffix('.tex'))==sha(previous_tex)
         reusable=reusable and not re.search(r'\\(?:input|include|includegraphics)\b',source.with_suffix('.tex').read_text(encoding='utf-8-sig'))
         if reusable:
             for extension in ['.pdf','.png']:
                 previous=inside(article,prior[extension]['Output'])
-                canonical=source.parent.parent/(stem+extension)
+                canonical=source.parent.parent/(source_stem+extension)
                 shutil.copy2(previous,canonical)
                 reused.append({'Exhibit':title,'Path':str(canonical.relative_to(results)),
                                'Sha256':sha(canonical),'TexSha256':sha(previous_tex),
@@ -252,20 +254,19 @@ def refresh_main(article):
         canonical_caption=source.with_suffix('.txt')
         previous_caption=article/folder/'Sources'/(title+'.txt')
         if stem == 'cost-1-participation-and-offers':
-            caption=read(source.with_suffix('.json'))['Caption']+' All three core rules are shown under risk neutrality, cost multiplier 1, standard noise 0.20 and the ten-offer grid.'
+            preference='risk neutrality' if risk=='Risk Neutral' else 'symmetric CARA risk aversion with coefficient 2'
+            caption=read(source.with_suffix('.json'))['Caption']+f' All three core rules are shown under {preference}, cost multiplier 1, standard noise 0.20 and the ten-offer grid.'
         elif stem == 'cost-1-dispositions':
-            caption='Disposition of potential disputes under the three fee rules with risk neutrality, at cost multiplier 1, standard noise 0.20 and ten offers. Each bar includes all potential disputes, including unfiled cases. Categories are mutually exclusive; later abandonment and default are zero in these selected equilibria. Trial outcomes denote court findings, not true liability. Complete Fee-Shifting covers trial, initial nonanswer and later unilateral exit; Trial Fee-Shifting covers trial only.'
-        elif stem == 'cost-1-welfare-outcomes':
-            caption='Risk-neutral welfare outcomes per potential dispute at cost multiplier 1, standard noise 0.20 and ten offers. The three net-burden measures include legal costs and fee transfers. Gross outcome error measures the difference between the base payment and the payment warranted by true liability, before costs and separate fee transfers. Real expenditures exclude transfers. All measures include unfiled disputes. The five measures are distinct and should not be added together. Values are rounded to three decimals.'
-        elif stem == 'risk-averse-outcomes':
             caption=read(source.with_suffix('.json'))['Caption']
+        elif stem == 'cost-1-welfare-outcomes':
+            caption='Welfare outcomes under risk neutrality and symmetric CARA risk aversion with coefficient 2, per potential dispute at cost multiplier 1, standard noise 0.20 and ten offers. The three net-burden measures include legal costs and fee transfers. Gross outcome error measures the difference between the base payment and the payment warranted by true liability, before costs and separate fee transfers. Real expenditures exclude transfers. All measures include unfiled disputes. The five measures are distinct and should not be added together. Values are rounded to three decimals.'
         else:
             require(previous_caption.is_file(),'Missing manuscript caption: '+str(previous_caption))
             caption=previous_caption.read_text(encoding='utf-8-sig')
         write(canonical_caption,caption)
         manifest['Exhibits']=[e for e in manifest['Exhibits'] if e['Exhibit']!=title]
         for extension in ['.pdf','.png','.tex','.json','.txt']:
-            origin=(source.parent.parent/(stem+extension) if extension in {'.pdf','.png'} else source.with_suffix(extension))
+            origin=(source.parent.parent/(source_stem+extension) if extension in {'.pdf','.png'} else source.with_suffix(extension))
             destination=article/folder/(title+extension) if extension in {'.pdf','.png'} else article/folder/'Sources'/(title+extension)
             destination.parent.mkdir(parents=True,exist_ok=True)
             if not destination.exists() or sha(origin)!=sha(destination):shutil.copy2(origin,destination)
@@ -288,7 +289,7 @@ def refresh_main(article):
         require(sha(destination)==record['Sha256'],'Changed numbered exhibit: '+str(destination))
         origin=article/record['Source']
         if origin.is_file():require(sha(origin)==sha(destination),'Numbered/canonical mismatch: '+str(destination))
-    for folder,count in [('Figures',4),('Tables',4)]:
+    for folder,count in [('Figures',6),('Tables',4)]:
         require(len(list((article/folder).glob('*.pdf')))==count,'Unexpected main-exhibit count')
     if reused:
         records_path=results/'Run records/final-artifact-hashes.json'
@@ -300,7 +301,7 @@ def refresh_main(article):
             matches[0][kind]['Sha256']=reuse['Sha256']
         write(records_path,records)
         write(results/'Run records/main-render-reuse.json',reused)
-    print('Refreshed risk-neutral Figures 3/4 and Table 4, and the risk-averse Table 3; preserved Table 2 and the model exhibits.')
+    print('Refreshed Figures 3-6 and the combined welfare Table 4; preserved strategy Tables 2/3 and the model exhibits.')
 
 
 if __name__=='__main__':

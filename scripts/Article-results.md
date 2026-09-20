@@ -119,9 +119,9 @@ After the entire routine collection is generated, run from ACESim4:
 The publisher derives required coverage from the C# case matrix, checks complete
 production manifests, every routine PDF/PNG, all printed three-decimal welfare
 values, and the previous collection's reused equilibria/reports. It stages and
-hash-checks a copy before replacing only Results, then refreshes main Figures 3/4
-and the risk-neutral welfare Table 4, and rebuilds the risk-averse summary Table 3,
-with their captions/source manifest. The selected mechanism Table 2, model exhibits,
+hash-checks a copy before replacing only Results, then refreshes main Figures 3-6
+and the combined risk-neutral/risk-averse welfare Table 4, with their captions/source
+manifest. The selected mechanism Tables 2 and 3, model exhibits,
 and separate supplemental analyses are preserved. The model
 primitives table's data references are updated to the expanded reports. `-VerifyOnly`
 does not replace article outputs. Visual review and the final commit remain explicit

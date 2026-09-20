@@ -16,6 +16,7 @@ public static class EquilibriumManuscriptTable
 {
     public const string Stem = "manuscript-strategy-mechanisms";
     public const string ArticleStem = "Table 2 - Strategy mechanisms";
+    public const string RiskAverseArticleStem = "Table 3 - Risk-averse strategy changes";
     public sealed record Comparison(string Id, string Label);
     public sealed record Panel(Comparison Comparison, ChangeRow[] Rows);
 
@@ -119,30 +120,32 @@ public static class EquilibriumManuscriptTable
             await DiagramCompiler.CompileAsync(tex, new(), renderedDirectory: tables, allPages: true);
             await SelectedEquilibriumManuscriptTable.WriteAsync(input, panels.ToArray());
             if (options.TryGetValue("--article", out string article))
-                PublishArticle(input, article);
-            Console.WriteLine($"Retained {panels.Count} full panels, {panels.Sum(p => p.Rows.Length)} coordinates; published a three-row risk-neutral selection; no equilibrium was rerun.");
+            {
+                PublishArticle(input, article, SelectedEquilibriumManuscriptTable.Stem, ArticleStem);
+                PublishArticle(input, article, SelectedEquilibriumManuscriptTable.RiskAverseStem, RiskAverseArticleStem);
+            }
+            Console.WriteLine($"Retained {panels.Count} full panels, {panels.Sum(p => p.Rows.Length)} coordinates; published three risk-neutral and nine risk-averse illustrative rows; no equilibrium was rerun.");
             return 0;
         }
         catch (Exception e) { Console.Error.WriteLine(e); return 1; }
     }
 
-    private static void PublishArticle(string input, string article)
+    private static void PublishArticle(string input, string article, string selectedStem, string articleStem)
     {
-        const string selectedStem = SelectedEquilibriumManuscriptTable.Stem;
         string tables = Path.Combine(article, "Tables"), sources = Path.Combine(tables, "Sources");
         Directory.CreateDirectory(sources);
         var mappings = new List<(string Source, string Output)> {
-            (Path.Combine(input, "Tables", selectedStem + ".pdf"), Path.Combine(tables, ArticleStem + ".pdf")),
-            (Path.Combine(input, "Tables", selectedStem + ".png"), Path.Combine(tables, ArticleStem + ".png")),
-            (Path.Combine(input, "Sources", "Tex", selectedStem + ".tex"), Path.Combine(sources, ArticleStem + ".tex")),
-            (Path.Combine(input, "Sources", "Json", selectedStem + ".json"), Path.Combine(sources, ArticleStem + ".json")),
-            (Path.Combine(input, "Sources", selectedStem + "-caption.txt"), Path.Combine(sources, ArticleStem + ".txt")) };
+            (Path.Combine(input, "Tables", selectedStem + ".pdf"), Path.Combine(tables, articleStem + ".pdf")),
+            (Path.Combine(input, "Tables", selectedStem + ".png"), Path.Combine(tables, articleStem + ".png")),
+            (Path.Combine(input, "Sources", "Tex", selectedStem + ".tex"), Path.Combine(sources, articleStem + ".tex")),
+            (Path.Combine(input, "Sources", "Json", selectedStem + ".json"), Path.Combine(sources, articleStem + ".json")),
+            (Path.Combine(input, "Sources", selectedStem + "-caption.txt"), Path.Combine(sources, articleStem + ".txt")) };
         foreach (string page in Directory.GetFiles(Path.Combine(input, "Tables"), selectedStem + "-page-*.png"))
-            mappings.Add((page, Path.Combine(tables, ArticleStem + Path.GetFileName(page)[selectedStem.Length..])));
+            mappings.Add((page, Path.Combine(tables, articleStem + Path.GetFileName(page)[selectedStem.Length..])));
         foreach (var file in mappings) File.Copy(file.Source, file.Output, overwrite: true);
         // Remove only obsolete page previews of this exact exhibit after successful rendering.
         var kept = mappings.Select(m => m.Output).ToHashSet(StringComparer.OrdinalIgnoreCase);
-        foreach (string page in Directory.GetFiles(tables, ArticleStem + "-page-*.png"))
+        foreach (string page in Directory.GetFiles(tables, articleStem + "-page-*.png"))
             if (!kept.Contains(page)) File.Delete(page);
         string readmePath = Path.Combine(tables, "README.md");
         if (File.Exists(readmePath))
@@ -151,7 +154,7 @@ public static class EquilibriumManuscriptTable
                 line.StartsWith("| [Table 2 - Strategy mechanisms]")
                     ? "| [Table 2 - Strategy mechanisms](<Table 2 - Strategy mechanisms.pdf>) | [selected-strategy-mechanisms](<../Supplemental materials/Equilibrium strategy changes/Tables/selected-strategy-mechanisms.pdf>) |"
                     : line.StartsWith("Regenerate with `python scripts/assemble_manuscript_exhibits.py`") || line.StartsWith("Regenerate Table 2 from ACESim4")
-                    ? "Regenerate Table 2 from ACESim4 with `LitigCharts equilibrium-manuscript --input <strategy-change directory> --article <article repository>`. The article uses three risk-neutral illustrative rows, without sensitivity markers. The full seven-panel analysis and diagnostic checks remain in `Supplemental materials/Equilibrium strategy changes/Tables/manuscript-strategy-mechanisms.pdf` and its sources. Opponent-exit and remaining contributions are zero in the selected rows and omitted from the display. `manuscript-exhibits.json` records the numbered files and their source/output hashes."
+                    ? "Regenerate Tables 2 and 3 from ACESim4 with `LitigCharts equilibrium-manuscript --input <strategy-change directory> --article <article repository>`. The article uses three risk-neutral and nine risk-averse illustrative rows, without sensitivity markers. The full seven-panel analysis and diagnostic checks remain in `Supplemental materials/Equilibrium strategy changes/Tables/manuscript-strategy-mechanisms.pdf` and its sources. Remaining contributions are zero in both selections; opponent-exit contributions are displayed in Table 3. `manuscript-exhibits.json` records the numbered files and their source/output hashes."
                     : line);
             File.WriteAllText(readmePath, string.Join("\n", lines) + "\n");
         }
@@ -160,9 +163,9 @@ public static class EquilibriumManuscriptTable
         var manifest = JsonNode.Parse(File.ReadAllText(manifestFile));
         var exhibits = manifest["Exhibits"].AsArray();
         for (int i = exhibits.Count - 1; i >= 0; i--)
-            if (exhibits[i]["Exhibit"]?.GetValue<string>() == ArticleStem) exhibits.RemoveAt(i);
+            if (exhibits[i]["Exhibit"]?.GetValue<string>() == articleStem) exhibits.RemoveAt(i);
         foreach (var file in mappings)
-            exhibits.Add(new JsonObject { ["Exhibit"] = ArticleStem, ["Source"] = Path.GetRelativePath(article, file.Source),
+            exhibits.Add(new JsonObject { ["Exhibit"] = articleStem, ["Source"] = Path.GetRelativePath(article, file.Source),
                 ["Output"] = Path.GetRelativePath(article, file.Output), ["Sha256"] = Hash(file.Output).Sha256 });
         File.WriteAllText(manifestFile, manifest.ToJsonString(new JsonSerializerOptions { WriteIndented = true }).Replace("\r\n", "\n") + "\n");
     }

@@ -49,28 +49,41 @@ def verify_manuscript(changes):
         png=changes/'Tables'/(stem+('' if n==1 else f'-page-{n:02}')+'.png')
         assert png.is_file() and png.stat().st_size>1000
     summary={'Panels':len(packet['Panels']),'Pages':len(document.pages),**dict(counts)}
-    selected_path=changes/'Sources/Json/selected-strategy-mechanisms.json'
-    if selected_path.exists():
+    selections=[('selected-strategy-mechanisms',3,7,
+                 ['american-to-trial-risk-neutral','trial-to-complete-risk-neutral']),
+                ('selected-risk-averse-strategy-mechanisms',9,13,
+                 ['risk-neutral-to-risk-averse-american','risk-neutral-to-risk-averse-trial',
+                  'risk-neutral-to-risk-averse-complete','trial-to-complete-risk-averse'])]
+    for selected_stem,displayed,coordinates,comparison_ids in selections:
+        selected_path=changes/'Sources/Json'/(selected_stem+'.json')
+        assert selected_path.is_file(), 'Missing manuscript selection: '+selected_stem
         selected=read(selected_path)
         check(selected['FullAnalysis'])
-        assert [p['Comparison']['Id'] for p in selected['Panels']]==[
-            'american-to-trial-risk-neutral','trial-to-complete-risk-neutral']
+        assert [p['Comparison']['Id'] for p in selected['Panels']]==comparison_ids
         for panel in selected['Panels']:
             original=next(p for p in packet['Panels'] if p['Comparison']==panel['Comparison'])
             assert all(row in original['SelectedRows'] for row in panel['SelectedRows'])
+            contrast=original['Contrast']['Id']
+            calculated=read(changes/'Data/cost-1'/contrast/(contrast+'.json'))
+            endpoints=[{i['Key']:i for i in calculated[name]['InformationSets']}
+                       for name in ['SourceEquilibrium','TargetEquilibrium']]
             for row in panel['SelectedRows']:
-                assert not row['CounterfactualUndefined'] and not row['UnreachedCoalitions']
-                close(row['Allocation']['Exit'],0)
+                assert not row['CounterfactualUndefined']
+                assert all(not endpoint[row['Key']]['ActualOffPath'] and
+                           endpoint[row['Key']]['ActualReach']>0 for endpoint in endpoints)
+                if selected_stem=='selected-strategy-mechanisms':
+                    assert not row['UnreachedCoalitions']
+                if 'Opponent exit' in selected['OmittedZeroColumns']:close(row['Allocation']['Exit'],0)
                 close(row['Allocation']['SelectionResidual'],0)
-        assert sum(p['DisplayedRows'] for p in selected['Panels'])==3
-        assert sum(len(p['SelectedRows']) for p in selected['Panels'])==7
-        selected_tex=(changes/'Sources/Tex/selected-strategy-mechanisms.tex').read_text(encoding='utf-8-sig')
+        assert sum(p['DisplayedRows'] for p in selected['Panels'])==displayed
+        assert sum(len(p['SelectedRows']) for p in selected['Panels'])==coordinates
+        selected_tex=(changes/'Sources/Tex'/(selected_stem+'.tex')).read_text(encoding='utf-8-sig')
         assert 'Sensitive' not in selected_tex and '^{*}' not in selected_tex
-        selected_pdf=PdfReader(changes/'Tables/selected-strategy-mechanisms.pdf')
+        selected_pdf=PdfReader(changes/'Tables'/(selected_stem+'.pdf'))
         assert len(selected_pdf.pages)==1
         rows='\n'.join(line for line in selected_tex.splitlines() if re.match(r'^[PD] ',line))
         assert signed(selected_pdf.pages[0].extract_text())==signed(rows)
-        summary['ManuscriptSelection']={'DisplayedRows':3,'Coordinates':7,'Pages':1}
+        summary[selected_stem]={'DisplayedRows':displayed,'Coordinates':coordinates,'Pages':1}
     return summary
 
 def verify(output,changes_only=False):
