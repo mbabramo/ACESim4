@@ -63,7 +63,8 @@ public static class SelectedEquilibriumManuscriptTable
         return new[] {
             Pick("risk-neutral-to-risk-averse-american", ("P Files", new[] { 1, 2, 4 }),
                 ("P Offer", new[] { 4 }), ("D Offer", new[] { 1, 2, 7 })),
-            Pick("risk-neutral-to-risk-averse-trial", ("P Abandons", new[] { 5 })),
+            Pick("risk-neutral-to-risk-averse-trial", ("P Abandons", new[] { 5 }),
+                ("D Defaults", new[] { 5, 6 })),
             Pick("risk-neutral-to-risk-averse-complete", ("P Offer", new[] { 5, 6 })),
             Pick("trial-to-complete-risk-averse", ("D Answers", new[] { 8, 9, 10 }))
         };
@@ -79,7 +80,7 @@ public static class SelectedEquilibriumManuscriptTable
                 (!includeExit && Math.Abs(r.Allocation.Exit) > PolicyTolerance) || Math.Abs(r.Allocation.SelectionResidual) > PolicyTolerance))
                 throw new InvalidDataException("Revisit the short table: omitted columns or reach qualifications are needed.");
         }
-        if (panels.Sum(p => EquilibriumPublicationTables.GroupRows(p.Rows).Length) != (includeExit ? 9 : 3))
+        if (panels.Sum(p => EquilibriumPublicationTables.GroupRows(p.Rows).Length) != (includeExit ? 11 : 3))
             throw new InvalidDataException("Unexpected selected row count; revisit changed grouping.");
         var b = new StringBuilder("""
             \documentclass[10pt,border=5pt,varwidth=6.4in]{standalone}
@@ -115,6 +116,7 @@ public static class SelectedEquilibriumManuscriptTable
                 string label = row.Decision switch {
                     "P Files" => "P files", "D Answers" => "D answers",
                     "P Abandons" => "P commits to exit",
+                    "D Defaults" => "D commits to default",
                     "P Offer" => "P demand, continue", "D Offer" => "D offer, continue",
                     _ => throw new InvalidDataException("Unexpected selected decision.") };
                 string signal = row.SignalValue.ToString("0.00", CultureInfo.InvariantCulture) +
@@ -140,14 +142,14 @@ public static class SelectedEquilibriumManuscriptTable
     private static async Task WriteSelectedAsync(string input, Panel[] panels, string stem, string caption, bool includeExit)
     {
         string tex = Path.Combine(input, "Sources", "Tex", stem + ".tex");
-        // The risk-averse display includes conditional offer comparisons at histories reached
+        // The risk-averse display includes conditional comparisons at histories reached
         // in both endpoint equilibria; intermediate own best responses may avoid them.
         // Definedness and the complete reach diagnostics remain in the saved rows below.
         await File.WriteAllTextAsync(tex, Latex(panels, includeExit, requireIntermediateReach: !includeExit));
         await File.WriteAllTextAsync(Path.Combine(input, "Sources", "Json", stem + ".json"),
             JsonSerializer.Serialize(new {
                 Schema = "1", Caption = caption, Cost = 1,
-                Selection = includeExit ? "Nine illustrative rows involving risk aversion; complete comparison packet retained online" :
+                Selection = includeExit ? "Eleven illustrative rows involving risk aversion; complete comparison packet retained online" :
                     "Three risk-neutral illustrative rows selected for manuscript discussion; complete comparison packet retained online",
                 OmittedZeroColumns = includeExit ? new[] { "Remaining" } : new[] { "Opponent exit", "Remaining" },
                 Panels = panels.Select(p => new { p.Comparison, SelectedRows = p.Rows,

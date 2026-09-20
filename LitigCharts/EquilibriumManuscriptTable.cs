@@ -124,7 +124,7 @@ public static class EquilibriumManuscriptTable
                 PublishArticle(input, article, SelectedEquilibriumManuscriptTable.Stem, ArticleStem);
                 PublishArticle(input, article, SelectedEquilibriumManuscriptTable.RiskAverseStem, RiskAverseArticleStem);
             }
-            Console.WriteLine($"Retained {panels.Count} full panels, {panels.Sum(p => p.Rows.Length)} coordinates; published three risk-neutral and nine risk-averse illustrative rows; no equilibrium was rerun.");
+            Console.WriteLine($"Retained {panels.Count} full panels, {panels.Sum(p => p.Rows.Length)} coordinates; published three risk-neutral and eleven risk-averse illustrative rows; no equilibrium was rerun.");
             return 0;
         }
         catch (Exception e) { Console.Error.WriteLine(e); return 1; }
@@ -154,7 +154,7 @@ public static class EquilibriumManuscriptTable
                 line.StartsWith("| [Table 2 - Strategy mechanisms]")
                     ? "| [Table 2 - Strategy mechanisms](<Table 2 - Strategy mechanisms.pdf>) | [selected-strategy-mechanisms](<../Supplemental materials/Equilibrium strategy changes/Tables/selected-strategy-mechanisms.pdf>) |"
                     : line.StartsWith("Regenerate with `python scripts/assemble_manuscript_exhibits.py`") || line.StartsWith("Regenerate Table 2 from ACESim4")
-                    ? "Regenerate Tables 2 and 3 from ACESim4 with `LitigCharts equilibrium-manuscript --input <strategy-change directory> --article <article repository>`. The article uses three risk-neutral and nine risk-averse illustrative rows, without sensitivity markers. The full seven-panel analysis and diagnostic checks remain in `Supplemental materials/Equilibrium strategy changes/Tables/manuscript-strategy-mechanisms.pdf` and its sources. Remaining contributions are zero in both selections; opponent-exit contributions are displayed in Table 3. `manuscript-exhibits.json` records the numbered files and their source/output hashes."
+                    ? "Regenerate Tables 2 and 3 from ACESim4 with `LitigCharts equilibrium-manuscript --input <strategy-change directory> --article <article repository>`. The article uses three risk-neutral and eleven risk-averse illustrative rows, without sensitivity markers. The full seven-panel analysis and diagnostic checks remain in `Supplemental materials/Equilibrium strategy changes/Tables/manuscript-strategy-mechanisms.pdf` and its sources. Remaining contributions are zero in both selections; opponent-exit contributions are displayed in Table 3. `manuscript-exhibits.json` records the numbered files and their source/output hashes."
                     : line);
             File.WriteAllText(readmePath, string.Join("\n", lines) + "\n");
         }

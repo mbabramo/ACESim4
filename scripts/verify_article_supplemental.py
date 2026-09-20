@@ -51,7 +51,7 @@ def verify_manuscript(changes):
     summary={'Panels':len(packet['Panels']),'Pages':len(document.pages),**dict(counts)}
     selections=[('selected-strategy-mechanisms',3,7,
                  ['american-to-trial-risk-neutral','trial-to-complete-risk-neutral']),
-                ('selected-risk-averse-strategy-mechanisms',9,13,
+                ('selected-risk-averse-strategy-mechanisms',11,15,
                  ['risk-neutral-to-risk-averse-american','risk-neutral-to-risk-averse-trial',
                   'risk-neutral-to-risk-averse-complete','trial-to-complete-risk-averse'])]
     for selected_stem,displayed,coordinates,comparison_ids in selections:
