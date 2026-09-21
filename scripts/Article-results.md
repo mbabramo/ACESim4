@@ -24,6 +24,13 @@ alternative merits distributions/architectures, Direct binary-state signals,
 All costs avoidable, and All costs sunk. Each contains 30 cases. The 15-offer
 sensitivity check adds six cases at cost 1. Transformations are applied separately.
 
+After generating the saved welfare results, use the separate
+[fee-rule comparison command](Fee-rule-comparisons.md) to reproduce the pairwise
+robustness tables. One command produces both the full grid and the version
+excluding costs 0.25 and 4, with individual comparisons and provenance records.
+These outputs go to `Supplemental materials/Generated pairwise comparisons` in the article repository;
+the article's `Tables` folder holds the tables selected for publication.
+
 For a clean report rebuild, first commit and use `Prepare-ArticleRebuild.ps1`
 with the directories holding reusable `CS004`/`CS006EF` equilibrium files.
 It obtains the expected filenames from the C# `export-case-matrix` command,

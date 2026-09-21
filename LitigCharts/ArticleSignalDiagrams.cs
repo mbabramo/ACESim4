@@ -29,6 +29,8 @@ public static class ArticleSignalDiagrams
         (specification switch
         {
             "Baseline" => "Continuous merits",
+            "CenterWeightedContinuousMerits" => "Center-weighted merits",
+            "PolarizedContinuousMerits" => "Polarized merits",
             "TruthConditionedLatentMerits" => "Truth-conditioned merits",
             "DirectBinaryStateSignals" => "Direct binary signals",
             "Damages" => "Damages signals",

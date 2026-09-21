@@ -218,6 +218,17 @@ def verify(results, matrix, existing=None):
     return summary
 
 
+def verify_main_exhibit(article, record):
+    destination=inside(article,record['Output'])
+    require(sha(destination)==record['Sha256'],'Changed numbered exhibit: '+str(destination))
+    origin=inside(article,record['Source'])
+    if record.get('Derived'):
+        require(origin.is_file() and sha(origin)==record['SourceSha256'],
+                'Changed source for derived exhibit: '+str(origin))
+    elif origin.is_file():
+        require(sha(origin)==sha(destination),'Numbered/canonical mismatch: '+str(destination))
+
+
 def refresh_main(article):
     article=Path(article).resolve();results=article/'Results'
     from build_manuscript_dispositions import build as build_dispositions
@@ -270,8 +281,15 @@ def refresh_main(article):
             destination=article/folder/(title+extension) if extension in {'.pdf','.png'} else article/folder/'Sources'/(title+extension)
             destination.parent.mkdir(parents=True,exist_ok=True)
             if not destination.exists() or sha(origin)!=sha(destination):shutil.copy2(origin,destination)
-            manifest['Exhibits'].append({'Exhibit':title,'Source':str(origin.relative_to(article)),
-                                         'Output':str(destination.relative_to(article)),'Sha256':sha(destination)})
+            record={'Exhibit':title,'Source':str(origin.relative_to(article)),
+                    'Output':str(destination.relative_to(article)),'Sha256':sha(destination)}
+            if stem=='cost-1-dispositions':
+                aggregate=results/'Aggregated Data/Baseline'/risk
+                original=(aggregate/(stem+extension) if extension in {'.pdf','.png'}
+                          else aggregate/'Sources'/(stem+('.json' if extension=='.txt' else extension)))
+                record.update(Source=str(original.relative_to(article)),
+                              Derived=True,SourceSha256=sha(original))
+            manifest['Exhibits'].append(record)
     # The model-primitives table is unchanged, but its references now identify the expanded datasets.
     primitives=article/'Supplemental materials/Game tree diagrams/Sources/model-primitives.json'
     if primitives.exists():
@@ -285,12 +303,11 @@ def refresh_main(article):
                 record['Sha256']=sha(primitives)
     write(manifest_path,manifest)
     for record in manifest['Exhibits']:
-        destination=inside(article,record['Output'])
-        require(sha(destination)==record['Sha256'],'Changed numbered exhibit: '+str(destination))
-        origin=article/record['Source']
-        if origin.is_file():require(sha(origin)==sha(destination),'Numbered/canonical mismatch: '+str(destination))
-    for folder,count in [('Figures',6),('Tables',4)]:
-        require(len(list((article/folder).glob('*.pdf')))==count,'Unexpected main-exhibit count')
+        verify_main_exhibit(article,record)
+    for folder in ('Figures','Tables'):
+        expected_pdfs={inside(article,e['Output']) for e in manifest['Exhibits']
+                       if Path(e['Output']).suffix=='.pdf' and inside(article,e['Output']).parent==article/folder}
+        require(set((article/folder).glob('*.pdf'))==expected_pdfs,'Unexpected main-exhibit selection')
     if reused:
         records_path=results/'Run records/final-artifact-hashes.json'
         records=read(records_path)
