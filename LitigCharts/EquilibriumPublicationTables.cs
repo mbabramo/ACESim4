@@ -100,7 +100,7 @@ public static class EquilibriumPublicationTables
                 Math.Abs(row.Allocation.SelectionResidual) > PolicyTolerance) return false;
             var direct = result.Scenarios.Single(s => s.Panel == "coalition" && s.Component == "0" && s.Result.Player == row.Player)
                 .Result.InformationSets.Single(s => s.Key == row.Key);
-            var all = result.Scenarios.Single(s => s.Panel == "coalition" && s.Component == "7" && s.Result.Player == row.Player)
+            var all = result.Scenarios.Single(s => s.Panel == "coalition" && s.Component == CoalitionMasks(result.Scenarios, row.Player).Max().ToString() && s.Result.Player == row.Player)
                 .Result.InformationSets.Single(s => s.Key == row.Key);
             if (direct.CounterfactuallyUnreachable || direct.Actions.Any(a =>
                 !a.CounterfactualConditionalUtility.HasValue || !double.IsFinite(a.CounterfactualConditionalUtility.Value)) ||
@@ -140,7 +140,7 @@ public static class EquilibriumPublicationTables
     {
         bool Same(double[] x, double[] y) => x.Length == y.Length && x.Zip(y, (u, v) => Math.Abs(u - v)).All(d => d <= PolicyTolerance);
         double[] Values(ChangeRow r) => new[] { r.Allocation.Original, r.Allocation.Target, r.Allocation.Direct,
-            r.Allocation.Entry, r.Allocation.Offers, r.Allocation.Exit, r.Allocation.SelectionResidual };
+            r.Allocation.Entry, r.Allocation.Offers, r.Allocation.Exit, r.Allocation.Agreement, r.Allocation.SelectionResidual };
         return a.Player == b.Player && a.Decision == b.Decision && a.Signal + 1 == b.Signal &&
             a.ExitCommitment == b.ExitCommitment && a.Metric == b.Metric && a.Action == b.Action &&
             a.CounterfactualUndefined == b.CounterfactualUndefined && a.UnreachedCoalitions.SequenceEqual(b.UnreachedCoalitions) &&
@@ -175,11 +175,18 @@ public static class EquilibriumPublicationTables
             \begin{document}
             \begin{minipage}{7.5in}
             """);
-        return b.Append(LatexBody(rows)).AppendLine(@"\end{minipage}\end{document}").ToString();
+        bool agreement = result.Scenarios.Any(s => s.Panel == "coalition" && s.Component == "15");
+        if (agreement)
+        {
+            b.Replace("7.5in", "8.5in");
+            b.AppendLine(@"\textbf{" + EquilibriumChangeTables.Escape(h.Title) + @"}\par");
+            b.AppendLine(EquilibriumChangeTables.Escape(h.HeldFixed) + "; cost multiplier " + h.Cost + @".\par\medskip");
+        }
+        return b.Append(LatexBody(rows, agreement)).AppendLine(@"\end{minipage}\end{document}").ToString();
     }
 
     /// <summary>The complete selected table, shared by individual contrasts and manuscript panels.</summary>
-    public static string LatexBody(ChangeRow[] rows)
+    public static string LatexBody(ChangeRow[] rows, bool includeAgreement = false)
     {
         ValidateRows(rows);
         var b = new StringBuilder();
@@ -207,6 +214,8 @@ public static class EquilibriumPublicationTables
                     "D Answers" => "D answers",
                     "P Abandons" => "P commits to abandon",
                     "D Defaults" => "D commits to default",
+                    "P Agrees To Bargain" or "D Agrees To Bargain" or "P Agree To Bargain" or "D Agree To Bargain" =>
+                        (row.Player == 0 ? "P agrees" : "D agrees") + (row.ExitCommitment == 2 ? ", continue" : ", exit"),
                     _ => (row.Player == 0 ? "P demand" : "D offer") + (row.ExitCommitment == 2 ? ", continue" : ", exit")
                 };
                 if (row.Action.HasValue) label += " " + EquilibriumChangeTables.Escape(row.ActionLabels[row.Action.Value-1]);
@@ -214,13 +223,17 @@ public static class EquilibriumPublicationTables
                     (group.Rows.Length > 1 ? "--" + group.Last.SignalValue.ToString("0.00", CultureInfo.InvariantCulture) : "");
                 if (group.Rows.Any(r => r.UnreachedCoalitions.Length > 0)) label += "$^{*}$";
                 b.Append(label + " & " + signal + " & " + endpoint);
-                foreach (double effect in new[] { a.Direct, a.Entry, a.Offers, a.Exit, a.SelectionResidual })
+                foreach (double effect in includeAgreement
+                    ? new[] { a.Direct, a.Entry, a.Offers, a.Exit, a.Agreement, a.SelectionResidual }
+                    : new[] { a.Direct, a.Entry, a.Offers, a.Exit, a.SelectionResidual })
                     b.Append(row.CounterfactualUndefined ? " & ---" : " & $" + Num(effect, true) + "$");
                 b.AppendLine(" & " + group.Sensitivity + @"\\");
             }
         }
         if (rows.Length == 0)
             b.AppendLine(@"\multicolumn{9}{l}{No qualifying coordinates.}\\");
+        if (includeAgreement) b.Replace("*{5}", "*{6}").Replace("multicolumn{9}", "multicolumn{10}")
+            .Replace(" & Remaining & Sensitive", @" & \shortstack{Opponent\\agreement} & Remaining & Sensitive");
         return b.AppendLine(@"\bottomrule\end{tabularx}}").ToString();
     }
 }

@@ -1,6 +1,6 @@
 param(
     [Parameter(Mandatory=$true)][string]$OutputDirectory,
-    [int]$Workers = [Math]::Min(6, [Environment]::ProcessorCount),
+    [int]$Workers = [Math]::Min(30, [Environment]::ProcessorCount),
     [switch]$SkipBuild
 )
 $ErrorActionPreference = 'Stop'

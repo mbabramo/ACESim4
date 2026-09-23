@@ -17,7 +17,7 @@ appropriate when the user's original working tree has unrelated changes):
 ```powershell
 dotnet test ACESimTest -c Release --filter 'FullyQualifiedName~AgreementToBargainTests|FullyQualifiedName~LitigGameTests|FullyQualifiedName~CorrelatedSignalsMultipleEquilibriaReportTests'
 dotnet build ACESimDistributedSaturate -c Release
-.\scripts\Run-ArticleAgreementToBargain.ps1 -OutputDirectory <study> -Workers 6 -SkipBuild
+.\scripts\Run-ArticleAgreementToBargain.ps1 -OutputDirectory <study> -Workers 30 -SkipBuild
 ```
 
 The existing process scheduler assigns settings to workers and preserves
@@ -33,6 +33,7 @@ After workers finish and aggregation succeeds:
 ```powershell
 LitigCharts\bin\Release\net9.0\LitigCharts.exe agreement-study-audit --input <study>\Sources\Production --output <study>
 LitigCharts\bin\Release\net9.0\LitigCharts.exe agreement-study-audit --plan baseline-single --input <retained-baseline-production> --output <study>\Baseline
+python -B scripts\agreement_study_decompositions.py --study <study> --exe LitigCharts\bin\Release\net9.0\LitigCharts.exe --jobs 30
 python -B scripts\agreement_study_exhibits.py --study <study> --jobs 4
 ```
 
@@ -58,3 +59,9 @@ saved-strategy/action-report hashes. Visually inspect PDF/PNG outputs before
 delivery. Findings must distinguish this single-equilibrium robustness check from claims
 about all equilibria. The equilibrium-decomposition analysis uses the saved new
 profiles and full unilateral best responses; it does not solve more equilibria.
+
+The 90 directed within-model decompositions compare each fee pair in both
+directions within each risk level, and each risk pair in both directions within
+each fee rule, at all five costs. Four opponent components (participation,
+offers, exits, agreement) use 16 coalitions and 24 replacement orders. Explicit
+selection residuals and tie/off-path completion checks are retained.

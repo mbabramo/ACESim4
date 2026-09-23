@@ -86,10 +86,10 @@ decision/.style={circle,draw,inner sep=2pt,minimum size=5mm},every edge/.style={
 \draw[->] (dy)--node[left]{Agree}(offers);
 \draw[->] (dy)--node[above,sloped]{Decline}(fail);
 \draw[->] (dn)--node[right]{Agree or decline}(fail);
-\node[box,text width=3cm] (settle) at (-5.3,-7.6) {Overlapping offers\\Settlement};
-\node[box,text width=6.8cm] (exit) at (1,-7.6) {Resolve existing exit commitments\\P only exits: abandonment; D only exits: default\\Both exit: existing 50--50 lottery\\Neither exits: trial};
+\node[box,text width=3cm] (settle) at (-5.3,-8.1) {Overlapping offers\\Settlement};
+\node[box,text width=6.8cm] (exit) at (1,-8.1) {Resolve existing exit commitments\\P only exits: abandonment; D only exits: default\\Both exit: existing 50--50 lottery\\Neither exits: trial};
 \draw[->] (offers)--(settle);\draw[->] (offers)--node[above,sloped,pos=.7,font=\scriptsize]{No overlap}(exit);\draw[->] (fail)--(exit);
-\node[align=center,text width=13cm] at (0,-9.5) {Each player knows its own signal and private exit commitment. The opponent's exit commitment stays private. Agreement decisions are simultaneous and observable after both choices. Refusal adds no cost or fee trigger; existing disposition rules apply.};
+\node[align=center,text width=13cm] at (0,-10.1) {Each player knows its own signal and private exit commitment. The opponent's exit commitment stays private. Agreement decisions are simultaneous and observable after both choices. Refusal adds no cost or fee trigger; existing disposition rules apply.};
 \end{tikzpicture}''')
 
 def axis(title, series, offers=False):
@@ -123,7 +123,7 @@ def individual(p):
                 for a,prob in enumerate(n['Probabilities']) if prob>0]
             series.append((color,mark,pts))
         panels.append(axis(title,series,True))
-    title=f"{p['FeeRule']} | {'Risk neutral' if p['Alpha']==0 else 'CARA alpha = 2'} | Profile {p['Equilibrium']}"
+    title=f"{p['FeeRule']} | {'Risk neutral' if p['Alpha']==0 else 'CARA alpha = 2'} | Cost multiplier {p['CostMultiplier']:g}"
     body=r'\begin{minipage}{15cm}\centering{\large '+esc(title)+r'}\par\medskip'+'\n'
     body+=r'\begin{tabular}{cc}'+'\n'+' \\\\[5pt]\n'.join(panels[i]+' & '+panels[i+1] for i in range(0,8,2))+r'\end{tabular}\par'
     body+=r'''\smallskip\footnotesize Blue circles: own commitment to continue. Orange triangles: own commitment to exit.
@@ -140,27 +140,27 @@ def table(rows, columns, headings, caption, widths=None):
     body+=r'\bottomrule\end{tabular}\par\medskip\footnotesize '+esc(caption)+r'\end{minipage}'
     return wrapper(body)
 
-def numeric_range(values):
+def single_value(values):
     values=[float(x) for x in values if x is not None]
-    return 'undefined' if not values else f'{min(values):.4f}--{max(values):.4f}'
+    if len(values)>1: raise ValueError('Expected one equilibrium per case')
+    return 'undefined' if not values else f'{values[0]:.4f}'
 
-def comparison_plots(profiles, baseline, alpha, metrics, titles):
+def comparison_plots(profiles, baseline, alpha, cost, metrics, titles):
     panels=[]
     for metric,title in zip(metrics,titles):
-        body=r'\begin{tikzpicture}\begin{axis}[width=6cm,height=4.6cm,xmin=.5,xmax=3.5,xtick={1,2,3},xticklabels={American,Trial,Complete},ymin=0,title={'+title+r'},tick label style={font=\scriptsize},title style={font=\small},ylabel={Per potential dispute},label style={font=\scriptsize}]'+'\n'
+        body=r'\begin{tikzpicture}\begin{axis}[width=6cm,height=4.6cm,xmin=.5,xmax=3.5,xtick={1,2,3},xticklabels={American,Trial,Complete},title={'+title+r'},tick label style={font=\scriptsize},title style={font=\small},ylabel={Per potential dispute},label style={font=\scriptsize}]'+'\n'
         for enabled, data, color, mark, dx in [(False,baseline,'gray','square*',-.09),(True,profiles,COLORS[0],'*',.09)]:
             for fee_index,fee in enumerate(FEES,1):
-                vals=[p['Metrics'][metric] for p in data if p['Alpha']==alpha and p['FeeRule']==fee]
+                vals=[p['Metrics'][metric] for p in data if p['Alpha']==alpha and p['CostMultiplier']==cost and p['FeeRule']==fee]
                 vals=[v for v in vals if v is not None]
                 if not vals: continue
-                x=fee_index+dx; lo,hi=min(vals),max(vals)
-                body+=f'\\addplot[{color},thick] coordinates {{({x},{lo}) ({x},{hi})}};\n'
+                x=fee_index+dx
                 for v in sorted(set(round(v,10) for v in vals)):
                     body+=f'\\addplot[only marks,color={color},mark={mark},mark size=1.3pt] coordinates {{({x},{v})}};\n'
         panels.append(body+r'\end{axis}\end{tikzpicture}')
     if len(panels)%3: panels+=['']*(3-len(panels)%3)
-    body=r'\begin{minipage}{19cm}\centering{\large '+('Risk neutrality' if alpha==0 else 'Symmetric CARA, alpha = 2')+r'}\par\medskip\begin{tabular}{ccc}'+'\n'
-    body+=' \\\\[8pt]\n'.join(' & '.join(panels[i:i+3]) for i in range(0,len(panels),3))+r'\end{tabular}\par\footnotesize Gray squares: agreement disabled. Blue circles: agreement enabled. Each point is an individual recovered profile; lines span the observed range. Overlapping points can conceal distinct strategies. No recovery-frequency weights.\end{minipage}'
+    body=r'\begin{minipage}{19cm}\centering{\large '+('Risk neutrality' if alpha==0 else 'Symmetric CARA, alpha = 2')+f' | Cost multiplier {cost:g}'+r'}\par\medskip\begin{tabular}{ccc}'+'\n'
+    body+=' \\\\[8pt]\n'.join(' & '.join(panels[i:i+3]) for i in range(0,len(panels),3))+r'\end{tabular}\par\footnotesize Gray squares: agreement disabled. Blue circles: agreement enabled. One verified equilibrium per case. The agreement-enabled and existing agreement-disabled profiles are evaluated separately.\end{minipage}'
     return wrapper(body)
 
 def distinct_groups(profiles, vector, tolerance=1e-7):
@@ -204,70 +204,86 @@ def main():
     if not a.structure_only:
         profiles,welfare=load_profiles(root);baseline,bw=load_profiles(a.baseline.resolve() if a.baseline else root/'Baseline')
         if welfare!=bw:raise ValueError('Welfare columns differ')
+        costs=[.25,.5,1,2,4]
+        expected={(cost,alpha,fee) for cost in costs for alpha in [0,2] for fee in FEES}
+        def key(p): return (p['CostMultiplier'],p['Alpha'],p['FeeRule'])
+        for name,data in [('enabled',profiles),('disabled',baseline)]:
+            if len(data)!=30 or {key(p) for p in data}!=expected:
+                raise ValueError(f'Expected exactly 30 distinct {name} cases')
+        def identity(p):
+            return {'OptionSet':p['OptionSet'],'CostMultiplier':p['CostMultiplier'],'Alpha':p['Alpha'],
+                'FeeRule':p['FeeRule'],'Equilibrium':p['Equilibrium']}
         for p in profiles:
-            risk='Risk neutral' if p['Alpha']==0 else 'Risk averse';fee=FEES.index(p['FeeRule'])
-            folder=f'Profiles/{risk}/{p["FeeRule"]}';stem=f'profile-{p["Equilibrium"]:02d}'
-            exhibit(folder,stem,individual(p),{'SourceProfile':fingerprint(p['_source']),'Equilibrium':p['Equilibrium'],'OptionSet':p['OptionSet']})
+            risk='Risk neutral' if p['Alpha']==0 else 'Risk averse'
+            folder=f'Profiles/Cost {p["CostMultiplier"]:g}/{risk}/{p["FeeRule"]}';stem='equilibrium'
+            exhibit(folder,stem,individual(p),{'SourceProfile':fingerprint(p['_source']),**identity(p)})
             rows=[]
             for n in p['Strategies']:
                 for action,prob in enumerate(n['Probabilities'],1):
-                    rows.append({**{k:n[k] for k in ['Player','InformationSet','Decision','Signal','OwnExit','Reach']},'Action':action,'SavedStrategyProbability':prob,'ReachedConditionalProbability':prob if n['Reach']>0 else None})
+                    rows.append({**{k:n[k] for k in ['Player','InformationSet','Decision','Signal','OwnExit','Reach']},
+                        'Action':action,'SavedStrategyProbability':prob,'ReachedConditionalProbability':prob if n['Reach']>0 else None})
             csv_write(root/folder/'Sources'/f'{stem}-strategies.csv',rows)
-        rows=[{'Agreement':'Enabled' if enabled else 'Disabled','Risk':'Neutral' if p['Alpha']==0 else 'Averse','FeeRule':p['FeeRule'],'Equilibrium':p['Equilibrium'],**p['Metrics']} for enabled,data in [(False,baseline),(True,profiles)] for p in data]
+        rows=[{'Agreement':'Enabled' if enabled else 'Disabled',**identity(p),**p['Metrics']}
+            for enabled,data in [(False,baseline),(True,profiles)] for p in data]
         csv_write(root/'Comparisons'/'Sources'/'all-profile-metrics.csv',rows)
-        bysignal=[{'Agreement':'Enabled' if enabled else 'Disabled','Risk':'Neutral' if p['Alpha']==0 else 'Averse','FeeRule':p['FeeRule'],'Equilibrium':p['Equilibrium'],**s} for enabled,data in [(False,baseline),(True,profiles)] for p in data for s in p['BySignal']]
+        bysignal=[{'Agreement':'Enabled' if enabled else 'Disabled',**identity(p),**s}
+            for enabled,data in [(False,baseline),(True,profiles)] for p in data for s in p['BySignal']]
         csv_write(root/'Comparisons'/'Sources'/'filing-answering-by-signal.csv',bysignal)
         agreement_rows=[]
         for p in profiles:
             for n in p['Strategies']:
-                if n['Decision'] not in ['PAgreeToBargain','DAgreeToBargain']: continue
-                agreement_rows.append({'OptionSet':p['OptionSet'],'Equilibrium':p['Equilibrium'],'Alpha':p['Alpha'],'FeeRule':p['FeeRule'],
-                    'Party':'P' if n['Player']==0 else 'D','Signal':n['Signal'],'OwnExitCommitment':'Exit' if n['OwnExit']==1 else 'Continue',
-                    'InformationSetReach':n['Reach'],'AgreementGivenReach':n['Probabilities'][0] if n['Reach']>0 else None,
+                if n['Decision'] not in ['PAgreeToBargain','DAgreeToBargain']:continue
+                agreement_rows.append({**identity(p),'Party':'P' if n['Player']==0 else 'D','Signal':n['Signal'],
+                    'OwnExitCommitment':'Exit' if n['OwnExit']==1 else 'Continue','InformationSetReach':n['Reach'],
+                    'AgreementGivenReach':n['Probabilities'][0] if n['Reach']>0 else None,
                     'SavedAgreementPrescription':n['Probabilities'][0]})
         csv_write(root/'Comparisons'/'Sources'/'agreement-by-signal-and-commitment.csv',agreement_rows)
-        classifications=[]
-        for alpha in [0,2]:
+        for cost in costs:
+          for alpha in [0,2]:
             risk='Risk neutral' if alpha==0 else 'Risk averse'
+            prefix=f'cost-{cost:g}-'+risk.lower().replace(' ','-')
+            context=f'{risk}; cost multiplier {cost:g}. '
+            def select(data,fee):return [p for p in data if key(p)==(cost,alpha,fee)]
             agreement_table=[]
             for fee in FEES:
-                selected=[p for p in profiles if p['Alpha']==alpha and p['FeeRule']==fee]
-                agreement_table.append({'Fee':fee.replace(' Fee-Shifting',''),**{k:numeric_range([p['Metrics'][k] for p in selected]) for k in AGREEMENT}})
-            exhibit('Tables',f'{risk.lower().replace(" ","-")}-agreement',table(agreement_table,['Fee']+AGREEMENT,
-                ['Fee rule','Both agree','Only P declines','Only D declines','Both decline'],
-                'Joint probabilities conditional on reaching the agreement stage, integrated over signals and private commitments. Marginal ranges across profiles need not sum to one.'),agreement_table)
+                selected=select(profiles,fee)
+                agreement_table.append({'Fee':fee.replace(' Fee-Shifting',''),**{k:single_value([p['Metrics'][k] for p in selected]) for k in AGREEMENT}})
+            exhibit('Tables',prefix+'-agreement',table(agreement_table,['Fee']+AGREEMENT,
+                ['Fee rule','Both agree','Only P declines','Only D declines','Both decline'],context+
+                'Joint probabilities conditional on reaching the agreement stage, integrated over signals and private commitments.'),agreement_table)
             for quantity,label in [('Filing','Filing'),('AnsweringGivenFiling','Answering conditional on filing')]:
-                signal_table=[]
-                columns=[f'{i}-{enabled}' for i in range(3) for enabled in [False,True]]
+                signal_table=[];columns=[f'{i}-{enabled}' for i in range(3) for enabled in [False,True]]
                 for signal in range(1,11):
                     row={'Signal':signal}
                     for i,fee in enumerate(FEES):
                         for enabled,data in [(False,baseline),(True,profiles)]:
-                            values=[s[quantity] for p in data if p['Alpha']==alpha and p['FeeRule']==fee for s in p['BySignal'] if s['Signal']==signal]
-                            row[f'{i}-{enabled}']=numeric_range(values)
+                            values=[s[quantity] for p in select(data,fee) for s in p['BySignal'] if s['Signal']==signal]
+                            row[f'{i}-{enabled}']=single_value(values)
                     signal_table.append(row)
-                exhibit('Tables',f'{risk.lower().replace(" ","-")}-{quantity.lower()}-by-signal',table(signal_table,['Signal']+columns,
-                    ['Signal','Am. off','Am. on','Trial off','Trial on','Complete off','Complete on'],label+'. Off/on indicates the agreement stage. Ranges span retained profiles; undefined conditional values are omitted from ranges and remain explicit in CSV.'),signal_table)
-            for group,metrics,titles in [('dispositions',['NoFiling','NoAnswer','Settlement','Abandonment','Default','PLoses','PWins','Trial','JointFileAnswer'],['No filing','No answer','Settlement','Abandonment','Default','Trial: P loses','Trial: P wins','All trial','File and answer']),('welfare',welfare,['Plaintiff shortfall','Nonliable D burden','Liable D burden','Gross outcome error','Real expenditures'])]:
-                exhibit('Comparisons',f'{risk.lower().replace(" ","-")}-{group}',comparison_plots(profiles,baseline,alpha,metrics,titles),{'Inputs':[fingerprint(p['_source']) for p in profiles+baseline if p['Alpha']==alpha],'Metrics':metrics})
-            for subset,columns,labels in [('participation',METRICS[:3],['Filing','File + answer','Answer / file']),('dispositions',METRICS[3:7],['Settlement','Abandon','Default','Trial']),('trial-conditioning',METRICS[7:],['Trial / file','Trial / (file + answer)']),('welfare',welfare,['P shortfall','Nonliable D','Liable D','Gross error','Real costs'])]:
+                exhibit('Tables',prefix+'-'+quantity.lower()+'-by-signal',table(signal_table,['Signal']+columns,
+                    ['Signal','Am. off','Am. on','Trial off','Trial on','Complete off','Complete on'],context+label+
+                    '. Off/on indicates the agreement stage. Undefined means that the conditioning event is unreached.'),signal_table)
+            for group,metrics,titles in [('dispositions',['NoFiling','NoAnswer','Settlement','Abandonment','Default','PLoses','PWins','Trial','JointFileAnswer'],
+                ['No filing','No answer','Settlement','Abandonment','Default','Trial: P loses','Trial: P wins','All trial','File and answer']),
+                ('welfare',welfare,['Plaintiff shortfall','Nonliable D burden','Liable D burden','Gross outcome error','Real expenditures'])]:
+                exhibit('Comparisons',prefix+'-'+group,comparison_plots(profiles,baseline,alpha,cost,metrics,titles),
+                    {'Inputs':[fingerprint(p['_source']) for p in profiles+baseline if p['Alpha']==alpha and p['CostMultiplier']==cost],'Metrics':metrics})
+            for subset,columns,labels in [('participation',METRICS[:3],['Filing','File + answer','Answer / file']),
+                ('dispositions',METRICS[3:7],['Settlement','Abandon','Default','Trial']),
+                ('trial-conditioning',METRICS[7:],['Trial / file','Trial / (file + answer)']),
+                ('welfare',welfare,['P shortfall','Nonliable D','Liable D','Gross error','Real costs'])]:
                 tab=[]
                 for fee in FEES:
                     for enabled,data in [(False,baseline),(True,profiles)]:
-                        selected=[p for p in data if p['Alpha']==alpha and p['FeeRule']==fee]
-                        tab.append({'Fee':fee.replace(' Fee-Shifting',''),'Stage':'On' if enabled else 'Off',**{k:numeric_range([p['Metrics'][k] for p in selected]) for k in columns}})
-                exhibit('Tables',f'{risk.lower().replace(" ","-")}-{subset}',table(tab,['Fee','Stage']+columns,['Fee rule','Agreement']+labels,'Minima and maxima across recovered profiles. Undefined means the conditioning event has zero probability. Ranges are not confidence intervals or an exhaustive equilibrium set.'),tab)
-            for fee in FEES:
-                for enabled,data in [(False,baseline),(True,profiles)]:
-                    selected=[p for p in data if p['Alpha']==alpha and p['FeeRule']==fee]
-                    classifications.append({'Alpha':alpha,'FeeRule':fee,'AgreementEnabled':enabled,'Profiles':len(selected),'Tolerance':1e-7,
-                        'CompleteStrategyGroups':distinct_groups(selected,strategy_vector),'ReachedBehaviorGroups':distinct_groups(selected,reached_vector),
-                        'OutcomeGroups':distinct_groups(selected,lambda p:{k:p['Metrics'][k] for k in METRICS+welfare if p['Metrics'][k] is not None})})
-        dump(root/'Sources'/'distinctness.json',classifications)
+                        selected=select(data,fee)
+                        tab.append({'Fee':fee.replace(' Fee-Shifting',''),'Stage':'On' if enabled else 'Off',
+                            **{k:single_value([p['Metrics'][k] for p in selected]) for k in columns}})
+                exhibit('Tables',prefix+'-'+subset,table(tab,['Fee','Stage']+columns,['Fee rule','Agreement']+labels,
+                    context+'One verified equilibrium per case. Undefined means the conditioning event has zero probability.'),tab)
         # Select a verified reached refusal path where one exists; otherwise label a counterfactual.
         selected=max(profiles,key=lambda p:(p['WorkedRefusalPath'] or {}).get('EquilibriumProbability',-1));worked=selected['WorkedRefusalPath']
         if worked:
-            lines=[r'\textbf{'+esc(worked['Purpose'])+r'}\\[5pt]',esc(selected['FeeRule'])+f"; alpha {selected['Alpha']}; profile {selected['Equilibrium']}\\\\[5pt]",
+            lines=[r'\textbf{'+esc(worked['Purpose'])+r'}\\[5pt]',esc(selected['FeeRule'])+f"; alpha {selected['Alpha']}; cost multiplier {selected['CostMultiplier']:g}\\\\[5pt]",
                 f"History probability: {worked['EquilibriumProbability']:.8f}\\\\[8pt]"]
             for step in worked['Steps']:
                 label=next(x['Label'] for x in step['Actions'] if x['Action']==step['SelectedAction'])

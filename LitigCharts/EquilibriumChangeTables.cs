@@ -115,14 +115,14 @@ public static class EquilibriumChangeTables
         string output = Path.GetFullPath(request.OutputDirectory, Path.GetDirectoryName(Path.GetFullPath(requestFile)));
         var manifest = JsonSerializer.Deserialize<Manifest>(File.ReadAllText(Path.Combine(output, "equilibrium-changes-manifest.json")), JsonOptions)
             ?? throw new InvalidDataException("Missing completed manifest.");
-        if (manifest.Schema != "2" || manifest.Request.Sha256 != Hash(requestFile).Sha256)
+        if (manifest.Schema is not ("2" or "3") || manifest.Request.Sha256 != Hash(requestFile).Sha256)
             throw new InvalidDataException("Recalculate: incompatible schema or changed request.");
         foreach (var fingerprint in manifest.OutputFingerprints.Concat(manifest.Sources.SelectMany(SourceFingerprints)))
             if (Hash(fingerprint.Path).Sha256 != fingerprint.Sha256)
                 throw new InvalidDataException("Input or calculation changed: " + fingerprint.Path);
         var results = manifest.OutputJsonFiles.Select(path => JsonSerializer.Deserialize<ContrastResult>(File.ReadAllText(path), JsonOptions)
             ?? throw new InvalidDataException(path)).ToArray();
-        if (results.Any(r => r.Schema != "2" || r.Changes == null))
+        if (results.Any(r => r.Schema is not ("2" or "3") || r.Changes == null))
             throw new InvalidDataException("Old pressure data cannot be rendered as additive decompositions.");
         return (manifest, results);
     }
@@ -188,7 +188,7 @@ public static class EquilibriumChangeTables
     public static bool CanGroup(ChangeRow a, ChangeRow b)
     {
         double[] Values(ChangeRow r) => new[] { r.Allocation.Original, r.Allocation.Target, r.Allocation.Direct,
-            r.Allocation.Entry, r.Allocation.Offers, r.Allocation.Exit, r.Allocation.SelectionResidual };
+            r.Allocation.Entry, r.Allocation.Offers, r.Allocation.Exit, r.Allocation.Agreement, r.Allocation.SelectionResidual };
         return a.Player == b.Player && a.Decision == b.Decision && a.Signal + 1 == b.Signal &&
             a.ExitCommitment == b.ExitCommitment && a.Metric == b.Metric && a.Action == b.Action &&
             a.EndpointSelection == b.EndpointSelection && a.TieSensitive == b.TieSensitive &&
@@ -221,6 +221,22 @@ public static class EquilibriumChangeTables
 
     public static string Latex(ContrastResult[] results)
     {
+        if (results.Any(r => r.Schema == "3"))
+        {
+            var expanded = new StringBuilder(@"\documentclass[10pt]{article}
+\usepackage[letterpaper,landscape,margin=.5in]{geometry}
+\usepackage[T1]{fontenc}\usepackage{lmodern,booktabs,array,tabularx}
+\begin{document}");
+            foreach (var result in results)
+            {
+                var heading = Heading(result.SourceOptionSet, result.TargetOptionSet);
+                expanded.AppendLine(@"\textbf{" + Escape(heading.Title) + @"}\par");
+                expanded.AppendLine(Escape(heading.HeldFixed) + "; cost multiplier " + Escape(heading.Cost) + @"\par");
+                expanded.AppendLine(EquilibriumPublicationTables.LatexBody(result.Changes, result.Schema == "3"));
+                expanded.AppendLine(@"\clearpage");
+            }
+            return expanded.AppendLine(@"\end{document}").ToString();
+        }
         var b = new StringBuilder("""
             \documentclass[10pt]{article}
             \usepackage[letterpaper,margin=0.5in]{geometry}

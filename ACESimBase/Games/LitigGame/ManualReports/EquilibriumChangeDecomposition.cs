@@ -9,7 +9,7 @@ namespace ACESimBase.Games.LitigGame.ManualReports;
 
 /// <summary>
 /// Direct-first accounting of changed, commonly reached equilibrium decisions.
-/// Opponent increments are averaged over all six orders (three-factor Shapley
+/// Opponent increments are averaged over all replacement orders (Shapley
 /// allocation conditional on the new rules). This is not a causal identification
 /// claim and does not silently allocate equilibrium-selection residuals.
 /// </summary>
@@ -17,16 +17,28 @@ public static class EquilibriumChangeDecomposition
 {
     public const double PolicyTolerance = 1e-6;
     public static readonly string[] Components = { "participation", "offers", "exit" };
+    public static readonly string[] AgreementComponents = { "participation", "offers", "exit", "agreement" };
+    public static string[] ComponentsFor(Profile profile) => profile.Strategies.Values.Any(s =>
+        Component(s.Decision) == "agreement") ? AgreementComponents : Components;
+    public static int CoalitionCount(Profile profile) => 1 << ComponentsFor(profile).Length;
+    public static int[] CoalitionMasks(Scenario[] scenarios, byte player)
+    {
+        var masks = scenarios.Where(s => s.Panel == "coalition" && s.Result.Player == player)
+            .Select(s => int.Parse(s.Component)).OrderBy(m => m).ToArray();
+        if (masks.Length is not (8 or 16) || !masks.SequenceEqual(Enumerable.Range(0, masks.Length)))
+            throw new InvalidDataException("Expected every coalition exactly once for this player.");
+        return masks;
+    }
     public static readonly int[][] Orders =
     {
         new[] { 0, 1, 2 }, new[] { 0, 2, 1 }, new[] { 1, 0, 2 },
         new[] { 1, 2, 0 }, new[] { 2, 0, 1 }, new[] { 2, 1, 0 }
     };
     public sealed record Allocation(double Original, double Target, double Direct,
-        double Entry, double Offers, double Exit, double SelectionResidual)
+        double Entry, double Offers, double Exit, double SelectionResidual, double Agreement = 0)
     {
         public double Change => Target - Original;
-        public double Explained => Direct + Entry + Offers + Exit;
+        public double Explained => Direct + Entry + Offers + Exit + Agreement;
     }
     public sealed record ChangeRow(string Key, byte Player, string Decision, int Signal,
         double SignalValue, int? ExitCommitment, string Metric, int? Action,
@@ -58,7 +70,7 @@ public static class EquilibriumChangeDecomposition
         {
             var old = original.InformationSets.Single(s => s.Key == changed.Key);
             var end = target.InformationSets.Single(s => s.Key == changed.Key);
-            var primary = Enumerable.Range(0, 8).Select(mask => scenarios.Single(s =>
+            var primary = CoalitionMasks(scenarios, old.Player).Select(mask => scenarios.Single(s =>
                 s.Panel == "coalition" && s.Component == mask.ToString() && s.Result.Player == old.Player)
                 .Result.InformationSets.Single(s => s.Key == old.Key)).ToArray();
             var gaining = old.Actions.Zip(end.Actions, (a, b) => Math.Max(0, b.Probability - a.Probability)).ToArray();
@@ -102,7 +114,7 @@ public static class EquilibriumChangeDecomposition
                     {
                         var alternative = Allocate(start.Value, finish.Value, candidate.Select(g => g.Value).ToArray());
                         distance = new[] { allocation.Direct - alternative.Direct, allocation.Entry - alternative.Entry,
-                            allocation.Offers - alternative.Offers, allocation.Exit - alternative.Exit,
+                            allocation.Offers - alternative.Offers, allocation.Exit - alternative.Exit, allocation.Agreement - alternative.Agreement,
                             allocation.SelectionResidual - alternative.SelectionResidual }.Select(Math.Abs).Max();
                     }
                     // A disappearing conditional value is sensitive, but Infinity
@@ -117,39 +129,45 @@ public static class EquilibriumChangeDecomposition
             rows.Add(new(old.Key, old.Player, old.Decision, old.SignalValue, old.ExitCommitment,
                 old.Actions.Select(a => a.Label).ToArray(), gaining, losing, mass, start, finish, gaps,
                 allocation, undefined, tieSensitive, completionSensitive, maximumSensitivity,
-                Enumerable.Range(0, 8).Where(m => primary[m].ActualOffPath).ToArray()));
+                Enumerable.Range(0, primary.Length).Where(m => primary[m].ActualOffPath).ToArray()));
         }
         return rows.ToArray();
     }
 
     public static Profile Coalition(Profile source, Profile target, byte player, int mask)
     {
-        if (mask < 0 || mask > 7) throw new ArgumentOutOfRangeException(nameof(mask));
+        var components = ComponentsFor(source);
+        if (!components.SequenceEqual(ComponentsFor(target)))
+            throw new InvalidDataException("Decomposition requires matching agreement protocols.");
+        if (mask < 0 || mask >= (1 << components.Length)) throw new ArgumentOutOfRangeException(nameof(mask));
         var result = source;
-        for (int component = 0; component < 3; component++)
+        for (int component = 0; component < components.Length; component++)
             if ((mask & (1 << component)) != 0)
-                result = Hybrid(result, target, (byte)(1 - player), Components[component], "coalition-" + mask);
+                result = Hybrid(result, target, (byte)(1 - player), components[component], "coalition-" + mask);
         return result;
     }
 
     public static Allocation Allocate(double original, double target, double[] coalitionValues)
     {
-        if (coalitionValues.Length != 8 || coalitionValues.Any(x => !double.IsFinite(x)) ||
+        if (coalitionValues.Length is not (8 or 16) || coalitionValues.Any(x => !double.IsFinite(x)) ||
             !double.IsFinite(original) || !double.IsFinite(target))
-            throw new ArgumentException("Exactly eight finite coalition values are required.");
-        var effects = new double[3];
-        foreach (var order in Orders)
+            throw new ArgumentException("Exactly eight or sixteen finite coalition values are required.");
+        bool agreement = coalitionValues.Length == 16;
+        var orders = agreement ? Orders.SelectMany(order => Enumerable.Range(0, 4)
+            .Select(position => order.Take(position).Append(3).Concat(order.Skip(position)).ToArray())).ToArray() : Orders;
+        var effects = new double[agreement ? 4 : 3];
+        foreach (var order in orders)
         {
             int mask = 0;
             foreach (int component in order)
             {
                 int next = mask | (1 << component);
-                effects[component] += (coalitionValues[next] - coalitionValues[mask]) / Orders.Length;
+                effects[component] += (coalitionValues[next] - coalitionValues[mask]) / orders.Length;
                 mask = next;
             }
         }
         var result = new Allocation(original, target, coalitionValues[0] - original,
-            effects[0], effects[1], effects[2], target - coalitionValues[7]);
+            effects[0], effects[1], effects[2], target - coalitionValues[^1], agreement ? effects[3] : 0);
         Near(target - original, result.Explained + result.SelectionResidual, 1e-9, "Additive change accounting");
         return result;
     }
@@ -174,7 +192,7 @@ public static class EquilibriumChangeDecomposition
             double[] startPolicy = old.Actions.Select(a => a.Probability).ToArray();
             double[] endPolicy = end.Actions.Select(a => a.Probability).ToArray();
             if (!includeUnchanged && startPolicy.Zip(endPolicy, (a, b) => Math.Abs(a - b)).Max() <= PolicyTolerance) continue;
-            var primary = Enumerable.Range(0, 8).Select(mask => scenarios.Single(s =>
+            var primary = CoalitionMasks(scenarios, old.Player).Select(mask => scenarios.Single(s =>
                 s.Panel == "coalition" && s.Component == mask.ToString() && s.Result.Player == old.Player)
                 .Result.InformationSets.Single(i => i.Key == old.Key)).ToArray();
             var alternatives = scenarios.Where(s => s.Panel != "coalition" && s.Result.Player == old.Player).ToArray();
@@ -207,7 +225,7 @@ public static class EquilibriumChangeDecomposition
                         candidate[int.Parse(s.Component)] = Value(s.Result.InformationSets.Single(i => i.Key == old.Key));
                     var alternative = Allocate(Value(old), Value(end), candidate);
                     double distance = new[] { allocation.Direct - alternative.Direct, allocation.Entry - alternative.Entry,
-                        allocation.Offers - alternative.Offers, allocation.Exit - alternative.Exit,
+                        allocation.Offers - alternative.Offers, allocation.Exit - alternative.Exit, allocation.Agreement - alternative.Agreement,
                         allocation.SelectionResidual - alternative.SelectionResidual }.Select(Math.Abs).Max();
                     maximumSensitivity = Math.Max(maximumSensitivity, distance);
                     if (distance > PolicyTolerance)
@@ -221,7 +239,7 @@ public static class EquilibriumChangeDecomposition
                     action >= 0 ? action + 1 : null, old.Actions.Select(a => a.Label).ToArray(),
                     startPolicy, endPolicy, allocation, Math.Abs(allocation.SelectionResidual) > PolicyTolerance,
                     tieSensitive, completionSensitive, primary.Any(i => i.CounterfactuallyUnreachable),
-                    maximumSensitivity, Enumerable.Range(0, 8).Where(m => primary[m].ActualOffPath).ToArray()));
+                    maximumSensitivity, Enumerable.Range(0, primary.Length).Where(m => primary[m].ActualOffPath).ToArray()));
             }
         }
         return (rows.ToArray(), excluded.ToArray());
