@@ -264,12 +264,12 @@ namespace ACESim
         {
             double offer;
             if (LitigGameProgress.BargainingRoundsComplete == 0 || !LitigGameDefinition.Options.DeltaOffersOptions.SubsequentOffersAreDeltas)
-                offer = ConvertActionToUniformDistributionDraw(action, includeEndpoints);
+                offer = LitigGameDefinition.Options.GetOfferValue(action);
             else
             {
                 double? previousOffer = plaintiffOffer ? LitigGameProgress.PLastOffer : LitigGameProgress.DLastOffer;
                 if (previousOffer == null)
-                    offer = ConvertActionToUniformDistributionDraw(action, includeEndpoints);
+                    offer = LitigGameDefinition.Options.GetOfferValue(action);
                 else
                     offer = LitigGameDefinition.Options.DeltaOffersCalculation.GetOfferValue((double) previousOffer, action);
             }

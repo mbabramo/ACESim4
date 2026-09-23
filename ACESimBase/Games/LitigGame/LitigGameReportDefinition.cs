@@ -119,10 +119,7 @@ namespace ACESim
                     for (byte offerAction = 1; offerAction <= Options.NumOffers; offerAction++)
                     {
                         byte action = offerAction;
-                        double offerValue = Game.ConvertActionToUniformDistributionDraw(
-                            action,
-                            Options.NumOffers,
-                            Options.IncludeEndpointsForOffers);
+                        double offerValue = Options.GetOfferValue(action);
                         colItems.Add(
                             new SimpleReportColumnFilter(
                                 $"POffer{b}Action{action}",
@@ -666,7 +663,7 @@ namespace ACESim
                 new SimpleReportColumnFilter(allString, (GameProgress gp) => true, SimpleReportColumnFilterOptions.ProportionOfAll)
             };
             //AddColumnFiltersLiabilityStrength(columnItems); // not needed -- in court success report
-            double[] offerPoints = EquallySpaced.GetEquallySpacedPoints(Options.NumOffers, Options.IncludeEndpointsForOffers);
+            double[] offerPoints = Options.GetOfferValues();
             Tuple<double, double>[] offerRegions = offerPoints.Select(x => new Tuple<double, double>(x - 0.001, x + 0.001)).ToArray();
             for (int i = 0; i < Options.NumOffers; i++)
             {

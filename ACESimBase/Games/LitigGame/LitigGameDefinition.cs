@@ -64,6 +64,7 @@ namespace ACESim
 
         private void FurtherOptionsSetup()
         {
+            Options.ValidateOfferValues();
             if (Options.DeltaOffersOptions.SubsequentOffersAreDeltas)
                 Options.DeltaOffersCalculation = new DeltaOffersCalculation(this);
             SetupLiabilitySignals();
@@ -709,7 +710,7 @@ namespace ACESim
 
                 case LitigGameDecisions.POffer:
                 case LitigGameDecisions.DOffer:
-                    return Game.ConvertActionToUniformDistributionDraw(action, Options.NumOffers, Options.IncludeEndpointsForOffers).ToDecimalPlaces(2); // Note: This won't be right if delta offers are being used.
+                    return Options.GetOfferValue(action).ToDecimalPlaces(2); // Delta offers remain history-dependent.
 
                 case LitigGameDecisions.PFile:
                 case LitigGameDecisions.DAnswer:

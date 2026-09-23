@@ -8,7 +8,7 @@ using ACESimBase.Util.Mathematics;
 namespace ACESim
 {
     [Serializable]
-    public class LitigGameOptions : GameOptions
+    public partial class LitigGameOptions : GameOptions
     {
         /// <summary>
         /// The generator of disputes (e.g., contract, tort, etc.), determining the litigation quality. If null, then there is an equal probability of each litigation quality outcome.

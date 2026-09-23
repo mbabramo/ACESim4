@@ -131,8 +131,7 @@ public static class ArticlePressureAnalysis
                 }
                 progress?.Invoke("  " + (player == 0 ? "Plaintiff" : "Defendant") + $": {coalitionCount} coalitions and sensitivity checks complete");
             }
-            double[] offerValues = Enumerable.Range(1, targetOptions.NumOffers).Select(a =>
-                Game.ConvertActionToUniformDistributionDraw((byte)a, targetOptions.NumOffers, targetOptions.IncludeEndpointsForOffers)).ToArray();
+            double[] offerValues = targetOptions.GetOfferValues();
             var (changes, excluded) = EquilibriumChangeDecomposition.BuildRows(source.Reference, target.Reference, scenarios.ToArray(), offerValues);
             var result = new ContrastResult(coalitionCount == 16 ? "3" : "2", contrast, source.Selection.OptionSetName, target.Selection.OptionSetName,
                 tolerance, source.Reference, target.Reference, scenarios.ToArray(), InterpretationFor(coalitionCount == 16), changes, excluded, offerValues);
@@ -216,7 +215,8 @@ public static class ArticlePressureAnalysis
         foreach (string key in left.Keys.Union(right.Keys))
             if (!allowed.Contains(key) && left.GetValueOrDefault(key) != right.GetValueOrDefault(key))
                 throw new InvalidDataException("Unmatched intervention primitive: " + key);
-        if (source.NumOffers != target.NumOffers || source.NumLiabilitySignals != target.NumLiabilitySignals)
+        if (source.NumOffers != target.NumOffers || source.NumLiabilitySignals != target.NumLiabilitySignals ||
+            !source.GetOfferValues().SequenceEqual(target.GetOfferValues()))
             throw new InvalidDataException("Signal/offer grids must match.");
     }
 
