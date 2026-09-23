@@ -126,8 +126,7 @@ namespace LitigCharts
         {
             if (launcher == null)
                 throw new ArgumentNullException(nameof(launcher));
-            if (launcher.RunPlan !=
-                LitigGameCorrelatedSignalsArticleLauncher.ProductionRunPlan.MultipleEquilibriaRobustness)
+            if (!launcher.IsMultipleEquilibriaPlan)
                 throw new ArgumentException("Multiple-equilibria reporting requires the CS004ME launcher.", nameof(launcher));
 
             List<LitigGameOptions> options = launcher.GetOptionsSets()
@@ -175,11 +174,28 @@ namespace LitigCharts
             return new ValidationSummary(options.Count, outcomes.Count, rangeRows);
         }
 
+        public static void BuildSingleAndValidate(LitigGameOptions[] options, Func<LitigGameOptions, string> reportPath,
+            string output, IReadOnlyDictionary<(string OptionSet, int Equilibrium), double> verifiedGains = null)
+        {
+            var searchColumns = new HashSet<string> { "Requested Priors", "Attempted Solves", "Inexact Attempts", "Exact Attempts",
+                "Verified Recoveries", "Distinct Reported Strategy Profiles", "Equilibrium Recovery Count", "Recovery Share of Verified Recoveries",
+                "Distinctness Criterion", "P Offer", "D Offer" };
+            var rows = options.Select(option =>
+            {
+                var outcome = ReadOutcome(option, new(0, 0, 0, 0, 0, 1, 1, 0, 0, "Individual saved profile", "Not a multiple-start search"),
+                    reportPath(option), verifiedGains?.GetValueOrDefault((option.Name, 1)), allowUndefinedOffers: true);
+                foreach (string column in searchColumns) outcome.Fields.Remove(column);
+                outcome.Fields["Costs Multiplier"] = Format(option.CostsMultiplier);
+                return outcome.Fields;
+            }).ToArray();
+            WriteRows(output, new[] { "Costs Multiplier" }.Concat(OutcomeHeaders.Where(h => !searchColumns.Contains(h))).ToArray(), rows);
+        }
+
         private static EquilibriumOutcome ReadOutcome(
             LitigGameOptions option,
             EquilibriumRecovery recovery,
             string reportPath,
-            double? verifiedGain)
+            double? verifiedGain, bool allowUndefinedOffers = false)
         {
             Dictionary<string, Dictionary<string, string>> rows = ReadRowsByFilter(reportPath);
             Dictionary<string, string> all = RequiredFilter(rows, "All", reportPath);
@@ -241,8 +257,8 @@ namespace LitigCharts
                 ["Exploitability"] = RequiredValue(all, "Exploit", reportPath),
                 ["P Files"] = RequiredValue(all, "PFiles", reportPath),
                 ["D Answers"] = RequiredValue(all, "DAnswers", reportPath),
-                ["P Offer"] = RequiredValue(all, "POffer1", reportPath),
-                ["D Offer"] = RequiredValue(all, "DOffer1", reportPath),
+                ["P Offer"] = allowUndefinedOffers && string.IsNullOrWhiteSpace(all["POffer1"]) ? double.NaN : RequiredValue(all, "POffer1", reportPath),
+                ["D Offer"] = allowUndefinedOffers && string.IsNullOrWhiteSpace(all["DOffer1"]) ? double.NaN : RequiredValue(all, "DOffer1", reportPath),
                 ["Settles"] = RequiredValue(all, "SettlesBR1", reportPath),
                 ["P Abandons (Mutual Give-Up Allocated)"] = pAbandons,
                 ["D Defaults (Mutual Give-Up Allocated)"] = dDefaults,

@@ -130,12 +130,12 @@ namespace ACESim
         public bool? DFirstAgreesToBargain => (bool?)DAgreesToBargain?.FirstOrDefault() ?? null;
         public bool? PLastAgreesToBargain => (bool?) PAgreesToBargain?.LastOrDefault() ?? null;
         public bool? DLastAgreesToBargain => (bool?)DAgreesToBargain?.LastOrDefault() ?? null;
-        public double? PFirstOffer => (double?)POffers?.FirstOrDefault() ?? null;
-        public double? DFirstOffer => (double?)DOffers?.FirstOrDefault() ?? null;
+        public double? PFirstOffer => POffers?.Count > 0 ? POffers[0] : null;
+        public double? DFirstOffer => DOffers?.Count > 0 ? DOffers[0] : null;
         public bool? PFirstResponse => (bool?)PResponses?.FirstOrDefault() ?? null;
         public bool? DFirstResponse => (bool?)DResponses?.FirstOrDefault() ?? null;
-        public double? PLastOffer => (double?)POffers?.LastOrDefault() ?? null;
-        public double? DLastOffer => (double?)DOffers?.LastOrDefault() ?? null;
+        public double? PLastOffer => POffers?.Count > 0 ? POffers.Last() : null;
+        public double? DLastOffer => DOffers?.Count > 0 ? DOffers.Last() : null;
         public bool? PLastResponse => (bool?)PResponses?.LastOrDefault() ?? null;
         public bool? DLastResponse => (bool?)DResponses?.LastOrDefault() ?? null;
         public bool SurvivesToRound(byte round) => BargainingRoundsComplete >= round;
@@ -153,6 +153,13 @@ namespace ACESim
 
         public void ConcludeMainPortionOfBargainingRound(LitigGameDefinition gameDefinition)
         {
+            // Offers from an earlier round (or an empty collection) are not offers
+            // in a refused round and cannot create settlement or missed opportunities.
+            if (!BothAgreeToBargainInRound(BargainingRoundsComplete + 1))
+            {
+                CaseSettles = false;
+                return;
+            }
             bool playersMovingSimultaneously = gameDefinition.Options.BargainingRoundsSimultaneous;
             bool pGoesFirstIfNotSimultaneous = playersMovingSimultaneously || gameDefinition.Options.PGoesFirstIfNotSimultaneous[BargainingRoundsComplete];
             CaseSettles = SettlementReached(playersMovingSimultaneously, pGoesFirstIfNotSimultaneous);

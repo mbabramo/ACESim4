@@ -45,8 +45,15 @@ namespace LitigCharts
             if (launcher is LitigGameCorrelatedSignalsArticleLauncher correlatedLauncher)
             {
                 correlatedLauncher.EnsureDistributedRunReadyForAggregation();
-                if (correlatedLauncher.RunPlan ==
-                    LitigGameCorrelatedSignalsArticleLauncher.ProductionRunPlan.MultipleEquilibriaRobustness)
+                if (correlatedLauncher.RunPlan == LitigGameCorrelatedSignalsArticleLauncher.ProductionRunPlan.AgreementToBargain)
+                {
+                    CorrelatedSignalsMultipleEquilibriaReport.BuildSingleAndValidate(
+                        System.Linq.Enumerable.ToArray(System.Linq.Enumerable.Cast<LitigGameOptions>(correlatedLauncher.GetOptionsSets())),
+                        option => correlatedLauncher.GetReportFullPath(option.Name, ".csv"),
+                        correlatedLauncher.GetReportFullPath("equilibrium outcomes", ".csv"));
+                    return;
+                }
+                if (correlatedLauncher.IsMultipleEquilibriaPlan)
                 {
                     CorrelatedSignalsMultipleEquilibriaReport.BuildAndValidate(
                         correlatedLauncher,

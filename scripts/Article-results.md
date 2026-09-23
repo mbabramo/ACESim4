@@ -1,5 +1,10 @@
 # Correlated-signals article results
 
+The [observable agreement-to-bargain check](Agreement-to-bargain.md) is a separate
+thirty-setting, one-start-per-setting `CS007AB` plan. Its outputs belong in
+`Supplemental materials/Agreement to bargain`; routine results and numbered
+article material remain unchanged.
+
 The routine design has 276 cases: 184 CS004 cases plus 92 CS006EF Complete
 Fee-Shifting cases. Each retained transformation crosses American, Trial Fee-Shifting and
 Complete Fee-Shifting with risk neutrality and symmetric CARA alpha 2, at costs

@@ -29,6 +29,7 @@ namespace ACESim
             MultipleEquilibriaRobustness,
             IncreasedOfferGridRobustness,
             ExitFeeShifting,
+            AgreementToBargain,
         }
 
         public enum FocusedSpecification
@@ -207,6 +208,8 @@ namespace ACESim
 
         public ProductionRunPlan RunPlan { get; }
 
+        public bool IsMultipleEquilibriaPlan => RunPlan == ProductionRunPlan.MultipleEquilibriaRobustness;
+
         public override string MasterReportNameForDistributedProcessing => RunPlan switch
         {
             ProductionRunPlan.LegacyTwoStructure => "CS001",
@@ -214,6 +217,7 @@ namespace ACESim
             ProductionRunPlan.UnifiedThreeStructure => "CS002",
             ProductionRunPlan.FocusedContinuousMerits => "CS004",
             ProductionRunPlan.MultipleEquilibriaRobustness => "CS004ME",
+            ProductionRunPlan.AgreementToBargain => "CS007AB",
             ProductionRunPlan.IncreasedOfferGridRobustness => "CS005O15",
             ProductionRunPlan.ExitFeeShifting => "CS006EF",
             _ => throw new NotSupportedException(),
@@ -239,6 +243,7 @@ namespace ACESim
                 "supplemental" or "supplement" or "uniform" or "cs002u" => ProductionRunPlan.UniformBaselineSupplement,
                 "unified" or "all" or "cs002" => ProductionRunPlan.UnifiedThreeStructure,
                 "focused" or "continuous" or "cs003" => ProductionRunPlan.FocusedContinuousMerits,
+                "agreement-to-bargain" or "cs007ab" => ProductionRunPlan.AgreementToBargain,
                 "multiple-equilibria" or "multiple" or "equilibria" or "cs004me" => ProductionRunPlan.MultipleEquilibriaRobustness,
                 "offers-15" or "offers15" or "increased-offers" or "cs005o15" => ProductionRunPlan.IncreasedOfferGridRobustness,
                 "exit-fees" or "exit-fee-shifting" or "cs006ef" => ProductionRunPlan.ExitFeeShifting,
@@ -262,7 +267,7 @@ namespace ACESim
                 },
             ProductionRunPlan.FocusedContinuousMerits =>
                 new[] { ArticleSignalStructure.UniformQuality },
-            ProductionRunPlan.MultipleEquilibriaRobustness =>
+            ProductionRunPlan.MultipleEquilibriaRobustness or ProductionRunPlan.AgreementToBargain =>
                 new[] { ArticleSignalStructure.UniformQuality },
             ProductionRunPlan.IncreasedOfferGridRobustness =>
                 new[] { ArticleSignalStructure.UniformQuality },
@@ -278,6 +283,7 @@ namespace ACESim
             ProductionRunPlan.UnifiedThreeStructure => UnifiedOptionSetCount,
             ProductionRunPlan.FocusedContinuousMerits => FocusedOptionSetCount,
             ProductionRunPlan.MultipleEquilibriaRobustness => MultipleEquilibriaOptionSetCount,
+            ProductionRunPlan.AgreementToBargain => 30,
             ProductionRunPlan.IncreasedOfferGridRobustness => IncreasedOfferGridOptionSetCount,
             ProductionRunPlan.ExitFeeShifting => ExitFeeOptionSetCount,
             _ => throw new NotSupportedException(),
@@ -290,6 +296,7 @@ namespace ACESim
             ProductionRunPlan.UnifiedThreeStructure => UnifiedCoreCombinationCount,
             ProductionRunPlan.FocusedContinuousMerits => FocusedCoreCombinationCount,
             ProductionRunPlan.MultipleEquilibriaRobustness => IncreasedOfferGridSpecifications.Count,
+            ProductionRunPlan.AgreementToBargain => IncreasedOfferGridSpecifications.Count * CriticalCostsMultipliers.Length,
             ProductionRunPlan.IncreasedOfferGridRobustness => IncreasedOfferGridSpecifications.Count,
             ProductionRunPlan.ExitFeeShifting => CriticalCostsMultipliers.Length,
             _ => throw new NotSupportedException(),
@@ -302,6 +309,7 @@ namespace ACESim
             ProductionRunPlan.UnifiedThreeStructure => UnifiedComparisonGroupCount,
             ProductionRunPlan.FocusedContinuousMerits => FocusedSpecificationComparisonCount,
             ProductionRunPlan.MultipleEquilibriaRobustness => IncreasedOfferGridSpecifications.Count,
+            ProductionRunPlan.AgreementToBargain => IncreasedOfferGridSpecifications.Count * CriticalCostsMultipliers.Length,
             ProductionRunPlan.IncreasedOfferGridRobustness => IncreasedOfferGridSpecifications.Count,
             ProductionRunPlan.ExitFeeShifting => ExitFeeSpecificationComparisonCount,
             _ => throw new NotSupportedException(),
@@ -316,7 +324,7 @@ namespace ACESim
 
         private bool IsFocusedFamilyRun => RunPlan is
             ProductionRunPlan.FocusedContinuousMerits or
-            ProductionRunPlan.MultipleEquilibriaRobustness or
+            ProductionRunPlan.MultipleEquilibriaRobustness or ProductionRunPlan.AgreementToBargain or
             ProductionRunPlan.IncreasedOfferGridRobustness or
             ProductionRunPlan.ExitFeeShifting;
 
@@ -414,7 +422,7 @@ namespace ACESim
                 values.Add(("Fee Shifting Trigger", "Trial only"));
                 values.Add(("Fees After Nonanswer", "false"));
             }
-            if (RunPlan == ProductionRunPlan.MultipleEquilibriaRobustness)
+            if (IsMultipleEquilibriaPlan)
             {
                 values.Add(("Fee Shifting Trigger", "Trial only"));
                 values.Add(("Fees After Nonanswer", "false"));
@@ -431,7 +439,7 @@ namespace ACESim
                 ? new()
                 {
                     ("Specification", RobustnessSpecifications().Select(GetFocusedSpecificationDefinition).Select(x => x.Label).ToArray()),
-                    ("Costs Multiplier", RunPlan is ProductionRunPlan.FocusedContinuousMerits or ProductionRunPlan.ExitFeeShifting
+                    ("Costs Multiplier", RunPlan is ProductionRunPlan.FocusedContinuousMerits or ProductionRunPlan.ExitFeeShifting or ProductionRunPlan.AgreementToBargain
                         ? CriticalCostsMultipliers.Select(FormatNumber).ToArray()
                         : new[] { "1" }),
                     ("Fee Regime", RunPlan == ProductionRunPlan.ExitFeeShifting
@@ -473,7 +481,7 @@ namespace ACESim
         {
             if (RunPlan is ProductionRunPlan.FocusedContinuousMerits or ProductionRunPlan.ExitFeeShifting)
                 return GetRoutineOptionSets();
-            if (RunPlan is ProductionRunPlan.MultipleEquilibriaRobustness or
+            if (RunPlan is ProductionRunPlan.MultipleEquilibriaRobustness or ProductionRunPlan.AgreementToBargain or
                 ProductionRunPlan.IncreasedOfferGridRobustness)
                 return GetRobustnessOptionSets();
 
@@ -490,7 +498,7 @@ namespace ACESim
 
         public override IReadOnlyList<string> GetExpectedPrimaryResultPaths()
         {
-            string suffix = RunPlan == ProductionRunPlan.MultipleEquilibriaRobustness
+            string suffix = IsMultipleEquilibriaPlan
                 ? "-Eq1.csv"
                 : ".csv";
             return GetOptionsSets()
@@ -541,7 +549,8 @@ namespace ACESim
         {
             var optionSets = new List<GameOptions>();
             foreach (CoreCase core in CoreCases)
-                optionSets.Add(CreateCoreCase(FocusedSpecification.Baseline, core, 1,
+            foreach (double cost in RunPlan == ProductionRunPlan.AgreementToBargain ? CriticalCostsMultipliers : new[] { 1.0 })
+                optionSets.Add(CreateCoreCase(FocusedSpecification.Baseline, core, cost,
                     RunPlan == ProductionRunPlan.IncreasedOfferGridRobustness ? (byte)IncreasedOfferGridOfferCount : (byte)10));
 
             optionSets = optionSets.OrderBy(option => option.Name, StringComparer.Ordinal).ToList();
@@ -571,7 +580,7 @@ namespace ACESim
         {
             ProductionRunPlan.FocusedContinuousMerits or ProductionRunPlan.ExitFeeShifting =>
                 FocusedSpecifications.Select(definition => definition.Specification).ToArray(),
-            ProductionRunPlan.MultipleEquilibriaRobustness =>
+            ProductionRunPlan.MultipleEquilibriaRobustness or ProductionRunPlan.AgreementToBargain =>
                 IncreasedOfferGridSpecifications,
             ProductionRunPlan.IncreasedOfferGridRobustness =>
                 IncreasedOfferGridSpecifications,
@@ -593,11 +602,18 @@ namespace ACESim
                 options.VariableSettings["Number of Offers"] =
                     IncreasedOfferGridOfferCount.ToString(CultureInfo.InvariantCulture);
             }
-            else if (RunPlan == ProductionRunPlan.MultipleEquilibriaRobustness)
+            else if (IsMultipleEquilibriaPlan)
             {
                 options.VariableSettings["Initialization Starts"] =
                     MultipleEquilibriaInitializationCount.ToString(CultureInfo.InvariantCulture);
                 options.VariableSettings["Additional-Prior Arithmetic"] = "Inexact with exact fallback";
+            }
+
+            if (RunPlan == ProductionRunPlan.AgreementToBargain)
+            {
+                options.IncludeAgreementToBargainDecisions = true;
+                options.VariableSettings["Agreement To Bargain"] = "Observable simultaneous stage before offers";
+                options.VariableSettings["Initialization Starts"] = "1";
             }
 
             Action<EvolutionSettings> existingModifier = options.ModifyEvolutionSettings;
@@ -605,10 +621,18 @@ namespace ACESim
             {
                 existingModifier?.Invoke(settings);
                 settings.GenerateInformationSetActionReport = true;
+                if (RunPlan == ProductionRunPlan.AgreementToBargain)
+                {
+                    settings.ParallelOptimization = false;
+                    settings.SequenceFormNumPriorsToUseToGenerateEquilibria = 1;
+                    settings.TryInexactArithmeticForAdditionalEquilibria = false;
+                    settings.RoundOffLowProbabilitiesBeforeReporting = false;
+                    settings.RoundOffLowProbabilitiesBeforeAcceleratedBestResponse = false;
+                }
                 // A report rebuild revalidates saved profiles against the current game.
                 // Multiple-start recovery accounting still requires its separate solve workflow.
-                settings.UseExistingEquilibriaIfAvailable = RunPlan != ProductionRunPlan.MultipleEquilibriaRobustness;
-                if (RunPlan == ProductionRunPlan.MultipleEquilibriaRobustness)
+                settings.UseExistingEquilibriaIfAvailable = !IsMultipleEquilibriaPlan;
+                if (IsMultipleEquilibriaPlan)
                 {
                     settings.SequenceFormNumPriorsToUseToGenerateEquilibria =
                         MultipleEquilibriaInitializationCount;
@@ -954,7 +978,7 @@ namespace ACESim
                 return ValidateFocusedProductionMatrix(litigOptions, errors);
             if (RunPlan == ProductionRunPlan.ExitFeeShifting)
                 return ValidateExitFeeProductionMatrix(litigOptions, errors);
-            if (RunPlan is ProductionRunPlan.MultipleEquilibriaRobustness or
+            if (RunPlan is ProductionRunPlan.MultipleEquilibriaRobustness or ProductionRunPlan.AgreementToBargain or
                 ProductionRunPlan.IncreasedOfferGridRobustness)
                 return ValidateRobustnessProductionMatrix(litigOptions, errors);
 
@@ -1153,14 +1177,14 @@ namespace ACESim
                     GetSetting(option, "Specification"));
                 if (!expectedSpecifications.Contains(specification))
                     errors.Add($"{option.Name}: specification is outside the robustness design.");
-                if (Math.Abs(option.CostsMultiplier - 1.0) > 1E-12 ||
-                    GetSetting(option, "Costs Multiplier") != "1")
+                if (RunPlan != ProductionRunPlan.AgreementToBargain && (Math.Abs(option.CostsMultiplier - 1.0) > 1E-12 ||
+                    GetSetting(option, "Costs Multiplier") != "1"))
                     errors.Add($"{option.Name}: robustness runs must use the principal cost multiplier 1.");
                 if (GetSetting(option, "Number of Offers") !=
                     expectedOffers.ToString(CultureInfo.InvariantCulture))
                     errors.Add($"{option.Name}: offer-count metadata does not match the configured grid.");
 
-                if (RunPlan == ProductionRunPlan.MultipleEquilibriaRobustness)
+                if (IsMultipleEquilibriaPlan)
                 {
                     var settings = new EvolutionSettings();
                     option.ModifyEvolutionSettings?.Invoke(settings);
@@ -1173,7 +1197,7 @@ namespace ACESim
             }
 
             var feeGroups = options
-                .GroupBy(option => GetSetting(option, "Specification"), StringComparer.Ordinal)
+                .GroupBy(option => GetSetting(option, "Specification") + "|" + GetSetting(option, "Costs Multiplier"), StringComparer.Ordinal)
                 .ToList();
             foreach (IGrouping<string, LitigGameOptions> group in feeGroups)
             {
@@ -1185,8 +1209,9 @@ namespace ACESim
                     errors.Add($"Specification '{group.Key}' does not contain exactly one run under each fee regime.");
             }
 
-            if (feeGroups.Count != expectedSpecifications.Count)
-                errors.Add($"Expected {expectedSpecifications.Count} specification groups but found {feeGroups.Count}.");
+            int expectedGroups = expectedSpecifications.Count * (RunPlan == ProductionRunPlan.AgreementToBargain ? CriticalCostsMultipliers.Length : 1);
+            if (feeGroups.Count != expectedGroups)
+                errors.Add($"Expected {expectedGroups} specification/cost groups but found {feeGroups.Count}.");
             if (errors.Count > 0)
                 throw new InvalidOperationException(
                     $"{MasterReportNameForDistributedProcessing} robustness matrix validation failed:" +
@@ -1252,7 +1277,7 @@ namespace ACESim
                             GetSetting(option, "Risk Aversion"), option)).ToList())).ToList();
                 return PerformArticleVariationInfoSetsTransformation(transformer, exitResults);
             }
-            if (RunPlan is ProductionRunPlan.MultipleEquilibriaRobustness or
+            if (RunPlan is ProductionRunPlan.MultipleEquilibriaRobustness or ProductionRunPlan.AgreementToBargain or
                 ProductionRunPlan.IncreasedOfferGridRobustness)
             {
                 List<SimulationSetsIdentifier> robustnessResults = RobustnessSpecifications()
@@ -1564,11 +1589,12 @@ namespace ACESim
                     GetSetting(options, "Specification"));
                 return string.Join("__", new[]
                 {
+                    options.IncludeAgreementToBargainDecisions ? "Agreement-Enabled" : null,
                     "Specification-" + specification,
                     "Cost-" + FormatNumber(options.CostsMultiplier),
                     "Fee-" + GetSetting(options, "Fee Regime"),
                     options.LoserPaysAfterAbandonment && options.LoserPaysAfterNonAnswer ? "ExitFees-AllUnilateralExits" : null,
-                    RunPlan == ProductionRunPlan.MultipleEquilibriaRobustness
+                    IsMultipleEquilibriaPlan
                         ? "Starts-" + MultipleEquilibriaInitializationCount
                         : null,
                     options.NumOffers != 10
@@ -1640,8 +1666,10 @@ namespace ACESim
             if (!evolutionSettings.GenerateInformationSetActionReport)
                 errors.Add(prefix + "does not enable information-set/action reporting.");
             if (evolutionSettings.UseExistingEquilibriaIfAvailable !=
-                    (RunPlan != ProductionRunPlan.MultipleEquilibriaRobustness))
+                    (!IsMultipleEquilibriaPlan))
                 errors.Add(prefix + "does not apply validated equilibrium reuse to the routine report rebuild.");
+            if (options.IncludeAgreementToBargainDecisions != (RunPlan == ProductionRunPlan.AgreementToBargain))
+                errors.Add(prefix + "agreement-stage option does not match the production plan.");
             if (options.NumPotentialBargainingRounds != 1 || !options.BargainingRoundsSimultaneous)
                 errors.Add(prefix + "does not retain the one-round simultaneous-offer bargaining model.");
             if (options.LiabilitySignalShapeParameters.Mode != SignalShapeMode.Identity ||

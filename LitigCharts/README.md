@@ -1,5 +1,11 @@
 # Current article workflow
 
+The separate [agreement-to-bargain study](../scripts/Agreement-to-bargain.md)
+uses `--plan agreement-to-bargain` (`CS007AB`). `agreement-study-audit` reloads
+individual expanded-game or comparison profiles and exports joint participation,
+agreement, strategy and disposition data without solving. Its figures and tables
+belong only in `Supplemental materials/Agreement to bargain`.
+
 Use `scripts/Rebuild-ArticleResults.ps1` for production plus diagrams, or add
 `-DiagramsOnly` for saved reports. The current config sets
 `UseArticleResultsLayout: true`. See [the complete workflow](../scripts/Article-results.md).
