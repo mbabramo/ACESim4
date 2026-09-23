@@ -126,7 +126,7 @@ def individual(p):
     title=f"{p['FeeRule']} | {'Risk neutral' if p['Alpha']==0 else 'CARA alpha = 2'} | Cost multiplier {p['CostMultiplier']:g}"
     body=r'\begin{minipage}{15cm}\centering{\large '+esc(title)+r'}\par\medskip'+'\n'
     body+=r'\begin{tabular}{cc}'+'\n'+' \\\\[5pt]\n'.join(panels[i]+' & '+panels[i+1] for i in range(0,8,2))+r'\end{tabular}\par'
-    body+=r'''\smallskip\footnotesize Blue circles: own commitment to continue. Orange triangles: own commitment to exit.
+    body+=r'''\smallskip\footnotesize In the agreement and offer panels, blue circles indicate own commitment to continue; orange triangles indicate own commitment to exit.
 Agreement and offer probabilities condition on reaching that decision with the indicated commitment.
 Blank signal/commitment positions are unreached and undefined. Saved off-path prescriptions remain in the data.
 Offer symbols retain each action probability; radius grows with its square root (largest = probability 1).
