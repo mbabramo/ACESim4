@@ -59,7 +59,7 @@ public static class AgreementToBargainStudy
     {
         try
         {
-            string input = null, output = null, plan = "agreement-to-bargain"; bool parametersOnly = false;
+            string input = null, output = null, plan = "agreement-to-bargain", caseList = null; bool parametersOnly = false;
             for (int i = 0; i < args.Length; i++)
                 switch (args[i])
                 {
@@ -67,6 +67,7 @@ public static class AgreementToBargainStudy
                     case "--output": output = Path.GetFullPath(args[++i]); break;
                     case "--plan": plan = args[++i]; break;
                     case "--parameters-only": parametersOnly = true; break;
+                    case "--case-list": caseList = Path.GetFullPath(args[++i]); break;
                     default: throw new ArgumentException("Unknown argument: " + args[i]);
                 }
             if (output == null || !parametersOnly && input == null) throw new ArgumentException("Supply --input and --output.");
@@ -87,6 +88,14 @@ public static class AgreementToBargainStudy
                     .Where(o => names.Contains(o.Name)).ToArray();
             }
             if (!numbered && options.Length != 30) throw new InvalidDataException("Expected thirty single-equilibrium cases.");
+            if (caseList != null)
+            {
+                var requested = JsonSerializer.Deserialize<string[]>(File.ReadAllText(caseList));
+                if (requested == null || requested.Length == 0 || requested.Distinct().Count() != requested.Length ||
+                    requested.Any(name => !options.Any(o => o.Name == name)))
+                    throw new InvalidDataException("Case list must contain distinct known option-set names.");
+                options = options.Where(o => requested.Contains(o.Name)).ToArray();
+            }
             var parameters = new List<object>();
             foreach (var option in options)
             {
@@ -106,6 +115,7 @@ public static class AgreementToBargainStudy
                     SeedPolicy = numbered ? "Initial exact seed 0; inexact seeds 1000000..1000048; exact fallback batch restarts at seed 0; see each start audit log" : "Initial exact prior seed 0; no additional starts" });
             }
             Write(Path.Combine(output, "Sources", "parameters.json"), new { Plan = plan, CreatedUtc = DateTime.UtcNow, Parameters = parameters,
+                CaseSelection = caseList == null ? null : Hash(caseList),
                 GameAssembly = Hash(typeof(LitigGame).Assembly.Location), ReportingAssembly = Hash(typeof(AgreementToBargainStudy).Assembly.Location) });
             if (parametersOnly) return 0;
             var profiles = await MultipleEquilibriaStrategyAudit.RunAsync(options, input, output,
