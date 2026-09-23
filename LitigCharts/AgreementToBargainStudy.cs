@@ -36,6 +36,10 @@ public static class AgreementToBargainStudy
     {
         if (value == null || value is Delegate) return null;
         Type t = value.GetType();
+        // A dispute generator points back to its initialized game. That runtime
+        // graph is not a parameter and recursively repeats the same options.
+        if (value is GameDefinition) return new Dictionary<string, object>
+            { ["$type"] = t.FullName, ["RuntimeGameReference"] = true };
         if (t.IsEnum) return value.ToString();
         if (t.IsPrimitive || value is string || value is decimal) return value;
         if (depth > 7) return t.FullName;
@@ -88,11 +92,12 @@ public static class AgreementToBargainStudy
             {
                 var settings = launcher.GetEvolutionSettings(); option.ModifyEvolutionSettings(settings);
                 var developer = await ArticleWorkedPathExtraction.InitializeAsync(option);
-                var recorder = new RecordGamePathsProcessor(); developer.TreeWalk_Tree(recorder);
+                var counts = developer.TreeWalk_Tree<object, TreeNodeCountingProcessor.NodeCounts>(new TreeNodeCountingProcessor(), null);
                 parameters.Add(new { option.Name, Options = Configuration(option), Solver = Configuration(settings),
                     OptionSummary = option.ToString(), MaxIntegralUtility = EvolutionSettings.MaxIntegralUtility,
                     RoundOffChanceDigits = EvolutionSettings.RoundOffChanceDigits,
-                    Tree = new { TerminalHistories = recorder.Paths.Count, InformationSets = developer.InformationSets.Count,
+                    Tree = new { TerminalHistories = counts.FinalNodes, DecisionNodes = counts.InfoSetNodes,
+                        TotalNodes = counts.ChanceNodes + counts.InfoSetNodes + counts.FinalNodes, InformationSets = developer.InformationSets.Count,
                         InformationSetsByDecision = developer.InformationSets.GroupBy(n => ((LitigGameDecisions)n.DecisionByteCode).ToString()).ToDictionary(g => g.Key, g => g.Count()),
                         StrategyEntries = developer.InformationSets.Sum(n => n.NumPossibleActions), ChanceNodes = developer.ChanceNodes.Count,
                         FinalUtilityNodes = developer.FinalUtilitiesNodes.Count },
