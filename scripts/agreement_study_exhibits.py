@@ -148,7 +148,8 @@ def single_value(values):
 def comparison_plots(profiles, baseline, alpha, cost, metrics, titles):
     panels=[]
     for metric,title in zip(metrics,titles):
-        body=r'\begin{tikzpicture}\begin{axis}[width=6cm,height=4.6cm,xmin=.5,xmax=3.5,xtick={1,2,3},xticklabels={American,Trial,Complete},title={'+title+r'},tick label style={font=\scriptsize},title style={font=\small},ylabel={Per potential dispute},label style={font=\scriptsize}]'+'\n'
+        probability_limits = r',ymin=0,ymax=1,ytick={0,.25,.5,.75,1}' if metric not in WELFARE else ''
+        body=r'\begin{tikzpicture}\begin{axis}[width=6cm,height=4.6cm,xmin=.5,xmax=3.5,xtick={1,2,3},xticklabels={American,Trial,Complete},title={'+title+r'},tick label style={font=\scriptsize},scaled y ticks=false,yticklabel style={/pgf/number format/fixed,/pgf/number format/precision=3},title style={font=\small},ylabel={Per potential dispute},label style={font=\scriptsize}'+probability_limits+']'+'\n'
         for enabled, data, color, mark, dx in [(False,baseline,'gray','square*',-.09),(True,profiles,COLORS[0],'*',.09)]:
             for fee_index,fee in enumerate(FEES,1):
                 vals=[p['Metrics'][metric] for p in data if p['Alpha']==alpha and p['CostMultiplier']==cost and p['FeeRule']==fee]
