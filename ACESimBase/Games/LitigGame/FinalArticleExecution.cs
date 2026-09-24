@@ -1,4 +1,7 @@
 using ACESimBase.Games.LitigGame.ManualReports;
+using ACESimBase.GameSolvingSupport.Settings;
+using ACESimBase.Util.TaskManagement;
+using System.Collections.Generic;
 using System;
 using System.IO;
 using System.Linq;
@@ -17,7 +20,8 @@ public static class FinalArticleExecution
         int MaximumNewWorkers, double EstimatedPeakWorkerGiB, double MemoryHeadroomGiB);
     public sealed record Manifest(string Schema, string ExecutionRoot, string ResultsDirectory, string ClaimsDirectory,
         Authorization Authorization, FileIdentity ExternalRegistry, FileIdentity PreparedInventory,
-        FileIdentity Calibration, FileIdentity[] BuildFiles, ResourceBudget Resources, Case[] Cases);
+        FileIdentity Calibration, FileIdentity[] BuildFiles, ResourceBudget Resources, Case[] Cases,
+        FileIdentity[] ConcurrentPrimaryCohorts = null);
     public static readonly JsonSerializerOptions Json = new() { WriteIndented = true, PropertyNameCaseInsensitive = true,
         UnmappedMemberHandling = System.Text.Json.Serialization.JsonUnmappedMemberHandling.Disallow };
 
@@ -32,6 +36,44 @@ public static class FinalArticleExecution
     public static bool Inside(string child, string parent) => System.IO.Path.GetFullPath(child).StartsWith(
         System.IO.Path.TrimEndingDirectorySeparator(System.IO.Path.GetFullPath(parent))+System.IO.Path.DirectorySeparatorChar,
         StringComparison.OrdinalIgnoreCase);
+
+    private sealed class StatusLauncher(Manifest manifest) : LitigGameCorrelatedSignalsArticleLauncher(ProductionRunPlan.AgreementToBargain)
+    {
+        public override List<GameOptions> GetOptionsSets() => manifest.Cases.Where(c=>!c.Parameters.IsExternalImport)
+            .Select(c=>(GameOptions)FinalArticleCaseFactory.Create(c.Parameters)).ToList();
+    }
+    public static string ConcurrentCoordinatorPath(Manifest manifest) => System.IO.Path.Combine(manifest.ResultsDirectory,
+        Launcher.ReportFilename("FinalAgreement",null,"Coordinator"));
+    public static Manifest ReadConcurrentCohort(FileIdentity file, Manifest current)
+    {
+        var prior=JsonSerializer.Deserialize<Manifest>(File.ReadAllBytes(Verify(file)),Json);
+        if(prior?.Schema!="executable-final-agreement-single-v1" || prior.ExecutionRoot!=current.ExecutionRoot ||
+            prior.ResultsDirectory==current.ResultsDirectory || !Inside(prior.ResultsDirectory,System.IO.Path.Combine(current.ExecutionRoot,"production")) ||
+            prior.Cases.Count(c=>c.Parameters.IsExternalImport)!=30 || prior.Resources.MaximumNewWorkers<1 ||
+            prior.Cases.Where(c=>!c.Parameters.IsExternalImport).Select(c=>c.Identity.CompleteSha256)
+                .Intersect(current.Cases.Where(c=>!c.Parameters.IsExternalImport).Select(c=>c.Identity.CompleteSha256)).Any())
+            throw new InvalidDataException("Capacity sharing requires a distinct frozen cohort in this isolated workspace.");
+        return prior;
+    }
+    public static int CountConcurrentWorkers(Manifest manifest, byte[] coordinatorBytes)
+    {
+        var coordinator=new StatusLauncher(manifest).GetUninitializedTaskList();
+        coordinator.StatusFromByteArray(coordinatorBytes);
+        int primary=coordinator.Tasks.Count(t=>t.TaskType=="Optimize" && !t.Complete && !t.Failed);
+        return Math.Min(manifest.Resources.MaximumNewWorkers,primary>0 ? primary : coordinator.AllTerminal ? 0 : 1);
+    }
+    public static int AvailableNewWorkerSlots(Manifest current)
+    {
+        int occupied=0;
+        foreach(var file in current.ConcurrentPrimaryCohorts ?? [])
+        {
+            var prior=ReadConcurrentCohort(file,current);
+            try { occupied+=CountConcurrentWorkers(prior,File.ReadAllBytes(ConcurrentCoordinatorPath(prior))); }
+            catch(IOException) { occupied+=prior.Resources.MaximumNewWorkers; } // A write in progress never frees capacity.
+        }
+        return Math.Max(0,Math.Min(current.Resources.MaximumNewWorkers,
+            current.Resources.GlobalCeiling-current.Resources.ExternalWorkersReserved-current.Resources.OtherWorkersReserved-occupied));
+    }
 
     private static void ValidateAdoptionCertificate(JsonElement certificate)
     {
@@ -181,12 +223,15 @@ public static class FinalArticleExecution
         var current = result.BuildFiles.SingleOrDefault(f => string.Equals(System.IO.Path.GetFullPath(f.Path),typeof(FinalArticleExecution).Assembly.Location,StringComparison.OrdinalIgnoreCase));
         if (current == null) throw new InvalidDataException("This game assembly is not part of the frozen build.");
         ValidateBudget(result.Resources, result.Resources.MaximumNewWorkers);
+        foreach(var cohort in result.ConcurrentPrimaryCohorts ?? []) ReadConcurrentCohort(cohort,result);
+        if((result.ConcurrentPrimaryCohorts ?? []).Select(f=>f.Path).Distinct(StringComparer.OrdinalIgnoreCase).Count()!=(result.ConcurrentPrimaryCohorts?.Length ?? 0))
+            throw new InvalidDataException("Duplicate concurrent cohort reservation.");
         return result;
     }
 
     public static void ValidateBudget(ResourceBudget budget, int workers)
     {
-        if (budget == null || budget.GlobalCeiling < 1 || budget.GlobalCeiling > 30 || budget.ExternalWorkersReserved < 0 || budget.OtherWorkersReserved < 0 ||
+        if (budget == null || budget.GlobalCeiling < 1 || budget.GlobalCeiling > 32 || budget.ExternalWorkersReserved < 0 || budget.OtherWorkersReserved < 0 ||
             workers < 1 || workers > budget.MaximumNewWorkers || workers+budget.ExternalWorkersReserved+budget.OtherWorkersReserved > budget.GlobalCeiling ||
             !double.IsFinite(budget.EstimatedPeakWorkerGiB) || budget.EstimatedPeakWorkerGiB <= 0 ||
             !double.IsFinite(budget.MemoryHeadroomGiB) || budget.MemoryHeadroomGiB < 8)

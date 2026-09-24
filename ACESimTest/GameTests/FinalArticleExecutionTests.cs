@@ -16,7 +16,8 @@ public class FinalArticleExecutionTests
         var budget=new FinalArticleExecution.ResourceBudget(30,3,1,26,2,12);
         FinalArticleExecution.ValidateBudget(budget,26);
         Assert.ThrowsException<InvalidDataException>(()=>FinalArticleExecution.ValidateBudget(budget,27));
-        Assert.ThrowsException<InvalidDataException>(()=>FinalArticleExecution.ValidateBudget(budget with { GlobalCeiling=31 },26));
+        FinalArticleExecution.ValidateBudget(budget with { GlobalCeiling=32,MaximumNewWorkers=28 },28);
+        Assert.ThrowsException<InvalidDataException>(()=>FinalArticleExecution.ValidateBudget(budget with { GlobalCeiling=33 },26));
         Assert.ThrowsException<InvalidDataException>(()=>FinalArticleExecution.ValidateBudget(budget with { EstimatedPeakWorkerGiB=double.NaN },1));
         Assert.ThrowsException<InvalidDataException>(()=>FinalArticleExecution.ValidateBudget(budget with { MemoryHeadroomGiB=0 },1));
     }

@@ -31,12 +31,15 @@ public class FinalArticleProfileAuditTests
         first.Complete=true; first.Started=DateTime.UtcNow;
         var second=source.Tasks.Single(t=>t.TaskType=="Optimize" && t.ID==1);
         second.Failed=true; second.Started=DateTime.UtcNow;
-        var manifest=new FinalArticleExecution.Manifest("test","unused","unused","unused",null,null,null,null,[],null,
+        var manifest=new FinalArticleExecution.Manifest("test","unused","unused","unused",null,null,null,null,[],new(32,3,1,2,2,8),
             cases.Select(c=>new FinalArticleExecution.Case(c,null)).ToArray());
         var snapshot=FinalArticleCompletionSnapshot.ParseCoordinator(manifest,source.StatusAsByteArray());
         Assert.IsTrue(snapshot.Tasks.Single(t=>t.TaskType=="Optimize" && t.ID==0).Complete);
         Assert.IsTrue(snapshot.Tasks.Single(t=>t.TaskType=="Optimize" && t.ID==1).Failed);
         Assert.IsFalse(snapshot.AllComplete);
+        Assert.AreEqual(1,FinalArticleExecution.CountConcurrentWorkers(manifest,source.StatusAsByteArray()));
+        foreach(var task in source.Tasks) { task.Complete=true; task.Failed=false; }
+        Assert.AreEqual(0,FinalArticleExecution.CountConcurrentWorkers(manifest,source.StatusAsByteArray()));
         var renamed=manifest with { Cases=manifest.Cases.Reverse().ToArray() };
         Assert.ThrowsException<InvalidDataException>(()=>FinalArticleCompletionSnapshot.ParseCoordinator(renamed,source.StatusAsByteArray()));
     }
