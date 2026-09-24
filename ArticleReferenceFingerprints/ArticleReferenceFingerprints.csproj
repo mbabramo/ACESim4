@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <ReferenceBuild Condition="'$(ReferenceBuild)' == ''">../../../ecta-performance-20260923/outputs/build-reference</ReferenceBuild>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- Read existing immutable binaries; no reference-source ProjectReference/build. -->
+    <Reference Include="ACESimBase"><HintPath>$(ReferenceBuild)/ACESimBase.dll</HintPath></Reference>
+    <Reference Include="Rationals"><HintPath>$(ReferenceBuild)/Rationals.dll</HintPath></Reference>
+    <Compile Include="../ACESimBase/Games/LitigGame/ManualReports/StrategicGameFingerprint.cs" Link="StrategicGameFingerprint.cs" />
+  </ItemGroup>
+</Project>

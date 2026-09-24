@@ -32,7 +32,7 @@ public static class AgreementToBargainStudy
     }
     // Preserve all public configuration fields, auto-properties, nested calculators,
     // distributions and numerical settings, without serializing executable delegates.
-    private static object Configuration(object value, int depth = 0)
+    public static object Configuration(object value, int depth = 0)
     {
         if (value == null || value is Delegate) return null;
         Type t = value.GetType();
@@ -232,11 +232,14 @@ public static class AgreementToBargainStudy
             .OrderByDescending(p => p.Probability).FirstOrDefault();
         object worked = refusal == null ? null : ArticleWorkedPathExtraction.ExtractPath(developer, option, calculator, fallbacks, refusal,
             "Refusal branch", refusal.Probability > 0 ? "Verified equilibrium path" : "Counterfactual refusal branch; zero equilibrium probability");
+        var (alphaP, alphaD) = ArticleResultsLayout.RiskParameters(option);
         Write(Path.Combine(output, "Sources", "Profiles", option.Name + $"-Eq{equilibrium}.json"), new
         {
             OptionSet = option.Name, Equilibrium = equilibrium, AgreementEnabled = option.IncludeAgreementToBargainDecisions,
             CostMultiplier = option.CostsMultiplier,
-            FeeRule = LitigGameCorrelatedSignalsArticleLauncher.FeeRuleLabel(option), Alpha = Convert.ToDouble(option.VariableSettings["CARA Alpha"]),
+            FeeRule = LitigGameCorrelatedSignalsArticleLauncher.FeeRuleLabel(option),
+            Alpha = alphaP == alphaD ? (double?)alphaP : null, AlphaP = alphaP, AlphaD = alphaD,
+            Risk = ArticleResultsLayout.Risk(option),
             Profile = Hash(profileFile), ActionReport = Hash(actionReport), ReplayReport = Hash(replayReport),
             Metrics = new { Filing = filed, JointFileAnswer = stage, AnsweringGivenFiling = Ratio(stage, filed),
                 BothAgreeGivenStage = option.IncludeAgreementToBargainDecisions ? Ratio(Sum(Both), stage) : null,

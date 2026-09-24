@@ -1,3 +1,5 @@
+using ACESim;
+using ACESimBase.Util.Mathematics;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -15,6 +17,21 @@ public static class ArticleResultsLayout
         0 => "Risk Neutral", 2 => "Risk Averse",
         _ => "Risk Averse alpha " + alpha.ToString(CultureInfo.InvariantCulture)
     };
+    public static (double Plaintiff, double Defendant) RiskParameters(LitigGameOptions options)
+    {
+        double Alpha(UtilityCalculator calculator) => calculator switch {
+            RiskNeutralUtilityCalculator => 0,
+            CARARiskAverseUtilityCalculator cara => cara.Alpha,
+            _ => throw new InvalidDataException("Unsupported article preference calculator.")
+        };
+        return (Alpha(options.PUtilityCalculator), Alpha(options.DUtilityCalculator));
+    }
+    public static string Risk(LitigGameOptions options)
+    {
+        var (p,d) = RiskParameters(options);
+        return p == d ? Risk(p) : p > 0 && d == 0 ? "Plaintiff Only Risk Averse" :
+            p == 0 && d > 0 ? "Defendant Only Risk Averse" : $"Asymmetric Risk P-{p:G} D-{d:G}";
+    }
     public static string Specification(string family) => family switch
     {
         "baseline" => "Baseline",

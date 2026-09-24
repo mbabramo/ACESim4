@@ -58,7 +58,7 @@ public static class MultipleEquilibriaStrategyAudit
                 int outcomeCells = ValidateReplay(Path.Combine(input, stem + ".csv"), replayFile);
                 if (writeStudyData)
                     AgreementToBargainStudy.ExportProfile(developer, option, i + 1, profileFile, actions, replayFile, output, fallbacks);
-                string risk = ArticleResultsLayout.Risk(Convert.ToDouble(option.VariableSettings["CARA Alpha"], CultureInfo.InvariantCulture));
+                string risk = ArticleResultsLayout.Risk(option);
                 string fee = LitigGameCorrelatedSignalsArticleLauncher.FeeRuleLabel(option);
                 string diagrams = Path.Combine(output, "Individual simulations", risk, fee, "Sources");
                 Directory.CreateDirectory(diagrams);

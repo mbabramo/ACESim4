@@ -15,7 +15,7 @@ namespace ACESimBase.Games.LitigGame.ManualReports;
 public static class ArticlePressureAnalysis
 {
     public sealed record Source(string Id, string OptionSetName, string EquilibriumFile,
-        string ActionReportFile, int EquilibriumNumber = 1, string ProfileFile = null);
+        string ActionReportFile, int EquilibriumNumber = 1, string ProfileFile = null, FinalArticleCase FinalCase = null);
     public sealed record Contrast(string Id, string Label, string Source, string Target);
     public sealed record Request(string OutputDirectory, Source[] Sources, Contrast[] Contrasts,
         Tolerances Tolerances = null, bool CheckOffPathCompletions = true, bool CheckTieSensitivity = true,
@@ -63,7 +63,7 @@ public static class ArticlePressureAnalysis
         foreach (var source in request.Sources)
         {
             progress?.Invoke("Validate source " + source.Id);
-            var options = ArticleWorkedPathExtraction.CreateOptions(source.OptionSetName);
+            var options = CreateOptions(source);
             RequireProtocol(options);
             var developer = await ArticleWorkedPathExtraction.InitializeAsync(options);
             string file = Resolve(source.EquilibriumFile);
@@ -95,8 +95,8 @@ public static class ArticlePressureAnalysis
         {
             if (!loaded.TryGetValue(contrast.Source, out var source) || !loaded.TryGetValue(contrast.Target, out var target))
                 throw new InvalidDataException("Contrast references an unknown source.");
-            var sourceOptions = ArticleWorkedPathExtraction.CreateOptions(source.Selection.OptionSetName);
-            var targetOptions = ArticleWorkedPathExtraction.CreateOptions(target.Selection.OptionSetName);
+            var sourceOptions = CreateOptions(source.Selection);
+            var targetOptions = CreateOptions(target.Selection);
             ValidateMatchedOptions(sourceOptions, targetOptions);
             progress?.Invoke("Analyze " + contrast.Label);
             var developer = await ArticleWorkedPathExtraction.InitializeAsync(targetOptions);
@@ -194,13 +194,22 @@ public static class ArticlePressureAnalysis
             throw new NotSupportedException("The pressure diagnostic requires the article's one-round, precommitted-exit game with at least two signals/offers.");
     }
 
+    private static LitigGameOptions CreateOptions(Source source)
+    {
+        var options = source.FinalCase == null ? ArticleWorkedPathExtraction.CreateOptions(source.OptionSetName)
+            : FinalArticleCaseFactory.Create(source.FinalCase);
+        if (options.Name != source.OptionSetName)
+            throw new InvalidDataException("Declared final case does not match its saved option-set name.");
+        return options;
+    }
+
     public static void ValidateMatchedOptions(LitigGameOptions source, LitigGameOptions target)
     {
         RequireProtocol(source); RequireProtocol(target);
         // VariableSettings is the production request's human-readable primitive manifest.
         var allowed = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
         { "Fee Regime", "Fee Shifting Multiplier", "Risk Aversion", "CARA Alpha", "Specification",
-            "Fee Shifting Trigger", "Fees After Nonanswer" };
+            "Fee Shifting Trigger", "Fees After Nonanswer", "Final Case ID", "CARA Alpha P", "CARA Alpha D" };
         var left = source.VariableSettings.ToDictionary(x => x.Key, x => Convert.ToString(x.Value, System.Globalization.CultureInfo.InvariantCulture));
         var right = target.VariableSettings.ToDictionary(x => x.Key, x => Convert.ToString(x.Value, System.Globalization.CultureInfo.InvariantCulture));
         // A legal fee-rule intervention may change both the reimbursement amount
