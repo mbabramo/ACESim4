@@ -87,6 +87,48 @@ public class FinalArticleExecutionTests
     }
 
     [TestMethod]
+    public void AdoptionCertificateRequiresExactReportsEvenWhenExtraTimingsAreOptional()
+    {
+        string root=Path.Combine(AppContext.BaseDirectory,"FinalArticleGateTests",Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        FinalArticleExecution.FileIdentity Save(string name,object value)
+        {
+            string path=Path.Combine(root,name+".json"); File.WriteAllText(path,JsonSerializer.Serialize(value));
+            return new(path,FinalArticleExecution.Hash(path));
+        }
+        try
+        {
+            const string commit="56053d69fb4b9762f15538d897bf25d56151601a";
+            var scope=Save("scope",new {Schema="exact-verification-scope-v2",RequiredCases=new[]{"rn","ra"}});
+            var decisions=Save("decisions",new {Schema="resolved-final-article-specifications-v1",Resolved=true,UserDecisionRecord="test-only"});
+            var output=Save("output",new {Passed=true,Checks=Enumerable.Range(0,5).Select(i=>new {exactEqual=true}).ToArray()});
+            var cases=new[]{"rn","ra"}.Select(id=>new {
+                CaseId=id,ExpectedPivots=id=="rn"?315:413,
+                FullExactResult=Save(id,new {Passed=true,PivotCount=id=="rn"?315:413,InitialEqual=true,ExactComparison=true,
+                    CompleteStrategyEqual=true,SavedReloadedEqual=true,FrozenProductionStrategyEqual=true}),
+                ReferenceResult=Save(id+"-ref",new {Passed=true,PivotCount=id=="rn"?315:413}),ExactOutputComparison=output}).ToArray();
+            var certificate=Save("certificate",new {Schema="exact-ecta-adoption-v1",Passed=true,ExactEqualityRequirementsUnchanged=true,
+                AdditionalTimingPairsRequiredBeforeProduction=false,UserInstruction="Start production",CandidateCommit=commit,Scope=scope,Cases=cases,
+                OrdinaryTimingEvidence=new[]{Save("timing1",new{Passed=true}),Save("timing2",new{Passed=true})},
+                FocusedFixtureEvidence=new[]{Save("fixture1",new{Passed=true}),Save("fixture2",new{Passed=true}),
+                    Save("fixture-run1",new{exitCode=0}),Save("fixture-run2",new{exitCode=0})},
+                IntegralityProof=Save("proof",new{TestOnly=true}),SourceIdentities=Save("sources",new{CandidateCommit=commit})});
+            var auth=new FinalArticleExecution.Authorization(certificate,decisions);
+            FinalArticleExecution.ValidateAuthorization(auth);
+            // Corrupt an exact-report artifact without changing the certificate:
+            // extra timing freedom never permits changed mathematical evidence.
+            File.AppendAllText(output.Path," ");
+            Assert.ThrowsException<InvalidDataException>(()=>FinalArticleExecution.ValidateAuthorization(auth));
+        }
+        finally
+        {
+            string allowed=Path.GetFullPath(Path.Combine(AppContext.BaseDirectory,"FinalArticleGateTests"));
+            if(!FinalArticleExecution.Inside(root,allowed)) throw new InvalidOperationException("Test cleanup escaped scratch root.");
+            Directory.Delete(root,true);
+        }
+    }
+
+    [TestMethod]
     public void OutputContainmentRejectsSiblingAndParentTraversal()
     {
         string root=Path.GetFullPath(Path.Combine(AppContext.BaseDirectory,"isolated","production"));

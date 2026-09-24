@@ -33,11 +33,68 @@ public static class FinalArticleExecution
         System.IO.Path.TrimEndingDirectorySeparator(System.IO.Path.GetFullPath(parent))+System.IO.Path.DirectorySeparatorChar,
         StringComparison.OrdinalIgnoreCase);
 
+    private static void ValidateAdoptionCertificate(JsonElement certificate)
+    {
+        JsonDocument Evidence(JsonElement item) => JsonDocument.Parse(File.ReadAllBytes(Verify(item.Deserialize<FileIdentity>(Json))));
+        if(!certificate.GetProperty("Passed").GetBoolean() || !certificate.GetProperty("ExactEqualityRequirementsUnchanged").GetBoolean() ||
+            certificate.GetProperty("AdditionalTimingPairsRequiredBeforeProduction").GetBoolean() ||
+            string.IsNullOrWhiteSpace(certificate.GetProperty("UserInstruction").GetString()) ||
+            certificate.GetProperty("CandidateCommit").GetString()!="56053d69fb4b9762f15538d897bf25d56151601a")
+            throw new InvalidDataException("Incomplete exact adoption certificate.");
+        using var scope=Evidence(certificate.GetProperty("Scope"));
+        if(scope.RootElement.GetProperty("Schema").GetString()!="exact-verification-scope-v2" ||
+            !scope.RootElement.GetProperty("RequiredCases").EnumerateArray().Select(x=>x.GetString()).SequenceEqual(new[] {"rn","ra"}))
+            throw new InvalidDataException("Adoption certificate scope changed.");
+        var cases=certificate.GetProperty("Cases");
+        if(cases.GetArrayLength()!=2 || !cases.EnumerateArray().Select(c=>c.GetProperty("CaseId").GetString()).ToHashSet().SetEquals(new[] {"rn","ra"}))
+            throw new InvalidDataException("Adoption requires both full exact cases.");
+        foreach(var c in cases.EnumerateArray())
+        {
+            int expected=c.GetProperty("CaseId").GetString()=="rn" ? 315 : 413;
+            using var exact=Evidence(c.GetProperty("FullExactResult")); var result=exact.RootElement;
+            if(c.GetProperty("ExpectedPivots").GetInt32()!=expected || result.GetProperty("PivotCount").GetInt32()!=expected ||
+                new[] {"Passed","InitialEqual","ExactComparison","CompleteStrategyEqual","SavedReloadedEqual","FrozenProductionStrategyEqual"}.Any(k=>!result.GetProperty(k).GetBoolean()))
+                throw new InvalidDataException("Full exact adoption evidence failed.");
+            using var reference=Evidence(c.GetProperty("ReferenceResult"));
+            if(!reference.RootElement.GetProperty("Passed").GetBoolean() || reference.RootElement.GetProperty("PivotCount").GetInt32()!=expected)
+                throw new InvalidDataException("Reference completion evidence failed.");
+            using var comparison=Evidence(c.GetProperty("ExactOutputComparison"));
+            var report=comparison.RootElement;
+            if(!report.GetProperty("Passed").GetBoolean() || report.GetProperty("Checks").GetArrayLength()!=5 ||
+                report.GetProperty("Checks").EnumerateArray().Any(x=>!x.GetProperty("exactEqual").GetBoolean()))
+                throw new InvalidDataException("Complete strategy/action/outcome equality has not passed.");
+        }
+        var timings=certificate.GetProperty("OrdinaryTimingEvidence");
+        if(timings.GetArrayLength()!=2 || timings.EnumerateArray().Select(x=>x.GetProperty("Path").GetString()).Distinct().Count()!=2)
+            throw new InvalidDataException("Repeated ordinary timing evidence is missing.");
+        foreach(var item in timings.EnumerateArray())
+        {
+            using var comparison=Evidence(item);
+            if(!comparison.RootElement.GetProperty("Passed").GetBoolean()) throw new InvalidDataException("Ordinary output comparison failed.");
+        }
+        var fixtures=certificate.GetProperty("FocusedFixtureEvidence");
+        if(fixtures.GetArrayLength()!=4) throw new InvalidDataException("Focused fixture evidence missing.");
+        foreach(var item in fixtures.EnumerateArray())
+        {
+            using var fixture=Evidence(item); var value=fixture.RootElement;
+            if(value.TryGetProperty("exitCode",out var code) ? code.GetInt32()!=0 : !value.GetProperty("Passed").GetBoolean())
+                throw new InvalidDataException("Focused fixture evidence failed.");
+        }
+        Verify(certificate.GetProperty("IntegralityProof").Deserialize<FileIdentity>(Json));
+        using var sources=Evidence(certificate.GetProperty("SourceIdentities"));
+        if(sources.RootElement.GetProperty("CandidateCommit").GetString()!=certificate.GetProperty("CandidateCommit").GetString())
+            throw new InvalidDataException("Verified optimization source identity changed.");
+    }
+
     public static void ValidateAuthorization(Authorization authorization)
     {
         if (authorization == null) throw new InvalidDataException("Dispatch requires completed exact verification and resolved specifications.");
         using var exact = JsonDocument.Parse(File.ReadAllBytes(Verify(authorization.ExactVerification)));
         var e = exact.RootElement;
+        if(e.TryGetProperty("Schema",out var schema) && schema.GetString()=="exact-ecta-adoption-v1")
+            ValidateAdoptionCertificate(e);
+        else
+        {
         // Preserve the original three-case contract for historical manifests.
         // The user's later scope reduction is accepted only through its frozen,
         // hash-bound decision record; no equality requirement is weakened.
@@ -71,6 +128,7 @@ public static class FinalArticleExecution
             e.GetProperty("ComparedTimingPairs").GetArrayLength() != requiredPairs ||
             e.GetProperty("ComparedTimingPairs").EnumerateArray().Any(p => !p.GetProperty("ExactOutputsEqual").GetBoolean()))
             throw new InvalidDataException("Exact ECTA verification is incomplete.");
+        }
         using var specifications = JsonDocument.Parse(File.ReadAllBytes(Verify(authorization.ScientificSpecifications)));
         var s = specifications.RootElement;
         if (s.GetProperty("Schema").GetString() != "resolved-final-article-specifications-v1" ||
