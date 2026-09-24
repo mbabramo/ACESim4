@@ -16,6 +16,8 @@ namespace LitigCharts
 
         static async System.Threading.Tasks.Task<int> Main(string[] args)
         {
+            if (args.Length > 0 && args[0] == "final-approximate-start")
+                return await ArticleApproximateCommand.RunAsync(args.Skip(1).ToArray());
             if (args.Length > 0 && args[0] == "calibrate-uniform-binary")
                 return UniformMeritsCalibrationCommand.Run(args.Skip(1).ToArray());
             if (args.Length > 0 && args[0] == "truth-replay")

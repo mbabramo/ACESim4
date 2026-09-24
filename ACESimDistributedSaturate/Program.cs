@@ -34,6 +34,7 @@ namespace ACESimDistributedSaturate
             {
                 return command switch
                 {
+                    "final-preflight" or "final-run" or "final-status" => await FinalArticleQueue.RunAsync(command, args.Skip(1).ToArray()),
                     "preflight" => RunPreflight(args.Skip(1).ToArray()),
                     "preflight-suite" => RunSuitePreflight(args.Skip(1).ToArray()),
                     "export-case-matrix" => ExportCaseMatrix(args.Skip(1).ToArray()),

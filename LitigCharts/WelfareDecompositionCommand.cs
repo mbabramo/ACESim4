@@ -15,10 +15,10 @@ public static class WelfareDecompositionCommand
 {
     public sealed record Source(FinalArticleCase Case, string EquilibriumFile, string ActionReportFile,
         string NumericReportFile, int EquilibriumNumber = 1);
-    public sealed record Request(string Id, Source American, Source Complete);
+    public sealed record Request(string Id, Source American, Source Complete, double[] TruthMapExponents = null);
     private sealed record Evaluation(string RuleCase, string ProfileCase, bool Endpoint,
         SavedProfileWelfare.Result Welfare, StrategicGameFingerprint.Snapshot Game, string CompleteProfileSha256,
-        double[] EndpointBestResponseGains, int? ReproducedNumericCells);
+        double[] EndpointBestResponseGains, int? ReproducedNumericCells, TruthMappingReplay.Replay TruthMappings);
     private static readonly JsonSerializerOptions Json = new() { WriteIndented = true, PropertyNameCaseInsensitive = true,
         UnmappedMemberHandling = System.Text.Json.Serialization.JsonUnmappedMemberHandling.Disallow };
     private static string Hash(string p) => Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(p))).ToLowerInvariant();
@@ -37,6 +37,9 @@ public static class WelfareDecompositionCommand
         ArticlePressureAnalysis.ValidateMatchedOptions(FinalArticleCaseFactory.Create(request.American.Case),
             FinalArticleCaseFactory.Create(request.Complete.Case));
         Source[] sources = { request.American, request.Complete };
+        double[] exponents=request.TruthMapExponents ?? new[] { 1.0 };
+        bool continuous=request.American.Case.Distribution!="direct-binary";
+        if (!continuous && exponents.Any(e=>e!=1)) throw new InvalidDataException("Direct binary has no latent-merits truth remapping.");
         var inputs = new[] { file }.Concat(sources.SelectMany(s => new[] { s.EquilibriumFile, s.ActionReportFile, s.NumericReportFile }).Select(Resolve))
             .Distinct().ToDictionary(p => p, Hash);
         var vectors = sources.Select(s => {
@@ -78,13 +81,14 @@ public static class WelfareDecompositionCommand
             developer.ActionStrategy = ActionStrategies.CurrentProbability;
             var replay = await developer.GenerateReportsByPlaying(false);
             var welfare = SavedProfileWelfare.Evaluate(options, developer.SavedWeightedGameProgresses);
+            var truth = continuous ? TruthMappingReplay.Evaluate(options,developer.SavedWeightedGameProgresses,exponents) : null;
             if (!complete.SequenceEqual(developer.GetEquilibriumFromInformationSets()))
                 throw new InvalidDataException("Replay changed the transplanted complete strategy.");
             string csv = Path.Combine(output, $"rule-{rule}-profile-{profile}.csv");
             File.WriteAllText(csv, replay.csvReports.Single());
             int? cells = endpoint ? MultipleEquilibriaStrategyAudit.ValidateReplay(Resolve(sources[profile].NumericReportFile), csv) : null;
             results[rule,profile] = new(sources[rule].Case.Id, sources[profile].Case.Id, endpoint, welfare, identity,
-                ArticleApproximateSearch.ProfileHash(complete), gains, cells);
+                ArticleApproximateSearch.ProfileHash(complete), gains, cells, truth);
             File.WriteAllText(Path.ChangeExtension(csv, ".json"), JsonSerializer.Serialize(results[rule,profile], Json));
         }
         var selectors = new Dictionary<string,Func<TruthMappingReplay.Measures,double>> {
@@ -108,11 +112,28 @@ public static class WelfareDecompositionCommand
         }
         foreach (var input in inputs)
             if (Hash(input.Key) != input.Value) throw new IOException("Input changed during replay: " + input.Key);
+        var alternativeComponents = continuous ? exponents.Select(exponent => new {
+            Exponent=exponent,
+            Components=selectors.ToDictionary(s=>s.Key,s=>WelfareRuleBehaviorDecomposition.Calculate(
+                s.Value(results[0,0].TruthMappings.Mappings.Single(m=>m.Exponent==exponent).Headline),
+                s.Value(results[1,0].TruthMappings.Mappings.Single(m=>m.Exponent==exponent).Headline),
+                s.Value(results[0,1].TruthMappings.Mappings.Single(m=>m.Exponent==exponent).Headline),
+                s.Value(results[1,1].TruthMappings.Mappings.Single(m=>m.Exponent==exponent).Headline))) }).ToArray() : null;
+        foreach (var mapping in alternativeComponents ?? [])
+        {
+            if (mapping.Components.Values.Any(c=>Math.Abs(c.Residual)>1e-10)) throw new InvalidDataException("Truth-map decomposition identity failed.");
+            foreach(string measure in new[] { "Gross outcome error", "Real litigation expenditures" })
+            {
+                var c=mapping.Components[measure];
+                if(Math.Abs(c.CompleteWithAmericanProfile-c.AmericanWithAmericanProfile)>1e-10 || Math.Abs(c.CompleteWithCompleteProfile-c.AmericanWithCompleteProfile)>1e-10)
+                    throw new InvalidDataException("Truth-map mechanical fee effect must be zero for "+measure);
+            }
+        }
         File.WriteAllText(Path.Combine(output, "decomposition.json"), JsonSerializer.Serialize(new {
             Passed = true, request.Id, CreatedUtc = DateTime.UtcNow, Inputs = inputs,
             GameAssemblySha256 = Hash(typeof(LitigGame).Assembly.Location), ReportingAssemblySha256 = Hash(typeof(WelfareDecompositionCommand).Assembly.Location),
             Contrast = "Complete minus American", MechanicalLabel = "Mechanical fee effect", BehavioralLabel = "Behavioral welfare effect",
-            Components = components, SolvesStarted = 0 }, Json));
+            Components = components, TruthMappingComponents=alternativeComponents, SolvesStarted = 0 }, Json));
         return 0;
     }
 }
