@@ -28,7 +28,8 @@ public static class ArticlePressureAnalysis
         string TargetOptionSet, Tolerances Tolerances, Reference SourceEquilibrium,
         Reference TargetEquilibrium, Scenario[] Scenarios, string[] Interpretation,
         EquilibriumChangeDecomposition.ChangeRow[] Changes,
-        EquilibriumChangeDecomposition.ExcludedHistory[] ExcludedHistories, double[] OfferValues);
+        EquilibriumChangeDecomposition.ExcludedHistory[] ExcludedHistories, double[] OfferValues,
+        FinalArticleCase SourceCase = null, FinalArticleCase TargetCase = null);
     public sealed record Manifest(string Schema, DateTimeOffset CreatedUtc, Fingerprint Request,
         int MaxIntegralUtility, int RoundOffChanceDigits, Tolerances Tolerances,
         Loaded[] Sources, Contrast[] Contrasts, string[] OutputJsonFiles,
@@ -134,7 +135,8 @@ public static class ArticlePressureAnalysis
             double[] offerValues = targetOptions.GetOfferValues();
             var (changes, excluded) = EquilibriumChangeDecomposition.BuildRows(source.Reference, target.Reference, scenarios.ToArray(), offerValues);
             var result = new ContrastResult(coalitionCount == 16 ? "3" : "2", contrast, source.Selection.OptionSetName, target.Selection.OptionSetName,
-                tolerance, source.Reference, target.Reference, scenarios.ToArray(), InterpretationFor(coalitionCount == 16), changes, excluded, offerValues);
+                tolerance, source.Reference, target.Reference, scenarios.ToArray(), InterpretationFor(coalitionCount == 16), changes, excluded, offerValues,
+                source.Selection.FinalCase,target.Selection.FinalCase);
             string path = Path.Combine(output, contrast.Id + ".json");
             await File.WriteAllTextAsync(path, JsonSerializer.Serialize(result, JsonOptions) + "\n");
             outputs.Add(path);

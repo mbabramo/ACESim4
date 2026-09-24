@@ -22,6 +22,20 @@ namespace ACESimTest.GameTests
         };
 
         [TestMethod]
+        public void FinalPressureHeadingsHandleNewFamiliesAndAsymmetricRisk()
+        {
+            var source=Baseline() with { OriginalOptionName=null, Id="asymmetric-american",Family="asymmetric-risk",Variant="p-only-ra",AlphaP=2 };
+            var target=source with { Id="asymmetric-complete",FeeRule="complete" };
+            var heading=LitigCharts.EquilibriumChangeTables.Heading(source,target);
+            StringAssert.Contains(heading.HeldFixed,"plaintiff only risk averse");
+            Assert.IsFalse(heading.HeldFixed.Contains("Both players"));
+            var noise=Baseline() with { OriginalOptionName=null,Id="private-noise-rn",Family="private-noise",Variant="low",PartySigma=0.1 };
+            var risk=noise with { Id="private-noise-ra",AlphaP=2,AlphaD=2 };
+            StringAssert.Contains(LitigCharts.EquilibriumChangeTables.Heading(noise,risk).Title,"Preferences:");
+            Assert.ThrowsException<InvalidDataException>(()=>LitigCharts.EquilibriumChangeTables.Heading(noise,risk with { CourtSigma=0.4 }));
+        }
+
+        [TestMethod]
         public void ImportsCannotChangeGameAndAsymmetricRiskHasExplicitMetadata()
         {
             var baseline = Baseline();
