@@ -1,5 +1,6 @@
 using ACESim;
 using ACESimBase.Games.LitigGame.ManualReports;
+using ACESimBase.GameSolvingSupport.GameTree;
 using LitigCharts;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
@@ -11,6 +12,30 @@ namespace ACESimTest.GameTests;
 [TestClass, DoNotParallelize]
 public class FinalArticleReplayTests
 {
+    [TestMethod]
+    public async Task ExplicitNewCaseReplaysRefusalWithoutLegacyNameLookupOrDeveloperMutation()
+    {
+        var spec = new FinalArticleCase { Id="new-report-path", Family="merits-distribution", Variant="center-weighted",
+            FeeRule="american", AlphaP=0, AlphaD=0, CostMultiplier=1, Signals=10,
+            Offers=LitigGameOptions.CreateFixedSupportOffers(10,.05,.95), Distribution="beta-2-2",
+            PartySigma=.2, CourtSigma=.2, EntryCost=.15, TrialCost=.15 };
+        var options = FinalArticleCaseFactory.Create(spec);
+        var (developer, _) = await UniformReplay(options);
+        var before = StrategicGameFingerprint.Capture(developer);
+        var probabilities = developer.GetEquilibriumFromInformationSets();
+        var calculator = new CalculateUtilitiesAtEachInformationSet(); developer.TreeWalk_Tree(calculator);
+        var recorder = new RecordGamePathsProcessor(); developer.TreeWalk_Tree(recorder);
+        var path = recorder.Paths.First(p => p.Steps.Any(s => s.FromNode is InformationSetNode n &&
+            n.DecisionByteCode == (byte)LitigGameDecisions.PAgreeToBargain && s.ActionIndex == 2));
+        var result = ArticleWorkedPathExtraction.ExtractPath(developer, options, calculator, new(), path,
+            "refusal", "synthetic regression fixture", () => FinalArticleCaseFactory.Create(spec));
+        Assert.IsTrue(result.Steps.Any(s => s.Decision == LitigGameDecisions.PAgreeToBargain));
+        CollectionAssert.AreEqual(probabilities, developer.GetEquilibriumFromInformationSets());
+        Assert.AreEqual(before, StrategicGameFingerprint.Capture(developer));
+        Assert.ThrowsException<System.IO.InvalidDataException>(() => ArticleWorkedPathExtraction.ExtractPath(
+            developer, options, calculator, new(), path, "refusal", "invalid shared replay options", () => options));
+    }
+
     private static LitigGameOptions Options(bool complete, bool riskAverse = false) =>
         new LitigGameCorrelatedSignalsArticleLauncher(LitigGameCorrelatedSignalsArticleLauncher.ProductionRunPlan.AgreementToBargain)
             .GetOptionsSets().Cast<LitigGameOptions>().Single(o => o.Name ==

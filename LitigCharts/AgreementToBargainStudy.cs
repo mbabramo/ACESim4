@@ -149,7 +149,8 @@ public static class AgreementToBargainStudy
         byte PExit, byte DExit, byte PAgree, byte DAgree, byte POffer, byte DOffer);
 
     public static void ExportProfile(StrategiesDeveloperBase developer, LitigGameOptions option, int equilibrium,
-        string profileFile, string actionReport, string replayReport, string output, HashSet<int> fallbacks)
+        string profileFile, string actionReport, string replayReport, string output, HashSet<int> fallbacks,
+        Func<LitigGameOptions> replayOptionsFactory = null)
     {
         var calculator = new CalculateUtilitiesAtEachInformationSet(); developer.TreeWalk_Tree(calculator);
         var recorder = new RecordGamePathsProcessor(); developer.TreeWalk_Tree(recorder);
@@ -231,7 +232,8 @@ public static class AgreementToBargainStudy
             (n.DecisionByteCode == (byte)LitigGameDecisions.PAgreeToBargain || n.DecisionByteCode == (byte)LitigGameDecisions.DAgreeToBargain) && s.ActionIndex == 2))
             .OrderByDescending(p => p.Probability).FirstOrDefault();
         object worked = refusal == null ? null : ArticleWorkedPathExtraction.ExtractPath(developer, option, calculator, fallbacks, refusal,
-            "Refusal branch", refusal.Probability > 0 ? "Verified equilibrium path" : "Counterfactual refusal branch; zero equilibrium probability");
+            "Refusal branch", refusal.Probability > 0 ? "Verified equilibrium path" : "Counterfactual refusal branch; zero equilibrium probability",
+            replayOptionsFactory);
         var (alphaP, alphaD) = ArticleResultsLayout.RiskParameters(option);
         Write(Path.Combine(output, "Sources", "Profiles", option.Name + $"-Eq{equilibrium}.json"), new
         {

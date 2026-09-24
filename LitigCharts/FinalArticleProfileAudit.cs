@@ -97,7 +97,8 @@ public static class FinalArticleProfileAudit
         string report = Path.Combine(output, "replayed-report.csv");
         File.WriteAllText(report, replay.csvReports.Single());
         int cells = MultipleEquilibriaStrategyAudit.ValidateReplay(request.Numeric.Path, report);
-        AgreementToBargainStudy.ExportProfile(developer, options, 1, request.Equilibrium.Path, request.Actions.Path, report, output, fallbacks);
+        AgreementToBargainStudy.ExportProfile(developer, options, 1, request.Equilibrium.Path, request.Actions.Path, report, output, fallbacks,
+            () => FinalArticleCaseFactory.Create(prepared.Case));
         string[] diagrams = [];
         if (request.GenerateDiagrams)
         {

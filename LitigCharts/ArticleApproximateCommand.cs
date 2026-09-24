@@ -114,7 +114,8 @@ public static class ArticleApproximateCommand
                 string replayCsv=Path.Combine(output,"replayed-report.csv"); File.WriteAllText(replayCsv,replay.csvReports.Single());
                 int cells=MultipleEquilibriaStrategyAudit.ValidateReplay(firstCsv,replayCsv);
                 var welfare=SavedProfileWelfare.Evaluate(((LitigGameDefinition)reload.GameDefinition).Options,reload.SavedWeightedGameProgresses);
-                AgreementToBargainStudy.ExportProfile(reload,options,1,profile,actions,replayCsv,output,fallbacks);
+                AgreementToBargainStudy.ExportProfile(reload,options,1,profile,actions,replayCsv,output,fallbacks,
+                    () => FinalArticleCaseFactory.Create(spec));
                 validation=new { Passed=true, FullBestResponseRawGains=raw, AcceptanceGains=gains, AverageGain=gains.Average(),MaximumGain=gains.Max(),
                     Threshold=threshold,CompleteVectorRoundTripExact=true,ActionRows=rows,NumericReplayCells=cells,Welfare=welfare };
             }

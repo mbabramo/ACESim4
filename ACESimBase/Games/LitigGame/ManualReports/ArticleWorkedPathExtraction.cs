@@ -188,7 +188,8 @@ namespace ACESimBase.Games.LitigGame.ManualReports
 
         public static PathData ExtractPath(StrategiesDeveloperBase developer, LitigGameOptions options,
             CalculateUtilitiesAtEachInformationSet calculator, HashSet<int> fallbacks,
-            RecordGamePathsProcessor.GamePath path, string name, string purpose)
+            RecordGamePathsProcessor.GamePath path, string name, string purpose,
+            Func<LitigGameOptions> replayOptionsFactory = null)
         {
             double reach = 1;
             var steps = new List<StepData>();
@@ -232,7 +233,9 @@ namespace ACESimBase.Games.LitigGame.ManualReports
             RequireNear(path.Probability, reach, "Selected path probability");
             // Replay is solely for outcome accounting/terminal lotteries. It cannot change
             // the initialized developer or the saved profile used by the utility calculator.
-            var replayOptions = CreateOptions(options.Name);
+            var replayOptions = replayOptionsFactory?.Invoke() ?? CreateOptions(options.Name);
+            if (ReferenceEquals(replayOptions, options) || replayOptions.Name != options.Name)
+                throw new InvalidDataException("Worked-path replay requires detached options for the same explicit case.");
             var meaningful = path.Steps.Where(x => ((IAnyNode)x.FromNode).Decision.NumPossibleActions > 1).ToArray();
             int cursor = 0;
             byte Override(Decision decision, GameProgress progress)
