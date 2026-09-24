@@ -4,6 +4,7 @@ using ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm;
 using ACESimBase.GameSolvingSupport.ExactValues;
 using System;
 using System.IO;
+using System.Diagnostics;
 using System.Linq;
 using System.Security.Cryptography;
 
@@ -20,7 +21,13 @@ public static class ArticleApproximateSearch
     public sealed record Attempt(int StartIndex, int ActualPriorSeed, string Arithmetic, double Cutoff,
         ArticleApproximateGainUnits GainUnits, double[] TerminalUtilityRanges, double[] Prior,
         int EvaluatedPivots, int InvalidCandidates, ArticleApproximatePolicy.Decision Decision,
-        ArticleApproximatePolicy.Candidate BestCandidate, string Error);
+        ArticleApproximatePolicy.Candidate BestCandidate, string Error)
+    {
+        public Timing Performance { get; init; }
+    }
+    public sealed record Timing(double TraceSeconds, double CandidateCheckSeconds,
+        double BestResponseSeconds, double AuditPersistenceSeconds, double SolverAndTraceOtherSeconds,
+        double FinalSelectionCheckSeconds);
     private sealed class PolicyStop : Exception { }
 
     public static string ProfileHash(double[] values)
@@ -54,6 +61,8 @@ public static class ArticleApproximateSearch
         double[] prior = null;
         int evaluated = 0, invalid = 0;
         string error = null;
+        var traceTimer = Stopwatch.StartNew();
+        double checkSeconds = 0, bestResponseSeconds = 0, persistenceSeconds = 0;
         try
         {
             developer.TraceECTA<InexactValue>(initialProbabilities: null, seed: startIndex,
@@ -66,6 +75,7 @@ public static class ArticleApproximateSearch
                     savePrior(prior.ToArray());
                 },
                 afterPivot: (tree, snapshot) => {
+                    var checkTimer = Stopwatch.StartNew();
                     evaluated = snapshot.Pivot;
                     ECTAStrategyProjection projection = null;
                     PivotAudit audit;
@@ -76,7 +86,9 @@ public static class ArticleApproximateSearch
                         developer.SetInformationSetsToEquilibrium(rounded);
                         double[] actual = developer.GetEquilibriumFromInformationSets();
                         if (!rounded.SequenceEqual(actual)) throw new InvalidDataException("Strategy installation changed the rounded profile.");
-                        developer.CalculateBestResponse(false); // full own continuation, including agreement actions
+                        var bestResponseTimer = Stopwatch.StartNew();
+                        try { developer.CalculateBestResponse(false); } // full own continuation, including agreement actions
+                        finally { bestResponseSeconds += bestResponseTimer.Elapsed.TotalSeconds; }
                         if (!developer.Status.BestResponseReflectsCurrentStrategy)
                             throw new InvalidDataException("Best response did not evaluate the saved current strategy.");
                         double[] raw = developer.Status.BestResponseImprovement.ToArray();
@@ -97,7 +109,10 @@ public static class ArticleApproximateSearch
                             projection?.PriorCompletedInformationSets,
                             null, null, null, null, null, null);
                     }
-                    savePivot(audit); // persistence failures propagate and cannot become successful attempts
+                    checkSeconds += checkTimer.Elapsed.TotalSeconds;
+                    var persistenceTimer = Stopwatch.StartNew();
+                    try { savePivot(audit); } // persistence failures propagate and cannot become successful attempts
+                    finally { persistenceSeconds += persistenceTimer.Elapsed.TotalSeconds; }
                     if (selection.Finished != null) throw new PolicyStop();
                     if (snapshot.Pivot == ArticleApproximatePolicy.PivotCap)
                     {
@@ -113,6 +128,8 @@ public static class ArticleApproximateSearch
             error = ex.ToString();
             selection.EndWithoutCap("algorithm-error-before-cap", evaluated);
         }
+        traceTimer.Stop();
+        var finalCheckTimer = Stopwatch.StartNew();
         if (selection.Finished?.Accepted is { } accepted)
         {
             developer.SetInformationSetsToEquilibrium(accepted.Probabilities);
@@ -121,7 +138,12 @@ public static class ArticleApproximateSearch
             if (average != accepted.AverageGain || !developer.GetEquilibriumFromInformationSets().SequenceEqual(accepted.Probabilities))
                 throw new InvalidDataException("Restoring the selected complete profile changed its acceptance audit.");
         }
+        finalCheckTimer.Stop();
         return new(startIndex, 1_000_000+startIndex, "InexactValue (double); no exact fallback", policy.Cutoff,
-            policy.GainUnits, ranges, prior, evaluated, invalid, selection.Finished, selection.Best, error);
+            policy.GainUnits, ranges, prior, evaluated, invalid, selection.Finished, selection.Best, error)
+        {
+            Performance = new(traceTimer.Elapsed.TotalSeconds, checkSeconds, bestResponseSeconds, persistenceSeconds,
+                traceTimer.Elapsed.TotalSeconds - checkSeconds - persistenceSeconds, finalCheckTimer.Elapsed.TotalSeconds)
+        };
     }
 }
