@@ -14,11 +14,20 @@ namespace ACESimBase.Games.LitigGame.ManualReports
         public sealed record Diagram(string FileStem, string Latex, string Description);
 
         public static LitigGameOptions CreateOptions(bool simplified)
+            => CreateOptions(simplified, false);
+
+        public static LitigGameOptions CreateOptions(bool simplified, bool agreementEnabled)
         {
             var launcher = new LitigGameCorrelatedSignalsArticleLauncher(
                 LitigGameCorrelatedSignalsArticleLauncher.ProductionRunPlan.FocusedContinuousMerits);
             var options = (LitigGameOptions)launcher.GetDefaultSingleGameOptions();
             options.Name = "Article illustrative two-signal two-offer game";
+            options.IncludeAgreementToBargainDecisions = agreementEnabled;
+            if (agreementEnabled)
+            {
+                options.Name = "Article agreement-enabled illustrative two-signal two-offer game";
+                options.VariableSettings["Agreement to Bargain"] = "Enabled";
+            }
             options.NumLiabilitySignals = 2;
             options.NumOffers = 2;
             options.CollapseChanceDecisions = true; // Continuous Q is integrated, not discretized.
@@ -29,6 +38,9 @@ namespace ACESimBase.Games.LitigGame.ManualReports
         }
 
         public static async Task<GeneralizedVanilla> InitializeAsync(bool simplified)
+            => await InitializeAsync(simplified, false);
+
+        public static async Task<GeneralizedVanilla> InitializeAsync(bool simplified, bool agreementEnabled)
         {
             var launcher = new LitigGameCorrelatedSignalsArticleLauncher(
                 LitigGameCorrelatedSignalsArticleLauncher.ProductionRunPlan.FocusedContinuousMerits);
@@ -41,7 +53,7 @@ namespace ACESimBase.Games.LitigGame.ManualReports
                 GenerateManualReports = false,
                 GenerateReportsByPlaying = false,
             };
-            var options = CreateOptions(simplified);
+            var options = CreateOptions(simplified, agreementEnabled);
             // Initialize and enumerate only. No strategy optimization or production reports.
             return (GeneralizedVanilla)await launcher.GetInitializedDevelper(options, options.Name, settings);
         }
@@ -76,16 +88,21 @@ namespace ACESimBase.Games.LitigGame.ManualReports
         }
 
         public static async Task<IReadOnlyList<Diagram>> GenerateAsync()
+            => await GenerateAsync(false);
+
+        public static async Task<IReadOnlyList<Diagram>> GenerateAsync(bool agreementEnabled)
         {
             var results = new List<Diagram>();
             foreach (bool simplified in new[] { false, true })
             {
-                var developer = await InitializeAsync(simplified);
+                var developer = await InitializeAsync(simplified, agreementEnabled);
                 var tree = Collect(developer);
                 string suffix = simplified ? " simplified" : "";
                 string legend = "Continuous-merits baseline; illustrative two-signal, two-offer grid. " +
                     "C = chance; repeated P/D numbers identify the same information set. " +
                     "Only chance probabilities are shown; no equilibrium is asserted. ";
+                if (agreementEnabled)
+                    legend += "Agreement-enabled structural illustration. Private exit commitments precede simultaneous agreement decisions; offers occur only after both agree. Refusal uses the original exit or trial outcome, without offer actions. ";
                 string endings = simplified
                     ? "Terminal pairs are expected final wealth (P, D), with terminal lotteries integrated out."
                     : "Terminal pairs are final wealth (P, D); court and mutual-exit lotteries are explicit.";
@@ -108,7 +125,7 @@ namespace ACESimBase.Games.LitigGame.ManualReports
                 results.Add(CreateDiagram("game tree 2x2x2 end" + suffix,
                     null, StartOfBargaining, legend +
                         "Subtree after both signals equal 0.25, filing, and answering. " +
-                        "Exit choices take effect only if offers fail to settle. " + endings));
+                        (agreementEnabled ? "Exit commitments take effect after refusal or failed settlement. " : "Exit choices take effect only if offers fail to settle. ") + endings));
             }
             return results;
         }
