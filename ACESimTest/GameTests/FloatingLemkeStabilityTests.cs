@@ -10,7 +10,7 @@ public class FloatingLemkeStabilityTests
     private static ECTALemke<T> Solve<T>(double[,] matrix,double[] q) where T:IMaybeExact<T>,new()
     {
         int n=q.Length;var l=new ECTALemke<T>(n);
-        for(int i=0;i<n;i++) {l.rhsq[i]=IMaybeExact<T>.FromDouble(q[i]);l.coveringVectorD[i]=IMaybeExact<T>.One();for(int j=0;j<n;j++)l.lcpM[i][j]=IMaybeExact<T>.FromDouble(matrix[i,j]);}
+        for(int i=0;i<n;i++) {l.rhsq[i]=IMaybeExact<T>.FromRational((Rationals.Rational)q[i]);l.coveringVectorD[i]=IMaybeExact<T>.One();for(int j=0;j<n;j++)l.lcpM[i][j]=IMaybeExact<T>.FromRational((Rationals.Rational)matrix[i,j]);}
         l.RunLemke(new ECTALemkeOptions{maxPivotSteps=100});return l;
     }
     [TestMethod]

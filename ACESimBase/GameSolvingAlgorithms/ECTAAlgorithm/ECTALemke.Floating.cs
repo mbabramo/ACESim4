@@ -174,7 +174,7 @@ public partial class ECTALemke<T> where T : IMaybeExact<T>, new()
                 PivotObserver?.Invoke(CapturePivot(leave,enter,final));
                 if(final)
                 {
-                    for(int j=0;j<n;j++) {int row=TableauRow(j+1);solz[j]=IMaybeExact<T>.FromDouble(row<n ? floatingTableau[row][n+1] : 0);}
+                    for(int j=0;j<n;j++) {int row=TableauRow(j+1);solz[j]=(IMaybeExact<T>)(object)new InexactValue(row<n ? floatingTableau[row][n+1] : 0);}
                     FloatingDiagnostics.Termination="LCP completed";
                     return;
                 }
