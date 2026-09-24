@@ -109,7 +109,8 @@ public static class EquilibriumChangeTables
                 $"{GroupRows(result.Changes).Length} displayed rows ({result.Changes.Length} ungrouped changed rows), " +
                 $"{result.Changes.Count(r => r.EndpointSelection)} selection-residual rows.");
         }
-        readme.AppendLine("\nFull source profiles, all eight coalition best responses, action values, conditional beliefs, " +
+        string coalitionCount = results.Any(r => r.Schema == "3") ? "16" : "eight";
+        readme.AppendLine($"\nFull source profiles, all {coalitionCount} coalition best responses per player, action values, conditional beliefs, " +
             "off-path exposure checks, tie/completion stresses, selection residuals, and excluded histories are retained in the calculation JSON and manifest.");
         readme.AppendLine("\nThe earlier Information-set pressure directory is historical: its independent columns were not additive contributions. " +
             "The former table generator has been removed; the pressure command is an alias for the new workflow.");
@@ -240,6 +241,7 @@ public static class EquilibriumChangeTables
                 var heading = Heading(result);
                 expanded.AppendLine(@"\textbf{" + Escape(heading.Title) + @"}\par");
                 expanded.AppendLine(Escape(heading.HeldFixed) + "; cost multiplier " + Escape(heading.Cost) + @"\par");
+                AppendFinalCaseContext(expanded, result);
                 expanded.AppendLine(EquilibriumPublicationTables.LatexBody(result.Changes, result.Schema == "3"));
                 expanded.AppendLine(@"\smallskip{\footnotesize Probability contributions are percentage points; pure offer changes are fractions of damages. Direct changes the rule or preferences first.\par");
                 expanded.AppendLine(@"Opponent entry, offers, exit and agreement contributions average all 24 replacement orders. Their sum plus Direct and Remaining equals the endpoint change before rounding.\par");
@@ -340,6 +342,7 @@ public static class EquilibriumChangeTables
         var h = Heading(result);
         b.AppendLine(@"\clearpage {\large\bfseries Relative-payoff changes}\par");
         b.AppendLine(Escape(h.Title + "; " + h.HeldFixed + "; costs " + h.Cost) + @".\par");
+        AppendFinalCaseContext(b, result);
         b.AppendLine(@"{\small Supplement to partial strategy decompositions. Gap: conditional utility of actions gaining probability minus that of actions losing probability. Positive favors the gaining side.}\par");
         b.AppendLine(@"{\small\setlength{\tabcolsep}{3pt}\begin{longtable}{@{}>{\raggedright\arraybackslash}p{1.7in}"+new string('r',columns-1)+@"@{}}");
         string header = @"\toprule Decision / comparison & Signal & Original & Target & Change & \shortstack{Direct/\\reopt.} & Entry & Offers & Exit & Remaining \\\midrule";
@@ -375,6 +378,14 @@ public static class EquilibriumChangeTables
             .Replace("all five columns",agreement ? "all six columns" : "all five columns",StringComparison.Ordinal));
         b.AppendLine(@"$\dagger$: tie-sensitive payoff allocation. $\S$: unvisited-opponent-policy sensitivity. $\ddagger$: conditional on an intermediate history not reached in that hybrid. Undefined values are not zero.\par");
         b.AppendLine(@"These comparisons explain changes in relative incentives, not the exact equilibrium mixing probabilities or an observed dynamic path. Utility scales are convention-dependent, particularly across preference regimes, and are not cross-regime welfare comparisons.}\par");
+    }
+
+    private static void AppendFinalCaseContext(StringBuilder b, ContrastResult result)
+    {
+        if (result.SourceCase is not { } source) return;
+        string F(double x) => x.ToString("G6", Invariant);
+        b.AppendLine(@"{\footnotesize " + Escape($"{source.Family} / {source.Variant}; {source.Signals} signals; {source.Offers.Length} offers; " +
+            $"party noise {F(source.PartySigma)}; court noise {F(source.CourtSigma)}; entry cost {F(source.EntryCost)}; trial cost {F(source.TrialCost)}.") + @"}\par");
     }
 
     public static string Escape(string value) => value.Replace("&", @"\&").Replace("%", @"\%")
