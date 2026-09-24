@@ -37,6 +37,8 @@ public class FinalArticleProfileAuditTests
         Assert.IsTrue(snapshot.Tasks.Single(t=>t.TaskType=="Optimize" && t.ID==0).Complete);
         Assert.IsTrue(snapshot.Tasks.Single(t=>t.TaskType=="Optimize" && t.ID==1).Failed);
         Assert.IsFalse(snapshot.AllComplete);
+        Assert.AreEqual(0,FinalArticleExecution.CountConcurrentWorkers(manifest,source.StatusAsByteArray()));
+        second.Failed=false;
         Assert.AreEqual(1,FinalArticleExecution.CountConcurrentWorkers(manifest,source.StatusAsByteArray()));
         foreach(var task in source.Tasks) { task.Complete=true; task.Failed=false; }
         Assert.AreEqual(0,FinalArticleExecution.CountConcurrentWorkers(manifest,source.StatusAsByteArray()));
