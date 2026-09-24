@@ -4,6 +4,7 @@ using ACESimBase.GameSolvingSupport.GameTree;
 using FluentAssertions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.Linq;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace ACESimTest.GameTests;
@@ -11,6 +12,26 @@ namespace ACESimTest.GameTests;
 [TestClass,DoNotParallelize]
 public class FinalArticleStructureTests
 {
+    [TestMethod]
+    public async Task HiddenAutomaticNodesPreserveEveryVisibleIncomingAction()
+    {
+        foreach(bool simplified in new[]{false,true})
+        {
+            var developer=await ArticleGameTreeDiagrams.InitializeAsync(simplified,true);
+            var tree=ArticleGameTreeDiagrams.Collect(developer);
+            var edges=new List<ConstructGameTreeInformationSetInfo.EdgeInfo>();
+            tree.GenerateTikzDiagram(null,null,false,edgeLabel:edge=>{edges.Add(edge);return ArticleGameTreeDiagrams.Label(edge,developer.GameDefinition);});
+            foreach(var group in edges.GroupBy(e=>e.parentNode))
+            {
+                // Hiding deterministic nodes does not remove or relabel a parent's actions.
+                group.Select(e=>(int)e.action).Should().BeEquivalentTo(
+                    Enumerable.Range(1,group.Key.anyNode.GetNodeValues().Length));
+            }
+            edges.Where(e=>e.parentDecisionByteCode==(byte)LitigGameDecisions.DAgreeToBargain)
+                .GroupBy(e=>e.parentNode).Should().NotBeEmpty();
+        }
+    }
+
     [TestMethod]
     public async Task IllustratedPathsKeepCommitmentsPrivateAndOffersBehindMutualAgreement()
     {
