@@ -16,6 +16,8 @@ namespace LitigCharts
 
         static async System.Threading.Tasks.Task<int> Main(string[] args)
         {
+            if (args.Length > 0 && args[0] == "final-signal-sources")
+                return FinalArticleSignalCommand.Run(args.Skip(1).ToArray());
             if (args.Length > 0 && args[0] == "final-completion-snapshot")
                 return FinalArticleCompletionSnapshot.Run(args.Skip(1).ToArray());
             if (args.Length > 0 && args[0] == "final-profile-audit")

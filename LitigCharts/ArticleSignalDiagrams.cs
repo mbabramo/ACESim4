@@ -52,9 +52,11 @@ public static class ArticleSignalDiagrams
         [Stem(specification, monochrome).Replace(monochrome ? " - bw" : " - color",
             " - party to party" + (monochrome ? " - bw" : " - color"))];
 
-    public static Diagram[] GeneratePartyToParty(string specification, bool monochrome)
+    public static Diagram[] GeneratePartyToParty(string specification, bool monochrome) => GeneratePartyToParty(specification, monochrome, null);
+
+    public static Diagram[] GeneratePartyToParty(string specification, bool monochrome, LitigGameOptions explicitOptions)
     {
-        var options = ArticleWorkedPathExtraction.CreateOptions("Specification-" + specification + "__Cost-1__Fee-American");
+        var options = explicitOptions ?? ArticleWorkedPathExtraction.CreateOptions("Specification-" + specification + "__Cost-1__Fee-American");
         var definition = new LitigGameDefinition();
         definition.Setup(options); // Signal beliefs only; no strategies or equilibrium selection.
         var generator = options.LitigGameDisputeGenerator;
@@ -105,9 +107,11 @@ public static class ArticleSignalDiagrams
         return [new(PartyToPartyStems(specification, monochrome)[0], Render([panel], monochrome), description, [panel])];
     }
 
-    public static Diagram[] GenerateInverse(string specification, bool monochrome)
+    public static Diagram[] GenerateInverse(string specification, bool monochrome) => GenerateInverse(specification, monochrome, null);
+
+    public static Diagram[] GenerateInverse(string specification, bool monochrome, LitigGameOptions explicitOptions)
     {
-        var forward = Generate(specification, monochrome).Single(d => d.Panels[0].DestinationTitle.StartsWith("Party signal", StringComparison.Ordinal));
+        var forward = Generate(specification, monochrome, explicitOptions).Single(d => d.Panels[0].DestinationTitle.StartsWith("Party signal", StringComparison.Ordinal));
         var inverse = ReversePartyPanel(forward.Panels[0]);
         string modelDescription = forward.Description.Split(" Ribbon width denotes", StringSplitOptions.None)[0];
         string description = modelDescription + "\n\nInverse party-signal diagram: the same joint distribution is transposed, " +
@@ -154,7 +158,9 @@ public static class ArticleSignalDiagrams
         return inverse;
     }
 
-    public static Diagram[] Generate(string specification, bool monochrome)
+    public static Diagram[] Generate(string specification, bool monochrome) => Generate(specification, monochrome, null);
+
+    public static Diagram[] Generate(string specification, bool monochrome, LitigGameOptions explicitOptions)
     {
         Panel[] panels;
         string description;
@@ -173,7 +179,7 @@ public static class ArticleSignalDiagrams
         }
         else
         {
-            var options = ArticleWorkedPathExtraction.CreateOptions("Specification-" + specification + "__Cost-1__Fee-American");
+            var options = explicitOptions ?? ArticleWorkedPathExtraction.CreateOptions("Specification-" + specification + "__Cost-1__Fee-American");
             var definition = new LitigGameDefinition();
             definition.Setup(options); // Initializes production signal kernels, not strategies or equilibria.
             if (options.PLiabilityNoiseStdev != options.DLiabilityNoiseStdev)
