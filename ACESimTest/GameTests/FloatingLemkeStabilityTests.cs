@@ -21,6 +21,8 @@ public class FloatingLemkeStabilityTests
         for(int i=0;i<2;i++){Assert.AreEqual(1, floating.solz[i].AsDouble,1e-10);Assert.AreEqual(exact.solz[i].AsDouble,floating.solz[i].AsDouble,1e-10);}
         Assert.IsNotNull(floating.FloatingDiagnostics);Assert.IsNull(exact.FloatingDiagnostics);
         Assert.IsTrue(floating.FloatingDiagnostics.MaximumAcceptedResidual<=1e-9);
+        for(int i=0;i<2;i++) Assert.AreEqual(floating.solz[i].AsDouble,
+            floating.Tableau[floating.TableauRow(i+1)][floating.RHS()].AsDouble,1e-10);
     }
     [TestMethod]
     public void SmallButResolvedCoefficientDoesNotGetErased()

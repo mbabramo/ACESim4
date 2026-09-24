@@ -141,6 +141,14 @@ public partial class ECTALemke<T> where T : IMaybeExact<T>, new()
         variableIndexToBasicCobasicIndex[enter]=row;basicCobasicIndexToVariable[row]=enter;
     }
 
+    private void PublishFloatingTableau()
+    {
+        // Materialize the public/debug view only when requested or when the run
+        // exits; per-pivot snapshot values read the concrete storage directly.
+        for(int i=0;i<n;i++) for(int j=0;j<n+2;j++)
+            Tableau[i][j]=(IMaybeExact<T>)(object)new InexactValue(floatingTableau[i][j]);
+    }
+
     private void RunFloatingLemke(ECTALemkeOptions flags)
     {
         FloatingDiagnostics=new();
@@ -159,6 +167,7 @@ public partial class ECTALemke<T> where T : IMaybeExact<T>, new()
                 int leave;
                 try {leave=FloatingLeaving(enter,initial);}
                 catch(ECTAException) when(!initial) {RebuildFloatingBasis();ValidateFloatingBasis();leave=FloatingLeaving(enter,false);}
+                if(flags.outputPivotingSteps) OutputPivotLeaveAndEnter(leave,enter);
                 FloatingPivot(leave,enter);initial=false;
                 if(pivotcount%100==0) RebuildFloatingBasis();
                 ValidateFloatingBasis();
@@ -170,6 +179,7 @@ public partial class ECTALemke<T> where T : IMaybeExact<T>, new()
                     throw new ECTAException("Floating basis repeated after numerical reconstruction; ending this start.");
                 }
                 FloatingDiagnostics.Pivots=pivotcount;
+                if(flags.outputTableauxAfterPivots) {PublishFloatingTableau();OutputTableau();}
                 bool final=leave==0;
                 PivotObserver?.Invoke(CapturePivot(leave,enter,final));
                 if(final)
@@ -183,5 +193,6 @@ public partial class ECTALemke<T> where T : IMaybeExact<T>, new()
             }
         }
         catch(Exception ex) {FloatingDiagnostics.Termination=ex.Message;throw;}
+        finally {PublishFloatingTableau();}
     }
 }
