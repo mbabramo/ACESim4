@@ -10,6 +10,21 @@ namespace ACESimTest.GameTests;
 public class ArticleApproximatePolicyTests
 {
     [TestMethod]
+    public void ExtendedCapRetainsThresholdsAndEarliestBest()
+    {
+        var selection = new ArticleApproximatePolicy.Selection(20000);
+        selection.Observe(1000, 0.002, new[] { 0.25, 0.75 });
+        Assert.IsNull(selection.Finished);
+        selection.Observe(20000, 0.002, new[] { 0.5, 0.5 });
+        var decision = selection.EndAtCap();
+        Assert.AreEqual(20000, decision.StoppingPivot);
+        Assert.AreEqual(1000, decision.Accepted.Pivot);
+        Assert.ThrowsException<ArgumentOutOfRangeException>(() => new ArticleApproximatePolicy.Selection(0));
+        var early = new ArticleApproximatePolicy.Selection(20000);
+        early.Observe(1001, 0.0009, new[] { 0.5, 0.5 });
+        Assert.AreEqual("first-below-0.001", early.Finished.Reason);
+    }
+    [TestMethod]
     public void ThresholdsAreStrictAndFirstEarlyAcceptanceEndsTheStart()
     {
         var selection = new ArticleApproximatePolicy.Selection();

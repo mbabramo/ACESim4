@@ -56,7 +56,7 @@ public static class ArticleApproximateSearch
         double[] ranges = Enumerable.Range(0,2).Select(p => developer.FinalUtilitiesNodes.Max(n => n.Utilities[p])-
             developer.FinalUtilitiesNodes.Min(n => n.Utilities[p])).ToArray();
         var calculators = new[] { options.PUtilityCalculator, options.DUtilityCalculator };
-        var selection = new ArticleApproximatePolicy.Selection();
+        var selection = new ArticleApproximatePolicy.Selection(policy.MaximumPivots);
         ECTAStrategyDiagnostics<InexactValue> diagnostics = null;
         double[] prior = null;
         int evaluated = 0, invalid = 0;
@@ -66,7 +66,7 @@ public static class ArticleApproximateSearch
         try
         {
             developer.TraceECTA<InexactValue>(initialProbabilities: null, seed: startIndex,
-                probabilityFloor: 0.001, maxPivots: ArticleApproximatePolicy.PivotCap,
+                probabilityFloor: 0.001, maxPivots: policy.MaximumPivots,
                 beforeSolve: tree => {
                     diagnostics = new(tree, developer.TraceOutcomeUtilities());
                     if (!counts.SequenceEqual(diagnostics.InformationSetIndices.Select(i => tree.informationSets[i].numMoves)))
@@ -114,7 +114,7 @@ public static class ArticleApproximateSearch
                     try { savePivot(audit); } // persistence failures propagate and cannot become successful attempts
                     finally { persistenceSeconds += persistenceTimer.Elapsed.TotalSeconds; }
                     if (selection.Finished != null) throw new PolicyStop();
-                    if (snapshot.Pivot == ArticleApproximatePolicy.PivotCap)
+                    if (snapshot.Pivot == policy.MaximumPivots)
                     {
                         selection.EndAtCap();
                         throw new PolicyStop();

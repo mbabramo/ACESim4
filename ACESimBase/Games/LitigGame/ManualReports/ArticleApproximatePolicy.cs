@@ -11,14 +11,16 @@ public enum ArticleApproximateGainUnits { RawUtility, FullTerminalUtilityRange }
 public sealed class ArticleApproximatePolicy
 {
     public const int PivotCap = 1000;
+    public int MaximumPivots { get; }
     public const double EarlyThreshold = 0.001, CapThreshold = 0.0025;
     public double Cutoff { get; }
     public ArticleApproximateGainUnits GainUnits { get; }
-    public ArticleApproximatePolicy(double cutoff, ArticleApproximateGainUnits gainUnits)
+    public ArticleApproximatePolicy(double cutoff, ArticleApproximateGainUnits gainUnits, int maximumPivots = PivotCap)
     {
         if (!double.IsFinite(cutoff) || cutoff < 0 || cutoff >= 1 || !Enum.IsDefined(gainUnits))
             throw new ArgumentOutOfRangeException(nameof(cutoff));
-        Cutoff = cutoff; GainUnits = gainUnits;
+        if (maximumPivots < 1) throw new ArgumentOutOfRangeException(nameof(maximumPivots));
+        Cutoff = cutoff; GainUnits = gainUnits; MaximumPivots = maximumPivots;
     }
 
     public double[] Round(double[] projection, int[] actionCounts)
@@ -84,12 +86,18 @@ public sealed class ArticleApproximatePolicy
 
     public sealed class Selection
     {
+        private readonly int maximumPivots;
+        public Selection(int maximumPivots = PivotCap)
+        {
+            if (maximumPivots < 1) throw new ArgumentOutOfRangeException(nameof(maximumPivots));
+            this.maximumPivots = maximumPivots;
+        }
         public Candidate Best { get; private set; }
         public Decision Finished { get; private set; }
         public void Observe(int pivot, double averageGain, double[] profile)
         {
             if (Finished != null) throw new InvalidOperationException("Attempt has already ended.");
-            if (pivot < 1 || pivot > PivotCap || !double.IsFinite(averageGain) || averageGain < 0)
+            if (pivot < 1 || pivot > maximumPivots || !double.IsFinite(averageGain) || averageGain < 0)
                 throw new ArgumentOutOfRangeException(nameof(pivot));
             var candidate = new Candidate(pivot, averageGain, profile.ToArray());
             if (Best == null || averageGain < Best.AverageGain) Best = candidate; // earliest exact tie retained
@@ -99,7 +107,7 @@ public sealed class ArticleApproximatePolicy
         {
             if (Finished != null) return Finished;
             return Finished = new(Best != null && Best.AverageGain < CapThreshold ? "cap-accepted" : "cap-unsuccessful",
-                PivotCap, Best != null && Best.AverageGain < CapThreshold ? Best : null);
+                maximumPivots, Best != null && Best.AverageGain < CapThreshold ? Best : null);
         }
         public Decision EndWithoutCap(string reason, int pivot)
         {

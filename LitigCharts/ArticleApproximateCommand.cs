@@ -18,7 +18,7 @@ public static class ArticleApproximateCommand
 {
     public sealed record Request(FinalArticleCase Case, StrategicGameFingerprint.Snapshot ExpectedGame,
         FinalArticleExecution.Authorization Authorization, string ClaimsDirectory, int StartIndex, int StartBudget,
-        double RoundingCutoff, ArticleApproximateGainUnits GainUnits);
+        double RoundingCutoff, ArticleApproximateGainUnits GainUnits, int MaximumPivots = ArticleApproximatePolicy.PivotCap);
     private static readonly JsonSerializerOptions Json = new(FinalArticleExecution.Json) { Converters={new JsonStringEnumConverter()} };
     private static FinalArticleExecution.FileIdentity Identity(string path) => new(Path.GetFullPath(path),FinalArticleExecution.Hash(path));
     private static void WriteNew(string file, object value)
@@ -46,12 +46,14 @@ public static class ArticleApproximateCommand
         using(var decisions=JsonDocument.Parse(File.ReadAllBytes(request.Authorization.ScientificSpecifications.Path)))
         {
             var d=decisions.RootElement;
+            int authorizedCap=d.TryGetProperty("ApproximatePivotCap",out var cap) ? cap.GetInt32() : ArticleApproximatePolicy.PivotCap;
+            if(request.MaximumPivots!=authorizedCap) throw new InvalidDataException("Pivot cap differs from the resolved specification.");
             if(d.GetProperty("ApproximateStartsPerCore").GetInt32()!=request.StartBudget ||
                 d.GetProperty("ApproximateRoundingCutoff").GetDouble()!=request.RoundingCutoff ||
                 d.GetProperty("ApproximateGainUnits").GetString()!=request.GainUnits.ToString())
                 throw new InvalidDataException("Approximate policy differs from the resolved specification.");
         }
-        var policy=new ArticleApproximatePolicy(request.RoundingCutoff,request.GainUnits);
+        var policy=new ArticleApproximatePolicy(request.RoundingCutoff,request.GainUnits,request.MaximumPivots);
         var options=FinalArticleCaseFactory.Create(spec);
         var developer=(SequenceForm)await ArticleWorkedPathExtraction.InitializeAsync(options);
         var game=StrategicGameFingerprint.Capture(developer);
