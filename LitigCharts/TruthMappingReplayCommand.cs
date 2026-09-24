@@ -37,6 +37,7 @@ public static class TruthMappingReplayCommand
             ?? throw new InvalidDataException("Requested profile is absent.");
         ArticleWorkedPathExtraction.LoadProfile(developer, line.Split(',').Select(EFGFileReader.RationalStringToDouble).ToArray());
         int actionRows = ArticleWorkedPathExtraction.ValidateActionReport(developer, request.EquilibriumNumber, actions);
+        double[] completeProfile = developer.GetEquilibriumFromInformationSets();
         developer.EvolutionSettings.UseAcceleratedBestResponse = true;
         developer.EvolutionSettings.UseCurrentStrategyForBestResponse = true;
         developer.EvolutionSettings.RoundOffLowProbabilitiesBeforeAcceleratedBestResponse = false;
@@ -56,6 +57,8 @@ public static class TruthMappingReplayCommand
         developer.CalculateBestResponse(false);
         if (!gains.SequenceEqual(developer.Status.BestResponseImprovement))
             throw new InvalidDataException("Truth analysis changed the profile's full best-response gains.");
+        if (!completeProfile.SequenceEqual(developer.GetEquilibriumFromInformationSets()))
+            throw new InvalidDataException("Truth analysis changed the complete saved strategy, including off-path information sets.");
         Directory.CreateDirectory(output);
         string reportFile = Path.Combine(output, "replayed-report.csv");
         File.WriteAllText(reportFile, replay.csvReports.Single());
@@ -64,6 +67,7 @@ public static class TruthMappingReplayCommand
             request.EquilibriumNumber, Inputs = new[] { FileIdentity(requestFile), FileIdentity(profile), FileIdentity(actions), FileIdentity(numeric) },
             GameAssembly = FileIdentity(typeof(LitigGame).Assembly.Location), ReportingAssembly = FileIdentity(typeof(TruthMappingReplayCommand).Assembly.Location),
             GameIdentity = before, FullBestResponseGains = gains, ValidatedActionRows = actionRows, ReproducedNumericCells = cells,
+            CompleteProfileSha256 = ArticleApproximateSearch.ProfileHash(completeProfile), CompleteStrategyUnchanged = true,
             StrategicGameUnchanged = true, BestResponseGainsUnchanged = true, TruthAnalysis = truth };
         File.WriteAllText(Path.Combine(output, "truth-mapping-results.json"), JsonSerializer.Serialize(results, Json));
         string[] header = { "CaseId", "Equilibrium", "Exponent", "ModelTruthPrior", "ReplayedTruthMass", "MeritoriousPlaintiffShortfall",
