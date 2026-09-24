@@ -755,6 +755,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
         /* ------------------------------------------------------------ */
         public void RunLemke(ECTALemkeOptions flags)
         {
+            if (typeof(T) == typeof(InexactValue)) { RunFloatingLemke(flags); return; }
             int leaveBasis, enterBasis;
             bool z0leave = false;
 
@@ -853,6 +854,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
             {
                 int row = variableIndexToBasicCobasicIndex[variable];
                 if (row >= n) return 0;
+                if (typeof(T) == typeof(InexactValue) && floatingTableau != null) return floatingTableau[row][n + 1];
                 var numerator = Tableau[row][RHS()];
                 if (variable <= n) numerator = scaleFactors[variable].Times(numerator);
                 return numerator.DividedBy(determinant.Times(scaleFactors[RHS()])).AsDouble;

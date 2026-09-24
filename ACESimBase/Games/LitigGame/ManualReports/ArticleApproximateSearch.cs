@@ -24,6 +24,7 @@ public static class ArticleApproximateSearch
         ArticleApproximatePolicy.Candidate BestCandidate, string Error)
     {
         public Timing Performance { get; init; }
+        public FloatingLemkeDiagnostics NumericalDiagnostics { get; init; }
     }
     public sealed record Timing(double TraceSeconds, double CandidateCheckSeconds,
         double BestResponseSeconds, double AuditPersistenceSeconds, double SolverAndTraceOtherSeconds,
@@ -58,6 +59,7 @@ public static class ArticleApproximateSearch
         var calculators = new[] { options.PUtilityCalculator, options.DUtilityCalculator };
         var selection = new ArticleApproximatePolicy.Selection(policy.MaximumPivots);
         ECTAStrategyDiagnostics<InexactValue> diagnostics = null;
+        ECTALemke<InexactValue> floatingSolver = null;
         double[] prior = null;
         int evaluated = 0, invalid = 0;
         string error = null;
@@ -68,6 +70,7 @@ public static class ArticleApproximateSearch
             developer.TraceECTA<InexactValue>(initialProbabilities: null, seed: startIndex,
                 probabilityFloor: 0.001, maxPivots: policy.MaximumPivots,
                 beforeSolve: tree => {
+                    floatingSolver = tree.Lemke;
                     diagnostics = new(tree, developer.TraceOutcomeUtilities());
                     if (!counts.SequenceEqual(diagnostics.InformationSetIndices.Select(i => tree.informationSets[i].numMoves)))
                         throw new InvalidOperationException("Projection and complete-profile action coordinates differ.");
@@ -139,9 +142,11 @@ public static class ArticleApproximateSearch
                 throw new InvalidDataException("Restoring the selected complete profile changed its acceptance audit.");
         }
         finalCheckTimer.Stop();
+        if (floatingSolver?.FloatingDiagnostics != null) floatingSolver.FloatingDiagnostics.Termination = selection.Finished?.Reason;
         return new(startIndex, 1_000_000+startIndex, "InexactValue (double); no exact fallback", policy.Cutoff,
             policy.GainUnits, ranges, prior, evaluated, invalid, selection.Finished, selection.Best, error)
         {
+            NumericalDiagnostics = floatingSolver?.FloatingDiagnostics,
             Performance = new(traceTimer.Elapsed.TotalSeconds, checkSeconds, bestResponseSeconds, persistenceSeconds,
                 traceTimer.Elapsed.TotalSeconds - checkSeconds - persistenceSeconds, finalCheckTimer.Elapsed.TotalSeconds)
         };
