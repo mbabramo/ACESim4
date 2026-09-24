@@ -38,9 +38,37 @@ public static class FinalArticleExecution
         if (authorization == null) throw new InvalidDataException("Dispatch requires completed exact verification and resolved specifications.");
         using var exact = JsonDocument.Parse(File.ReadAllBytes(Verify(authorization.ExactVerification)));
         var e = exact.RootElement;
+        // Preserve the original three-case contract for historical manifests.
+        // The user's later scope reduction is accepted only through its frozen,
+        // hash-bound decision record; no equality requirement is weakened.
+        int requiredCases=3, requiredPairs=5;
+        if (e.TryGetProperty("VerificationScope",out var scopeIdentity))
+        {
+            using var scope=JsonDocument.Parse(File.ReadAllBytes(Verify(scopeIdentity.Deserialize<FileIdentity>(Json))));
+            var v=scope.RootElement;
+            if(v.GetProperty("Schema").GetString()!="exact-verification-scope-v2" ||
+                !v.GetProperty("RequiredCases").EnumerateArray().Select(x=>x.GetString()).SequenceEqual(new[] { "rn","ra" }) ||
+                v.GetProperty("RequiredTimingPairs").GetInt32()!=4 || !v.GetProperty("ExactEqualityRequirementsUnchanged").GetBoolean() ||
+                string.IsNullOrWhiteSpace(v.GetProperty("UserSteering").GetString()))
+                throw new InvalidDataException("Unrecognized revised exact-verification scope.");
+            requiredCases=2; requiredPairs=4;
+            if(!e.GetProperty("Cases").EnumerateArray().Select(c=>c.GetProperty("CaseId").GetString()).ToHashSet().SetEquals(new[] { "rn","ra" }) ||
+                !e.GetProperty("ComparedTimingPairs").EnumerateArray().Select(p=>p.GetProperty("CaseId").GetString()+":"+p.GetProperty("Repetition").GetInt32())
+                    .ToHashSet().SetEquals(new[] { "rn:1","rn:2","ra:1","ra:2" }))
+                throw new InvalidDataException("Revised verification omits a required case or timing repetition.");
+            foreach(var c in e.GetProperty("Cases").EnumerateArray())
+            {
+                int expected=c.GetProperty("CaseId").GetString()=="rn" ? 315 : 413;
+                var result=c.GetProperty("EquivalenceResult");
+                if(result.GetProperty("PivotCount").GetInt32()!=expected ||
+                    new[] { "Passed","InitialEqual","ExactComparison","CompleteStrategyEqual","SavedReloadedEqual","FrozenProductionStrategyEqual" }
+                        .Any(key=>!result.GetProperty(key).GetBoolean()))
+                    throw new InvalidDataException("Required full exact comparison is incomplete.");
+            }
+        }
         if (!e.GetProperty("AcceptanceComplete").GetBoolean() || !e.GetProperty("InstrumentedAndOrdinaryOutputsEqual").GetBoolean() ||
-            e.GetProperty("Cases").GetArrayLength() != 3 || e.GetProperty("Cases").EnumerateArray().Any(c => !c.GetProperty("CompletedEquivalence").GetBoolean()) ||
-            e.GetProperty("ComparedTimingPairs").GetArrayLength() != 5 ||
+            e.GetProperty("Cases").GetArrayLength() != requiredCases || e.GetProperty("Cases").EnumerateArray().Any(c => !c.GetProperty("CompletedEquivalence").GetBoolean()) ||
+            e.GetProperty("ComparedTimingPairs").GetArrayLength() != requiredPairs ||
             e.GetProperty("ComparedTimingPairs").EnumerateArray().Any(p => !p.GetProperty("ExactOutputsEqual").GetBoolean()))
             throw new InvalidDataException("Exact ECTA verification is incomplete.");
         using var specifications = JsonDocument.Parse(File.ReadAllBytes(Verify(authorization.ScientificSpecifications)));

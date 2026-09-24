@@ -54,6 +54,39 @@ public class FinalArticleExecutionTests
     }
 
     [TestMethod]
+    public void UserReducedScopeStillRequiresEveryExactResultAndTimingPair()
+    {
+        string root=Path.Combine(AppContext.BaseDirectory,"FinalArticleGateTests",Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        string exact=Path.Combine(root,"exact.json"), scope=Path.Combine(root,"scope.json"), decisions=Path.Combine(root,"decisions.json");
+        try
+        {
+            File.WriteAllText(scope,JsonSerializer.Serialize(new { Schema="exact-verification-scope-v2",RequiredCases=new[] {"rn","ra"},
+                RequiredTimingPairs=4,ExactEqualityRequirementsUnchanged=true,UserSteering="Omit optional long replay" }));
+            var frozenScope=new FinalArticleExecution.FileIdentity(scope,FinalArticleExecution.Hash(scope));
+            File.WriteAllText(decisions,"{\"Schema\":\"resolved-final-article-specifications-v1\",\"Resolved\":true,\"UserDecisionRecord\":\"test-only decision\"}");
+            void WriteExact(int pairs=4,bool strategyEqual=true) => File.WriteAllText(exact,JsonSerializer.Serialize(new {
+                AcceptanceComplete=true,InstrumentedAndOrdinaryOutputsEqual=true,VerificationScope=frozenScope,
+                Cases=new[] {"rn","ra"}.Select(id=>new {CaseId=id,CompletedEquivalence=true,EquivalenceResult=new {
+                    PivotCount=id=="rn" ? 315 : 413,Passed=true,InitialEqual=true,ExactComparison=true,
+                    CompleteStrategyEqual=strategyEqual,SavedReloadedEqual=true,FrozenProductionStrategyEqual=true}}).ToArray(),
+                ComparedTimingPairs=Enumerable.Range(0,pairs).Select(i=>new {CaseId=i<2 ? "rn":"ra",Repetition=i%2+1,ExactOutputsEqual=true}).ToArray()}));
+            FinalArticleExecution.Authorization Auth()=>new(new(exact,FinalArticleExecution.Hash(exact)),new(decisions,FinalArticleExecution.Hash(decisions)));
+            WriteExact(); FinalArticleExecution.ValidateAuthorization(Auth());
+            WriteExact(pairs:3); Assert.ThrowsException<InvalidDataException>(()=>FinalArticleExecution.ValidateAuthorization(Auth()));
+            WriteExact(strategyEqual:false); Assert.ThrowsException<InvalidDataException>(()=>FinalArticleExecution.ValidateAuthorization(Auth()));
+            WriteExact(); File.AppendAllText(scope," ");
+            Assert.ThrowsException<InvalidDataException>(()=>FinalArticleExecution.ValidateAuthorization(Auth()));
+        }
+        finally
+        {
+            string allowed=Path.GetFullPath(Path.Combine(AppContext.BaseDirectory,"FinalArticleGateTests"));
+            if(!FinalArticleExecution.Inside(root,allowed)) throw new InvalidOperationException("Test cleanup escaped scratch root.");
+            Directory.Delete(root,true);
+        }
+    }
+
+    [TestMethod]
     public void OutputContainmentRejectsSiblingAndParentTraversal()
     {
         string root=Path.GetFullPath(Path.Combine(AppContext.BaseDirectory,"isolated","production"));
