@@ -69,9 +69,9 @@ public static class FloatPivotDiagnosis
                     diagnostics=new(tree,developer.TraceOutcomeUtilities());
                     var l=tree.Lemke;matrix=l.lcpM.Select(row=>row.Select(v=>v.AsDouble).ToArray()).ToArray();rhs=l.rhsq.Select(v=>v.AsDouble).ToArray();cover=l.coveringVectorD.Select(v=>v.AsDouble).ToArray();
                     exact=new(rhs.Length);
-                    IMaybeExact<ExactValue> Convert(double v){var r=Binary(v);var x=IMaybeExact<ExactValue>.FromRational(r);if(x.AsDouble!=v)throw new Exception("Input roundtrip failed");return x;}
+                    IMaybeExact<ExactValue> Convert(double v){var r=Binary(v);var x=IMaybeExact<ExactValue>.FromRational(r);if(x.AsRational!=r)throw new Exception("Exact rational input changed");return x;}
                     for(int i=0;i<rhs.Length;i++){exact.rhsq[i]=Convert(rhs[i]);exact.coveringVectorD[i]=Convert(cover[i]);for(int j=0;j<rhs.Length;j++)exact.lcpM[i][j]=Convert(matrix[i][j]);}
-                    File.WriteAllText(Path.Combine(output,"inputs.json"),JsonSerializer.Serialize(new {Matrix=matrix,Rhs=rhs,Cover=cover,Prior=diagnostics.PriorProbabilities,Ranges=ranges,InexactValue.Tolerance,ExactInput="Exact binary rational values of the floating LCP; every input roundtrips bit-for-bit."},Json));
+                    File.WriteAllText(Path.Combine(output,"inputs.json"),JsonSerializer.Serialize(new {Matrix=matrix,Rhs=rhs,Cover=cover,Prior=diagnostics.PriorProbabilities,Ranges=ranges,InexactValue.Tolerance,ExactInput="Exact binary rational values of the floating LCP; constructed directly from IEEE-754 sign, mantissa and exponent; rational-to-double display conversion is not used to construct inputs."},Json));
                 },afterPivot:(tree,s)=>{
                     object evaluation=null;
                     if(s.Pivot<=10 || s.Pivot%100==0 || s.Pivot==655 || s.Pivot==floatCap)
