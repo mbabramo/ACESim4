@@ -92,7 +92,8 @@ public static class FinalArticleCompletionSnapshot
             var c=cases[task.ID]; var p=prepared[c.Parameters.Id];
             string directory=Path.Combine(output,c.Parameters.Id); Directory.CreateDirectory(directory);
             var copies=new List<object>();
-            foreach(string name in new[] { p.ProfileFileName,p.ActionFileName,p.NumericFileName,"FinalAgreement "+p.OptionSetName+" -log.txt" })
+            string logName=Launcher.ReportFilename("FinalAgreement",p.OptionSetName,$" task-Optimize-id{task.ID}-rep0-scenarionone-log.txt");
+            foreach(string name in new[] { p.ProfileFileName,p.ActionFileName,p.NumericFileName,logName })
             {
                 string source=Path.Combine(manifest.ResultsDirectory,name),destination=Path.Combine(directory,name);
                 string before=FinalArticleExecution.Hash(source); File.Copy(source,destination,false);
