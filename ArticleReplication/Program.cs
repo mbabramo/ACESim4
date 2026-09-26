@@ -30,6 +30,7 @@ public static class Program
                 case "self-test":await SelfTest.Run(Get("solutions"),Get("output"));return 0;
                 case "reproduce":await Pipeline.Run(options);return 0;
                 case "rebuild":await Rebuild.Run(options);return 0;
+                case "verify-standard":StandardCoverage.Validate(Get("request"),Get("output"));return 0;
                 default:throw new ArgumentException("Unknown command; no implicit solve: "+args[0]);
             }
         }

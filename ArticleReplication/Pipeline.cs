@@ -86,6 +86,7 @@ public static class Pipeline
                 }).ToArray();
                 Files.Save(request,new LitigCharts.FinalArticleResultsCommand.Request(rows,plan.Cases,Path.Combine(collection,"Results"),Path.Combine(collection,"Supplemental materials"),workers));
                 await Commands.Run(logs,"standard-litigcharts","dotnet",[typeof(LitigCharts.FinalArticleResultsCommand).Assembly.Location,"final-article-results","--request",request],output);
+                StandardCoverage.Validate(request,Path.Combine(output,"standard-coverage.json"));
             }
             if(settings.Steps.Contains("Manuscript"))await Manuscript.Run(bundle,manifest,collection,output);
             Files.Save(Path.Combine(output,"completed.json"),new{Passed=true,CompleteArticle=false,FinishedUtc=DateTime.UtcNow,PrimaryProfiles=ready.Length,ReservedExternalCases=jobs.Count(j=>j.Disposition==JobDisposition.AwaitExternalResult),MissingCases=jobs.Count(j=>j.Disposition==JobDisposition.MissingResult),PendingIntegration=unsupported,SolvesStarted=0});
