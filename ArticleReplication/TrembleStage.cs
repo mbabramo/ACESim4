@@ -6,14 +6,14 @@ namespace ArticleReplication;
 /// <summary>Fresh opponent-tremble diagnostics, with full original strategies and no equilibrium solves.</summary>
 public static class TrembleStage
 {
-    public static async Task Run(string bundle,ResolvedArticlePlan plan,string run,string output,int workers)
+    public static async Task Run(string? bundle,ResolvedArticlePlan plan,string run,string output,int workers)
     {
         if(Directory.Exists(output))throw new IOException("Fresh tremble output required.");
         if(plan.Settings.Trembles.Length==0||plan.Settings.Trembles.Any(e=>!double.IsFinite(e)||e<=0||e>=1)||plan.Settings.Trembles.Distinct().Count()!=plan.Settings.Trembles.Length||plan.Settings.TrembleDirections<1)throw new InvalidDataException("Finite distinct trembles in (0,1) and positive direction count required.");
         if(plan.Settings.Trembles.Any(e=>double.Parse(e.ToString("0.000"))!=e))throw new InvalidDataException("Tremble file coordinates currently require precision of 0.001.");
         var approximate=Files.Object(Path.Combine(run,"ReportResults/MultipleStarts/completed.json"));if(approximate["Passed"]?.GetValue<bool>()!=true)throw new InvalidDataException("Revalidate multiple starts before trembles.");
         var accepted=approximate["Results"]!.AsArray().Where(a=>a!["Accepted"]!.GetValue<bool>()).ToDictionary(a=>a!["CaseId"]!.GetValue<string>()+$"-start-{a["StartIndex"]!.GetValue<int>():D5}");
-        var available=JsonNode.Parse(File.ReadAllText(Path.Combine(bundle,"inputs/profiles.json")))!.AsArray();var selected=new List<JsonObject>();
+        var available=bundle==null?CurrentProfiles(plan,run,accepted.Values.ToArray()):JsonNode.Parse(File.ReadAllText(Path.Combine(bundle,"inputs/profiles.json")))!.AsArray();var selected=new List<JsonObject>();
         foreach(var p in available)
         {
             string id=p!["Id"]!.GetValue<string>(),caseId=p["CaseId"]!.GetValue<string>(),kind=p["Kind"]!.GetValue<string>();
@@ -21,7 +21,7 @@ public static class TrembleStage
             string directory=kind=="exact-primary"?Path.Combine(run,"ReportResults/Primary",caseId):Path.Combine(run,"ReportResults/MultipleStarts",caseId,$"start-{p["Start"]!.GetValue<int>():D5}");
             var audit=Files.Object(Path.Combine(directory,"validation.json"));if(audit["Passed"]?.GetValue<bool>()!=true)throw new InvalidDataException("Unvalidated tremble endpoint.");
             var profile=Files.Object(Directory.GetFiles(Path.Combine(directory,"Sources/Profiles"),"*.json").Single());
-            string file=Files.Under(bundle,p["FrozenFile"]!.GetValue<string>());if(Files.Sha(file)!=p["FrozenSha256"]!.GetValue<string>())throw new InvalidDataException("Changed tremble input.");
+            string file=bundle==null?p["FrozenFile"]!.GetValue<string>():Files.Under(bundle,p["FrozenFile"]!.GetValue<string>());if(Files.Sha(file)!=p["FrozenSha256"]!.GetValue<string>())throw new InvalidDataException("Changed tremble input.");
             var vector=File.ReadAllText(file).Trim().Split(',').Select(EFGFileReader.RationalStringToDouble);var current=profile["Strategies"]!.AsArray().SelectMany(s=>s!["Probabilities"]!.AsArray().Select(v=>v!.GetValue<double>()));
             if(!vector.SequenceEqual(current))throw new InvalidDataException("Tremble input differs from newly validated complete profile.");
             Files.EqualScience(p["Welfare"],audit["Welfare"]!["Headline"],"Tremble original welfare");
@@ -45,6 +45,21 @@ public static class TrembleStage
         Directory.CreateDirectory(Path.Combine(output,"reports"));
         await Commands.Worker(Path.Combine(output,"logs"),"independent-response-checks",output,"worker-tremble-verify",output);
         Report(output,Path.Combine(output,"generated-reports"),bundle);
+    }
+    static JsonArray CurrentProfiles(ResolvedArticlePlan plan,string run,JsonNode?[] accepted)
+    {
+        var all=new JsonArray();
+        foreach(string id in plan.CoreCases)Add(id,null);
+        foreach(var record in accepted)Add(record!["CaseId"]!.GetValue<string>(),record["StartIndex"]!.GetValue<int>());
+        void Add(string id,int? start)
+        {
+            string dir=start==null?Path.Combine(run,"ReportResults/Primary",id):Path.Combine(run,"ReportResults/MultipleStarts",id,$"start-{start:D5}");
+            var audit=Files.Object(Path.Combine(dir,"validation.json"));if(audit["Passed"]?.GetValue<bool>()!=true)throw new InvalidDataException("Unvalidated current profile.");
+            string file=Path.Combine(dir,"equilibrium.equ");
+            all.Add(new JsonObject{["Id"]=id+(start==null?"-exact-primary":$"-start-{start:D5}"),["CaseId"]=id,["Kind"]=start==null?"exact-primary":"approximate",["Start"]=start,
+                ["RawGains"]=(audit[start==null?"FullBestResponseGains":"FullBestResponseRawGains"])!.DeepClone(),["Welfare"]=audit["Welfare"]!["Headline"]!.DeepClone(),["FrozenFile"]=file,["FrozenSha256"]=Files.Sha(file)});
+        }
+        return all;
     }
     public static void Report(string stage,string output,string? referenceBundle=null)
     {

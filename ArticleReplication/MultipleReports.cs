@@ -152,7 +152,8 @@ public static class MultipleReports
     {
         var a=Files.Object(Path.Combine(generated,"Supplemental materials/Multiple equilibria/Sources/catalog.json"));var b=Files.Object(Path.Combine(reference,"Supplemental materials/Multiple equilibria/Sources/catalog.json"));
         Files.EqualScience(a["Catalogs"],b["Catalogs"],"Every grouping and maximum within-group distance");
-        a=Files.Object(Path.Combine(generated,"Figures/Sources",Stem+".generated-data.json"));b=Files.Object(Path.Combine(reference,"Figures/Sources",Stem+".json"));
+        string prior=Path.Combine(reference,"Figures/Sources",Stem+".json");if(!File.Exists(prior))prior=Path.Combine(reference,"Figures/Sources",Stem+".generated-data.json");
+        a=Files.Object(Path.Combine(generated,"Figures/Sources",Stem+".generated-data.json"));b=Files.Object(prior);
         foreach(string field in new[]{"Rows","PlottedPoints","AxisMaxima","AcceptedProfiles","AttemptedStarts"})Files.EqualScience(a[field],b[field],"Multiple welfare figure "+field);
         Files.Save(output,new{Passed=true,ExactScientificValues=true,GroupingTolerancesDoNotReplaceExactComparison=true});
     }

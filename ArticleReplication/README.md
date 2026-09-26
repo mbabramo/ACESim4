@@ -1,45 +1,51 @@
-# Correlated-signals replication — isolated implementation
+# Correlated-signals article replication
 
-This C# coordinator consumes a resolved article plan, validates saved computational results, and invokes the numerical and LitigCharts projects. It never runs a solver merely because an input is missing. The temporary external-jobs overlay reserves running cases by both case ID and scientific game identity, including in scratch-mode planning.
+The public command is `run`. Scientific settings come from `ArticlePlan.cs` and optional command-line overrides. No input settings file, provenance record, integrity manifest, prior report or article checkout is required.
 
-The refined target is [code plus optional computational results](PortableReplicationContract.md): an empty output directory, no required NonGenerated folder or earlier article checkout, data-free presentation templates in the code repository, and all result-dependent content generated automatically. The current commands below are an intermediate implementation, not yet that portable contract.
-
-Deployment uses installed .NET, TeX, fonts and PDF utilities. `doctor` checks them without copying installations into article directories. `dotnet build -p:BuildReplicationContainer=true` builds an optional Linux image through the same C# project. See [INSTALL.md](INSTALL.md) for commands, versions and the remaining integration limits.
-
-## Current commands
-
-`pack` and `pack-computations` import legacy records for migration and regression testing. They are not the final input contract. `pack-histories` packages completed pivot streams and their evidence. See [ComputationCaches.md](ComputationCaches.md) for the precise boundary between reusable computations and generated reports.
-
-`export-primary-cache --run DIR --output NEW_DIR` exports only primary equilibrium vectors and game identities from a passed run. `reproduce` emits the same cache automatically in `ComputationCache`. A subsequent run consumes it through `--solutions`, without old action/outcome reports or audits. `verify-primary-reproduction` performs a separate exact scientific comparison against a reference run.
-
-`reproduce` runs explicitly selected implemented steps into a fresh directory. Raw outputs go into `ReportResults`, reader-facing files into `article`, and requests/commands/validation alongside them. Existing directories are refused. No cleanup or live-repository publication occurs.
-
-`rebuild` archives and hashes actual source (Git is optional), checks prerequisites, restores locked dependencies, builds ACESimBase, LitigCharts and this coordinator in Release with one MSBuild worker, records all executable hashes, and invokes `reproduce`. Example (substitute local paths and an available shared worker budget):
-
-```powershell
-dotnet run --project ArticleReplication -c Release -- rebuild --source C:\isolated\source --solutions C:\saved\solutions --histories C:\saved\histories --settings C:\isolated\source\ArticleReplication\correlated-signals.saved-results.json --external-jobs C:\isolated\external-jobs.json --output C:\isolated\fresh-rebuild --workers 1 --other-workers 2
+```sh
+dotnet run --project ArticleReplication -c Release -- run --output /path/new-results --input /path/saved-solves --workers 4
 ```
 
-`self-test --solutions DIR --output NEW_JSON` checks the canonical case set, exact frozen specifications, changed-cost propagation, reservations and native policy/welfare plots. It starts no solve.
+Omit `--input` to calculate the selected solves afresh. Missing saved solves are computed by default. Use `--missing wait` to validate only available solutions without launching missing solves. An output directory must be new; the coordinator never deletes or publishes over an existing repository.
 
-## Implemented paths
+For a fresh source snapshot, locked dependency restore and Release rebuild of all referenced projects before execution:
 
-- **Primary:** initialize each full game, check its complete identity, load the complete saved profile, check every action, normalization, full unilateral best response, accounting, fresh reports and off-path completion. Optional legacy regression inputs additionally check old reports, complete scientific profiles and welfare exactly.
-- **Welfare:** run the established four-corner C# evaluator and compare all endpoints and main decomposition rows.
-- **Strategic:** verify the original passed full diagnostic receipts, decompressed result hashes and unchanged complete endpoints before reusing coalition calculations. Missing endpoint-dependent comparisons remain pending.
-- **Histories:** validate complete saved streams, original pivot counts, input hashes and complete endpoint policies using the existing trajectory criteria. Rebuild viewers without replaying pivots. This is not a new exact-arithmetic equivalence proof.
-- **StandardReports:** reconstruct the six ordinary per-case diagrams using the game’s existing report generator. Execute `LitigCharts final-article-results` for standard individual, aggregate welfare/disposition/participation, signal and structural diagrams. Require PDFs, previews, editable sources, input identities and an output inventory under the existing Results/Supplemental materials structure.
-- **MultipleStarts:** validate all recorded initializations and stopping rules, revalidate each accepted full profile, preserve rejected attempts, regenerate complete-link grouping, range summaries and Figure 8. This stage has its own approximate acceptance criteria.
-- **Trembles:** compute the specified unilateral responses afresh, run independent response checks and regenerate individual and aggregate reports.
-- **Exhibits:** native complete policies, Figures 1–8, Tables 1/2/3/5 and strategic/welfare supplements, populated from current validated computations and the central plan. Rendering reads no old figure/table TeX. Separate verification commands compare scientific values with explicitly supplied regression references.
-- **Manuscript:** export the authored template and bibliography embedded in the source project, generate numeric bindings and compile with current numbered exhibits. Authored prose and existing revision flags are preserved. The historical static utility illustration remains an explicitly preserved source asset.
+```sh
+dotnet run --project ArticleReplication -c Release -- rebuild --source /path/code --output /path/new-rebuild --input /path/saved-solves --workers 4
+```
 
-The scientific authority is `ArticlePlan`, built on the existing C# case factory. Changing `MainCostMultipliers` changes cases, comparisons, standard groups, cost-series data and figure rows. There is no second case list in a reporting script. The plan still contains externally reserved cases; incomplete comparisons are never represented by zeros.
+The output contains `ReportResults` (fresh calculations, audits and reusable solve files), `article` (the existing Results, Supplemental materials, Tables and Figures organization), and execution/build records. `rebuild` places these under `run`. Logs and hashes are generated output, not required inputs.
 
-## Still required before full migration
+## Optional saved solves
 
-Fresh exact/approximate solving is not yet connected, so `FromScratch` is rejected before dispatch. All-stage computation-cache production/reuse, removal of remaining legacy approximate/tremble input dependencies, whole-collection coverage/visual QA, updated full Linux tests and final live-repository migration remain required. A successful selected-stage test is **not** a complete article release certificate; completion records retain `CompleteArticle: false`.
+Only these files are consumed by `run --input`:
 
-The numerical `Entry`, `Tremble` and `Verify` helpers retain the previously executed reproduction checks. Temporary workspace protections remain in `Pipeline` until the isolated implementation is ready for general use.
+- `Equilibria/<case>.equ`: complete primary equilibrium probabilities, revalidated in the full game.
+- `Search/<case>/start-00000.equ`: complete approximate profile, or an explicit `NoEquilibriumFound` record for that initialization and budget.
+- `Histories/<case>.history`: the optional solver path, with its strategy frames and native pivot snapshots.
 
-Every child numerical process uses `DOTNET_PROCESSOR_COUNT=1` and single-thread numerical-library settings. Compiler concurrency is explicit and must fit the shared 32-computation budget, including external work. No automatic monitor is installed.
+These are readable, versioned JSON formats. A failed attempt means that this search found no acceptable equilibrium; it is not a proof of nonexistence. Changed search budgets/cutoffs require recomputation, except an already-triggered identical early stopping rule within both budgets. Mathematical validation is mandatory for every reused strategy. History diagnostics and native-to-policy projections are recalculated against the current full game; these trajectory checks are distinct from an algebraic pivot equivalence proof.
+
+`ReportResults/Shortcuts` contains the same narrow files for the next run. Welfare and strategic decompositions, tremble responses, grouping, numeric reports, figures and tables are always recomputed. No decomposition receipt or old chart is a shortcut.
+
+## Settings and stages
+
+Defaults are in `CorrelatedSignalsSettings`. Useful overrides include `--costs 0.25,0.5,1,2,4`, `--starts 50`, `--pivots 20000`, `--cutoff 0.005`, `--noise 0.1,0.4`, `--grids 8x15,12x8,8x8`, `--extensions false`, and `--trial-only false`. Costs must include the reference multiplier 1. Fifty starts for each of the four core games means 200 attempts.
+
+`--steps Primary,MultipleStarts,Welfare,Strategic,Trembles,Histories,StandardReports,Exhibits,Manuscript` is the default. Primary is required. Trembles includes the selected multiple-start profiles. Manuscript requires its contributing calculation/exhibit stages. `--cases case-id,...` permits a bounded test of the same full games. Never interpret a selected subset as a full article release.
+
+The primary stage uses the ordinary exact solver with its existing seed, completion and validation conventions. MultipleStarts uses the separate stable floating-point search and its existing immediate/capped acceptance criteria. Saved complete profiles retain off-path strategies and agreement decisions. StandardReports runs the existing report generator and LitigCharts, including editable sources and previews. Exhibits and manuscript numeric bindings use native C# generators and embedded authored/layout sources.
+
+Each numerical worker is single-threaded. `--workers` plus `--other-workers` may not exceed 32. `--reserve-cases` leaves specified unavailable cases pending. A temporary local guard also reserves the two original unfinished grid cases on the development machine; no frozen worker or original build is modified.
+
+## Tools, migration and verification
+
+See [INSTALL.md](INSTALL.md) for installed .NET, TeX, fonts, PDF utilities and the optional MSBuild container target. Dependencies are not copied into the output folder.
+
+`export-shortcuts --run PASSED_RUN --output NEW_DIR` migrates validated older results. `export-history-shortcuts --histories OLD_HISTORY_PACKAGE --output NEW_DIR` converts old streams. These migration commands may read legacy records; public `run` does not. Legacy `reproduce`, `pack-*` and settings files remain only for migration/regression compatibility.
+
+`test-shortcuts` tests stopping-policy compatibility and failed-attempt semantics. Separate `verify-primary-reproduction`, `verify-multiple-reports`, `verify-strategic-tables` and figure/table verifiers compare current results against explicitly supplied regression references. Such references are never required replication inputs.
+
+`verify-saved-solves` compares complete primary/search profiles and scientific CSV fields; `verify-history-reproduction` compares every native history record exactly. [VALIDATION.md](VALIDATION.md) records executed fresh/reuse, Windows/Linux and full-generation checks.
+
+Full collection validation, visual review and eventual live-repository migration remain separate release gates. Completion records retain `CompleteArticle: false` until full release evidence is assembled.

@@ -64,10 +64,10 @@ public static class StrategicReports
     {
         var validation=Files.Object(Path.Combine(stage,"validation.json"));if(validation["Passed"]?.GetValue<bool>()!=true)throw new InvalidDataException("Strategic cache was not validated.");
         var contrasts=new Dictionary<(string,string),(ContrastResult Data,string Sha)>();var index=new List<object>();
-        foreach(var pair in validation["CachedPairs"]!.AsArray())
+        foreach(var pair in (validation["Pairs"]??validation["CachedPairs"])!.AsArray())
         {
             string id=pair!["Pair"]!.GetValue<string>(),directory=Files.Under(stage,id);
-            foreach(var fingerprint in pair["DecompressedOriginalHashesVerified"]!.AsArray())
+            foreach(var fingerprint in (pair["Outputs"]??pair["DecompressedOriginalHashesVerified"])!.AsArray())
             {
                 string file=fingerprint!["File"]!.GetValue<string>();if(!file.StartsWith(id+"-"))continue;
                 using var zip=new GZipStream(File.OpenRead(Path.Combine(directory,file+".gz")),CompressionMode.Decompress);using var dataStream=new MemoryStream();zip.CopyTo(dataStream);byte[] bytes=dataStream.ToArray();
@@ -119,7 +119,8 @@ public static class StrategicReports
         foreach(string stem in Stems)
         {
             Files.EqualScience(Files.Object(Path.Combine(generated,"Tables/Sources",stem+".layout.json")),Files.Object(Path.Combine(reference,stem+".layout.json")),stem+" every cell");
-            var a=Files.Object(Path.Combine(generated,"Tables/Sources",stem+".generated-data.json"))["Panels"]!.AsArray();var b=Files.Object(Path.Combine(reference,stem+".json"))["Panels"]!.AsArray();
+            string prior=Path.Combine(reference,stem+".json");if(!File.Exists(prior))prior=Path.Combine(reference,stem+".generated-data.json");
+            var a=Files.Object(Path.Combine(generated,"Tables/Sources",stem+".generated-data.json"))["Panels"]!.AsArray();var b=Files.Object(prior)["Panels"]!.AsArray();
             for(int i=0;i<a.Count;i++)foreach(string k in new[]{"Title","SourceCase","TargetCase","Rows"})Files.EqualScience(a[i]![k],b[i]![k],stem+" unrounded "+k);
         }
         Files.Save(output,new{Passed=true,EveryCellIdentical=true,EveryUnroundedSelectionAndAllocationIdentical=true});

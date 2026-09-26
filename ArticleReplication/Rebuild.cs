@@ -17,10 +17,11 @@ public static class Rebuild
         await Commands.Run(logs,"restore","dotnet",["restore",project,"--locked-mode","--disable-parallel"],checkout);
         await Commands.Run(logs,"build","dotnet",["build",project,"-c","Release","--no-restore","-m:1","/p:UseSharedCompilation=false","-o",runtime],checkout);
         Files.Save(Path.Combine(output,"build.json"),new{Passed=true,SourceManifestSha256=Files.Sha(Path.Combine(output,"source-manifest.json")),SourceArchiveSha256=Files.Sha(archive),BuiltUtc=DateTime.UtcNow,Runtime=Directory.GetFiles(runtime,"*",SearchOption.AllDirectories).Order().Select(f=>new BundleFile(Path.GetRelativePath(runtime,f),Files.Sha(f),new FileInfo(f).Length))});
-        var args=new List<string>{Path.Combine(runtime,"ArticleReplication.dll"),"reproduce"};
-        foreach(var (key,value) in options.Where(x=>x.Key!="source"&&x.Key!="output")){args.Add("--"+key);args.Add(key is "solutions" or "histories" or "settings" or "external-jobs" or "approximate-inputs"?Path.GetFullPath(value):value);}
+        string command=options.ContainsKey("solutions")?"reproduce":"run";
+        var args=new List<string>{Path.Combine(runtime,"ArticleReplication.dll"),command};
+        foreach(var (key,value) in options.Where(x=>x.Key!="source"&&x.Key!="output")){args.Add("--"+key);args.Add(key is "input" or "solutions" or "histories" or "settings" or "external-jobs" or "approximate-inputs"?Path.GetFullPath(value):value);}
         args.AddRange(["--output",Path.Combine(output,"run")]);
-        await Commands.Run(logs,"reproduce","dotnet",args,output);
+        await Commands.Run(logs,command,"dotnet",args,output);
         Files.Save(Path.Combine(output,"completed.json"),new{Passed=true,FinishedUtc=DateTime.UtcNow,BuildSha256=Files.Sha(Path.Combine(output,"build.json")),ReproductionSha256=Files.Sha(Path.Combine(output,"run/completed.json")),WholeArticleRelease=false});
     }
 }

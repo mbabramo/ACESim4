@@ -10,8 +10,11 @@ public static class Program
         try
         {
             if(args.Length==0||args[0] is "help" or "--help")
-            {Console.WriteLine("ArticleReplication doctor|container-build|pack|pack-histories|plan|reproduce|rebuild|histories|self-test|verify-standard. Explicit commands only; no default solver launch.");return 0;}
+            {Console.WriteLine("ArticleReplication run --output NEW_DIR [--input SAVED_SOLVES] [--steps Primary,MultipleStarts,Welfare,Strategic,Trembles,Histories,StandardReports,Exhibits,Manuscript] [--workers N]. C# defaults or CLI settings; missing solves are computed unless --missing wait. rebuild additionally requires --source DIR and rebuilds all projects. doctor and container-build check/build installed dependencies. export-shortcuts and export-history-shortcuts migrate previous results. Legacy reproduce/pack commands remain for regression only.");return 0;}
             if(args[0]=="worker-primary")return await Entry.Main(["primary",args[1]]);
+            if(args[0]=="worker-search"){await SearchStage.Worker(args[1]);return 0;}
+            if(args[0]=="worker-strategic"){await StrategicStage.Worker(args[1],args[2]);return 0;}
+            if(args[0]=="worker-solution-history"){await SolutionHistory.Worker(args[1]);return 0;}
             if(args[0]=="worker-approximate-cache"){await ApproximateCache.Worker(args[1]);return 0;}
             if(args[0]=="worker-tremble"){await Tremble.Main([args[1]]);return 0;}
             if(args[0]=="worker-tremble-verify"){await Verify.Main([args[1]]);return 0;}
@@ -20,6 +23,13 @@ public static class Program
             var options=Parse(args.Skip(1).ToArray());string Get(string key)=>options.TryGetValue(key,out var v)?v:throw new ArgumentException("Missing --"+key);
             switch(args[0])
             {
+                case "run":await SimpleRun.Run(options);return 0;
+                case "test-shortcuts":ShortcutTests.Run(Get("output"));return 0;
+                case "verify-saved-solves":ShortcutTests.Compare(Get("generated"),Get("reference"),Get("output"));return 0;
+                case "verify-history-reproduction":ShortcutTests.CompareHistory(Get("generated"),Get("reference"),Get("output"));return 0;
+                case "verify-csv-reproduction":ShortcutTests.CompareCsv(Get("generated"),Get("reference"),Get("output"));return 0;
+                case "export-shortcuts":SolveShortcut.Export(Get("run"),Get("output"));return 0;
+                case "export-history-shortcuts":SolutionHistory.ExportLegacy(Get("histories"),Get("output"));return 0;
                 case "export-primary-cache":PrimaryCache.Export(Get("run"),Get("output"));return 0;
                 case "test-primary-cache-rejections":await PrimaryCache.NegativeTests(Get("solutions"),Get("output"));return 0;
                 case "verify-primary-reproduction":PrimaryCache.Compare(Get("generated"),Get("reference"),Get("output"));return 0;

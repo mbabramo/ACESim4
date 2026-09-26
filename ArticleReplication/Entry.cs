@@ -33,13 +33,33 @@ internal static class Entry
         var spec=request.GetProperty("Case").Deserialize<FinalArticleCase>(json);
         var options=FinalArticleCaseFactory.Create(spec);
         var developer=await ArticleWorkedPathExtraction.InitializeAsync(options);
-        if(StrategicGameFingerprint.Capture(developer)!=request.GetProperty("GameIdentity").Deserialize<StrategicGameFingerprint.Snapshot>())throw new InvalidDataException("Full game changed");
+        if(request.TryGetProperty("GameIdentity",out var gameIdentity)&&StrategicGameFingerprint.Capture(developer)!=gameIdentity.Deserialize<StrategicGameFingerprint.Snapshot>())throw new InvalidDataException("Full game changed");
         string Input(string key)
         {
             var id=request.GetProperty("Inputs").GetProperty(key).Deserialize<FinalArticleExecution.FileIdentity>(json);
             return FinalArticleExecution.Verify(id);
         }
-        string eq=Input("Equilibrium");
+        bool compute=request.TryGetProperty("Compute",out var computeElement)&&computeElement.GetBoolean();
+        string eq;
+        if(compute||request.TryGetProperty("ShortcutFile",out _))
+        {
+            double[] saved;
+            if(compute)
+            {
+                bool captureHistory=request.TryGetProperty("CaptureHistory",out var historyFlag)&&historyFlag.GetBoolean();
+                using var capture=captureHistory?new ArticleReplication.SolutionHistory.Capture((ACESimBase.GameSolvingAlgorithms.SequenceForm)developer,Path.Combine(output,"solve.history")):null;
+                var settings=developer.EvolutionSettings;settings.UseExistingEquilibriaIfAvailable=false;settings.CreateEquilibriaFile=false;
+                settings.SequenceFormNumPriorsToUseToGenerateEquilibria=1;settings.ParallelOptimization=false;settings.TryInexactArithmeticForAdditionalEquilibria=false;
+                settings.ConsiderInitializingToMostRecentEquilibrium=false;settings.CustomSequenceFormInitialization=false;settings.SequenceFormUseRandomSeed=false;
+                await developer.RunAlgorithm(options.Name);saved=developer.GetEquilibriumFromInformationSets();
+                // Preserve the completed solve even if subsequent history/report export fails.
+                Directory.CreateDirectory(output);File.WriteAllText(Path.Combine(output,"equilibrium.equ"),string.Join(',',saved.Select(p=>p.ToString("R",CultureInfo.InvariantCulture))));
+                capture?.Complete(spec.Id);
+            }
+            else saved=ArticleReplication.SolveShortcut.Read(request.GetProperty("ShortcutFile").GetString()!,spec.Id,"ExactPrimary",0,new()).Probabilities;
+            Directory.CreateDirectory(output);eq=Path.Combine(output,"equilibrium.equ");File.WriteAllText(eq,string.Join(',',saved.Select(p=>p.ToString("R",CultureInfo.InvariantCulture))));
+        }
+        else eq=Input("Equilibrium");
         var lines=File.ReadAllLines(eq).Where(x=>!string.IsNullOrWhiteSpace(x)).ToArray();
         if(lines.Length!=1)throw new InvalidDataException("One full primary profile required");
         var vector=lines[0].Split(',').Select(EFGFileReader.RationalStringToDouble).ToArray();
@@ -55,7 +75,8 @@ internal static class Entry
         string actions=Path.Combine(output,"information-set-actions.csv");
         File.WriteAllText(actions,InformationSetActionReport.BuildCsv(developer,1));
         int actionRows=ArticleWorkedPathExtraction.ValidateActionReport(developer,1,actions);
-        if(request.GetProperty("Inputs").TryGetProperty("Actions",out _))ArticleWorkedPathExtraction.ValidateActionReport(developer,1,Input("Actions"));
+        bool hasInputs=request.TryGetProperty("Inputs",out var inputFields);
+        if(hasInputs&&inputFields.TryGetProperty("Actions",out _))ArticleWorkedPathExtraction.ValidateActionReport(developer,1,Input("Actions"));
         developer.CalculateBestResponse(false);
         var gains=developer.Status.BestResponseImprovement.ToArray();
         if(!developer.Status.BestResponseReflectsCurrentStrategy||gains.Length!=2||gains.Any(g=>!double.IsFinite(g)||Math.Abs(g)>1e-7))throw new InvalidDataException("Full unilateral BR failed");
@@ -65,7 +86,7 @@ internal static class Entry
         var welfare=SavedProfileWelfare.Evaluate(options,developer.SavedWeightedGameProgresses);
         Directory.CreateDirectory(output);
         string report=Path.Combine(output,"replayed-report.csv");File.WriteAllText(report,replay.csvReports.Single());
-        int? cells=request.GetProperty("Inputs").TryGetProperty("Numeric",out _)?MultipleEquilibriaStrategyAudit.ValidateReplay(Input("Numeric"),report):null;
+        int? cells=hasInputs&&inputFields.TryGetProperty("Numeric",out _)?MultipleEquilibriaStrategyAudit.ValidateReplay(Input("Numeric"),report):null;
         if(request.TryGetProperty("StandardReports",out var standard)&&standard.GetBoolean())
         {
             string directory=Path.Combine(output,"StandardReports");Directory.CreateDirectory(directory);
@@ -83,7 +104,7 @@ internal static class Entry
         if(!complete.SequenceEqual(developer.GetEquilibriumFromInformationSets()))throw new InvalidDataException("Reporting changed strategy");
         if(prior!=null&&ArticleApproximateSearch.ProfileHash(complete)!=prior.RootElement.GetProperty("CompleteStrategySha256").GetString())throw new InvalidDataException("Saved strategy identity changed");
         object Identity(string path)=>new FinalArticleExecution.FileIdentity(Path.GetFullPath(path),FinalArticleExecution.Hash(path));
-        string savedEquilibrium=Path.Combine(output,"equilibrium.equ");File.Copy(eq,savedEquilibrium);
+        string savedEquilibrium=Path.Combine(output,"equilibrium.equ");if(eq!=savedEquilibrium)File.Copy(eq,savedEquilibrium);
         var generatedInputs=new Dictionary<string,object>{{"Equilibrium",Identity(savedEquilibrium)},{"Actions",Identity(actions)},{"Numeric",Identity(report)}};
         File.WriteAllText(Path.Combine(output,"validation.json"),JsonSerializer.Serialize(new{
             Schema="validated-final-profile-v1",Passed=true,CaseId=spec.Id,Case=spec,
@@ -91,9 +112,9 @@ internal static class Entry
             FullBestResponseGains=gains,MaximumGain=Math.Max(0,gains.Max()),ActionRows=actionRows,ReproducedNumericCells=cells,
             CompleteStrategySha256=ArticleApproximateSearch.ProfileHash(complete),CompleteStrategyUnchanged=true,
             UnspecifiedOffPathInformationSets=fallbacks.OrderBy(x=>x).ToArray(),Welfare=welfare,
-            Inputs=request.GetProperty("Inputs"),GeneratedInputs=generatedInputs,Outputs=Directory.GetFiles(output,"*",SearchOption.AllDirectories).OrderBy(x=>x).Select(Identity).ToArray(),
+            Inputs=hasInputs?(object)inputFields:generatedInputs,GeneratedInputs=generatedInputs,Outputs=Directory.GetFiles(output,"*",SearchOption.AllDirectories).OrderBy(x=>x).Select(Identity).ToArray(),
             GameAssembly=Identity(typeof(LitigGame).Assembly.Location),ReportingAssembly=Identity(typeof(Entry).Assembly.Location),
-            OriginalValidation=priorPath==null?null:Identity(priorPath),SolvesStarted=0},json));
+            OriginalValidation=priorPath==null?null:Identity(priorPath),SolvesStarted=compute?1:0},json));
         Console.WriteLine($"Revalidated {spec.Id}: {actionRows} actions, {cells} numeric cells.");
     }
 }

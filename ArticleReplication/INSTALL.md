@@ -42,15 +42,14 @@ docker run --rm --cpus=1 \
   acesim-correlated-signals:local doctor --output /output/new-linux-preflight
 ```
 
-The image contains the application, runtime and rendering tools; it needs no network access at execution time. Input mounts should be read-only. For the currently implemented saved-results stages:
+The image contains the application, runtime and rendering tools; it needs no network access at execution time. Input mounts should be read-only:
 
 ```sh
 docker run --rm --network=none --cpus=4 \
   --mount type=bind,source=/absolute/path/inputs,target=/inputs,readonly \
   --mount type=bind,source=/absolute/path/output-parent,target=/output \
-  acesim-correlated-signals:local reproduce \
-  --solutions /inputs/solutions-v1 --histories /inputs/histories-v1 \
-  --settings /inputs/selected-steps.json --external-jobs /inputs/external-jobs.json \
+  acesim-correlated-signals:local run \
+  --input /inputs \
   --output /output/new-run --workers 4 --other-workers 2
 ```
 
@@ -58,4 +57,4 @@ On shared hosts choose workers to leave the total, including other calculations,
 
 ## Scope of the current implementation
 
-The container makes the implemented stages portable; it does not fill the outstanding scientific/report-generation integrations. Read [README.md](README.md) and [PortableReplicationContract.md](PortableReplicationContract.md) before interpreting a successful selected-stage run. In particular, old saved-results bundles still include some data-bearing presentation sources; they are not the final computation-only input contract. Complete fresh replication and final migration remain gated on those integrations and the two externally reserved simulations. No deployment command launches replacements for those protected jobs.
+The public command reads only saved `.equ` and optional `.history` files. Omit the input mount and `--input` to solve afresh. Use `--missing wait` or `--reserve-cases` when unavailable cases must remain pending. See [README.md](README.md) for C#/CLI settings and selected stages. Whole-collection validation, visual review and final migration remain release gates; a selected-stage test is not a full article release. The development machine separately reserves the two protected external grid cases.
