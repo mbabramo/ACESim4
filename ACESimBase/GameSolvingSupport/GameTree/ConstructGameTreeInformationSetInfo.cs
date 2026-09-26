@@ -158,7 +158,10 @@ namespace ACESimBase.GameSolvingSupport.GameTree
                     { // skip this node -- and don't remember it
                         gamePointNode.IncludeInDiagram = false;
                         var previous = edgeFromParentStack.Peek();
-                        edgeFromParentStack.Push(new EdgeInfo(previous.parentNode, 0, false, previous.parentLevel));
+                        // The hidden node has exactly one child. Its child must inherit
+                        // the incoming visible action, not become visible action one.
+                        // The traversal increments this counter on entry to that child.
+                        edgeFromParentStack.Push(new EdgeInfo(previous.parentNode, (byte)(previous.action - 1), false, previous.parentLevel));
                     }
                     else
                     {

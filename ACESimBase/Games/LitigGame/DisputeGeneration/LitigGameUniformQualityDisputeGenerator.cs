@@ -328,6 +328,24 @@ namespace ACESim
             return Math.Clamp(mean, 0.0, 1.0);
         }
 
+        /// <summary>
+        /// A detached reporting snapshot. Mutating its arrays cannot affect signals,
+        /// court probabilities, utilities, or any subsequent solver calculation.
+        /// </summary>
+        public (double[] Quality, double[] Weights) GetPriorQualityForReporting()
+        {
+            RequireBayesianSetup();
+            return (qualityNodes.ToArray(), qualityWeights.ToArray());
+        }
+
+        public (double[] Quality, double[] Weights) GetPosteriorQualityForReporting(
+            byte pLiabilitySignal, byte dLiabilitySignal, byte? cLiabilitySignal)
+        {
+            RequireBayesianSetup();
+            return (qualityNodes.ToArray(), liabilitySignalsBayes.GetPosteriorHiddenProbabilitiesGivenSignals(
+                pLiabilitySignal, dLiabilitySignal, NormalizeNullableSignal(cLiabilitySignal)).ToArray());
+        }
+
         public override double[] BayesianCalculations_GetLiabilityStrengthProbabilities(
             byte pLiabilitySignal,
             byte dLiabilitySignal,

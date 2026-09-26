@@ -153,6 +153,31 @@ public class EquilibriumChangeDecompositionTests
     }
 
     [TestMethod]
+    public void AgreementIsASeparateFourthOpponentContribution()
+    {
+        var values = Enumerable.Range(0, 16).Select(m => 10.0 + ((m & 1) != 0 ? 4 : 0) +
+            ((m & 2) != 0 ? 8 : 0) + ((m & 4) != 0 ? -2 : 0) + ((m & 8) != 0 ? 16 : 0)).ToArray();
+        var allocation = Allocate(0, 40, values);
+        allocation.Direct.Should().Be(10);
+        allocation.Entry.Should().BeApproximately(4, 1e-10);
+        allocation.Offers.Should().BeApproximately(8, 1e-10);
+        allocation.Exit.Should().BeApproximately(-2, 1e-10);
+        allocation.Agreement.Should().BeApproximately(16, 1e-10);
+        allocation.SelectionResidual.Should().Be(4);
+        (allocation.Explained + allocation.SelectionResidual).Should().BeApproximately(40, 1e-10);
+        var interaction = Allocate(0, 80, Enumerable.Range(0, 16).Select(m => m == 15 ? 80.0 : 0).ToArray());
+        new[] { interaction.Entry, interaction.Offers, interaction.Exit, interaction.Agreement }
+            .Should().OnlyContain(x => Math.Abs(x - 20) < 1e-10);
+        var old = Info("P Agrees To Bargain");
+        var scenarios = Scenarios(old, Enumerable.Range(0, 16).Select(m => (m & 8) == 0 ? 1.0 : 0.0).ToArray());
+        var row = BuildRows(ReferenceFor(old), ReferenceFor(Policy(old, 0)), scenarios, new[] { .25, .75 }).Rows.Single();
+        row.Allocation.Agreement.Should().BeApproximately(-100, 1e-9);
+        row.Allocation.Offers.Should().Be(0);
+        LitigCharts.EquilibriumPublicationTables.LatexBody(new[] { row }, includeAgreement: true)
+            .Should().Contain("P agrees").And.Contain("agreement");
+    }
+
+    [TestMethod]
     public void EndpointResidualIsExplicitRatherThanAssignedToOpponentMechanisms()
     {
         var a = Allocate(0, 91.4, Enumerable.Repeat(100.0, 8).ToArray());
@@ -354,6 +379,29 @@ public class EquilibriumChangeDecompositionTests
             foreach (var strategy in Coalition(old, end, 0, mask).Strategies.Values)
             {
                 int component = Array.IndexOf(Components, Component(strategy.Decision));
+                bool changed = strategy.Player == 1 && (mask & (1 << component)) != 0;
+                strategy.Probabilities.Should().Equal(changed ? new[] { .7, .3 } : new[] { .2, .8 });
+            }
+    }
+
+    [TestMethod]
+    public void AgreementCoalitionsReplaceOnlyOpponentAgreementPolicies()
+    {
+        var strategies = new Dictionary<string, Strategy>();
+        foreach (byte player in new byte[] { 0, 1 })
+            foreach (var decision in new[] { LitigGameDecisions.PFile, LitigGameDecisions.POffer,
+                LitigGameDecisions.PAbandon, LitigGameDecisions.PAgreeToBargain })
+            {
+                string key = player + "/" + decision;
+                strategies[key] = new(key, player, (byte)decision, "", new[] { "Yes", "No" }, new[] { .2, .8 }, 1, false, "old");
+            }
+        var old = new Profile("old", "test", strategies);
+        var end = old with { Strategies = strategies.ToDictionary(x => x.Key, x => x.Value with { Probabilities = new[] { .7, .3 } }) };
+        CoalitionCount(old).Should().Be(16);
+        for (int mask = 0; mask < 16; mask++)
+            foreach (var strategy in Coalition(old, end, 0, mask).Strategies.Values)
+            {
+                int component = Array.IndexOf(AgreementComponents, Component(strategy.Decision));
                 bool changed = strategy.Player == 1 && (mask & (1 << component)) != 0;
                 strategy.Probabilities.Should().Equal(changed ? new[] { .7, .3 } : new[] { .2, .8 });
             }

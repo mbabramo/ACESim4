@@ -34,30 +34,62 @@ public class EquilibriumPathAnimationTests
             foreach (string risk in new[] { "Risk Neutral", "Risk Averse" })
                 titles.Should().Contain(fee + " · " + risk);
     }
-    private static EquilibriumPathAnimation.Run Toy()
+    private static EquilibriumPathAnimation.Run Toy(bool agreement = false)
     {
-        var sets = Enumerable.Range(0, 16).Select(i =>
+        int stages = agreement ? 6 : 4, setCount = stages * 4, actionCount = setCount * 2;
+        var sets = Enumerable.Range(0, setCount).Select(i =>
         {
-            byte p = (byte)(i / 8); int stage = i % 4;
+            byte p = (byte)(i / (stages * 2)); int stage = i % stages;
             string decision = stage switch { 0 => p == 0 ? "P Files" : "D Answers",
-                1 => p == 0 ? "P Abandons" : "D Defaults", _ => p == 0 ? "P Offer" : "D Offer" };
-            return new SetMetadata(i, i + 3, "set-" + i, i + 1, p, decision, i % 8 / 4 + 1,
-                i % 8 / 4 == 0 ? .25 : .75, stage > 1 ? stage - 1 : null, i * 2,
-                stage > 1 ? new[] { "0.25", "0.75" } : new[] { "Yes", "No" });
+                1 => p == 0 ? "P Abandons" : "D Defaults",
+                4 or 5 => p == 0 ? "P Agrees To Bargain" : "D Agrees To Bargain",
+                _ => p == 0 ? "P Offer" : "D Offer" };
+            int signal = i % (stages * 2) / stages;
+            int? commitment = stage switch { 2 or 4 => 1, 3 or 5 => 2, _ => null };
+            return new SetMetadata(i, i + 3, "set-" + i, i + 1, p, decision, signal + 1,
+                signal == 0 ? .25 : .75, commitment, i * 2,
+                stage is 2 or 3 ? new[] { "0.25", "0.75" } : new[] { "Yes", "No" });
         }).ToArray();
         var m = JsonSerializer.Deserialize<PathResult>("""
             {"Schema":"2","Id":"test","OptionSet":"Specification-Baseline__Cost-1__Fee-American",
              "Seed":0,"Exact":true,"Steps":3,"Pivots":2,"OriginalPivots":2,"FinalEpsilon":0,
              "MaximumSavedPolicyDifference":0,"Inputs":[]}
-            """, CompactJson) with { InformationSets = sets };
-        var strategy = new ECTAIncentives(Enumerable.Repeat(.5, 32).ToArray(), new double[2], new double[2],
-            new double[2], 0, 0, Enumerable.Repeat(.5, 16).ToArray(), Enumerable.Repeat(.5, 16).ToArray(),
-            new double?[32], new double?[32], new double?[16], new double?[16], new double?[16]);
+            """, CompactJson) with { InformationSets = sets,
+                OptionSet = (agreement ? "Agreement-Enabled__" : "") + "Specification-Baseline__Cost-1__Fee-American" };
+        var strategy = new ECTAIncentives(Enumerable.Repeat(.5, actionCount).ToArray(), new double[2], new double[2],
+            new double[2], 0, 0, Enumerable.Repeat(.5, setCount).ToArray(), Enumerable.Repeat(.5, setCount).ToArray(),
+            new double?[actionCount], new double?[actionCount], new double?[setCount], new double?[setCount], new double?[setCount]);
         var frames = Enumerable.Range(0, 3).Select(i => new PathFrame(i,
             i == 0 ? "initial-prior" : i == 2 ? "final-pivot" : "pivot",
             i == 0 ? null : new ECTAPivotSnapshot(i, 0, 1, i == 2, i == 2 ? 0 : 1,
                 new double[4], new double[4], 0, 0, 0), 0, Array.Empty<int>(), strategy)).ToArray();
         return new(m, frames);
+    }
+
+    [TestMethod]
+    public void AgreementRendererIncludesBothOwnCommitmentsWithoutLosingOtherDecisions()
+    {
+        var run = Toy(agreement: true);
+        EquilibriumPathAnimation.ValidateFrames(run.Metadata, run.Frames);
+        string html = EquilibriumPathAnimation.BuildHtml(new[] { run });
+        string encoded = Regex.Match(html, "<script id=\"trace-data\" type=\"application/gzip\">(.*?)</script>", RegexOptions.Singleline).Groups[1].Value;
+        using var packed = new MemoryStream(Convert.FromBase64String(encoded));
+        using var gzip = new GZipStream(packed, CompressionMode.Decompress);
+        using var data = JsonDocument.Parse(gzip);
+        var groups = data.RootElement[0].GetProperty("groups").EnumerateArray().ToArray();
+        groups.Should().HaveCount(12);
+        groups.SelectMany(g => g.GetProperty("sets").EnumerateArray().Select(s => s.GetInt32()))
+            .Order().Should().Equal(Enumerable.Range(0, 24));
+        foreach (byte player in new byte[] { 0, 1 })
+        {
+            var own = groups.Where(g => g.GetProperty("player").GetByte() == player).ToArray();
+            own.Select(g => g.GetProperty("label").GetString()).Should().Equal(
+                "Enter", "Commit to exit", "Agree · continue", "Agree · exit", "Offer · continue", "Offer · exit");
+            foreach (var group in own.Where(g => g.GetProperty("label").GetString().StartsWith("Agree")))
+                foreach (var index in group.GetProperty("sets").EnumerateArray())
+                    run.Metadata.InformationSets[index.GetInt32()].Decision.Should().Contain("Agrees To Bargain");
+        }
+        html.Should().Contain("Offers occur only after both parties agree");
     }
 
     [TestMethod]

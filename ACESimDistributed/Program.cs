@@ -33,8 +33,12 @@ namespace ACESimDistributed
             };
 
             string plan = ReadStringArgument(args, "--plan") ?? "focused";
-            Launcher launcher = new LitigGameCorrelatedSignalsArticleLauncher(
-                LitigGameCorrelatedSignalsArticleLauncher.ParseProductionRunPlan(plan));
+            string finalManifest = ReadStringArgument(args, "--final-manifest");
+            Launcher launcher = finalManifest == null ? new LitigGameCorrelatedSignalsArticleLauncher(
+                LitigGameCorrelatedSignalsArticleLauncher.ParseProductionRunPlan(plan)) : new FinalArticleLauncher(finalManifest);
+            if (launcher is FinalArticleLauncher finalLauncher &&
+                !string.Equals(Path.GetFullPath(resultsDirectory ?? "."),Path.GetFullPath(finalLauncher.Manifest.ResultsDirectory),StringComparison.OrdinalIgnoreCase))
+                throw new InvalidOperationException("Worker results directory differs from the frozen final manifest.");
             string timestamp = DateTime.UtcNow.ToString("yyyyMMdd'T'HHmmssfff'Z'", CultureInfo.InvariantCulture);
             string logFileName =
                 $"{launcher.MasterReportNameForDistributedProcessing} worker-{workerId:D3} pid-{Environment.ProcessId} {timestamp}.log.txt";

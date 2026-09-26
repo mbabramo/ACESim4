@@ -118,7 +118,15 @@ public static class EquilibriumPathAnimation
             for (byte player = 0; player < 2; player++)
             {
                 string prefix = player == 0 ? "P" : "D";
-                var specifications = new[] {
+                bool agreement = m.InformationSets.Any(s => s.Decision is "P Agrees To Bargain" or "D Agrees To Bargain");
+                var specifications = agreement ? new[] {
+                    (Decision: player == 0 ? "P Files" : "D Answers", Commit: (int?)null, Label: "Enter"),
+                    (Decision: player == 0 ? "P Abandons" : "D Defaults", Commit: (int?)null, Label: "Commit to exit"),
+                    (Decision: prefix + " Agrees To Bargain", Commit: (int?)2, Label: "Agree · continue"),
+                    (Decision: prefix + " Agrees To Bargain", Commit: (int?)1, Label: "Agree · exit"),
+                    (Decision: prefix + " Offer", Commit: (int?)2, Label: "Offer · continue"),
+                    (Decision: prefix + " Offer", Commit: (int?)1, Label: "Offer · exit")
+                } : new[] {
                     (Decision: player == 0 ? "P Files" : "D Answers", Commit: (int?)null, Label: "Enter"),
                     (Decision: prefix + " Offer", Commit: (int?)2, Label: "Offer · continue"),
                     (Decision: prefix + " Offer", Commit: (int?)1, Label: "Offer · exit"),
@@ -147,7 +155,8 @@ public static class EquilibriumPathAnimation
             {
                 id = m.Id, title, pivots = m.Pivots, maxGain = maximumGain, groups,
                 sets = m.InformationSets.Select(s => new { index = s.Index, tree = s.TreeIndex, player = s.Player,
-                    decision = s.Decision, signal = s.SignalValue, start = s.FirstAction, actions = s.Actions }),
+                    decision = s.Decision, signal = s.SignalValue, exitCommitment = s.ExitCommitment,
+                    start = s.FirstAction, actions = s.Actions }),
                 frames = run.Frames.Select(f => new { step = f.Step, z = f.Native?.Auxiliary ?? 1,
                     epsilon = f.Strategy.Epsilon, p = f.Strategy.Probabilities, q = f.Strategy.ActionUtilities,
                     a = f.Strategy.ActionAdvantages, r = f.Strategy.ActualReach,
@@ -200,6 +209,7 @@ label{font-size:13px;display:inline-flex;align-items:center;gap:5px}.status{just
 <div class="status"><span id="case-title"></span><span id="numbers"></span></div>
 <input id="scrub" type="range" min="0" step="1" value="0" aria-label="Pivot in selected case">
 <div id="stage"><canvas id="map" role="img" aria-label="Complete strategies: plaintiff above defendant; low signals at the bottom, high signals at the top; columns are actions. Blue encodes action probability and orange corners encode positive action advantage."></canvas><div id="tip" role="tooltip"></div></div>
+<p id="protocol" style="font-size:13px"></p>
 <div class="legend">
 <span class="key"><span class="swatch prob"></span>Probability 0 → 1</span>
 <span class="key"><span class="swatch gain"></span><span id="gain-range">▲ Positive action advantage</span></span>
@@ -241,17 +251,21 @@ function draw() {
  const compact=canvas.parentElement.clientWidth<680; width=canvas.parentElement.clientWidth;
  const rowHeight=15, rowCount=Math.max(...c.groups.map(g=>g.sets.length));
  const panelHeight=rowCount*rowHeight+55, left=compact?35:65, gap=compact?9:20, top=32;
- height=panelHeight*2+10; const dpr=Math.min(window.devicePixelRatio||1,2);
+ const bands=[0,1].flatMap(player=>{
+  const groups=c.groups.filter(g=>g.player===player);
+  return groups.length>4?[{player,groups:groups.slice(0,4)},{player,groups:groups.slice(4)}]:[{player,groups}];
+ });
+ height=panelHeight*bands.length+10; const dpr=Math.min(window.devicePixelRatio||1,2);
  canvas.width=Math.round(width*dpr); canvas.height=Math.round(height*dpr); canvas.style.height=height+'px'; ctx.scale(dpr,dpr);
  ctx.fillStyle='#ffffff';ctx.fillRect(0,0,width,height);boxes=[];
- for(let player=0;player<2;player++) {
-  const groups=c.groups.filter(g=>g.player===player), cols=groups.reduce((n,g)=>n+g.actions.length,0);
-  const cw=(width-left-16-gap*3)/cols, y=top+player*panelHeight;
+ for(let band=0;band<bands.length;band++) {
+  const {player,groups}=bands[band], cols=groups.reduce((n,g)=>n+g.actions.length,0);
+  const cw=(width-left-16-gap*(groups.length-1))/cols, y=top+band*panelHeight;
   text(player===0?'P':'D',compact?12:22,y+rowCount*rowHeight/2,22,'center');
   let x=left;
   for(const g of groups) {
    const span=g.actions.length*cw;
-   const heading=compact?g.label.replace('Offer · continue','Offer / stay').replace('Offer · exit','Offer / exit'):g.label;
+   const heading=compact?g.label.replace(' · continue',' / stay').replace(' · exit',' / exit').replace('Commit to exit','Exit intent'):g.label;
    text(heading,x+span/2,y-15,compact?11:14,'center');
    g.sets.forEach((si,row) => {
     const s=c.sets[si], yy=y+row*rowHeight, unreached=f.r[si]<=1e-10;
@@ -274,6 +288,7 @@ function draw() {
    x+=span+gap;
   }
  }
+ $('protocol').textContent=c.groups.some(g=>g.label.startsWith('Agree'))?'Private exit commitments precede simultaneous agreement decisions. Offers occur only after both parties agree. These are numerical ECTA paths, not litigant learning.':'';
  if(!compact){ctx.save();ctx.translate(45,top+rowCount*rowHeight/2);ctx.rotate(-Math.PI/2);text('signal: low → high',0,0,11,'center');ctx.restore();}
  $('detail').textContent=fi===c.frames.length-1?'Original equilibrium verified · '+c.pivots+' pivots · all saved probabilities matched.':'Hover or tap a cell for its probability and conditional utility.';
  canvas.setAttribute('aria-label',c.title+', pivot '+f.step+'. Complete P and D strategies, low signals at the bottom and high signals at the top. Maximum unrestricted gain '+number(f.epsilon)+'.');

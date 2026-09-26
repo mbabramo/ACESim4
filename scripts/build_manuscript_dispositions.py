@@ -19,11 +19,14 @@ def sha(path):
 
 def build(article):
     article = Path(article).resolve()
-    root = article / 'Supplemental materials/Outcome summaries'
+    root = article / 'Figures'
     sources = root / 'Sources'
     sources.mkdir(parents=True, exist_ok=True)
+    manifest_path = article / 'manuscript-exhibits.json'
+    manifest = json.loads(manifest_path.read_text(encoding='utf-8-sig')) if manifest_path.exists() else {'Exhibits': []}
     outputs = {}
-    for risk, stem in [('Risk Neutral', 'risk-neutral-dispositions'), ('Risk Averse', 'risk-averse-dispositions')]:
+    for risk, stem in [('Risk Neutral', 'Figure 3 - Dispositions'),
+                       ('Risk Averse', 'Figure 5 - Risk-averse dispositions')]:
         origin = article / 'Results/Aggregated Data/Baseline' / risk / 'Sources/cost-1-dispositions'
         json_path, tex_path = origin.with_suffix('.json'), origin.with_suffix('.tex')
         data = json.loads(json_path.read_text(encoding='utf-8-sig'))
@@ -50,9 +53,21 @@ def build(article):
             'Inputs': [{'Path': str(p.relative_to(article)), 'Sha256': sha(p)} for p in [json_path, tex_path]],
             'Generator': {'Path': str(Path(__file__).resolve()), 'Sha256': sha(Path(__file__))}}
         target = sources / stem
+        reuse_renders = (target.with_suffix('.tex').is_file()
+                         and target.with_suffix('.tex').read_text(encoding='utf-8-sig') == tex
+                         and all((root / (stem + ext)).is_file() for ext in ['.pdf', '.png']))
+        prior = {Path(e['Output']).suffix: e for e in manifest['Exhibits'] if e['Exhibit'] == stem}
+        reuse_renders = reuse_renders and all(
+            ext in prior and Path(prior[ext]['Output']) == path.relative_to(article)
+            and prior[ext]['Sha256'] == sha(path)
+            for ext, path in [('.tex', target.with_suffix('.tex')),
+                              ('.pdf', root / (stem + '.pdf')), ('.png', root / (stem + '.png'))])
         target.with_suffix('.tex').write_text(tex, encoding='utf-8', newline='\n')
         target.with_suffix('.json').write_text(json.dumps(data, indent=2) + '\n', encoding='utf-8', newline='\n')
         target.with_suffix('.txt').write_text(caption + '\n', encoding='utf-8', newline='\n')
+        outputs[risk] = target
+        if reuse_renders:
+            continue
         with tempfile.TemporaryDirectory(prefix='acesim-manuscript-dispositions-') as scratch:
             scratch = Path(scratch)
             result = subprocess.run(['pdflatex', '-interaction=nonstopmode', '-halt-on-error',
@@ -64,7 +79,6 @@ def build(article):
                             str(scratch / stem)], check=True, capture_output=True)
             for extension in ['.pdf', '.png']:
                 shutil.copyfile(scratch / (stem + extension), root / (stem + extension))
-        outputs[risk] = target
     return outputs
 
 

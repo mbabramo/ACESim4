@@ -56,6 +56,7 @@ namespace LitigCharts
                     throw new InvalidOperationException("Correlated-signals reporting requires its article launcher.");
                 if (correlatedLauncher.RunPlan is
                     LitigGameCorrelatedSignalsArticleLauncher.ProductionRunPlan.MultipleEquilibriaRobustness or
+                    LitigGameCorrelatedSignalsArticleLauncher.ProductionRunPlan.AgreementToBargain or
                     LitigGameCorrelatedSignalsArticleLauncher.ProductionRunPlan.IncreasedOfferGridRobustness)
                     return;
                 if (correlatedLauncher.RunPlan is

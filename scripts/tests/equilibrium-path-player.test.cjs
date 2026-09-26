@@ -20,17 +20,17 @@ function fixture(id, count) {
     groups: sets.map(s => ({ player: s.player, label: 'Enter', sets: [s.index], actions: s.actions })) };
 }
 
-async function player({ reduced = false, cases = [fixture('American', 4), fixture('British', 5)] } = {}) {
-  let now = 0, raf, fills = [], markers = 0, download;
+async function player({ reduced = false, width = 1000, cases = [fixture('American', 4), fixture('British', 5)] } = {}) {
+  let now = 0, raf, fills = [], rectangles = [], markers = 0, download;
   const context = new Proxy({ fillRect(x, y, w, h) {
-    if (x === 0 && y === 0) { fills = []; markers = 0; }
-    else fills.push(this.fillStyle);
+    if (x === 0 && y === 0) { fills = []; rectangles = []; markers = 0; }
+    else { fills.push(this.fillStyle); rectangles.push({x,y,w,h}); }
   }, fill() { markers++; } }, { get: (target, key) => key in target ? target[key] : () => {} });
   const elements = new Map();
   function element(id) {
     if (!elements.has(id)) elements.set(id, {
       value: '', textContent: '', checked: false, disabled: false, style: {}, attributes: {},
-      parentElement: { clientWidth: 1000 }, offsetWidth: 150, offsetHeight: 100,
+      parentElement: { clientWidth: width }, offsetWidth: 150, offsetHeight: 100,
       setAttribute(key, value) { this.attributes[key] = value; }, appendChild() {},
       getContext() { return context; }, getBoundingClientRect() { return { left: 0, top: 0 }; },
       toDataURL() { return 'data:image/png;base64,test'; }
@@ -59,9 +59,32 @@ async function player({ reduced = false, cases = [fixture('American', 4), fixtur
     select(index) { element('case').value = String(index); element('case').onchange(); },
     scrub(value) { element('scrub').value = String(value); element('scrub').oninput(); },
     get firstFill() { return fills[0]; }, get fills() { return fills; }, get markers() { return markers; },
+    get rectangles() { return rectangles; },
     get download() { return download; }
   };
 }
+
+test('Agreement histories remain complete and inside the canvas at desktop and narrow widths', async () => {
+  const labels = ['Enter', 'Commit to exit', 'Agree · continue', 'Agree · exit', 'Offer · continue', 'Offer · exit'];
+  const c = fixture('Agreement', 3);
+  c.sets = Array.from({length:12}, (_,i) => ({index:i,tree:i,player:Math.floor(i/6),
+    decision:labels[i%6],signal:.25,start:i*2,actions:['Yes','No']}));
+  c.groups = c.sets.map(s => ({player:s.player,label:s.decision,sets:[s.index],actions:s.actions}));
+  c.frames = c.frames.map(f => ({...f,p:Array(24).fill(.5),q:Array(24).fill(1),
+    a:Array(24).fill(0),r:Array(12).fill(.5),gaps:Array(12).fill(0),outside:Array(12).fill(0)}));
+  for(const width of [375,1000]) {
+    const ui=await player({cases:[c],width});
+    assert.equal(ui.rectangles.length,24);
+    for(const rect of ui.rectangles) {
+      assert.ok(rect.w>0 && rect.h>0 && rect.x>=0 && rect.x+rect.w<=width);
+      assert.ok(rect.y>=0 && rect.y+rect.h<=ui.element('map').height);
+    }
+    assert.ok(ui.element('map').height>=280,'both players have separate agreement and offer bands');
+    assert.match(ui.element('protocol').textContent,/only after both parties agree/);
+    ui.click('end');
+    assert.equal(ui.rectangles.length,24);
+  }
+});
 
 test('Play stops at selected case; replay and step buttons never cross cases', async () => {
   const ui = await player();

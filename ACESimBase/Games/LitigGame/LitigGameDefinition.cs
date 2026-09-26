@@ -64,6 +64,7 @@ namespace ACESim
 
         private void FurtherOptionsSetup()
         {
+            Options.ValidateOfferValues();
             if (Options.DeltaOffersOptions.SubsequentOffersAreDeltas)
                 Options.DeltaOffersCalculation = new DeltaOffersCalculation(this);
             SetupLiabilitySignals();
@@ -375,6 +376,7 @@ namespace ACESim
                 {
                     CustomByte = (byte) (b + 1),
                     StoreActionInGameCacheItem = GameHistoryCacheIndex_PAgreesToBargain,
+                    IsReversible = true,
                     DeferNotificationOfPlayers = true,
                     WarmStartThroughIteration = Options.WarmStartThroughIteration,
                     WarmStartValue = 1,
@@ -387,6 +389,8 @@ namespace ACESim
                 {
                     CustomByte = (byte) (b + 1),
                     StoreActionInGameCacheItem = GameHistoryCacheIndex_DAgreesToBargain,
+                    IsReversible = true,
+                    CanTerminateGame = true,
                     WarmStartThroughIteration = Options.WarmStartThroughIteration,
                     WarmStartValue = 1,
                     SymmetryMap = (SymmetryMapInput.ReverseInfo, SymmetryMapOutput.SameAction)
@@ -706,7 +710,7 @@ namespace ACESim
 
                 case LitigGameDecisions.POffer:
                 case LitigGameDecisions.DOffer:
-                    return Game.ConvertActionToUniformDistributionDraw(action, Options.NumOffers, Options.IncludeEndpointsForOffers).ToDecimalPlaces(2); // Note: This won't be right if delta offers are being used.
+                    return Options.GetOfferValue(action).ToDecimalPlaces(2); // Delta offers remain history-dependent.
 
                 case LitigGameDecisions.PFile:
                 case LitigGameDecisions.DAnswer:
@@ -936,24 +940,22 @@ namespace ACESim
                     if (pAccepts)
                         return true;
                     break;
+                case (byte)LitigGameDecisions.DAgreeToBargain:
+                    if (gameHistory.GetCacheItemAtIndex(GameHistoryCacheIndex_PAgreesToBargain) == 1 && actionChosen == 1)
+                        return false;
+                    return UnsuccessfulBargainingTerminates(gameHistory);
                 case (byte)LitigGameDecisions.DOffer:
                     // this is simultaneous bargaining (plaintiff offer is always first). 
                     if (!Options.BargainingRoundsSimultaneous)
                         throw new Exception("Internal error.");
                     byte plaintiffOffer = gameHistory.GetCacheItemAtIndex(GameHistoryCacheIndex_POffer);
                     byte defendantOffer = gameHistory.GetCacheItemAtIndex(GameHistoryCacheIndex_DOffer);
-                    if (defendantOffer >= plaintiffOffer)
+                    if ((!Options.IncludeAgreementToBargainDecisions ||
+                         (gameHistory.GetCacheItemAtIndex(GameHistoryCacheIndex_PAgreesToBargain) == 1 &&
+                          gameHistory.GetCacheItemAtIndex(GameHistoryCacheIndex_DAgreesToBargain) == 1)) &&
+                        plaintiffOffer > 0 && defendantOffer > 0 && defendantOffer >= plaintiffOffer)
                         return true;
-                    if (Options.AllowAbandonAndDefaults && Options.PredeterminedAbandonAndDefaults)
-                    {
-                        bool pTryingToGiveUp2 = gameHistory.GetCacheItemAtIndex(GameHistoryCacheIndex_PReadyToAbandon) == 1;
-                        bool dTryingToGiveUp2 = gameHistory.GetCacheItemAtIndex(GameHistoryCacheIndex_DReadyToDefault) == 1;
-                        if (pTryingToGiveUp2 ^ dTryingToGiveUp2)
-                            return true; // exactly one trying to give up in last bargaining round
-                    }
-                    if (Options.CollapseChanceDecisions && Options.CollapseAlternativeEndings)
-                        return true; // NOTE: If we want to support this over multiple bargaining rounds (currently excluded by code in LitigGame.CheckCollapseFinalGameDecisions), then we'll need to do more checks to make sure that this is the right time. Also, if we allow for non-predetermined decisions, we'll have to complicate this as well.
-                    break;
+                    return UnsuccessfulBargainingTerminates(gameHistory);
                 case (byte)LitigGameDecisions.PrimaryAction:
                     return Options.LitigGameStandardDisputeGenerator.MarkComplete(this, gameHistory.GetCacheItemAtIndex(GameHistoryCacheIndex_PrePrimaryChance), gameHistory.GetCacheItemAtIndex(GameHistoryCacheIndex_PrimaryAction));
                 case (byte)LitigGameDecisions.PostPrimaryActionChance:
@@ -988,6 +990,15 @@ namespace ACESim
         {
             byte decisionByteCode = currentDecision.DecisionByteCode; // get the original decision byte code
             
+        }
+
+        private bool UnsuccessfulBargainingTerminates(in GameHistory gameHistory)
+        {
+            if (Options.AllowAbandonAndDefaults && Options.PredeterminedAbandonAndDefaults &&
+                ((gameHistory.GetCacheItemAtIndex(GameHistoryCacheIndex_PReadyToAbandon) == 1) ^
+                 (gameHistory.GetCacheItemAtIndex(GameHistoryCacheIndex_DReadyToDefault) == 1)))
+                return true;
+            return Options.CollapseChanceDecisions && Options.CollapseAlternativeEndings;
         }
 
         public override void ReverseSwitchToBranchEffects(Decision decisionToReverse, in HistoryPoint historyPoint)

@@ -1,5 +1,10 @@
 # Correlated-signals article results
 
+The [observable agreement-to-bargain check](Agreement-to-bargain.md) is a separate
+thirty-setting, one-start-per-setting `CS007AB` plan. Its outputs belong in
+`Supplemental materials/Agreement to bargain`; routine results and numbered
+article material remain unchanged.
+
 The routine design has 276 cases: 184 CS004 cases plus 92 CS006EF Complete
 Fee-Shifting cases. Each retained transformation crosses American, Trial Fee-Shifting and
 Complete Fee-Shifting with risk neutrality and symmetric CARA alpha 2, at costs
@@ -23,6 +28,13 @@ The nine ten-offer families are Baseline, Low noise, High noise, the three
 alternative merits distributions/architectures, Direct binary-state signals,
 All costs avoidable, and All costs sunk. Each contains 30 cases. The 15-offer
 sensitivity check adds six cases at cost 1. Transformations are applied separately.
+
+After generating the saved welfare results, use the separate
+[fee-rule comparison command](Fee-rule-comparisons.md) to reproduce the pairwise
+robustness tables. One command produces both the full grid and the version
+excluding costs 0.25 and 4, with individual comparisons and provenance records.
+These outputs go to `Supplemental materials/Generated pairwise comparisons` in the article repository;
+the article's `Tables` folder holds the tables selected for publication.
 
 For a clean report rebuild, first commit and use `Prepare-ArticleRebuild.ps1`
 with the directories holding reusable `CS004`/`CS006EF` equilibrium files.

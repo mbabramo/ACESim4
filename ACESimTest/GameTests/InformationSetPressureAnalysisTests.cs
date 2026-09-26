@@ -210,20 +210,20 @@ public class InformationSetPressureAnalysisTests
         const string americanRa = "Specification-ModerateRiskAversion__Cost-1__Fee-American";
         const string britishRa = "Specification-ModerateRiskAversion__Cost-1__Fee-British";
         var rnFees = LitigCharts.EquilibriumChangeTables.Heading(american, british);
-        rnFees.Title.Should().Be("Fee shifting: American to British");
+        rnFees.Title.Should().Be("Fee shifting: American to Trial Fee-Shifting");
         rnFees.HeldFixed.Should().Be("Both players remain risk neutral");
         rnFees.Original.Should().Be("American rule, risk neutral");
-        rnFees.Target.Should().Be("British rule, risk neutral");
+        rnFees.Target.Should().Be("Trial Fee-Shifting rule, risk neutral");
         var raFees = LitigCharts.EquilibriumChangeTables.Heading(americanRa, britishRa);
         raFees.Title.Should().Be(rnFees.Title);
         raFees.HeldFixed.Should().Be("Both players remain moderately risk averse");
-        foreach (var pair in new[] { (american, americanRa, "American"), (british, britishRa, "British") })
+        foreach (var pair in new[] { (american, americanRa, "American"), (british, britishRa, "Trial Fee-Shifting") })
         {
             var heading = LitigCharts.EquilibriumChangeTables.Heading(pair.Item1, pair.Item2);
             heading.Title.Should().Be("Preferences: risk neutral to moderately risk averse");
             heading.HeldFixed.Should().Be(pair.Item3 + " rule remains in force");
         }
-        LitigCharts.EquilibriumChangeTables.Heading(british, american).Title.Should().Be("Fee shifting: British to American");
+        LitigCharts.EquilibriumChangeTables.Heading(british, american).Title.Should().Be("Fee shifting: Trial Fee-Shifting to American");
         LitigCharts.EquilibriumChangeTables.Heading(americanRa, american).Title.Should().Be("Preferences: moderately risk averse to risk neutral");
     }
 

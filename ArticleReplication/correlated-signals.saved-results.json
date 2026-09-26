@@ -1,0 +1,5 @@
+{
+  "Article": "CorrelatedSignals",
+  "MainCostMultipliers": [0.25, 0.5, 1, 2, 4],
+  "Steps": ["Primary", "Welfare", "Strategic", "Histories", "StandardReports", "Exhibits", "Manuscript"]
+}

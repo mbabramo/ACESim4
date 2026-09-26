@@ -236,6 +236,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
                 Stopwatch s = new Stopwatch();
                 s.Start();
                 TabbedText.WriteLine($"Prior {priorcount + 1} of {numPriors}");
+                TabbedText.WriteLine($"Start audit: UTC={DateTime.UtcNow:O}; arithmetic={(isExact ? "exact" : "inexact")}; prior={priorcount + 1}; batch-size={numPriors}; seed={priorcount + seedAdjust}; pivot-limit={maxPivotSteps}; cycling-repetitions={minRepetitionsForCycling}");
                 if (priorcount > 0 && initialProbabilities != null && !tracingEquilibrium)
                     throw new Exception("Can't use multiple priors if you set the initial probabilities and don't want to trace the equilibrium, because then the probabilities will be the same every time.");
                 if (priorcount == 0 && initialProbabilities != null && (tracingEquilibrium || useSuppliedInitialProbabilities))
@@ -287,6 +288,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
                 }
                 outputGameTreeSetup = false;
                 TabbedText.WriteLine($"Elapsed milliseconds prior {priorcount + 1}: {s.ElapsedMilliseconds}");
+                TabbedText.WriteLine($"End audit: UTC={DateTime.UtcNow:O}; prior={priorcount + 1}; solver-succeeded={succeeded}; elapsed-ms={s.ElapsedMilliseconds}; validation=pending");
                 if (!succeeded && priorcount == numPriors - 1 && !equilibria.Any())
                     return new List<(IMaybeExact<T>[] equilibrium, int frequency)>();
             }

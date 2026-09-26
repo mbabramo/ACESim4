@@ -9,6 +9,9 @@ namespace ACESimBase.GameSolvingAlgorithms;
 
 public partial class SequenceForm
 {
+    // Optional observation of the ordinary exact solve; it does not choose a prior or alter pivots.
+    public Action<ECTATreeDefinition<ExactValue>> ExactTraceBeforeSolve { get; set; }
+    public Action<ECTATreeDefinition<ExactValue>, ECTAPivotSnapshot> ExactTraceAfterPivot { get; set; }
     public System.Collections.Generic.IReadOnlyList<InformationSetInfo> TraceInformationSets => InformationSetInfos.AsReadOnly();
     public double[][] TraceOutcomeUtilities() => Outcomes.Select(n => n.Utilities.Take(2).ToArray()).ToArray();
 

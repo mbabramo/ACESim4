@@ -16,6 +16,30 @@ namespace LitigCharts
 
         static async System.Threading.Tasks.Task<int> Main(string[] args)
         {
+            if (args.Length > 0 && args[0] == "final-article-results")
+                return await FinalArticleResultsCommand.RunAsync(args.Skip(1).ToArray());
+            if (args.Length > 0 && args[0] == "diagnose-float-pivots")
+                return await FloatPivotDiagnosis.RunAsync(args.Skip(1).ToArray());
+            if (args.Length > 0 && args[0] == "final-structure-sources")
+                return await FinalArticleStructureCommand.RunAsync(args.Skip(1).ToArray());
+            if (args.Length > 0 && args[0] == "final-signal-sources")
+                return FinalArticleSignalCommand.Run(args.Skip(1).ToArray());
+            if (args.Length > 0 && args[0] == "final-completion-snapshot")
+                return FinalArticleCompletionSnapshot.Run(args.Skip(1).ToArray());
+            if (args.Length > 0 && args[0] == "final-profile-audit")
+                return await FinalArticleProfileAudit.RunAsync(args.Skip(1).ToArray());
+            if (args.Length > 0 && args[0] == "final-approximate-start")
+                return await ArticleApproximateCommand.RunAsync(args.Skip(1).ToArray());
+            if (args.Length > 0 && args[0] == "calibrate-uniform-binary")
+                return UniformMeritsCalibrationCommand.Run(args.Skip(1).ToArray());
+            if (args.Length > 0 && args[0] == "truth-replay")
+                return await TruthMappingReplayCommand.RunAsync(args.Skip(1).ToArray());
+            if (args.Length > 0 && args[0] == "final-agreement-inventory")
+                return await FinalArticleInventoryCommand.RunAsync(args.Skip(1).ToArray());
+            if (args.Length > 0 && args[0] == "welfare-decomposition")
+                return await WelfareDecompositionCommand.RunAsync(args.Skip(1).ToArray());
+            if (args.Length > 0 && args[0] == "agreement-study-audit")
+                return await AgreementToBargainStudy.RunAsync(args.Skip(1).ToArray());
             if (args.Length > 0 && args[0] == "completed-cases")
                 return await ArticleCompletedCasesCommand.RunAsync(args.Skip(1).ToArray());
             if (args.Length > 0 && args[0] == "multiple-equilibria-report")

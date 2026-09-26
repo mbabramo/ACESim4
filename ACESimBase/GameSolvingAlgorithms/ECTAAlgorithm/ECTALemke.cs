@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -15,7 +15,7 @@ using ACESimBase.GameSolvingSupport.ExactValues;
 
 namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
 {
-    public class ECTALemke<T> where T : IMaybeExact<T>, new()
+    public partial class ECTALemke<T> where T : IMaybeExact<T>, new()
     {
 
         int n;   /* LCP (Linear Complementarity Problem) dimension as used here   */
@@ -677,6 +677,10 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
         int pivotnum = 0;
         public void Pivot(int leave, int enter)
         {
+            // Exact tableaux produced by FillTableau are integral. Keep the public
+            // wrapper storage and the generic path (including fractional callers).
+            if (typeof(T) == typeof(ExactValue) && TryPivotIntegers(leave, enter))
+                return;
             int row, col, i, j;
             bool nonzero, negativePivot;
             IMaybeExact<T> pivotValue = IMaybeExact<T>.Zero(), tableauEntry = IMaybeExact<T>.Zero(), pivotProduct = IMaybeExact<T>.Zero();
@@ -751,6 +755,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
         /* ------------------------------------------------------------ */
         public void RunLemke(ECTALemkeOptions flags)
         {
+            if (typeof(T) == typeof(InexactValue)) { RunFloatingLemke(flags); return; }
             int leaveBasis, enterBasis;
             bool z0leave = false;
 
@@ -849,6 +854,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
             {
                 int row = variableIndexToBasicCobasicIndex[variable];
                 if (row >= n) return 0;
+                if (typeof(T) == typeof(InexactValue) && floatingTableau != null) return floatingTableau[row][n + 1];
                 var numerator = Tableau[row][RHS()];
                 if (variable <= n) numerator = scaleFactors[variable].Times(numerator);
                 return numerator.DividedBy(determinant.Times(scaleFactors[RHS()])).AsDouble;
@@ -869,3 +875,4 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
         }
     }
 }
+

@@ -15,7 +15,7 @@ namespace ACESimBase.Games.LitigGame.ManualReports;
 public static class ArticlePressureAnalysis
 {
     public sealed record Source(string Id, string OptionSetName, string EquilibriumFile,
-        string ActionReportFile, int EquilibriumNumber = 1, string ProfileFile = null);
+        string ActionReportFile, int EquilibriumNumber = 1, string ProfileFile = null, FinalArticleCase FinalCase = null);
     public sealed record Contrast(string Id, string Label, string Source, string Target);
     public sealed record Request(string OutputDirectory, Source[] Sources, Contrast[] Contrasts,
         Tolerances Tolerances = null, bool CheckOffPathCompletions = true, bool CheckTieSensitivity = true,
@@ -28,7 +28,8 @@ public static class ArticlePressureAnalysis
         string TargetOptionSet, Tolerances Tolerances, Reference SourceEquilibrium,
         Reference TargetEquilibrium, Scenario[] Scenarios, string[] Interpretation,
         EquilibriumChangeDecomposition.ChangeRow[] Changes,
-        EquilibriumChangeDecomposition.ExcludedHistory[] ExcludedHistories, double[] OfferValues);
+        EquilibriumChangeDecomposition.ExcludedHistory[] ExcludedHistories, double[] OfferValues,
+        FinalArticleCase SourceCase = null, FinalArticleCase TargetCase = null);
     public sealed record Manifest(string Schema, DateTimeOffset CreatedUtc, Fingerprint Request,
         int MaxIntegralUtility, int RoundOffChanceDigits, Tolerances Tolerances,
         Loaded[] Sources, Contrast[] Contrasts, string[] OutputJsonFiles,
@@ -63,7 +64,7 @@ public static class ArticlePressureAnalysis
         foreach (var source in request.Sources)
         {
             progress?.Invoke("Validate source " + source.Id);
-            var options = ArticleWorkedPathExtraction.CreateOptions(source.OptionSetName);
+            var options = CreateOptions(source);
             RequireProtocol(options);
             var developer = await ArticleWorkedPathExtraction.InitializeAsync(options);
             string file = Resolve(source.EquilibriumFile);
@@ -95,22 +96,23 @@ public static class ArticlePressureAnalysis
         {
             if (!loaded.TryGetValue(contrast.Source, out var source) || !loaded.TryGetValue(contrast.Target, out var target))
                 throw new InvalidDataException("Contrast references an unknown source.");
-            var sourceOptions = ArticleWorkedPathExtraction.CreateOptions(source.Selection.OptionSetName);
-            var targetOptions = ArticleWorkedPathExtraction.CreateOptions(target.Selection.OptionSetName);
+            var sourceOptions = CreateOptions(source.Selection);
+            var targetOptions = CreateOptions(target.Selection);
             ValidateMatchedOptions(sourceOptions, targetOptions);
             progress?.Invoke("Analyze " + contrast.Label);
             var developer = await ArticleWorkedPathExtraction.InitializeAsync(targetOptions);
             var scenarios = new List<Scenario>();
+            int coalitionCount = EquilibriumChangeDecomposition.CoalitionCount(source.Profile);
             foreach (byte player in new byte[] { 0, 1 })
             {
                 byte opponent = (byte)(1 - player);
-                for (int mask = 0; mask < 8; mask++)
+                for (int mask = 0; mask < coalitionCount; mask++)
                 {
                     string name = contrast.Id + "-coalition-" + mask + "-" + player;
                     var hybrid = EquilibriumChangeDecomposition.Coalition(source.Profile, target.Profile, player, mask);
                     var response = Respond(developer, hybrid, player, name, tolerance, tieReference: source.Profile);
                     scenarios.Add(new("coalition", mask.ToString(), response));
-                    if (mask == 7)
+                    if (mask == coalitionCount - 1)
                         Near(target.Reference.Utilities[player], response.BestResponseUtility,
                             tolerance.Numerical, "Full target-opponent substitution");
                     if (request.CheckTieSensitivity)
@@ -128,13 +130,13 @@ public static class ArticlePressureAnalysis
                                 name + "-" + check, tolerance, tieReference: source.Profile)));
                         }
                 }
-                progress?.Invoke("  " + (player == 0 ? "Plaintiff" : "Defendant") + ": eight coalitions and sensitivity checks complete");
+                progress?.Invoke("  " + (player == 0 ? "Plaintiff" : "Defendant") + $": {coalitionCount} coalitions and sensitivity checks complete");
             }
-            double[] offerValues = Enumerable.Range(1, targetOptions.NumOffers).Select(a =>
-                Game.ConvertActionToUniformDistributionDraw((byte)a, targetOptions.NumOffers, targetOptions.IncludeEndpointsForOffers)).ToArray();
+            double[] offerValues = targetOptions.GetOfferValues();
             var (changes, excluded) = EquilibriumChangeDecomposition.BuildRows(source.Reference, target.Reference, scenarios.ToArray(), offerValues);
-            var result = new ContrastResult("2", contrast, source.Selection.OptionSetName, target.Selection.OptionSetName,
-                tolerance, source.Reference, target.Reference, scenarios.ToArray(), Interpretation, changes, excluded, offerValues);
+            var result = new ContrastResult(coalitionCount == 16 ? "3" : "2", contrast, source.Selection.OptionSetName, target.Selection.OptionSetName,
+                tolerance, source.Reference, target.Reference, scenarios.ToArray(), InterpretationFor(coalitionCount == 16), changes, excluded, offerValues,
+                source.Selection.FinalCase,target.Selection.FinalCase);
             string path = Path.Combine(output, contrast.Id + ".json");
             await File.WriteAllTextAsync(path, JsonSerializer.Serialize(result, JsonOptions) + "\n");
             outputs.Add(path);
@@ -145,7 +147,7 @@ public static class ArticlePressureAnalysis
             if (SourceFingerprints(source).Any(f => Hash(f.Path).Sha256 != f.Sha256))
                 throw new IOException("A production input changed during the diagnostic run.");
         }
-        var manifest = new Manifest("2", DateTimeOffset.UtcNow, Hash(requestFile), EvolutionSettings.MaxIntegralUtility,
+        var manifest = new Manifest(loaded.Values.Any(x => EquilibriumChangeDecomposition.CoalitionCount(x.Profile) == 16) ? "3" : "2", DateTimeOffset.UtcNow, Hash(requestFile), EvolutionSettings.MaxIntegralUtility,
             EvolutionSettings.RoundOffChanceDigits, tolerance, loaded.Values.ToArray(), request.Contrasts, outputs.ToArray(),
             outputs.Select(Hash).ToArray(), Hash(typeof(ArticlePressureAnalysis).Assembly.Location));
         await File.WriteAllTextAsync(Path.Combine(output, "equilibrium-changes-manifest.json"), JsonSerializer.Serialize(manifest, JsonOptions) + "\n");
@@ -194,13 +196,22 @@ public static class ArticlePressureAnalysis
             throw new NotSupportedException("The pressure diagnostic requires the article's one-round, precommitted-exit game with at least two signals/offers.");
     }
 
+    private static LitigGameOptions CreateOptions(Source source)
+    {
+        var options = source.FinalCase == null ? ArticleWorkedPathExtraction.CreateOptions(source.OptionSetName)
+            : FinalArticleCaseFactory.Create(source.FinalCase);
+        if (options.Name != source.OptionSetName)
+            throw new InvalidDataException("Declared final case does not match its saved option-set name.");
+        return options;
+    }
+
     public static void ValidateMatchedOptions(LitigGameOptions source, LitigGameOptions target)
     {
         RequireProtocol(source); RequireProtocol(target);
         // VariableSettings is the production request's human-readable primitive manifest.
         var allowed = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
         { "Fee Regime", "Fee Shifting Multiplier", "Risk Aversion", "CARA Alpha", "Specification",
-            "Fee Shifting Trigger", "Fees After Nonanswer" };
+            "Fee Shifting Trigger", "Fees After Nonanswer", "Final Case ID", "CARA Alpha P", "CARA Alpha D" };
         var left = source.VariableSettings.ToDictionary(x => x.Key, x => Convert.ToString(x.Value, System.Globalization.CultureInfo.InvariantCulture));
         var right = target.VariableSettings.ToDictionary(x => x.Key, x => Convert.ToString(x.Value, System.Globalization.CultureInfo.InvariantCulture));
         // A legal fee-rule intervention may change both the reimbursement amount
@@ -215,7 +226,8 @@ public static class ArticlePressureAnalysis
         foreach (string key in left.Keys.Union(right.Keys))
             if (!allowed.Contains(key) && left.GetValueOrDefault(key) != right.GetValueOrDefault(key))
                 throw new InvalidDataException("Unmatched intervention primitive: " + key);
-        if (source.NumOffers != target.NumOffers || source.NumLiabilitySignals != target.NumLiabilitySignals)
+        if (source.NumOffers != target.NumOffers || source.NumLiabilitySignals != target.NumLiabilitySignals ||
+            !source.GetOfferValues().SequenceEqual(target.GetOfferValues()))
             throw new InvalidDataException("Signal/offer grids must match.");
     }
 
@@ -226,6 +238,14 @@ public static class ArticlePressureAnalysis
     private static bool Inside(string path, string directory) => Path.GetFullPath(path).TrimEnd(Path.DirectorySeparatorChar)
         .StartsWith(Path.GetFullPath(directory).TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase)
         || Path.GetFullPath(path).TrimEnd(Path.DirectorySeparatorChar).Equals(Path.GetFullPath(directory).TrimEnd(Path.DirectorySeparatorChar), StringComparison.OrdinalIgnoreCase);
+
+    private static string[] InterpretationFor(bool agreement) => Interpretation.Select(text => agreement
+        ? text.Replace("Eight coalitions", "Sixteen coalitions")
+            .Replace("entry, offer, and exit policies", "entry, offer, exit, and agreement policies")
+            .Replace("all six orders", "all twenty-four orders")
+            .Replace("four mechanisms", "five contributions")
+            .Replace("four-way accounting", "five-contribution accounting")
+        : text).ToArray();
 
     public static readonly string[] Interpretation =
     {
@@ -238,7 +258,7 @@ public static class ArticlePressureAnalysis
         "ActualReach and actual conditional utility concern the reported response profile; actual conditional utility is null when actual reach is zero. Counterfactual conditional values can remain defined if the player could reach the set by changing an earlier action; values/beliefs are null when opponent-and-chance reach is zero.",
         "Offer rows retain own exit commitments separately. The commitments are private and operate only after failed settlement. This does not test a different bargaining/exit protocol.",
         "Primary responses retain and renormalize original probability on optimal actions within the tie tolerance; when none remains they choose the first optimum. Each resulting complete policy is independently replayed against the optimal root utility. Low/high action alternatives test selection sensitivity. These are illustrative checks, not exhaustive bounds.",
-        "If the selected all-target-opponent response differs from the observed target policy, its residual is never silently attributed to the four mechanisms. The publication table labels the row selection-dependent and suppresses a purported four-way accounting. Mixed offers are decomposed as action shares, never as mean offers.",
+        "If the selected all-target-opponent response differs from the observed target policy, its residual is never silently attributed to the four mechanisms. The publication table retains the explicit remaining contribution and sensitivity flags. Mixed offers are decomposed as action shares, never as mean offers.",
         "Intermediate coalitions may not actually reach a commonly reached endpoint history. Conditional continuation policies are usable only with positive opponent-and-chance reach and are explicitly flagged. Zero-counterfactual-reach coalitions make the row undefined for attribution.",
         "Opponent completions are audited both when actually newly reached and when reachable through a focal-player deviation: an arbitrary continuation can deter entry without being played. FocalDeviationReachWeight at opponent sets is only an exposure weight, not a normalized probability. Low/high completion tests change only donor-unvisited sets and are illustrative stress tests, not exhaustive bounds or alternative equilibria.",
         "Utility differences are within the intervention utility function. Risk-neutral and CARA utilities are not cross-regime welfare-comparable. Positive effect sizes do not by themselves establish a policy ranking.",

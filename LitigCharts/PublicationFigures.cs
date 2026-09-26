@@ -153,8 +153,7 @@ public static class PublicationFigures
         var options = ArticleWorkedPathExtraction.CreateOptions(optionSetName);
         if (options.NumPotentialBargainingRounds != 1)
             throw new InvalidDataException("The four-panel layout requires a one-round game; split later-round histories explicitly.");
-        return (options.NumLiabilitySignals, Enumerable.Range(1, options.NumOffers)
-            .Select(a => Game.ConvertActionToUniformDistributionDraw((byte)a, options.NumOffers, options.IncludeEndpointsForOffers)).ToArray());
+        return (options.NumLiabilitySignals, options.GetOfferValues());
     }
 
     public static StrategyPoint[] BuildStrategySeries(Dictionary<string, string>[] rows, StrategyCase selection, string decision,

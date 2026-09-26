@@ -42,7 +42,7 @@ public static class MultipleEquilibriaExhibits
     {
         try
         {
-            string input=null, output=null; int jobs=Environment.ProcessorCount; bool sourcesOnly=false;
+            string input=null, output=null; string plan="multiple-equilibria"; int jobs=Environment.ProcessorCount; bool sourcesOnly=false;
             var seen=new HashSet<string>();
             for(int i=0;i<args.Length;i++)
             {
@@ -50,6 +50,7 @@ public static class MultipleEquilibriaExhibits
                 string Value()=>++i<args.Length?args[i]:throw new ArgumentException("Missing value: "+flag);
                 switch(flag)
                 {
+                    case "--plan": plan=Value(); break;
                     case "--input": input=Path.GetFullPath(Value()); break;
                     case "--output": output=Path.GetFullPath(Value()); break;
                     case "--jobs": jobs=int.Parse(Value(),CultureInfo.InvariantCulture); break;
@@ -60,12 +61,14 @@ public static class MultipleEquilibriaExhibits
             if(input==null||output==null||jobs<1) throw new ArgumentException("Use --input <completed production> --output <exhibits> [--jobs N] [--sources-only].");
             string raw=Path.Combine(output,"Sources","Production");
             Directory.CreateDirectory(raw);
-            var launcher=new LitigGameCorrelatedSignalsArticleLauncher(LitigGameCorrelatedSignalsArticleLauncher.ProductionRunPlan.MultipleEquilibriaRobustness);
+            var launcher=new LitigGameCorrelatedSignalsArticleLauncher(LitigGameCorrelatedSignalsArticleLauncher.ParseProductionRunPlan(plan));
+            if (!launcher.IsMultipleEquilibriaPlan) throw new ArgumentException("Expected a multiple-start plan.");
+            string prefix=launcher.MasterReportNameForDistributedProcessing;
             var options=launcher.GetOptionsSets().Cast<LitigGameOptions>().ToArray();
             // Copy the data required to rebuild every outcome and verify recovery counts. The
             // original run manifest remains untouched and identifies the actual solving build.
-            string[] inputs=Directory.GetFiles(input,"CS004ME*")
-                .Where(p=>p.EndsWith(".csv",StringComparison.OrdinalIgnoreCase)||p.EndsWith("-log.txt",StringComparison.OrdinalIgnoreCase)||Path.GetFileName(p)=="CS004ME run manifest.json")
+            string[] inputs=Directory.GetFiles(input,prefix+"*")
+                .Where(p=>p.EndsWith(".csv",StringComparison.OrdinalIgnoreCase)||p.EndsWith("-log.txt",StringComparison.OrdinalIgnoreCase)||Path.GetFileName(p)==prefix+" run manifest.json")
                 .OrderBy(p=>p,StringComparer.Ordinal).ToArray();
             foreach(string source in inputs)
             {
@@ -73,7 +76,7 @@ public static class MultipleEquilibriaExhibits
                 if(!Path.GetFullPath(source).Equals(destination,StringComparison.OrdinalIgnoreCase))File.Copy(source,destination,true);
             }
             string summary=Path.Combine(output,"Sources","equilibrium-outcomes.csv"), ranges=Path.Combine(output,"Sources","equilibrium-ranges.csv");
-            var audit = sourcesOnly ? null : await MultipleEquilibriaStrategyAudit.RunAsync(options, raw, output);
+            var audit = sourcesOnly ? null : await MultipleEquilibriaStrategyAudit.RunAsync(options, raw, output, prefix);
             string auditPath=Path.Combine(output,"Sources","strategy-verification.json");
             if(audit!=null)Write(auditPath,JsonSerializer.Serialize(new {
                 Method="Reload every saved profile, reproduce its full information-set action report and outcome report, compute both players' best responses against that current profile, and regenerate individual diagrams from that profile's paths alone. No equilibrium search is run.",
@@ -124,7 +127,7 @@ public static class MultipleEquilibriaExhibits
             {
                 string risk=ArticleResultsLayout.Risk(Convert.ToDouble(option.VariableSettings["CARA Alpha"],CultureInfo.InvariantCulture));
                 string fee=LitigGameCorrelatedSignalsArticleLauncher.FeeRuleLabel(option);
-                foreach(string source in Directory.GetFiles(input,"CS004ME "+option.Name+" *.tex"))
+                foreach(string source in Directory.GetFiles(input,prefix+" "+option.Name+" *.tex"))
                 {
                     // Averages/correlations across solutions are diagnostic reports, not equilibria.
                     if(!Regex.IsMatch(Path.GetFileName(source),@"-Eq\d+\.tex$"))continue;

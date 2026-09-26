@@ -21,9 +21,16 @@ public static class EquilibriumChangeTables
     public sealed record RowGroup(ChangeRow First, ChangeRow Last, int Count);
 
     public static ReportHeading Heading(string sourceOptionSet, string targetOptionSet)
+        => Heading(ArticleWorkedPathExtraction.CreateOptions(sourceOptionSet),ArticleWorkedPathExtraction.CreateOptions(targetOptionSet),false);
+
+    public static ReportHeading Heading(ACESim.FinalArticleCase source, ACESim.FinalArticleCase target)
+        => Heading(ACESim.FinalArticleCaseFactory.Create(source),ACESim.FinalArticleCaseFactory.Create(target),true);
+
+    private static ReportHeading Heading(ContrastResult result) => result.SourceCase == null && result.TargetCase == null
+        ? Heading(result.SourceOptionSet,result.TargetOptionSet) : Heading(result.SourceCase,result.TargetCase);
+
+    private static ReportHeading Heading(ACESim.LitigGameOptions source, ACESim.LitigGameOptions target, bool finalCases)
     {
-        var source = ArticleWorkedPathExtraction.CreateOptions(sourceOptionSet);
-        var target = ArticleWorkedPathExtraction.CreateOptions(targetOptionSet);
         ValidateMatchedOptions(source, target);
         string From(string key) => Convert.ToString(source.VariableSettings[key], Invariant);
         string To(string key) => Convert.ToString(target.VariableSettings[key], Invariant);
@@ -33,7 +40,7 @@ public static class EquilibriumChangeTables
         bool fees = fromFee != toFee;
         string ShortRisk(string risk) => risk == "moderately risk averse" ? "risk averse" : risk;
         return new(fees ? $"Fee shifting: {fromFee} to {toFee}" : $"Preferences: {fromRisk} to {toRisk}",
-            fees ? $"Both players remain {fromRisk}" : $"{fromFee} rule remains in force",
+            fees ? finalCases ? $"Risk preferences unchanged: {fromRisk}" : $"Both players remain {fromRisk}" : $"{fromFee} rule remains in force",
             From("Costs Multiplier"), $"{fromFee} rule, {fromRisk}", $"{toFee} rule, {toRisk}",
             fees ? fromFee : ShortRisk(fromRisk), fees ? toFee : ShortRisk(toRisk));
     }
@@ -77,7 +84,7 @@ public static class EquilibriumChangeTables
             await WriteReport(stem, new[] { result });
             sources.Add(stem + ".tex");
         }
-        foreach (var group in results.GroupBy(r => Heading(r.SourceOptionSet, r.TargetOptionSet).Cost))
+        foreach (var group in results.GroupBy(r => Heading(r).Cost))
         {
             bool ordinary = group.Key == "1";
             string directory = ordinary && request.PublicationDirectory != null ? Resolve(request.PublicationDirectory) : output;
@@ -93,16 +100,17 @@ public static class EquilibriumChangeTables
         }
         await DiagramCompiler.CompileAllAsync(sources.ToArray(), new ArticleDiagramCommand.Configuration(), 2, passes: 2);
         var readme = new StringBuilder("# Equilibrium strategy changes\n\n");
-        readme.AppendLine(Notes);
+        readme.AppendLine(NotesFor(results.Any(r=>r.Schema=="3")));
         readme.AppendLine("\n## Reports\n");
         foreach (var result in results)
         {
-            var h = Heading(result.SourceOptionSet, result.TargetOptionSet);
+            var h = Heading(result);
             readme.AppendLine($"- [{h.Title}; {h.HeldFixed}; costs {h.Cost}]({result.Contrast.Id}.pdf): " +
                 $"{GroupRows(result.Changes).Length} displayed rows ({result.Changes.Length} ungrouped changed rows), " +
                 $"{result.Changes.Count(r => r.EndpointSelection)} selection-residual rows.");
         }
-        readme.AppendLine("\nFull source profiles, all eight coalition best responses, action values, conditional beliefs, " +
+        string coalitionCount = results.Any(r => r.Schema == "3") ? "16" : "eight";
+        readme.AppendLine($"\nFull source profiles, all {coalitionCount} coalition best responses per player, action values, conditional beliefs, " +
             "off-path exposure checks, tie/completion stresses, selection residuals, and excluded histories are retained in the calculation JSON and manifest.");
         readme.AppendLine("\nThe earlier Information-set pressure directory is historical: its independent columns were not additive contributions. " +
             "The former table generator has been removed; the pressure command is an alias for the new workflow.");
@@ -115,14 +123,14 @@ public static class EquilibriumChangeTables
         string output = Path.GetFullPath(request.OutputDirectory, Path.GetDirectoryName(Path.GetFullPath(requestFile)));
         var manifest = JsonSerializer.Deserialize<Manifest>(File.ReadAllText(Path.Combine(output, "equilibrium-changes-manifest.json")), JsonOptions)
             ?? throw new InvalidDataException("Missing completed manifest.");
-        if (manifest.Schema != "2" || manifest.Request.Sha256 != Hash(requestFile).Sha256)
+        if (manifest.Schema is not ("2" or "3") || manifest.Request.Sha256 != Hash(requestFile).Sha256)
             throw new InvalidDataException("Recalculate: incompatible schema or changed request.");
         foreach (var fingerprint in manifest.OutputFingerprints.Concat(manifest.Sources.SelectMany(SourceFingerprints)))
             if (Hash(fingerprint.Path).Sha256 != fingerprint.Sha256)
                 throw new InvalidDataException("Input or calculation changed: " + fingerprint.Path);
         var results = manifest.OutputJsonFiles.Select(path => JsonSerializer.Deserialize<ContrastResult>(File.ReadAllText(path), JsonOptions)
             ?? throw new InvalidDataException(path)).ToArray();
-        if (results.Any(r => r.Schema != "2" || r.Changes == null))
+        if (results.Any(r => r.Schema is not ("2" or "3") || r.Changes == null))
             throw new InvalidDataException("Old pressure data cannot be rendered as additive decompositions.");
         return (manifest, results);
     }
@@ -133,17 +141,17 @@ public static class EquilibriumChangeTables
     private static async Task WriteReport(string stem, ContrastResult[] results)
     {
         await File.WriteAllTextAsync(stem + ".tex", Latex(results));
-        var notes = new StringBuilder(Notes + "\n\n");
+        var notes = new StringBuilder(NotesFor(results.Any(r=>r.Schema=="3")) + "\n\n");
         foreach (var result in results)
         {
-            var heading = Heading(result.SourceOptionSet, result.TargetOptionSet);
+            var heading = Heading(result);
             notes.AppendLine(heading.Title + "; " + heading.HeldFixed + "; costs " + heading.Cost);
             foreach (var row in GroupRows(result.Changes))
             {
                 var r = row.First;
                 notes.AppendLine($"{(r.Player == 0 ? "P" : "D")} {DecisionLabel(r)}; signal {SignalLabel(row)}: " +
                     $"{r.Allocation.Original:G6} -> {r.Allocation.Target:G6}; " +
-                    $"direct={r.Allocation.Direct:G6}, entry={r.Allocation.Entry:G6}, offers={r.Allocation.Offers:G6}, exit={r.Allocation.Exit:G6}; " +
+                    $"direct={r.Allocation.Direct:G6}, entry={r.Allocation.Entry:G6}, offers={r.Allocation.Offers:G6}, exit={r.Allocation.Exit:G6}, agreement={r.Allocation.Agreement:G6}; " +
                     $"selection residual={r.Allocation.SelectionResidual:G6}; " +
                     $"tie-sensitive={r.TieSensitive}, completion-sensitive={r.CompletionSensitive}, undefined={r.CounterfactualUndefined}.");
             }
@@ -156,7 +164,7 @@ public static class EquilibriumChangeTables
                 string value(double? x) => x?.ToString("G12", Invariant) ?? "undefined";
                 notes.AppendLine($"{(gap.Player == 0 ? "P" : "D")} {gap.Decision}; signal {gap.SignalValue:0.00}; " +
                     $"{GapComparison(gap)}: {value(gap.OriginalGap)} -> {value(gap.TargetGap)}; " +
-                    (gap.Allocation is { } a ? $"direct/reoptimization={a.Direct:G12}, entry={a.Entry:G12}, offers={a.Offers:G12}, exit={a.Exit:G12}, endpoint remainder={a.SelectionResidual:G12}; " : "undefined counterfactual; ") +
+                    (gap.Allocation is { } a ? $"direct/reoptimization={a.Direct:G12}, entry={a.Entry:G12}, offers={a.Offers:G12}, exit={a.Exit:G12}, agreement={a.Agreement:G12}, endpoint remainder={a.SelectionResidual:G12}; " : "undefined counterfactual; ") +
                     $"tie-sensitive={gap.TieSensitive}, completion-sensitive={gap.CompletionSensitive}; " +
                     "unreached coalitions=" + string.Join(",", gap.UnreachedCoalitions));
             }
@@ -188,7 +196,7 @@ public static class EquilibriumChangeTables
     public static bool CanGroup(ChangeRow a, ChangeRow b)
     {
         double[] Values(ChangeRow r) => new[] { r.Allocation.Original, r.Allocation.Target, r.Allocation.Direct,
-            r.Allocation.Entry, r.Allocation.Offers, r.Allocation.Exit, r.Allocation.SelectionResidual };
+            r.Allocation.Entry, r.Allocation.Offers, r.Allocation.Exit, r.Allocation.Agreement, r.Allocation.SelectionResidual };
         return a.Player == b.Player && a.Decision == b.Decision && a.Signal + 1 == b.Signal &&
             a.ExitCommitment == b.ExitCommitment && a.Metric == b.Metric && a.Action == b.Action &&
             a.EndpointSelection == b.EndpointSelection && a.TieSensitive == b.TieSensitive &&
@@ -207,6 +215,7 @@ public static class EquilibriumChangeTables
         if (r.Decision == "D Defaults") return "Commit to default (%)";
         string offer = r.Player == 0 ? "Demand" : "Offer";
         string exit = r.ExitCommitment == 2 ? "continue" : r.Player == 0 ? "abandon" : "default";
+        if (r.Decision.Contains("Agree",StringComparison.OrdinalIgnoreCase)) return $"Agree (%) / {exit}";
         return r.Action.HasValue ? $"{offer} {r.ActionLabels[r.Action.Value - 1]} (%) / {exit}"
             : $"{offer} / {exit}";
     }
@@ -221,6 +230,28 @@ public static class EquilibriumChangeTables
 
     public static string Latex(ContrastResult[] results)
     {
+        if (results.Any(r => r.Schema == "3"))
+        {
+            var expanded = new StringBuilder(@"\documentclass[10pt]{article}
+\usepackage[letterpaper,landscape,margin=.5in]{geometry}
+\usepackage[T1]{fontenc}\usepackage{lmodern,booktabs,array,tabularx,longtable,microtype}
+\begin{document}");
+            foreach (var result in results)
+            {
+                var heading = Heading(result);
+                expanded.AppendLine(@"\textbf{" + Escape(heading.Title) + @"}\par");
+                expanded.AppendLine(Escape(heading.HeldFixed) + "; cost multiplier " + Escape(heading.Cost) + @"\par");
+                AppendFinalCaseContext(expanded, result);
+                expanded.AppendLine(EquilibriumPublicationTables.LatexBody(result.Changes, result.Schema == "3"));
+                expanded.AppendLine(@"\smallskip{\footnotesize Probability contributions are percentage points; pure offer changes are fractions of damages. Direct changes the rule or preferences first.\par");
+                expanded.AppendLine(@"Opponent entry, offers, exit and agreement contributions average all 24 replacement orders. Their sum plus Direct and Remaining equals the endpoint change before rounding.\par");
+                expanded.AppendLine(@"Remaining retains equilibrium-selection and continuation differences. Sensitive flags tie or off-path completion dependence; these are conditional diagnostics, not causal shares.\par");
+                expanded.AppendLine(@"$^{*}$: an intermediate hybrid does not reach this history, although its continuation remains defined by positive opponent-and-chance reach.}\par");
+                expanded.AppendLine(@"\clearpage");
+            }
+            foreach (var result in results) AppendPayoffTable(expanded,result);
+            return expanded.AppendLine(@"\end{document}").ToString();
+        }
         var b = new StringBuilder("""
             \documentclass[10pt]{article}
             \usepackage[letterpaper,margin=0.5in]{geometry}
@@ -237,7 +268,7 @@ public static class EquilibriumChangeTables
         {
             if (!first) b.AppendLine(@"\clearpage");
             first = false;
-            var h = Heading(result.SourceOptionSet, result.TargetOptionSet);
+            var h = Heading(result);
             b.AppendLine(@"{\large\bfseries " + Escape(h.Title) + @"}\par");
             b.AppendLine(Escape(h.HeldFixed) + "; costs unchanged at multiplier " + Escape(h.Cost) + @".\par");
             b.AppendLine(@"{\small Changed decisions only. Original: " + Escape(h.OriginalColumn) + "; target: " + Escape(h.TargetColumn) + @".}\par");
@@ -306,19 +337,23 @@ public static class EquilibriumChangeTables
     {
         var rows = PayoffGaps(result);
         if (rows.Length == 0) return;
-        var h = Heading(result.SourceOptionSet, result.TargetOptionSet);
+        bool agreement=result.Schema=="3";
+        int columns=agreement ? 11 : 10;
+        var h = Heading(result);
         b.AppendLine(@"\clearpage {\large\bfseries Relative-payoff changes}\par");
         b.AppendLine(Escape(h.Title + "; " + h.HeldFixed + "; costs " + h.Cost) + @".\par");
+        AppendFinalCaseContext(b, result);
         b.AppendLine(@"{\small Supplement to partial strategy decompositions. Gap: conditional utility of actions gaining probability minus that of actions losing probability. Positive favors the gaining side.}\par");
-        b.AppendLine(@"{\small\setlength{\tabcolsep}{3pt}\begin{longtable}{@{}>{\raggedright\arraybackslash}p{1.7in}rrrrrrrrr@{}}");
+        b.AppendLine(@"{\small\setlength{\tabcolsep}{3pt}\begin{longtable}{@{}>{\raggedright\arraybackslash}p{1.7in}"+new string('r',columns-1)+@"@{}}");
         string header = @"\toprule Decision / comparison & Signal & Original & Target & Change & \shortstack{Direct/\\reopt.} & Entry & Offers & Exit & Remaining \\\midrule";
+        if (agreement) header=header.Replace("& Remaining", "& Agreement & Remaining",StringComparison.Ordinal);
         b.AppendLine(header + @"\endfirsthead"); b.AppendLine(header + @"\endhead");
         b.AppendLine(@"\bottomrule\endfoot");
         foreach (byte player in new byte[] { 0, 1 })
         {
             var selected = rows.Where(r => r.Player == player).ToArray();
             if (selected.Length == 0) continue;
-            b.AppendLine(@"\multicolumn{10}{@{}l}{\textbf{" + (player == 0 ? "Plaintiff" : "Defendant") + @"}}\\");
+            b.AppendLine(@"\multicolumn{"+columns+@"}{@{}l}{\textbf{" + (player == 0 ? "Plaintiff" : "Defendant") + @"}}\\");
             foreach (var row in selected)
             {
                 var representative = result.Changes.First(r => r.Key == row.Key) with { Action = null };
@@ -330,21 +365,38 @@ public static class EquilibriumChangeTables
                     (marks.Length > 0 ? "$^{" + marks + "}$" : "") + " & " + row.SignalValue.ToString("0.00", Invariant) +
                     " & " + PayoffNumber(row.OriginalGap) + " & " + PayoffNumber(row.TargetGap) +
                     " & " + PayoffNumber(row.TargetGap - row.OriginalGap, true));
-                if (row.CounterfactualUndefined) b.Append(@" & \multicolumn{5}{c}{Undefined counterfactual}");
+                if (row.CounterfactualUndefined) b.Append(@" & \multicolumn{"+(agreement ? 6 : 5)+@"}{c}{Undefined counterfactual}");
                 else
-                    foreach (double v in new[] { row.Allocation.Direct, row.Allocation.Entry, row.Allocation.Offers,
-                        row.Allocation.Exit, row.Allocation.SelectionResidual }) b.Append(" & " + PayoffNumber(v, true));
+                    foreach (double v in agreement ? new[] { row.Allocation.Direct,row.Allocation.Entry,row.Allocation.Offers,row.Allocation.Exit,row.Allocation.Agreement,row.Allocation.SelectionResidual } : new[] { row.Allocation.Direct,row.Allocation.Entry,row.Allocation.Offers,row.Allocation.Exit,row.Allocation.SelectionResidual }) b.Append(" & " + PayoffNumber(v, true));
                 b.AppendLine(@"\\[3pt]");
             }
         }
         b.AppendLine(@"\end{longtable}} {\footnotesize All numbers on this page are $1000\times$ utility differences (not percentages or money). The JSON/text files retain unscaled values. Mixtures weight each action by its share of the probability mass gained/lost between endpoints.\par");
-        b.AppendLine(@"Direct/reopt.: new rule/preferences and optimized own continuation against the original opponent. Entry, Offers, Exit: marginal opponent replacements averaged over six orders. Original and Target use actual endpoint continuations; any final continuation mismatch is Remaining$^*$. Change equals all five columns before rounding.\par");
+        b.AppendLine((@"Direct/reopt.: new rule/preferences and optimized own continuation against the original opponent. Entry, Offers, Exit: marginal opponent replacements averaged over six orders. Original and Target use actual endpoint continuations; any final continuation mismatch is Remaining$^*$. Change equals all five columns before rounding.\par")
+            .Replace("Entry, Offers, Exit",agreement ? "Entry, Offers, Exit, Agreement" : "Entry, Offers, Exit",StringComparison.Ordinal)
+            .Replace("six orders",agreement ? "24 orders" : "six orders",StringComparison.Ordinal)
+            .Replace("all five columns",agreement ? "all six columns" : "all five columns",StringComparison.Ordinal));
         b.AppendLine(@"$\dagger$: tie-sensitive payoff allocation. $\S$: unvisited-opponent-policy sensitivity. $\ddagger$: conditional on an intermediate history not reached in that hybrid. Undefined values are not zero.\par");
         b.AppendLine(@"These comparisons explain changes in relative incentives, not the exact equilibrium mixing probabilities or an observed dynamic path. Utility scales are convention-dependent, particularly across preference regimes, and are not cross-regime welfare comparisons.}\par");
     }
 
+    private static void AppendFinalCaseContext(StringBuilder b, ContrastResult result)
+    {
+        if (result.SourceCase is not { } source) return;
+        string F(double x) => x.ToString("G6", Invariant);
+        b.AppendLine(@"{\footnotesize " + Escape($"{source.Family} / {source.Variant}; {source.Signals} signals; {source.Offers.Length} offers; " +
+            $"party noise {F(source.PartySigma)}; court noise {F(source.CourtSigma)}; entry cost {F(source.EntryCost)}; trial cost {F(source.TrialCost)}.") + @"}\par");
+    }
+
     public static string Escape(string value) => value.Replace("&", @"\&").Replace("%", @"\%")
         .Replace("_", @"\_").Replace("#", @"\#");
+
+    public static string NotesFor(bool agreement) => !agreement ? Notes : Notes
+        .Replace("Entry, offers, and exit", "Entry, offers, exit, and agreement",StringComparison.Ordinal)
+        .Replace("all six orders using all eight subsets", "all 24 orders using all 16 subsets",StringComparison.Ordinal)
+        .Replace("four categories", "five contributions",StringComparison.Ordinal)
+        .Replace("four contributions", "five contributions",StringComparison.Ordinal)
+        .Replace("fifth causal mechanism", "sixth causal mechanism",StringComparison.Ordinal);
 
     public const string Notes =
         "Only changed decisions reached in both actual endpoint equilibria are displayed. Newly/no-longer reached histories are recorded in JSON, never assigned a fictitious endpoint strategy. " +

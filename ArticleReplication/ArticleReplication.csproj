@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <StartupObject>ArticleReplication.Program</StartupObject>
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <EnableUnsafeBinaryFormatterSerialization>true</EnableUnsafeBinaryFormatterSerialization>
+    <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+    <Deterministic>true</Deterministic>
+  </PropertyGroup>
+  <ItemGroup><ProjectReference Include="../LitigCharts/LitigCharts.csproj" /></ItemGroup>
+  <ItemGroup><EmbeddedResource Include="Templates/*.tex" /><EmbeddedResource Include="Authored/**/*" LogicalName="ArticleReplication.Authored/%(RecursiveDir)%(Filename)%(Extension)" /></ItemGroup>
+  <PropertyGroup>
+    <ArticleContainerTag Condition="'$(ArticleContainerTag)' == ''">acesim-correlated-signals:local</ArticleContainerTag>
+    <ArticleContainerRecords Condition="'$(ArticleContainerRecords)' == ''">$(MSBuildProjectDirectory)/../../container-builds/$([System.DateTime]::UtcNow.ToString('yyyyMMddTHHmmssfff'))</ArticleContainerRecords>
+  </PropertyGroup>
+  <Target Name="BuildArticleContainer" AfterTargets="Build" Condition="'$(BuildReplicationContainer)' == 'true'">
+    <Exec Command="dotnet &quot;$(TargetPath)&quot; container-build --source &quot;$(MSBuildProjectDirectory)/..&quot; --output &quot;$(ArticleContainerRecords)&quot; --tag &quot;$(ArticleContainerTag)&quot;" />
+  </Target>
+</Project>

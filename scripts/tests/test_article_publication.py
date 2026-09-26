@@ -6,6 +6,22 @@ publication=importlib.util.module_from_spec(spec);spec.loader.exec_module(public
 
 
 class PublicationTests(unittest.TestCase):
+    def test_derived_exhibit_checks_both_source_and_output(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory)
+            source=root/'data.csv';source.write_text('original data\n')
+            output=root/'table.tex';output.write_text('derived presentation\n')
+            record={'Source':source.name,'Output':output.name,'Derived':True,
+                    'SourceSha256':publication.sha(source),'Sha256':publication.sha(output)}
+            publication.verify_main_exhibit(root,record)
+            source.write_text('changed data\n')
+            with self.assertRaisesRegex(ValueError,'Changed source'):
+                publication.verify_main_exhibit(root,record)
+            source.write_text('original data\n')
+            output.write_text('changed presentation\n')
+            with self.assertRaisesRegex(ValueError,'Changed numbered exhibit'):
+                publication.verify_main_exhibit(root,record)
+
     def test_comparison_coverage_rejects_missing_complete_rule(self):
         matrix=[{'OptionSetName':risk+fee,'Transformation':'Baseline','Offers':10,'Cost':1,'Risk':risk,'FeeRule':fee}
                 for risk in ['RN','RA'] for fee in ['American','Trial Fee-Shifting','Complete Fee-Shifting']]

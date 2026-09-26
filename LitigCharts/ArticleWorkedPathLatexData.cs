@@ -14,7 +14,8 @@ namespace LitigCharts
     {
         public static string Build(Extraction data)
         {
-            if (data.OptionSetName != "Specification-Baseline__Cost-1__Fee-American" || data.EquilibriumNumber != 1)
+            bool agreement=data.OptionSetName=="Agreement-Enabled__Specification-Baseline__Cost-1__Fee-American";
+            if ((!agreement&&data.OptionSetName != "Specification-Baseline__Cost-1__Fee-American") || data.EquilibriumNumber != 1)
                 throw new ArgumentException("This bespoke layout is for the baseline American-rule equilibrium 1 at cost 1.");
             PathData Path(string name) => data.Paths.Single(x => x.Name == name);
             StepData Step(string path, LitigGameDecisions decision) => Path(path).Steps.Single(x => x.Decision == decision);
@@ -38,9 +39,8 @@ namespace LitigCharts
                 new Choice(LitigGameDecisions.DAnswer, 1),
                 new Choice(LitigGameDecisions.PAbandon, exit),
                 new Choice(LitigGameDecisions.DDefault, 2),
-                new Choice(LitigGameDecisions.POffer, demand),
-                new Choice(LitigGameDecisions.DOffer, offer),
-            };
+            }.Concat(agreement?new[]{new Choice(LitigGameDecisions.PAgreeToBargain,1),new Choice(LitigGameDecisions.DAgreeToBargain,1)}:Array.Empty<Choice>())
+             .Concat(new[]{new Choice(LitigGameDecisions.POffer,demand),new Choice(LitigGameDecisions.DOffer,offer)}).ToArray();
             var expectedPaths = new Dictionary<string, Choice[]>
             {
                 ["trial"] = Bargaining(4, 3, 8),
@@ -93,6 +93,13 @@ namespace LitigCharts
             Info("DemandMainInfo", "trial", LitigGameDecisions.POffer);
             Info("DemandMixedInfo", "settlement", LitigGameDecisions.POffer);
             Info("OfferInfo", "trial", LitigGameDecisions.DOffer);
+            if(agreement)
+            {
+                SameInfo(LitigGameDecisions.DAgreeToBargain,"trial","settlement");
+                Info("PAgreeMainInfo","trial",LitigGameDecisions.PAgreeToBargain);
+                Info("PAgreeMixedInfo","settlement",LitigGameDecisions.PAgreeToBargain);
+                Info("DAgreeInfo","trial",LitigGameDecisions.DAgreeToBargain);
+            }
             Number("SignalMainProbability", Action("trial", LitigGameDecisions.PLiabilitySignal, 4).Probability);
             Number("SignalMixedProbability", Action("settlement", LitigGameDecisions.PLiabilitySignal, 3).Probability);
             Number("DSignalMainProbability", Action("trial", LitigGameDecisions.DLiabilitySignal, 3).Probability);

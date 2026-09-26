@@ -54,6 +54,7 @@ public static class InformationSetPressureAnalysis
         LitigGameDecisions.PFile or LitigGameDecisions.DAnswer => "participation",
         LitigGameDecisions.POffer or LitigGameDecisions.DOffer => "offers",
         LitigGameDecisions.PAbandon or LitigGameDecisions.DDefault => "exit",
+        LitigGameDecisions.PAgreeToBargain or LitigGameDecisions.DAgreeToBargain => "agreement",
         _ => throw new NotSupportedException("Not a supported article decision: " + decision)
     };
 
@@ -99,7 +100,7 @@ public static class InformationSetPressureAnalysis
 
     public static Profile Hybrid(Profile baseline, Profile donor, byte opponent, string component, string name)
     {
-        if (opponent > 1 || !new[] { "none", "participation", "offers", "exit", "all" }.Contains(component))
+        if (opponent > 1 || !new[] { "none", "participation", "offers", "exit", "agreement", "all" }.Contains(component))
             throw new ArgumentException("Invalid opponent/component.");
         if (!baseline.Strategies.Keys.OrderBy(x => x).SequenceEqual(donor.Strategies.Keys.OrderBy(x => x)))
             throw new InvalidDataException("Source and donor have different histories.");

@@ -82,6 +82,10 @@ namespace ACESim
                     break;
                 case (byte)LitigGameDecisions.DAgreeToBargain:
                     LitigGameProgress.AddDAgreesToBargain(action == 1);
+                    // Refusal ends the offer portion, not the dispute. Resolve the same
+                    // private exit commitments and chance endings as nonoverlapping offers.
+                    if (!LitigGameProgress.BothAgreeToBargainInRound(LitigGameProgress.BargainingRoundsComplete + 1))
+                        ConcludeMainPortionOfBargainingRound();
                     break;
                 case (byte)LitigGameDecisions.POffer:
                     double offer = GetOfferBasedOnAction(action, true, LitigGameDefinition.Options.IncludeEndpointsForOffers);
@@ -260,12 +264,12 @@ namespace ACESim
         {
             double offer;
             if (LitigGameProgress.BargainingRoundsComplete == 0 || !LitigGameDefinition.Options.DeltaOffersOptions.SubsequentOffersAreDeltas)
-                offer = ConvertActionToUniformDistributionDraw(action, includeEndpoints);
+                offer = LitigGameDefinition.Options.GetOfferValue(action);
             else
             {
                 double? previousOffer = plaintiffOffer ? LitigGameProgress.PLastOffer : LitigGameProgress.DLastOffer;
                 if (previousOffer == null)
-                    offer = ConvertActionToUniformDistributionDraw(action, includeEndpoints);
+                    offer = LitigGameDefinition.Options.GetOfferValue(action);
                 else
                     offer = LitigGameDefinition.Options.DeltaOffersCalculation.GetOfferValue((double) previousOffer, action);
             }

@@ -44,7 +44,7 @@ public static class EquilibriumChangeFocus
             if (gained.Length == 0) continue;
             double mass = p.Zip(q, (a, b) => Math.Max(0, b - a)).Sum();
             bool disjoint = !p.Zip(q, (a, b) => a > probabilityTolerance && b > probabilityTolerance).Any(x => x);
-            var primary = Enumerable.Range(0, 8).Select(mask => result.Scenarios.Single(s =>
+            var primary = CoalitionMasks(result.Scenarios, old.Player).Select(mask => result.Scenarios.Single(s =>
                 s.Panel == "coalition" && s.Component == mask.ToString() && s.Result.Player == old.Player)
                 .Result.InformationSets.Single(i => i.Key == old.Key)).ToArray();
             double? LocalLoss(InformationSet info)
@@ -53,11 +53,11 @@ public static class EquilibriumChangeFocus
                 double best = info.Actions.Max(a => a.CounterfactualConditionalUtility.Value);
                 return Math.Max(0, info.Actions.Select((a, i) => p[i] * (best - a.CounterfactualConditionalUtility.Value)).Sum());
             }
-            double? loss = LocalLoss(primary[7]), fixedLoss = LocalLoss(end), inferiorMass = null;
+            double? loss = LocalLoss(primary[^1]), fixedLoss = LocalLoss(end), inferiorMass = null;
             if (loss.HasValue)
             {
-                double best = primary[7].Actions.Max(a => a.CounterfactualConditionalUtility.Value);
-                inferiorMass = primary[7].Actions.Select((a, i) => best - a.CounterfactualConditionalUtility.Value > utilityTolerance ? p[i] : 0).Sum();
+                double best = primary[^1].Actions.Max(a => a.CounterfactualConditionalUtility.Value);
+                inferiorMass = primary[^1].Actions.Select((a, i) => best - a.CounterfactualConditionalUtility.Value > utilityTolerance ? p[i] : 0).Sum();
             }
             double Value(InformationSet info) => 100 * gained.Sum(a => info.Actions[a].Probability);
             bool undefined = primary.Any(i => i.CounterfactuallyUnreachable);
@@ -77,7 +77,7 @@ public static class EquilibriumChangeFocus
                     }
                     var alternative = Allocate(Value(old), Value(end), alternativeValues);
                     double distance = new[] { allocation.Direct - alternative.Direct, allocation.Entry - alternative.Entry,
-                        allocation.Offers - alternative.Offers, allocation.Exit - alternative.Exit,
+                        allocation.Offers - alternative.Offers, allocation.Exit - alternative.Exit, allocation.Agreement - alternative.Agreement,
                         allocation.SelectionResidual - alternative.SelectionResidual }.Select(Math.Abs).Max();
                     if (alternativeUndefined || distance > 100 * probabilityTolerance)
                     {
@@ -89,7 +89,7 @@ public static class EquilibriumChangeFocus
                 old.Actions.Select(a => a.Label).ToArray(), p, q, gained.Select(a => a + 1).ToArray(), disjoint,
                 mass, loss, fixedLoss, inferiorMass, inferiorMass > probabilityTolerance,
                 allocation, undefined, tieSensitive, completionSensitive,
-                Enumerable.Range(0, 8).Where(m => primary[m].ActualOffPath).ToArray()));
+                Enumerable.Range(0, primary.Length).Where(m => primary[m].ActualOffPath).ToArray()));
         }
         return rows.ToArray();
     }

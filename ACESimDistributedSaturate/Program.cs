@@ -34,6 +34,7 @@ namespace ACESimDistributedSaturate
             {
                 return command switch
                 {
+                    "final-preflight" or "final-run" or "final-status" => await FinalArticleQueue.RunAsync(command, args.Skip(1).ToArray()),
                     "preflight" => RunPreflight(args.Skip(1).ToArray()),
                     "preflight-suite" => RunSuitePreflight(args.Skip(1).ToArray()),
                     "export-case-matrix" => ExportCaseMatrix(args.Skip(1).ToArray()),
@@ -517,14 +518,12 @@ namespace ACESimDistributedSaturate
                     .Count(line => !string.IsNullOrWhiteSpace(line));
                 if (equilibriumCount < 1)
                     throw new InvalidDataException($"No equilibrium was recorded in '{equilibriaPath}'.");
-                if (launcher.RunPlan !=
-                        LitigGameCorrelatedSignalsArticleLauncher.ProductionRunPlan.MultipleEquilibriaRobustness &&
+                if (!launcher.IsMultipleEquilibriaPlan &&
                     equilibriumCount != 1)
                     throw new InvalidDataException(
                         $"{option.Name} recorded {equilibriumCount} equilibria; expected exactly one.");
 
-                bool numberedEquilibria = launcher.RunPlan ==
-                    LitigGameCorrelatedSignalsArticleLauncher.ProductionRunPlan.MultipleEquilibriaRobustness;
+                bool numberedEquilibria = launcher.IsMultipleEquilibriaPlan;
                 if (numberedEquilibria)
                 {
                     string recoveryPath = launcher.GetReportFullPath(
@@ -578,6 +577,14 @@ namespace ACESimDistributedSaturate
         private static void ValidateAggregatedOutputs(
             LitigGameCorrelatedSignalsArticleLauncher launcher)
         {
+            if (launcher.RunPlan == LitigGameCorrelatedSignalsArticleLauncher.ProductionRunPlan.AgreementToBargain)
+            {
+                string path = launcher.GetReportFullPath("equilibrium outcomes", ".csv");
+                RequireNonemptyFile(path);
+                RequireCsvDataRows(path);
+                RequireHeaderColumns(path, "Costs Multiplier", "P Files", "D Answers", "Trial", "Real Litigation Costs");
+                return;
+            }
             if (launcher.RunPlan is
                 LitigGameCorrelatedSignalsArticleLauncher.ProductionRunPlan.FocusedContinuousMerits or
                 LitigGameCorrelatedSignalsArticleLauncher.ProductionRunPlan.ExitFeeShifting)
@@ -615,8 +622,7 @@ namespace ACESimDistributedSaturate
                     "P Offer 1 Action 10",
                     "D Offer 1 Action 10");
             }
-            else if (launcher.RunPlan ==
-                LitigGameCorrelatedSignalsArticleLauncher.ProductionRunPlan.MultipleEquilibriaRobustness)
+            else if (launcher.IsMultipleEquilibriaPlan)
             {
                 string outcomesPath = launcher.GetReportFullPath("equilibrium outcomes", ".csv");
                 string rangesPath = launcher.GetReportFullPath("equilibrium ranges", ".csv");
@@ -1140,10 +1146,12 @@ namespace ACESimDistributedSaturate
             // can watch and stop workers individually.
             var startInfo = new ProcessStartInfo(executablePath)
             {
-                UseShellExecute = true,
-                CreateNoWindow = false,
+                UseShellExecute = !hidden,
+                CreateNoWindow = hidden,
                 WindowStyle = hidden ? ProcessWindowStyle.Hidden : ProcessWindowStyle.Normal,
             };
+            if (hidden && runPlan == LitigGameCorrelatedSignalsArticleLauncher.ProductionRunPlan.AgreementToBargain)
+                startInfo.Environment["DOTNET_PROCESSOR_COUNT"] = "1";
             startInfo.ArgumentList.Add("--worker-id");
             startInfo.ArgumentList.Add(workerId.ToString(CultureInfo.InvariantCulture));
             startInfo.ArgumentList.Add("--plan");
@@ -1162,6 +1170,7 @@ namespace ACESimDistributedSaturate
             LitigGameCorrelatedSignalsArticleLauncher.ProductionRunPlan.UnifiedThreeStructure => "unified",
             LitigGameCorrelatedSignalsArticleLauncher.ProductionRunPlan.FocusedContinuousMerits => "focused",
             LitigGameCorrelatedSignalsArticleLauncher.ProductionRunPlan.MultipleEquilibriaRobustness => "multiple-equilibria",
+            LitigGameCorrelatedSignalsArticleLauncher.ProductionRunPlan.AgreementToBargain => "agreement-to-bargain",
             LitigGameCorrelatedSignalsArticleLauncher.ProductionRunPlan.IncreasedOfferGridRobustness => "offers-15",
             LitigGameCorrelatedSignalsArticleLauncher.ProductionRunPlan.ExitFeeShifting => "exit-fees",
             _ => throw new NotSupportedException(),

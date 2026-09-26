@@ -451,6 +451,8 @@ namespace ACESimBase.GameSolvingSupport.Settings
             }
         }
 
+        protected virtual Task BeforeDistributedOptimizationAsync(int optionSetIndex, int repetition, int? scenario) => Task.CompletedTask;
+
         private async Task CompleteIndividualTask(string masterReportName, IndividualTask taskToDo, Action<string> logAction = null)
         {
             if (logAction == null)
@@ -459,6 +461,7 @@ namespace ACESimBase.GameSolvingSupport.Settings
             string optionSetName = null;
             if (taskToDo.TaskType == "Optimize")
             {
+                await BeforeDistributedOptimizationAsync(taskToDo.ID, taskToDo.Repetition, taskToDo.RestrictToScenarioIndex);
                 IStrategiesDeveloper developer = GetDeveloper(taskToDo.ID);
                 (reportCollection, optionSetName) = await GetSingleRepetitionReportAndSave(masterReportName, taskToDo.ID, taskToDo.Repetition, true, developer, taskToDo.RestrictToScenarioIndex, logAction);
             }

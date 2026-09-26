@@ -474,6 +474,11 @@ namespace ACESimBase.GameSolvingAlgorithms
                 ecta.outputRealizationPlan = true;
             }
 
+            if (typeof(T) == typeof(ExactValue))
+            {
+                if (ExactTraceBeforeSolve != null) ecta.BeforeSolve = tree => ExactTraceBeforeSolve((ECTATreeDefinition<ExactValue>)(object)tree);
+                if (ExactTraceAfterPivot != null) ecta.PivotObserver = (tree, pivot) => ExactTraceAfterPivot((ECTATreeDefinition<ExactValue>)(object)tree, pivot);
+            }
             return ecta;
         }
 
