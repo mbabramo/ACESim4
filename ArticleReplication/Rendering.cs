@@ -17,6 +17,7 @@ public static class Rendering
         foreach(var f in manifest.Files.Where(f=>f.Path.StartsWith("records/")))
         {
             string rel=f.Path[8..];
+            if(MainFigures.Owns(rel)||MainTables.Owns(rel))continue;
             if(NativeSupplement(rel))continue;
             if(rel.StartsWith("Results/Individual simulations/"))continue;
             if(rel.StartsWith("Supplemental materials/Equilibrium strategy changes/"))
@@ -28,6 +29,9 @@ public static class Rendering
             Files.CopyVerified(Files.Under(bundle,f.Path),Files.Under(collection,rel),f.Sha256);
         }
         WelfareFigure.Generate(plan,profiles,collection);
+        MainFigures.Generate(plan,profiles,collection,work);
+        await WorkedFigure.Generate(plan,profiles,collection);
+        MainTables.Generate(plan,profiles,collection);
         foreach(var f in manifest.Files.Where(f=>f.Path.StartsWith("author/")))
             Files.CopyVerified(Files.Under(bundle,f.Path),Files.Under(collection,"NonGenerated/"+f.Path[7..]),f.Sha256);
         var completed=new System.Collections.Concurrent.ConcurrentBag<object>();
@@ -51,7 +55,7 @@ public static class Rendering
             Directory.CreateDirectory(Path.GetDirectoryName(dest)!);
             if(pdfs.Count==1)Files.CopyVerified(pdfs[0],dest);
             else await Commands.Run(Path.Combine(work,"logs"),$"merge-{item.i:D4}","pdfunite",pdfs.Append(dest),dir);
-            bool cached=r.Kind!="CompletePrimaryStrategy"&&!r.Output.StartsWith("Figures/Figure 7 ");
+            bool cached=r.Kind!="CompletePrimaryStrategy"&&!r.Output.StartsWith("Figures/Figure 7 ")&&!MainFigures.Stems.Append(WorkedFigure.Stem).Any(s=>r.Output=="Figures/"+s+".pdf")&&r.Output!="Tables/"+MainTables.Primitives+".pdf"&&r.Output!="Tables/"+MainTables.Summary+".pdf";
             completed.Add(new{r.Output,SourceSha256=Files.Sha(source),PdfSha256=Files.Sha(dest),r.CaseIds,CachedScientificLayout=cached});
         });
         Files.Save(Path.Combine(work,"rendering.json"),new{Passed=true,Artifacts=completed,VisualReviewPending=true,ScientificLayoutRegenerationPending=true});

@@ -1,0 +1,15 @@
+**
+!global.json
+!ACESimBase/
+!ACESimBase/**
+!LitigCharts/
+!LitigCharts/**
+!ArticleReplication/
+!ArticleReplication/**
+**/bin/**
+**/obj/**
+**/.git/**
+**/*.user
+**/*.suo
+**/TestResults/**
+**/.env*

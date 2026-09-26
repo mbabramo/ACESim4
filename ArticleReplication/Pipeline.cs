@@ -12,7 +12,7 @@ public static class Pipeline
         string Need(string k)=>Path.GetFullPath(args.TryGetValue(k,out var value)?value:throw new ArgumentException("Missing --"+k));
         string bundle=Need("solutions"),output=Need("output");
         if(Directory.Exists(output)||File.Exists(output))throw new IOException("Use a new disposable output directory; existing content is never deleted.");
-        static bool Nested(string a,string b)=>a.Equals(b,StringComparison.OrdinalIgnoreCase)||a.StartsWith(b.TrimEnd('\\','/')+Path.DirectorySeparatorChar,StringComparison.OrdinalIgnoreCase);
+        static bool Nested(string a,string b)=>Files.Nested(a,b);
         string source=Path.GetFullPath(Path.Combine(AppContext.BaseDirectory,"."));
         if(Nested(output,bundle)||Nested(bundle,output)||Nested(source,output))throw new IOException("Source, solutions and output must be disjoint.");
         foreach(string protectedRoot in new[]{@"C:\Users\Admin\Documents\GitHub\ACESim4",@"C:\Users\Admin\source\repos\correlated-signals-article",@"C:\Users\Admin\Documents\Codex\ab-20260922",@"C:\Users\Admin\Documents\Codex\correlated-signals-final-20260923"})

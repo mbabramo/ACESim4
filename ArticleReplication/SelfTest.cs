@@ -37,6 +37,9 @@ public static class SelfTest
         Throws(()=>ArticlePlan.Resolve(settings with{Article="EndogenousDisputes"},manifest.Calibration),"Unimplemented article is rejected");
         Throws(()=>ArticlePlan.Resolve(settings with{MainCostMultipliers=[1,1]},manifest.Calibration),"Duplicate scientific settings rejected");
         Throws(()=>Files.Under(bundle,"../escape"),"Traversal rejected");
+        Throws(()=>Files.Under(bundle,"..\\escape"),"Windows traversal rejected on every platform");
+        Throws(()=>Files.Under(bundle,"C:\\outside\\result.json"),"Windows absolute path rejected on every platform");
+        Check(Files.LegacyBaseName(@"C:\receipts\result.json")=="result.json","Historical Windows receipt basename is portable");
         Throws(()=>Files.EqualScience(JsonNode.Parse("[0,1]"),JsonNode.Parse("[0,0.9999999999999999]"),"exact"),"Scientific equality has no tolerance");
         var science=primary.ToDictionary(p=>p.CaseId,p=>(Audit:Files.Object(Files.Under(bundle,p.ExpectedAudit)),Profile:Files.Object(Files.Under(bundle,p.ExpectedProfile))));
         string fixtures=Path.Combine(Path.GetDirectoryName(Path.GetFullPath(output))!,Path.GetFileNameWithoutExtension(output)+"-exhibits");

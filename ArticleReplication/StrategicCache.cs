@@ -23,7 +23,7 @@ public static class StrategicCache
             var evidence=new List<object>();
             foreach(var f in checks["Outputs"]!.AsArray().Append(checks["Manifest"]))
             {
-                string basename=Path.GetFileName(f!["Path"]!.GetValue<string>()),file=Path.Combine(dir,basename+".gz");
+                string basename=Files.LegacyBaseName(f!["Path"]!.GetValue<string>()),file=Path.Combine(dir,basename+".gz");
                 string sha=ExpandedHash(file);if(sha!=f["Sha256"]!.GetValue<string>().ToLowerInvariant())throw new InvalidDataException("Changed decompressed strategic result: "+basename);
                 evidence.Add(new{File=basename,Sha256=sha});
             }

@@ -4,7 +4,7 @@ This C# coordinator consumes a resolved article plan, validates saved computatio
 
 The refined target is [code plus optional computational results](PortableReplicationContract.md): an empty output directory, no required NonGenerated folder or earlier article checkout, data-free presentation templates in the code repository, and all result-dependent content generated automatically. The current commands below are an intermediate implementation, not yet that portable contract.
 
-Deployment uses documented system installations of .NET, TeX, fonts and PDF utilities, with prerequisite checks. These toolchains will not be copied into the article directory. An optional container may package the same environment separately; no container or Linux validation is complete yet.
+Deployment uses installed .NET, TeX, fonts and PDF utilities. `doctor` checks them without copying installations into article directories. `dotnet build -p:BuildReplicationContainer=true` builds an optional Linux image through the same C# project. See [INSTALL.md](INSTALL.md) for commands, versions and the remaining integration limits.
 
 ## Current commands
 
@@ -12,7 +12,7 @@ Deployment uses documented system installations of .NET, TeX, fonts and PDF util
 
 `reproduce` runs explicitly selected implemented steps into a fresh directory. Raw outputs go into `ReportResults`, reader-facing files into `article`, and requests/commands/validation alongside them. Existing directories are refused. No cleanup or live-repository publication occurs.
 
-`rebuild` archives a clean committed source checkout, restores locked dependencies, builds ACESimBase, LitigCharts and this coordinator in Release with one MSBuild worker, records all executable hashes, and invokes `reproduce`. Example (substitute local paths and an available shared worker budget):
+`rebuild` archives and hashes actual source (Git is optional), checks prerequisites, restores locked dependencies, builds ACESimBase, LitigCharts and this coordinator in Release with one MSBuild worker, records all executable hashes, and invokes `reproduce`. Example (substitute local paths and an available shared worker budget):
 
 ```powershell
 dotnet run --project ArticleReplication -c Release -- rebuild --source C:\isolated\source --solutions C:\saved\solutions --histories C:\saved\histories --settings C:\isolated\source\ArticleReplication\correlated-signals.saved-results.json --external-jobs C:\isolated\external-jobs.json --output C:\isolated\fresh-rebuild --workers 1 --other-workers 2
@@ -27,7 +27,7 @@ dotnet run --project ArticleReplication -c Release -- rebuild --source C:\isolat
 - **Strategic:** verify the original passed full diagnostic receipts, decompressed result hashes and unchanged complete endpoints before reusing coalition calculations. Missing endpoint-dependent comparisons remain pending.
 - **Histories:** validate complete saved streams, original pivot counts, input hashes and complete endpoint policies using the existing trajectory criteria. Rebuild viewers without replaying pivots. This is not a new exact-arithmetic equivalence proof.
 - **StandardReports:** reconstruct the six ordinary per-case diagrams using the game’s existing report generator. Execute `LitigCharts final-article-results` for standard individual, aggregate welfare/disposition/participation, signal and structural diagrams. Require PDFs, previews, editable sources, input identities and an output inventory under the existing Results/Supplemental materials structure.
-- **Exhibits:** native complete policy exhibits and dynamic main cost-series welfare figure; other custom layouts currently recompile data-bound cached TeX. Changed extension/search specifications are rejected until those renderers are ported, rather than publishing stale layouts.
+- **Exhibits:** native complete policies, Figures 1–7, and Tables 1 and 5, populated from revalidated profiles, fresh path extraction and the central plan. Remaining custom layouts currently recompile data-bound cached TeX. Changed extension/search specifications are rejected until all dependent renderers are ported, rather than publishing stale layouts. `main-figures` and `main-tables` independently regenerate these exhibits from a completed primary validation run; `verify-main-figures` and `verify-main-tables` compare their scientific values with an approved reference.
 - **Manuscript:** compile the protected authored source with its existing bibliography and generated numbered exhibits, without editing its prose.
 
 The scientific authority is `ArticlePlan`, built on the existing C# case factory. Changing `MainCostMultipliers` changes cases, comparisons, standard groups, cost-series data and figure rows. There is no second case list in a reporting script. The plan still contains externally reserved cases; incomplete comparisons are never represented by zeros.

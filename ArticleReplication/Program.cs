@@ -10,13 +10,19 @@ public static class Program
         try
         {
             if(args.Length==0||args[0] is "help" or "--help")
-            {Console.WriteLine("ArticleReplication pack|plan|reproduce|self-test. Explicit commands only; no default solver launch.");return 0;}
+            {Console.WriteLine("ArticleReplication doctor|container-build|pack|pack-histories|plan|reproduce|rebuild|histories|self-test|verify-standard. Explicit commands only; no default solver launch.");return 0;}
             if(args[0]=="worker-primary")return await Entry.Main(["primary",args[1]]);
             if(args[0]=="worker-history"){Histories.Worker(args[1]);return 0;}
             if(args[0]=="worker-welfare")return await Entry.Main(new[]{"welfare"}.Concat(args.Skip(1)).ToArray());
             var options=Parse(args.Skip(1).ToArray());string Get(string key)=>options.TryGetValue(key,out var v)?v:throw new ArgumentException("Missing --"+key);
             switch(args[0])
             {
+                case "doctor":await Prerequisites.Run(Get("output"));return 0;
+                case "main-figures":await MainFigures.FromValidatedRun(Get("primary-run"),Get("output"));return 0;
+                case "main-tables":await MainFigures.FromValidatedRun(Get("primary-run"),Get("output"),true);return 0;
+                case "verify-main-tables":MainTables.Verify(Get("generated"),Get("reference"),Get("output"));return 0;
+                case "verify-main-figures":MainFigureVerification.Run(Get("generated"),Get("reference"),Get("output"));return 0;
+                case "container-build":await ContainerBuild.Run(options);return 0;
                 case "pack":Bundle.Pack(Get("article"),Get("reproduction"),Get("output"));return 0;
                 case "pack-histories":Histories.Pack(Get("request"),Get("output"));return 0;
                 case "histories":await Histories.Run(Get("solutions"),Get("primary-run"),Get("output"));return 0;

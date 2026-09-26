@@ -7,6 +7,10 @@ namespace ArticleReplication;
 
 public static class Files
 {
+    public static StringComparison PathComparison => OperatingSystem.IsWindows()?StringComparison.OrdinalIgnoreCase:StringComparison.Ordinal;
+    public static bool Nested(string path,string root)=>path.Equals(root,PathComparison)||path.StartsWith(root.TrimEnd('\\','/')+Path.DirectorySeparatorChar,PathComparison);
+    // Historical receipts can name Windows files even when verified on Linux.
+    public static string LegacyBaseName(string path)=>path.Replace('\\','/').Split('/')[^1];
     public static readonly JsonSerializerOptions Json=new(){WriteIndented=true,PropertyNameCaseInsensitive=true,
         Converters={new JsonStringEnumConverter()}};
     public static T Read<T>(string path)=>JsonSerializer.Deserialize<T>(File.ReadAllText(path),Json)??throw new InvalidDataException(path);
@@ -17,10 +21,11 @@ public static class Files
     {Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(path))!);using var s=new FileStream(path,replace?FileMode.Create:FileMode.CreateNew);JsonSerializer.Serialize(s,value,Json);}
     public static string Under(string root,string relative)
     {
-        if(Path.IsPathRooted(relative))throw new InvalidDataException("Expected a portable relative path.");
+        relative=relative.Replace('\\','/');
+        if(Path.IsPathRooted(relative)||relative.Contains(':')||relative.StartsWith('/'))throw new InvalidDataException("Expected a portable relative path.");
         string r=Path.GetFullPath(root).TrimEnd(Path.DirectorySeparatorChar)+Path.DirectorySeparatorChar,p=Path.GetFullPath(Path.Combine(r,relative));
-        if(!p.StartsWith(r,StringComparison.OrdinalIgnoreCase))throw new InvalidDataException("Path escaped its declared root.");
-        for(string? d=Path.GetDirectoryName(p);d!=null&&d.StartsWith(r,StringComparison.OrdinalIgnoreCase);d=Path.GetDirectoryName(d))
+        if(!p.StartsWith(r,PathComparison))throw new InvalidDataException("Path escaped its declared root.");
+        for(string? d=Path.GetDirectoryName(p);d!=null&&d.StartsWith(r,PathComparison);d=Path.GetDirectoryName(d))
             if(Directory.Exists(d)&&(File.GetAttributes(d)&FileAttributes.ReparsePoint)!=0)throw new InvalidDataException("Linked output/input directory not permitted.");
         if(File.Exists(p)&&(File.GetAttributes(p)&FileAttributes.ReparsePoint)!=0)throw new InvalidDataException("Linked input file not permitted.");
         return p;
