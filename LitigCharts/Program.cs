@@ -16,6 +16,8 @@ namespace LitigCharts
 
         static async System.Threading.Tasks.Task<int> Main(string[] args)
         {
+            if (args.Length > 0 && args[0] == "final-article-results")
+                return await FinalArticleResultsCommand.RunAsync(args.Skip(1).ToArray());
             if (args.Length > 0 && args[0] == "diagnose-float-pivots")
                 return await FloatPivotDiagnosis.RunAsync(args.Skip(1).ToArray());
             if (args.Length > 0 && args[0] == "final-structure-sources")

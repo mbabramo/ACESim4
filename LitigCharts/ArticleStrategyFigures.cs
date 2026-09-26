@@ -16,14 +16,17 @@ public static class ArticleStrategyFigures
         PublicationFigures.StrategyPoint[] OfferContinue, PublicationFigures.StrategyPoint[] OfferExit);
     public sealed record Figure(string Latex, CaseData[] Cases, string Caption);
     private static string N(double x) => x.ToString("0.######", CultureInfo.InvariantCulture);
-    public static Figure Generate(PublicationFigures.StrategyCase[] cases)
+    public static Figure Generate(PublicationFigures.StrategyCase[] cases,
+        System.Collections.Generic.IReadOnlyDictionary<string,(int SignalCount,double[] Offers)> explicitGrids = null)
     {
         if (cases.Length is < 1 or > 3 || cases.Select(c => c.Label).Distinct().Count() != cases.Length)
             throw new InvalidDataException("Expected one to three distinctly labeled fee rules.");
         var data = cases.Select(c =>
         {
             var rows = PublicationFigures.ReadCsv(c.ActionReport);
-            var grid = PublicationFigures.GridForOptionSet(c.OptionSetName);
+            var grid = explicitGrids == null ? PublicationFigures.GridForOptionSet(c.OptionSetName)
+                : explicitGrids.TryGetValue(c.OptionSetName,out var declared) ? declared
+                : throw new InvalidDataException("Missing declared article grid: " + c.OptionSetName);
             PublicationFigures.StrategyPoint[] Points(string d, int? exit = null) =>
                 PublicationFigures.BuildStrategySeries(rows, c, d, grid.SignalCount, grid.Offers, exit);
             return new CaseData(c.Label, c.OptionSetName, Path.GetFullPath(c.ActionReport),

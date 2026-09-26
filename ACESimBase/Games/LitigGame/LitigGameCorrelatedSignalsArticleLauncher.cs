@@ -507,6 +507,15 @@ namespace ACESim
                 .ToList();
         }
 
+        /// <summary>Construct one unchanged agreement game for a resolved article plan.
+        /// This does not select cases, validate a historical fixed-size matrix, or dispatch a solve.</summary>
+        public LitigGameOptions CreateAgreementCase(CoreCase core, double cost)
+        {
+            if (RunPlan != ProductionRunPlan.AgreementToBargain || !double.IsFinite(cost) || cost <= 0)
+                throw new ArgumentException("A positive-cost agreement article case is required.");
+            return CreateCoreCase(FocusedSpecification.Baseline, core, cost, 10);
+        }
+
         private LitigGameOptions CreateCoreCase(FocusedSpecification transformation, CoreCase core, double cost, byte offers)
         {
             var options = LitigGameOptionsGenerator.CorrelatedSignalsBase(smallerTree: false);

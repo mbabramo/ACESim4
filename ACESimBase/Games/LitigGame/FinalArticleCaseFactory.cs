@@ -58,8 +58,11 @@ namespace ACESim
                 (spec.FeeRule == "complete" ? "__ExitFees-AllUnilateralExits" : "");
             var options = new LitigGameCorrelatedSignalsArticleLauncher(
                 LitigGameCorrelatedSignalsArticleLauncher.ProductionRunPlan.AgreementToBargain)
-                .GetOptionsSets().Cast<LitigGameOptions>().SingleOrDefault(o => o.Name == originalName)
-                ?? throw new ArgumentException("Unsupported cost/fee combination.");
+                .CreateAgreementCase(new LitigGameCorrelatedSignalsArticleLauncher.CoreCase(symmetricRA,
+                    spec.FeeRule switch { "american" => LitigGameCorrelatedSignalsArticleLauncher.CoreFeeRule.American,
+                        "trial-only" => LitigGameCorrelatedSignalsArticleLauncher.CoreFeeRule.Trial,
+                        "complete" => LitigGameCorrelatedSignalsArticleLauncher.CoreFeeRule.Complete,
+                        _ => throw new ArgumentException("Unknown fee rule.") }), spec.CostMultiplier);
             if (spec.IsExternalImport)
             {
                 if (spec.OriginalOptionName != originalName || spec.AlphaP != spec.AlphaD ||
