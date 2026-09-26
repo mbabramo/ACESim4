@@ -2,6 +2,8 @@
 
 This C# coordinator consumes a resolved article plan, validates saved computational results, and invokes the numerical and LitigCharts projects. It never runs a solver merely because an input is missing. The temporary external-jobs overlay reserves running cases by both case ID and scientific game identity, including in scratch-mode planning.
 
+The refined target is [code plus optional computational results](PortableReplicationContract.md): an empty output directory, no required NonGenerated folder or earlier article checkout, data-free presentation templates in the code repository, and all result-dependent content generated automatically. The current commands below are an intermediate implementation, not yet that portable contract.
+
 ## Current commands
 
 `pack` creates a portable, hash-verified saved-profile/render-input bundle from a reviewed article and its existing reproduction distribution. `pack-histories` packages completed pivot streams with their original receipts and input objects. These are computational results, not authored assets.

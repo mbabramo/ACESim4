@@ -1,0 +1,57 @@
+# Target replication contract: code plus optional computational results
+
+This records the user's refined requirement. It is a target contract, not a claim that the current prototype implements it. Only the correlated-signals article is in scope for this implementation.
+
+## User interface
+
+The user downloads the code, has the documented .NET SDK installed, and supplies an output directory. An optional input directory contains proposed computational results to validate and reuse. The output directory can initially be empty; it requires no NonGenerated/NonAutogen folder and no earlier article checkout. First use may require network access for package and rendering-tool downloads; a prepared offline tool cache is a separate distribution option.
+
+Proposed command (not implemented yet):
+
+```
+dotnet run --project ArticleReplication -c Release -- run --article CorrelatedSignals --output ./replicated --input ./solutions
+```
+
+Omitting input requests fresh computation for all selected stages. Execution settings select stages and resource limits. The full scientific case/comparison/exhibit plan is derived from the existing C# authority. Neither a second manually maintained case list nor old article outputs define what gets generated.
+
+## What belongs in the code repository
+
+- C# numerical, validation, decomposition, reporting and orchestration code.
+- Versioned article settings, case selection, exhibit definitions, excerpt-selection rules and formatting conventions.
+- TeX templates and styles containing layout and authored text, with explicit data bindings for result-dependent content. Templates must not contain an old result's plot coordinates, scientific table cells or derived numeric captions as substitutes for bindings.
+- Authored manuscript/bibliography and truly static artwork/source assets, organized with the article adapter. A separate preservation folder in the output repository is unnecessary.
+- Tool/dependency versions, hashes and licensing information, reproducible source identity and collection-validation rules.
+
+Every quantity derived from model settings or computation must be filled by code: table entries, plot coordinates, legends/categories when data-dependent, selected strategy/action probabilities, decomposition excerpts, convergence summaries, sample sizes, captions and numeric manuscript references. A generated TeX macro/data file can provide manuscript numbers while preserving authored prose. Layout constants and bibliographic numbers are not simulation results. Numerical changes cannot automatically rewrite an author's interpretation; affected result-dependent assertions need explicit checks/author flags rather than invented replacement prose.
+
+## Optional input directory
+
+Computational caches may contain complete equilibrium strategies, solver histories, start-level records and other expensive computational results, together with scientific identities and sufficient validation/provenance data. They must not supply figure/table TeX, finished PDFs, old chart coordinates, reporting executables or a previous article tree as hidden prerequisites.
+
+Bind a cache to the intended case, numerical conventions, initialization/start and selection role. Recompute applicable validation using the current code before reuse. Keep exact-primary equivalence, accepted approximate profiles and trajectory replay criteria distinct. A valid alternative equilibrium is not silently substituted for the designated primary result. Missing results are computed under the selected execution policy; invalid/mismatched results are reported explicitly, never relabelled as compatible. Keep reusable outputs under ReportResults so a completed run can provide the next run's input directory.
+
+Resolve the model and any derived calibration from the central scientific settings before accepting a cache. An optional proposed solution cannot define the model against which it is judged. Calibration results may themselves be cached only under matching inputs and their own verification rules.
+
+Use portable data schemas and logical relative identifiers. Historical absolute paths may remain provenance text, but cannot be required for execution. Importing legacy files is a migration function, not the public data format or authority for validation.
+
+## Output and execution
+
+Preserve the familiar reader-facing Results, Figures, Tables, Supplemental materials and Article and bibliography folders, populated entirely by the current code/templates and validated computational results. ReportResults holds reusable computation and validation; commands/build/tool identities/logs are retained separately. Existing output content must not be destructively cleared without an explicit ownership/archive policy.
+
+The coordinator must work from a downloaded source archive as well as a Git checkout. Git cannot be a mandatory runtime prerequisite. Use a release source manifest when Git metadata is absent, and record actual source/tool identities. Pin and provision the TeX/fonts/PDF tooling on Windows and Linux if .NET is to be the only manual prerequisite. Do not silently change the approved typography or rendering engine to evade packaging work. The current prototype still assumes installed lualatex, bibtex, pdftoppm and pdfunite; automatic provisioning is not implemented.
+
+Test both operating systems in actual execution. A net9.0 target alone does not establish portability. Audit native/Windows-only dependencies, path semantics, case sensitivity, process invocation and legacy serialization on the selected article path. Separate mathematical/data equality from PDF metadata and platform raster differences; investigate scientific differences, and inspect rendering on each platform.
+
+## Acceptance test
+
+1. Start with a fresh code distribution, empty output directory, and optional computational-only inputs. No previous article folder or cached report sources may be reachable as runtime prerequisites.
+2. Execute the single command, validate every reused result, and populate ReportResults before producing the dependent collection.
+3. Check complete expected coverage, scientific values, source/data bindings, placement, references, tool identities and visual presentation; missing items fail or are explicitly pending under an external-work overlay.
+4. Change one central scientific setting (initially the cost set) and verify all affected cases, comparisons, excerpts, tables, figures, captions and inventories follow it without stale results.
+5. Repeat on Windows and Linux. Test from-scratch providers separately using appropriate bounded fixtures before any costly full execution; cached reproduction does not prove fresh-solving integration.
+
+During development, the two existing grid solves remain reserved for import by case ID and scientific game identity. Never duplicate, restart, rebuild or otherwise disturb them. This temporary deployment overlay is separate from the portable article plan. Do not launch the full no-input computation as part of implementing this contract.
+
+## Current implementation gap
+
+The existing clean-build tests establish saved-profile revalidation, several native report generators, complete standard LitigCharts coverage and selected-stage execution. Rendering.cs still copies data-bearing TeX and other records from the old solutions bundle. Bundle.cs still packages authored inputs and rendered-layout inputs together with computation. Manuscript.cs copies the authored source from that bundle. Rebuild.cs requires Git, and rendering assumes local tools. Multiple-start/tremble and fresh-computation stages are not connected. These must be replaced or integrated before claiming this contract is satisfied. The successful 685-standard-diagram check does not close these gaps.
