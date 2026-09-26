@@ -4,6 +4,8 @@ This C# coordinator consumes a resolved article plan, validates saved computatio
 
 The refined target is [code plus optional computational results](PortableReplicationContract.md): an empty output directory, no required NonGenerated folder or earlier article checkout, data-free presentation templates in the code repository, and all result-dependent content generated automatically. The current commands below are an intermediate implementation, not yet that portable contract.
 
+Deployment uses documented system installations of .NET, TeX, fonts and PDF utilities, with prerequisite checks. These toolchains will not be copied into the article directory. An optional container may package the same environment separately; no container or Linux validation is complete yet.
+
 ## Current commands
 
 `pack` creates a portable, hash-verified saved-profile/render-input bundle from a reviewed article and its existing reproduction distribution. `pack-histories` packages completed pivot streams with their original receipts and input objects. These are computational results, not authored assets.
