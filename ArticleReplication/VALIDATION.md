@@ -15,6 +15,7 @@ This is a tested implementation checkpoint, not a complete article-release certi
 | Native Figures 1–6 | Exact comparison of signal masses, reached strategy supports and coordinates, omissions, disposition values/styles, all extracted histories and displayed worked-path bindings passed |
 | Native Tables 1 and 5 | Every displayed cell, heading and panel order matched the approved reference exactly |
 | Plan/cache/isolation regression checks | 91 checks passed, including Windows-style path rejection on either OS and preservation of external job reservations |
+| Rebuild from downloaded-style source with no Git metadata | Passed: source snapshot, tool preflight, locked restore, Release build, four complete profile revalidations and 47 standard diagrams |
 | Visual inspection | All six native main figures, four table pages and representative Linux standard outputs reviewed; approved presentation retained |
 
 The previous Windows full saved-results test covered 72 primary profiles and 685 standard diagrams. That test still depended on cached custom TeX for several other outputs, so it did not establish the final computation-only-input contract. The two missing grid profiles remain explicit pending rows; unavailable comparisons are never replaced with zeros.
