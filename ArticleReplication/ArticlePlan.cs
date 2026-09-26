@@ -1,4 +1,5 @@
 using ACESim;
+using ACESimBase.Games.LitigGame.ManualReports;
 using System.Globalization;
 using System.Text.Json;
 
@@ -17,6 +18,8 @@ public sealed record CorrelatedSignalsSettings
     public Grid[] Grids { get; init; } = [new(8,15),new(12,8),new(8,8)];
     public int StartsPerCore { get; init; } = 50;
     public int ApproximatePivotLimit { get; init; } = 20000;
+    public double ApproximateRoundingCutoff { get; init; } = .005;
+    public ArticleApproximateGainUnits ApproximateGainUnits { get; init; } = ArticleApproximateGainUnits.FullTerminalUtilityRange;
     public double[] Trembles { get; init; } = [.001,.005,.01];
     public int TrembleDirections { get; init; } = 5;
     public bool IncludeExtensions { get; init; } = true;
@@ -32,6 +35,8 @@ public sealed record ResolvedArticlePlan(string Article,CorrelatedSignalsSetting
 
 public static class ArticlePlan
 {
+    // Published calibration belongs to the article protocol, not to a proposed solution bundle.
+    public static Calibration PublishedCalibration => new(0.3649498266166219,0.3127188271240706,"a95fdd1a1e66494a7f87f286a256d4bb4ba9f00f25ca26b9aa0ec486dba65adb");
     public static string Number(double x)=>x.ToString("G",CultureInfo.InvariantCulture).Replace(".","p");
     public static double[] Offers(int n)
     {
@@ -53,6 +58,7 @@ public static class ArticlePlan
         string[] supported=["Primary","MultipleStarts","Welfare","Strategic","Trembles","Histories","StandardReports","Exhibits","Manuscript"];
         if(s.Steps.Distinct().Count()!=s.Steps.Length||s.Steps.Except(supported).Any())throw new InvalidDataException("Unknown or repeated article step.");
         if(s.StartsPerCore<1||s.ApproximatePivotLimit<1)throw new InvalidDataException("Finite positive approximate search budget required.");
+        _=new ArticleApproximatePolicy(s.ApproximateRoundingCutoff,s.ApproximateGainUnits,s.ApproximatePivotLimit);
         var cases=new List<FinalArticleCase>();
         foreach(double cost in s.MainCostMultipliers.Order())foreach(var risk in new[]{"rn","ra"})foreach(var fee in new[]{"american","complete"})
             Add(cost==s.ReferenceCostMultiplier?"baseline":"cost-multiplier","standard",fee,risk,cost,original:true);

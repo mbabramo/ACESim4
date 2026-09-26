@@ -8,7 +8,9 @@ Deployment uses installed .NET, TeX, fonts and PDF utilities. `doctor` checks th
 
 ## Current commands
 
-`pack` creates a portable, hash-verified saved-profile/render-input bundle from a reviewed article and its existing reproduction distribution. `pack-histories` packages completed pivot streams with their original receipts and input objects. These are computational results, not authored assets.
+`pack` and `pack-computations` import legacy records for migration and regression testing. They are not the final input contract. `pack-histories` packages completed pivot streams and their evidence. See [ComputationCaches.md](ComputationCaches.md) for the precise boundary between reusable computations and generated reports.
+
+`export-primary-cache --run DIR --output NEW_DIR` exports only primary equilibrium vectors and game identities from a passed run. `reproduce` emits the same cache automatically in `ComputationCache`. A subsequent run consumes it through `--solutions`, without old action/outcome reports or audits. `verify-primary-reproduction` performs a separate exact scientific comparison against a reference run.
 
 `reproduce` runs explicitly selected implemented steps into a fresh directory. Raw outputs go into `ReportResults`, reader-facing files into `article`, and requests/commands/validation alongside them. Existing directories are refused. No cleanup or live-repository publication occurs.
 
@@ -22,20 +24,22 @@ dotnet run --project ArticleReplication -c Release -- rebuild --source C:\isolat
 
 ## Implemented paths
 
-- **Primary:** initialize each full game, check its complete identity, load the complete saved profile, check every action, normalization, full unilateral best response, accounting, report replay and off-path completion. Compare the scientific profile and welfare fields exactly with the frozen audit.
+- **Primary:** initialize each full game, check its complete identity, load the complete saved profile, check every action, normalization, full unilateral best response, accounting, fresh reports and off-path completion. Optional legacy regression inputs additionally check old reports, complete scientific profiles and welfare exactly.
 - **Welfare:** run the established four-corner C# evaluator and compare all endpoints and main decomposition rows.
 - **Strategic:** verify the original passed full diagnostic receipts, decompressed result hashes and unchanged complete endpoints before reusing coalition calculations. Missing endpoint-dependent comparisons remain pending.
 - **Histories:** validate complete saved streams, original pivot counts, input hashes and complete endpoint policies using the existing trajectory criteria. Rebuild viewers without replaying pivots. This is not a new exact-arithmetic equivalence proof.
 - **StandardReports:** reconstruct the six ordinary per-case diagrams using the game’s existing report generator. Execute `LitigCharts final-article-results` for standard individual, aggregate welfare/disposition/participation, signal and structural diagrams. Require PDFs, previews, editable sources, input identities and an output inventory under the existing Results/Supplemental materials structure.
-- **Exhibits:** native complete policies, Figures 1–7, and Tables 1 and 5, populated from revalidated profiles, fresh path extraction and the central plan. Remaining custom layouts currently recompile data-bound cached TeX. Changed extension/search specifications are rejected until all dependent renderers are ported, rather than publishing stale layouts. `main-figures` and `main-tables` independently regenerate these exhibits from a completed primary validation run; `verify-main-figures` and `verify-main-tables` compare their scientific values with an approved reference.
-- **Manuscript:** compile the protected authored source with its existing bibliography and generated numbered exhibits, without editing its prose.
+- **MultipleStarts:** validate all recorded initializations and stopping rules, revalidate each accepted full profile, preserve rejected attempts, regenerate complete-link grouping, range summaries and Figure 8. This stage has its own approximate acceptance criteria.
+- **Trembles:** compute the specified unilateral responses afresh, run independent response checks and regenerate individual and aggregate reports.
+- **Exhibits:** native complete policies, Figures 1–8, Tables 1/2/3/5 and strategic/welfare supplements, populated from current validated computations and the central plan. Rendering reads no old figure/table TeX. Separate verification commands compare scientific values with explicitly supplied regression references.
+- **Manuscript:** export the authored template and bibliography embedded in the source project, generate numeric bindings and compile with current numbered exhibits. Authored prose and existing revision flags are preserved. The historical static utility illustration remains an explicitly preserved source asset.
 
 The scientific authority is `ArticlePlan`, built on the existing C# case factory. Changing `MainCostMultipliers` changes cases, comparisons, standard groups, cost-series data and figure rows. There is no second case list in a reporting script. The plan still contains externally reserved cases; incomplete comparisons are never represented by zeros.
 
 ## Still required before full migration
 
-Fresh exact/approximate solving and full multiple-start/grouping/tremble stage orchestration are not yet connected. `FromScratch` is therefore rejected before dispatch. `MultipleStarts` and `Trembles` are rejected when selected. The complete native replacement of cached custom layouts, independent whole-collection coverage/visual QA, portable source distribution, and final live-repository migration remain required. A successful selected-stage test is **not** a complete article release certificate; completion records retain `CompleteArticle: false`.
+Fresh exact/approximate solving is not yet connected, so `FromScratch` is rejected before dispatch. All-stage computation-cache production/reuse, removal of remaining legacy approximate/tremble input dependencies, whole-collection coverage/visual QA, updated full Linux tests and final live-repository migration remain required. A successful selected-stage test is **not** a complete article release certificate; completion records retain `CompleteArticle: false`.
 
-The copied numerical `Entry`, `Tremble` and `Verify` helpers retain the previously executed reproduction checks. The latter two are retained for consolidation, not represented as integrated stages. Temporary workspace protections remain in `Pipeline` until the isolated implementation is ready for general use.
+The numerical `Entry`, `Tremble` and `Verify` helpers retain the previously executed reproduction checks. Temporary workspace protections remain in `Pipeline` until the isolated implementation is ready for general use.
 
 Every child numerical process uses `DOTNET_PROCESSOR_COUNT=1` and single-thread numerical-library settings. Compiler concurrency is explicit and must fit the shared 32-computation budget, including external work. No automatic monitor is installed.

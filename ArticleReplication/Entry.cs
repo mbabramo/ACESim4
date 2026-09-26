@@ -27,9 +27,9 @@ internal static class Entry
         using var doc=JsonDocument.Parse(File.ReadAllBytes(file));var request=doc.RootElement;
         string output=request.GetProperty("Output").GetString();
         if(Directory.Exists(output))throw new IOException("Fresh output required");
-        using var prior=JsonDocument.Parse(File.ReadAllBytes(request.GetProperty("ExpectedAudit").GetString()));
-        var audit=prior.RootElement;
-        if(!audit.GetProperty("Passed").GetBoolean()||!audit.GetProperty("CompleteStrategyUnchanged").GetBoolean())throw new InvalidDataException("Unaudited input");
+        string? priorPath=request.TryGetProperty("ExpectedAudit",out var expectedAudit)&&expectedAudit.ValueKind==JsonValueKind.String?expectedAudit.GetString():null;
+        using var prior=priorPath==null?null:JsonDocument.Parse(File.ReadAllBytes(priorPath));
+        if(prior!=null&&(!prior.RootElement.GetProperty("Passed").GetBoolean()||!prior.RootElement.GetProperty("CompleteStrategyUnchanged").GetBoolean()))throw new InvalidDataException("Failed regression audit");
         var spec=request.GetProperty("Case").Deserialize<FinalArticleCase>(json);
         var options=FinalArticleCaseFactory.Create(spec);
         var developer=await ArticleWorkedPathExtraction.InitializeAsync(options);
@@ -39,7 +39,7 @@ internal static class Entry
             var id=request.GetProperty("Inputs").GetProperty(key).Deserialize<FinalArticleExecution.FileIdentity>(json);
             return FinalArticleExecution.Verify(id);
         }
-        string eq=Input("Equilibrium"),actions=Input("Actions"),numeric=Input("Numeric");
+        string eq=Input("Equilibrium");
         var lines=File.ReadAllLines(eq).Where(x=>!string.IsNullOrWhiteSpace(x)).ToArray();
         if(lines.Length!=1)throw new InvalidDataException("One full primary profile required");
         var vector=lines[0].Split(',').Select(EFGFileReader.RationalStringToDouble).ToArray();
@@ -51,7 +51,11 @@ internal static class Entry
         developer.EvolutionSettings.ParallelOptimization=false;
         developer.EvolutionSettings.RoundOffLowProbabilitiesBeforeAcceleratedBestResponse=false;
         developer.EvolutionSettings.RoundOffLowProbabilitiesBeforeReporting=false;
+        Directory.CreateDirectory(output);
+        string actions=Path.Combine(output,"information-set-actions.csv");
+        File.WriteAllText(actions,InformationSetActionReport.BuildCsv(developer,1));
         int actionRows=ArticleWorkedPathExtraction.ValidateActionReport(developer,1,actions);
+        if(request.GetProperty("Inputs").TryGetProperty("Actions",out _))ArticleWorkedPathExtraction.ValidateActionReport(developer,1,Input("Actions"));
         developer.CalculateBestResponse(false);
         var gains=developer.Status.BestResponseImprovement.ToArray();
         if(!developer.Status.BestResponseReflectsCurrentStrategy||gains.Length!=2||gains.Any(g=>!double.IsFinite(g)||Math.Abs(g)>1e-7))throw new InvalidDataException("Full unilateral BR failed");
@@ -61,7 +65,7 @@ internal static class Entry
         var welfare=SavedProfileWelfare.Evaluate(options,developer.SavedWeightedGameProgresses);
         Directory.CreateDirectory(output);
         string report=Path.Combine(output,"replayed-report.csv");File.WriteAllText(report,replay.csvReports.Single());
-        int cells=MultipleEquilibriaStrategyAudit.ValidateReplay(numeric,report);
+        int? cells=request.GetProperty("Inputs").TryGetProperty("Numeric",out _)?MultipleEquilibriaStrategyAudit.ValidateReplay(Input("Numeric"),report):null;
         if(request.TryGetProperty("StandardReports",out var standard)&&standard.GetBoolean())
         {
             string directory=Path.Combine(output,"StandardReports");Directory.CreateDirectory(directory);
@@ -77,17 +81,19 @@ internal static class Entry
         }
         AgreementToBargainStudy.ExportProfile(developer,options,1,eq,actions,report,output,fallbacks,()=>FinalArticleCaseFactory.Create(spec));
         if(!complete.SequenceEqual(developer.GetEquilibriumFromInformationSets()))throw new InvalidDataException("Reporting changed strategy");
-        if(ArticleApproximateSearch.ProfileHash(complete)!=audit.GetProperty("CompleteStrategySha256").GetString())throw new InvalidDataException("Saved strategy identity changed");
+        if(prior!=null&&ArticleApproximateSearch.ProfileHash(complete)!=prior.RootElement.GetProperty("CompleteStrategySha256").GetString())throw new InvalidDataException("Saved strategy identity changed");
         object Identity(string path)=>new FinalArticleExecution.FileIdentity(Path.GetFullPath(path),FinalArticleExecution.Hash(path));
+        string savedEquilibrium=Path.Combine(output,"equilibrium.equ");File.Copy(eq,savedEquilibrium);
+        var generatedInputs=new Dictionary<string,object>{{"Equilibrium",Identity(savedEquilibrium)},{"Actions",Identity(actions)},{"Numeric",Identity(report)}};
         File.WriteAllText(Path.Combine(output,"validation.json"),JsonSerializer.Serialize(new{
             Schema="validated-final-profile-v1",Passed=true,CaseId=spec.Id,Case=spec,
-            OptionSetName=audit.GetProperty("OptionSetName").GetString(),GameIdentity=StrategicGameFingerprint.Capture(developer),
+            OptionSetName=options.Name,GameIdentity=StrategicGameFingerprint.Capture(developer),
             FullBestResponseGains=gains,MaximumGain=Math.Max(0,gains.Max()),ActionRows=actionRows,ReproducedNumericCells=cells,
             CompleteStrategySha256=ArticleApproximateSearch.ProfileHash(complete),CompleteStrategyUnchanged=true,
             UnspecifiedOffPathInformationSets=fallbacks.OrderBy(x=>x).ToArray(),Welfare=welfare,
-            Inputs=request.GetProperty("Inputs"),Outputs=Directory.GetFiles(output,"*",SearchOption.AllDirectories).OrderBy(x=>x).Select(Identity).ToArray(),
+            Inputs=request.GetProperty("Inputs"),GeneratedInputs=generatedInputs,Outputs=Directory.GetFiles(output,"*",SearchOption.AllDirectories).OrderBy(x=>x).Select(Identity).ToArray(),
             GameAssembly=Identity(typeof(LitigGame).Assembly.Location),ReportingAssembly=Identity(typeof(Entry).Assembly.Location),
-            OriginalValidation=Identity(request.GetProperty("ExpectedAudit").GetString()),SolvesStarted=0},json));
+            OriginalValidation=priorPath==null?null:Identity(priorPath),SolvesStarted=0},json));
         Console.WriteLine($"Revalidated {spec.Id}: {actionRows} actions, {cells} numeric cells.");
     }
 }

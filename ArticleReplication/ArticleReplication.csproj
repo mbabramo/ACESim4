@@ -10,7 +10,7 @@
     <Deterministic>true</Deterministic>
   </PropertyGroup>
   <ItemGroup><ProjectReference Include="../LitigCharts/LitigCharts.csproj" /></ItemGroup>
-  <ItemGroup><EmbeddedResource Include="Templates/*.tex" /></ItemGroup>
+  <ItemGroup><EmbeddedResource Include="Templates/*.tex" /><EmbeddedResource Include="Authored/**/*" LogicalName="ArticleReplication.Authored/%(RecursiveDir)%(Filename)%(Extension)" /></ItemGroup>
   <PropertyGroup>
     <ArticleContainerTag Condition="'$(ArticleContainerTag)' == ''">acesim-correlated-signals:local</ArticleContainerTag>
     <ArticleContainerRecords Condition="'$(ArticleContainerRecords)' == ''">$(MSBuildProjectDirectory)/../../container-builds/$([System.DateTime]::UtcNow.ToString('yyyyMMddTHHmmssfff'))</ArticleContainerRecords>

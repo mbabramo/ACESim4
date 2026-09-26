@@ -20,11 +20,15 @@ public static class Pipeline
         int workers=int.Parse(args.GetValueOrDefault("workers","1"));int externalWorkers=int.Parse(args.GetValueOrDefault("other-workers","0"));
         if(workers<1||externalWorkers<0||workers+externalWorkers>32)throw new InvalidDataException("Shared worker ceiling is 32; declare other workers.");
         var manifest=Bundle.Open(bundle);var settings=args.TryGetValue("settings",out var sf)?Files.Read<CorrelatedSignalsSettings>(sf):new();
-        var plan=ArticlePlan.Resolve(settings,manifest.Calibration);
-        string[] implemented=["Primary","Exhibits","Welfare","Histories","Strategic","StandardReports","Manuscript"];
+        if(manifest.Calibration!=ArticlePlan.PublishedCalibration)throw new InvalidDataException("Proposed inputs cannot redefine the article calibration.");
+        var plan=ArticlePlan.Resolve(settings,ArticlePlan.PublishedCalibration);
+        foreach(var (key,sub,file) in new[]{("approximate-inputs","approximate","approximate-inputs.json"),("histories","histories","histories.json")})
+            if(!args.ContainsKey(key)&&File.Exists(Path.Combine(bundle,"computations",sub,file)))args.Add(key,Path.Combine(bundle,"computations",sub));
+        string[] implemented=["Primary","MultipleStarts","Trembles","Exhibits","Welfare","Histories","Strategic","StandardReports","Manuscript"];
         var unsupported=settings.Steps.Except(implemented).ToArray();
         if(unsupported.Length>0)throw new NotSupportedException("Stage integration is still pending: "+string.Join(", ",unsupported)+". Select implemented steps explicitly for the temporary prototype; nothing was dispatched.");
         if(!settings.Steps.Contains("Primary"))throw new InvalidDataException("This prototype requires primary revalidation before dependent stages.");
+        if(settings.Steps.Contains("MultipleStarts")&&!File.Exists(Path.Combine(Need("approximate-inputs"),"approximate-inputs.json")))throw new FileNotFoundException("Supply the computational approximate input pack; no replacement searches were launched.");
         var mode=Enum.Parse<ReplicationMode>(args.GetValueOrDefault("mode","FromSolutions"));
         var external=args.TryGetValue("external-jobs",out var ef)?Files.Read<ExternalJobs>(ef).Cases:[];
         var inputs=Files.Read<PrimaryInput[]>(Path.Combine(bundle,"inputs/primary.json")).ToDictionary(x=>x.CaseId);
@@ -40,10 +44,11 @@ public static class Pipeline
         try
         {
             if(jobs.Any(j=>j.Disposition==JobDisposition.Compute))throw new NotSupportedException("Fresh-computation providers are not connected yet. Plan was retained; no computations were dispatched.");
+            if(settings.Steps.Intersect(new[]{"Exhibits","StandardReports","Manuscript"}).Any())await Prerequisites.Run(Path.Combine(output,"prerequisites"));
             var ready=jobs.Where(j=>j.Disposition==JobDisposition.ReuseValidated).ToArray();
             await Parallel.ForEachAsync(ready,new ParallelOptions{MaxDegreeOfParallelism=workers},async(job,token)=>{
                 var r=JsonSerializer.SerializeToNode(inputs[job.CaseId],Files.Json)!.AsObject();
-                foreach(string k in new[]{"ExpectedAudit","ExpectedProfile"})r[k]=Files.Under(bundle,r[k]!.GetValue<string>());
+                foreach(string k in new[]{"ExpectedAudit","ExpectedProfile"})if(r[k]!=null)r[k]=Files.Under(bundle,r[k]!.GetValue<string>());
                 foreach(var f in r["Inputs"]!.AsObject())f.Value!["Path"]=Files.Under(bundle,f.Value["Path"]!.GetValue<string>());
                 r["Output"]=Path.Combine(raw,"Primary",job.CaseId);
                 r["StandardReports"]=settings.Steps.Contains("StandardReports");
@@ -56,19 +61,26 @@ public static class Pipeline
                 var input=inputs[job.CaseId];string dir=Path.Combine(raw,"Primary",job.CaseId);
                 var audit=Files.Object(Path.Combine(dir,"validation.json"));
                 string profileFile=Directory.GetFiles(Path.Combine(dir,"Sources/Profiles"),"*.json").Single();
-                var profile=Files.Object(profileFile);var prior=Files.Object(Files.Under(bundle,input.ExpectedProfile));
-                var current=(JsonObject)profile.DeepClone();foreach(string k in new[]{"Profile","ActionReport","ReplayReport"}){current.Remove(k);prior.Remove(k);}
-                Files.EqualScience(prior,current,job.CaseId+" complete scientific profile");
-                Files.EqualScience(Files.Object(Files.Under(bundle,input.ExpectedAudit))["Welfare"],audit["Welfare"],job.CaseId+" welfare");
+                var profile=Files.Object(profileFile);
+                if(input.ExpectedProfile!=null)
+                {
+                    var prior=Files.Object(Files.Under(bundle,input.ExpectedProfile));var current=(JsonObject)profile.DeepClone();
+                    foreach(string k in new[]{"Profile","ActionReport","ReplayReport"}){current.Remove(k);prior.Remove(k);}
+                    Files.EqualScience(prior,current,job.CaseId+" complete scientific profile");
+                }
+                if(input.ExpectedAudit!=null)Files.EqualScience(Files.Object(Files.Under(bundle,input.ExpectedAudit))["Welfare"],audit["Welfare"],job.CaseId+" welfare");
                 string dest=Path.Combine(collection,"Results/Individual simulations",job.CaseId,"Sources");Directory.CreateDirectory(dest);
                 Files.CopyVerified(profileFile,Path.Combine(dest,"complete-profile.json"));Files.CopyVerified(Path.Combine(dir,"validation.json"),Path.Combine(dest,"individual-audit.json"));
                 Files.CopyVerified(Path.Combine(dir,"replayed-report.csv"),Path.Combine(dest,"replayed-report.csv"));
                 File.WriteAllText(Path.Combine(dest,"strategy.tex"),StrategyExhibit.Generate(audit,profile));
-                profiles.Add(job.CaseId,(audit,profile));validations.Add(new{job.CaseId,Passed=true,CompleteScientificProfileIdentical=true,WelfareIdentical=true});
+                profiles.Add(job.CaseId,(audit,profile));validations.Add(new{job.CaseId,Passed=true,CompleteScientificProfileIdentical=input.ExpectedProfile!=null?(bool?)true:null,WelfareIdentical=input.ExpectedAudit!=null?(bool?)true:null,FullProfileRevalidated=true});
             }
             Files.Save(Path.Combine(output,"primary-validation.json"),new{Passed=true,Profiles=validations,SolvesStarted=0});
+            PrimaryCache.Export(output,Path.Combine(output,"ComputationCache"));
             Files.Save(Path.Combine(collection,"Results/Aggregated Data/selected-primary-catalog.json"),new{Schema="replicated-exact-primary-catalog-v1",Cases=profiles.Select(x=>new{CaseId=x.Key,Parameters=plan.Cases.Single(c=>c.Id==x.Key),Welfare=x.Value.Audit["Welfare"],Metrics=x.Value.Profile["Metrics"]}),Pending=jobs.Where(j=>j.Disposition!=JobDisposition.ReuseValidated),Plan=plan});
             Reports.Primary(bundle,collection,plan,profiles);
+            if(settings.Steps.Contains("MultipleStarts")){await ApproximateCache.Run(Need("approximate-inputs"),plan,profiles,Path.Combine(raw,"MultipleStarts"),workers);MultipleReports.Generate(Path.Combine(raw,"MultipleStarts"),plan,collection);}
+            if(settings.Steps.Contains("Trembles")){await TrembleStage.Run(bundle,plan,output,Path.Combine(raw,"Trembles"),workers);foreach(string file in Directory.GetFiles(Path.Combine(raw,"Trembles/generated-reports")))Files.CopyVerified(file,Path.Combine(collection,"Results/Aggregated Data/Equilibrium sensitivity",Path.GetFileName(file)));}
             if(settings.Steps.Contains("Strategic"))StrategicCache.Import(bundle,manifest,plan,profiles,Path.Combine(raw,"Strategic"));
             if(settings.Steps.Contains("Welfare"))await Reports.Welfare(bundle,plan,profiles,collection,output,workers);
             if(settings.Steps.Contains("Histories"))
@@ -82,7 +94,7 @@ public static class Pipeline
             {
                 string request=Path.Combine(output,"requests/standard-litigcharts.json");
                 var rows=plan.Cases.Where(c=>profiles.ContainsKey(c.Id)).Select(c=>{
-                    string dir=Path.Combine(raw,"Primary",c.Id);return new LitigCharts.FinalArticleResultsCommand.CaseInput(c,Path.Combine(dir,"validation.json"),Directory.GetFiles(Path.Combine(dir,"Sources/Profiles"),"*.json").Single(),Path.Combine(dir,"StandardReports"),Files.Under(bundle,inputs[c.Id].Inputs["Actions"].Path));
+                    string dir=Path.Combine(raw,"Primary",c.Id);return new LitigCharts.FinalArticleResultsCommand.CaseInput(c,Path.Combine(dir,"validation.json"),Directory.GetFiles(Path.Combine(dir,"Sources/Profiles"),"*.json").Single(),Path.Combine(dir,"StandardReports"),Path.Combine(dir,"information-set-actions.csv"));
                 }).ToArray();
                 Files.Save(request,new LitigCharts.FinalArticleResultsCommand.Request(rows,plan.Cases,Path.Combine(collection,"Results"),Path.Combine(collection,"Supplemental materials"),workers));
                 await Commands.Run(logs,"standard-litigcharts","dotnet",[typeof(LitigCharts.FinalArticleResultsCommand).Assembly.Location,"final-article-results","--request",request],output);

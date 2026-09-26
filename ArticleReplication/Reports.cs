@@ -28,14 +28,14 @@ public static class Reports
     }
     public static void Primary(string bundle,string collection,ResolvedArticlePlan plan,Dictionary<string,(JsonObject Audit,JsonObject Profile)> profiles)
     {
-        var expected=ReadCsv(Path.Combine(bundle,"inputs/selected-primary-outcomes.csv")).ToDictionary(r=>r["CaseId"]);var rows=new List<Dictionary<string,object?>>();
+        string reference=Path.Combine(bundle,"inputs/selected-primary-outcomes.csv");var expected=File.Exists(reference)?ReadCsv(reference).ToDictionary(r=>r["CaseId"]):null;var rows=new List<Dictionary<string,object?>>();
         foreach(var spec in plan.Cases.Where(c=>profiles.ContainsKey(c.Id)))
         {
             var (audit,profile)=profiles[spec.Id];var row=new Dictionary<string,object?>{{"CaseId",spec.Id},{"Family",spec.Family},{"Variant",spec.Variant},{"FeeRule",spec.FeeRule},{"AlphaP",spec.AlphaP},{"AlphaD",spec.AlphaD},{"CostMultiplier",spec.CostMultiplier},{"Signals",spec.Signals},{"Offers",spec.Offers.Length}};
             foreach(var pair in profile["Metrics"]!.AsObject())row.Add(pair.Key,pair.Value?.GetValue<double>());
             row.Add("AgreementStageReach",profile["Strategies"]!.AsArray().Where(r=>r!["Decision"]!.GetValue<string>()=="PAgreeToBargain").Sum(r=>r!["Reach"]!.GetValue<double>()));
             foreach(var pair in audit["Welfare"]!["Headline"]!.AsObject())row.Add(pair.Key,pair.Value!.GetValue<double>());
-            ExactCsv(row,expected[spec.Id],spec.Id);rows.Add(row);
+            if(expected!=null)ExactCsv(row,expected[spec.Id],spec.Id);rows.Add(row);
         }
         string aggregate=Path.Combine(collection,"Results/Aggregated Data");Csv(Path.Combine(aggregate,"selected-primary-outcomes.csv"),rows);
         Csv(Path.Combine(aggregate,"American-British-cost-outcomes/selected-exact-outcomes.csv"),rows.Where(r=>r["Family"] is "baseline" or "cost-multiplier"));
@@ -46,12 +46,12 @@ public static class Reports
     {
         var inputs=Files.Read<PrimaryInput[]>(Path.Combine(bundle,"inputs/primary.json")).ToDictionary(p=>p.CaseId);
         var ready=plan.Welfare.Where(p=>profiles.ContainsKey(p.Source)&&profiles.ContainsKey(p.Target)).ToArray();
-        object Endpoint(string id){var p=inputs[id];return new{p.Case,EquilibriumFile=Files.Under(bundle,p.Inputs["Equilibrium"].Path),ActionReportFile=Files.Under(bundle,p.Inputs["Actions"].Path),NumericReportFile=Files.Under(bundle,p.Inputs["Numeric"].Path),EquilibriumNumber=1};}
+        object Endpoint(string id){var p=inputs[id];string dir=Path.Combine(work,"ReportResults/Primary",id);return new{p.Case,EquilibriumFile=Path.Combine(dir,"equilibrium.equ"),ActionReportFile=Path.Combine(dir,"information-set-actions.csv"),NumericReportFile=Path.Combine(dir,"replayed-report.csv"),EquilibriumNumber=1};}
         await Parallel.ForEachAsync(ready,new ParallelOptions{MaxDegreeOfParallelism=workers},async(pair,ct)=>{
             string request=Path.Combine(work,"requests/welfare-"+pair.Id+".json");Files.Save(request,new{Id=pair.Id,American=Endpoint(pair.Source),Complete=Endpoint(pair.Target),TruthMapExponents=new[]{1.0}});
             await Commands.Worker(Path.Combine(work,"logs"),"welfare-"+pair.Id,work,"worker-welfare","--request",request,"--output",Path.Combine(work,"ReportResults/Welfare",pair.Id));
         });
-        var expected=ReadCsv(Path.Combine(bundle,"inputs/expected-main-decomposition.csv")).ToDictionary(r=>(r["AmericanCase"],r["Measure"]));
+        string reference=Path.Combine(bundle,"inputs/expected-main-decomposition.csv");var expected=File.Exists(reference)?ReadCsv(reference).ToDictionary(r=>(r["AmericanCase"],r["Measure"])):null;
         string[] labels=["Meritorious plaintiff shortfall","Nonliable defendant burden","Liable defendant excess burden","Gross outcome error","Real litigation expenditures"];
         var names=labels.Zip(WelfareFigure.Measures).ToDictionary(x=>x.First,x=>x.Second);
         var rows=new List<Dictionary<string,object?>>();int exactEndpoints=0,mainRows=0;
@@ -67,7 +67,7 @@ public static class Reports
                 if(Math.Abs(c["Residual"]!.GetValue<double>())>1e-10)throw new InvalidDataException("Unreconciled welfare comparison.");
                 var row=new Dictionary<string,object?>{{"Risk",spec.AlphaP==0&&spec.AlphaD==0?"Risk neutral":spec.AlphaP==spec.AlphaD?"Risk averse":"Asymmetric risk"},{"CostMultiplier",spec.CostMultiplier},{"Measure",item.Key},{"AmericanCase",pair.Source},{"BritishCase",pair.Target}};
                 foreach(var fieldValue in c)row[fieldValue.Key]=fieldValue.Value!.GetValue<double>();
-                if(spec.Family is "baseline" or "cost-multiplier"){ExactCsv(row,expected[(pair.Source,item.Key)],pair.Id);mainRows++;}
+                if(expected!=null&&(spec.Family is "baseline" or "cost-multiplier")){ExactCsv(row,expected[(pair.Source,item.Key)],pair.Id);mainRows++;}
                 rows.Add(row);
             }
         }

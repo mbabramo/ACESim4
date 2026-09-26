@@ -5,18 +5,18 @@ using System.Text.Json.Nodes;
 namespace ArticleReplication;
 
 public sealed record PrimaryInput(string CaseId,FinalArticleCase Case,JsonObject GameIdentity,
-    string ExpectedAudit,string ExpectedProfile,Dictionary<string,FinalArticleExecution.FileIdentity> Inputs);
+    string? ExpectedAudit,string? ExpectedProfile,Dictionary<string,FinalArticleExecution.FileIdentity> Inputs);
 public sealed record BundleFile(string Path,string Sha256,long Bytes);
 public sealed record RenderInput(string Output,string Source,string SourceSha256,string[] CaseIds,string Kind);
 public sealed record BundleManifest(string Schema,DateTime CreatedUtc,string SourceCommit,Calibration Calibration,
-    BundleFile[] Files,RenderInput[] Renders,string[] PrimaryCaseIds,string[] Notes);
+    BundleFile[] Files,RenderInput[] Renders,string[] PrimaryCaseIds,string[] Notes) { public StrategicInput[] Strategic {get;init;}=[]; }
 
 public static class Bundle
 {
     public static BundleManifest Open(string root)
     {
         var m=Files.Read<BundleManifest>(Path.Combine(root,"bundle.json"));
-        if(m.Schema!="correlated-signals-solutions-v1")throw new InvalidDataException("Unknown solutions bundle.");
+        if(m.Schema is not ("correlated-signals-solutions-v1" or "correlated-signals-computations-v2" or "correlated-signals-computations-v3"))throw new InvalidDataException("Unknown solutions bundle.");
         foreach(var f in m.Files)
         {
             string p=Files.Under(root,f.Path);

@@ -12,9 +12,9 @@ public static class MainTables
         foreach(string stem in new[]{Primitives,Summary})Files.EqualScience(Files.Object(Path.Combine(generated,"Tables/Sources",stem+".layout.json")),Files.Object(Path.Combine(reference,stem+".layout.json")),stem+" all cells, ordering and formatting");
         Files.Save(output,new{Passed=true,EveryDisplayedCellAndPanelOrderIdentical=true});
     }
-    public static async Task Compile(string output)
+    public static async Task Compile(string output,string[]? requestedStems=null)
     {
-        foreach(string stem in new[]{Primitives,Summary})
+        foreach(string stem in requestedStems??new[]{Primitives,Summary})
         {
             string source=Path.Combine(output,"Tables/Sources",stem+".tex");string text=File.ReadAllText(source);
             string[] parts=text.Contains("\\documentclass")?[source]:text.Split('\n').Where(l=>l.StartsWith("% ")&&l.EndsWith(".tex")).Select(l=>Files.Under(Path.GetDirectoryName(source)!,l[2..])).ToArray();
@@ -28,7 +28,7 @@ public static class MainTables
             if(pdfs.Count==1)Files.CopyVerified(pdfs[0],pdf);else await Commands.Run(Path.Combine(output,"logs"),stem+"-merge","pdfunite",pdfs.Append(pdf),render);
             await Commands.Run(Path.Combine(output,"logs"),stem+"-preview","pdftoppm",["-png","-r","110",pdf,Path.Combine(output,"Tables",stem)],render);
         }
-        Files.Save(Path.Combine(output,"completed.json"),new{Passed=true,Tables=new[]{Primitives,Summary},VisualReviewPending=true});
+        Files.Save(Path.Combine(output,"completed.json"),new{Passed=true,Tables=requestedStems??new[]{Primitives,Summary},VisualReviewPending=true});
     }
     public static bool Owns(string path)=>new[]{Primitives,Summary}.Any(s=>path.StartsWith("Tables/Sources/"+s,StringComparison.Ordinal));
     public static string Escape(string text)=>string.Concat(text.Select(c=>c switch{'&'=>@"\&",'%'=>@"\%",'_'=>@"\_",'#'=>@"\#",'>'=>@"$\to$",'×'=>@"$\times$",'α'=>@"$\alpha$",_=>c.ToString()}));

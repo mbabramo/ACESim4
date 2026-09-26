@@ -19,7 +19,7 @@ foreach(string requestFile in Directory.GetFiles(Path.Combine(root,"inputs/run-v
  var nodes=d.InformationSets.OrderBy(n=>n.PlayerIndex).ThenBy(n=>n.InformationSetNodeNumber).ToArray();
  var original=nodes.Select(n=>n.GetCurrentProbabilitiesAsArray()).ToArray();
  using var saved=JsonDocument.Parse(File.ReadAllBytes(Path.Combine(r.GetProperty("Output").GetString(),"game-and-directions.json")));
- foreach(int direction in new[]{0,4})foreach(double eps in new[]{0,.01})for(byte player=0;player<2;player++)
+ foreach(int direction in new[]{0,r.GetProperty("Directions").GetInt32()-1}.Distinct())foreach(double eps in new[]{0,r.GetProperty("Epsilons").EnumerateArray().Max(e=>e.GetDouble())})for(byte player=0;player<2;player++)
  {
   for(int i=0;i<nodes.Length;i++)
   {
