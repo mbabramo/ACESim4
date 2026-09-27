@@ -10,7 +10,8 @@ public static class Program
         try
         {
             if(args.Length==0||args[0] is "help" or "--help")
-            {Console.WriteLine("ArticleReplication run --output NEW_DIR [--input SAVED_SOLVES] [--steps Primary,MultipleStarts,Welfare,Strategic,Trembles,Histories,StandardReports,Exhibits,Manuscript] [--workers N]. C# defaults or CLI settings; missing solves are computed unless --missing wait. rebuild additionally requires --source DIR and rebuilds all projects. doctor and container-build check/build installed dependencies. export-shortcuts and export-history-shortcuts migrate previous results. Legacy reproduce/pack commands remain for regression only.");return 0;}
+            {Console.WriteLine("ArticleReplication run --output NEW_DIR [--input SAVED_SOLVES] [--steps Primary,MultipleStarts,Welfare,TruthSensitivity,Strategic,Trembles,Histories,StandardReports,Exhibits,Manuscript] [--workers N]. C# defaults or CLI settings; missing solves are computed unless --missing wait. rebuild additionally requires --source DIR and rebuilds all projects. doctor and container-build check/build installed dependencies. export-shortcuts and export-history-shortcuts migrate previous results. Legacy reproduce/pack commands remain for regression only.");return 0;}
+            if(args[0]=="worker-truth")return await LitigCharts.TruthMappingReplayCommand.RunAsync(args.Skip(1).ToArray());
             if(args[0]=="worker-primary")return await Entry.Main(["primary",args[1]]);
             if(args[0]=="worker-search"){await SearchStage.Worker(args[1]);return 0;}
             if(args[0]=="worker-strategic"){await StrategicStage.Worker(args[1],args[2]);return 0;}

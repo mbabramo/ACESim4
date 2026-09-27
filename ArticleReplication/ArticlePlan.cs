@@ -21,10 +21,11 @@ public sealed record CorrelatedSignalsSettings
     public double ApproximateRoundingCutoff { get; init; } = .005;
     public ArticleApproximateGainUnits ApproximateGainUnits { get; init; } = ArticleApproximateGainUnits.FullTerminalUtilityRange;
     public double[] Trembles { get; init; } = [.001,.005,.01];
+    public double[] TruthExponents { get; init; } = [.5,1,2];
     public int TrembleDirections { get; init; } = 5;
     public bool IncludeExtensions { get; init; } = true;
     public bool IncludeTrialOnly { get; init; } = true;
-    public string[] Steps { get; init; } = ["Primary","MultipleStarts","Welfare","Strategic","Trembles","Histories","StandardReports","Exhibits","Manuscript"];
+    public string[] Steps { get; init; } = ["Primary","MultipleStarts","Welfare","TruthSensitivity","Strategic","Trembles","Histories","StandardReports","Exhibits","Manuscript"];
     public sealed record Grid(byte Signals,int Offers);
 }
 
@@ -55,10 +56,11 @@ public static class ArticlePlan
             throw new InvalidDataException("Declare distinct positive main costs including the reference cost.");
         if(s.ReferenceCostMultiplier!=1||s.BaselineSignals!=10||s.BaselineOffers!=10)
             throw new InvalidDataException("The current article protocol retains its cost-one, ten-signal, ten-offer reference. Change its scientific definition explicitly.");
-        string[] supported=["Primary","MultipleStarts","Welfare","Strategic","Trembles","Histories","StandardReports","Exhibits","Manuscript"];
+        string[] supported=["Primary","MultipleStarts","Welfare","TruthSensitivity","Strategic","Trembles","Histories","StandardReports","Exhibits","Manuscript"];
         if(s.Steps.Distinct().Count()!=s.Steps.Length||s.Steps.Except(supported).Any())throw new InvalidDataException("Unknown or repeated article step.");
         if(s.StartsPerCore<1||s.ApproximatePivotLimit<1)throw new InvalidDataException("Finite positive approximate search budget required.");
         _=new ArticleApproximatePolicy(s.ApproximateRoundingCutoff,s.ApproximateGainUnits,s.ApproximatePivotLimit);
+        if(s.TruthExponents.Length==0 || !s.TruthExponents.Contains(1) || s.TruthExponents.Distinct().Count()!=s.TruthExponents.Length || s.TruthExponents.Any(k=>!double.IsFinite(k)||k<=0))throw new InvalidDataException("Truth exponents must be distinct, positive, and include 1.");
         var cases=new List<FinalArticleCase>();
         foreach(double cost in s.MainCostMultipliers.Order())foreach(var risk in new[]{"rn","ra"})foreach(var fee in new[]{"american","complete"})
             Add(cost==s.ReferenceCostMultiplier?"baseline":"cost-multiplier","standard",fee,risk,cost,original:true);

@@ -8,7 +8,7 @@ public static class SimpleRun
 {
     public static async Task Run(Dictionary<string,string> args)
     {
-        string[] allowed=["input","output","article","costs","steps","starts","pivots","cutoff","gain-units","extensions","trial-only","noise","grids","trembles","tremble-directions","workers","other-workers","cases","reserve-cases","missing"];
+        string[] allowed=["input","output","article","costs","steps","starts","pivots","cutoff","gain-units","extensions","trial-only","noise","grids","trembles","tremble-directions","workers","other-workers","cases","reserve-cases","missing","truth-exponents"];
         if(args.Keys.Except(allowed,StringComparer.OrdinalIgnoreCase).Any())throw new ArgumentException("Unknown run option: "+string.Join(',',args.Keys.Except(allowed,StringComparer.OrdinalIgnoreCase)));
         if(args.GetValueOrDefault("article","CorrelatedSignals")!="CorrelatedSignals")throw new ArgumentException("Only CorrelatedSignals is implemented.");
         string output=Path.GetFullPath(args["output"]);string? input=args.TryGetValue("input",out var value)?Path.GetFullPath(value):null;
@@ -65,6 +65,7 @@ public static class SimpleRun
             if(plan.Steps.Contains("Trembles")){await TrembleStage.Run(null,plan,output,Path.Combine(raw,"Trembles"),workers);foreach(string file in Directory.GetFiles(Path.Combine(raw,"Trembles/generated-reports")))Files.CopyVerified(file,Path.Combine(collection,"Results/Aggregated Data/Equilibrium sensitivity",Path.GetFileName(file)));}
             if(plan.Steps.Contains("Strategic"))await StrategicStage.Run(plan,output,Path.Combine(raw,"Strategic"),workers);
             if(plan.Steps.Contains("Welfare"))await Reports.Welfare(generated,plan,profiles,collection,output,workers);
+            if(plan.Steps.Contains("TruthSensitivity"))await TruthSensitivity.Run(plan,profiles,collection,output,workers);
             string shortcuts=Path.Combine(raw,"Shortcuts");SolveShortcut.Export(output,shortcuts);
             int historySolves=0;
             if(plan.Steps.Contains("Histories"))
