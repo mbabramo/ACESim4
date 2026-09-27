@@ -24,6 +24,7 @@ public static class Program
             var options=Parse(args.Skip(1).ToArray());string Get(string key)=>options.TryGetValue(key,out var v)?v:throw new ArgumentException("Missing --"+key);
             switch(args[0])
             {
+                case "truth-figure":await TruthSensitivityFigure.FromRun(Get("run"),Get("output"));return 0;
                 case "run":await SimpleRun.Run(options);return 0;
                 case "test-shortcuts":ShortcutTests.Run(Get("output"));return 0;
                 case "verify-saved-solves":ShortcutTests.Compare(Get("generated"),Get("reference"),Get("output"));return 0;
