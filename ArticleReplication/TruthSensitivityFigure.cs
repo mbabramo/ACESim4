@@ -2,7 +2,7 @@ namespace ArticleReplication;
 
 public static class TruthSensitivityFigure
 {
-    public const string Stem="Truth-formula robustness";
+    public const string Stem="Figure 9 - Truth-formula robustness";
     public static string Generate(string csv,string collection)
     {
         var rows=Reports.ReadCsv(csv);var measures=WelfareFigure.Measures.Take(4).ToArray();
@@ -42,13 +42,13 @@ public static class TruthSensitivityFigure
         lines.Add(@"\node at (8.2,1.13) {British minus American};");
         foreach(var item in new[]{(3.0,.5,"Weaker link ($k=0.5$)"),(7.1,1.0,"Baseline ($k=1$)"),(10.9,2.0,"Stronger link ($k=2$)")}){lines.Add(Mark(item.Item1,.48,item.Item2));lines.Add($"\\node[anchor=west,font=\\footnotesize] at ({item.Item1+.15:F5},.48) {{{item.Item3}}};");}
         lines.AddRange([@"\end{tikzpicture}",@"\end{document}"]);
-        string relative=$"Supplemental materials/Truth sensitivity/Sources/{Stem}.tex",path=Path.Combine(collection,relative);Directory.CreateDirectory(Path.GetDirectoryName(path)!);File.WriteAllLines(path,lines);return relative;
+        string relative=$"Figures/Sources/{Stem}.tex",path=Path.Combine(collection,relative);Directory.CreateDirectory(Path.GetDirectoryName(path)!);File.WriteAllLines(path,lines);return relative;
     }
     public static async Task FromRun(string run,string output)
     {
         if(Directory.Exists(output))throw new IOException("Fresh output required.");
         var validation=Files.Object(Path.Combine(run,"article/Results/Aggregated Data/Truth sensitivity/validation.json"));if(validation["Passed"]?.GetValue<bool>()!=true)throw new InvalidDataException("Validated truth results required.");
         string source=Generate(Path.Combine(run,"article/Results/Aggregated Data/Truth sensitivity/truth-sensitivity.csv"),output);
-        await Rendering.Compile([new(source,$"Supplemental materials/Truth sensitivity/{Stem}.pdf","TruthSensitivity")],output,output,1);
+        await Rendering.Compile([new(source,$"Figures/{Stem}.pdf","TruthSensitivity")],output,output,1);
     }
 }

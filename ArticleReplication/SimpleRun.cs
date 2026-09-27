@@ -26,7 +26,7 @@ public static class SimpleRun
         }
         if(!plan.Steps.Contains("Primary"))throw new ArgumentException("Primary is required before downstream stages.");
         if(plan.Steps.Contains("Trembles")&&!plan.Steps.Contains("MultipleStarts"))throw new ArgumentException("Trembles requires MultipleStarts.");
-        if(plan.Steps.Contains("Manuscript")&&new[]{"Exhibits","Welfare","Strategic","MultipleStarts"}.Except(plan.Steps).Any())throw new ArgumentException("Manuscript requires its data/exhibit stages.");
+        if(plan.Steps.Contains("Manuscript")&&new[]{"Exhibits","Welfare","Strategic","MultipleStarts","TruthSensitivity"}.Except(plan.Steps).Any())throw new ArgumentException("Manuscript requires its data/exhibit stages.");
         var reserved=args.GetValueOrDefault("reserve-cases","").Split(',',StringSplitOptions.RemoveEmptyEntries).ToHashSet(StringComparer.Ordinal);
         // Temporary local deployment guard. It is not part of the scientific article protocol or saved inputs.
         if(OperatingSystem.IsWindows()&&Directory.Exists(@"C:\Users\Admin\Documents\Codex\correlated-signals-final-20260923"))
