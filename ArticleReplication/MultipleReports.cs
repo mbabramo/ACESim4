@@ -5,7 +5,8 @@ namespace ArticleReplication;
 /// <summary>Descriptive clustering only. Tolerances here never participate in solver acceptance.</summary>
 public static class MultipleReports
 {
-    public const string Stem="Figure 8 - Multiple equilibrium welfare outcomes";
+    public const string Stem="Multiple equilibrium welfare outcomes";
+    public const string Folder="Supplemental materials/Multiple equilibria";
     static readonly string[] HistoryKeys=["PSignal","DSignal","File","Answer","PExit","DExit","PAgree","DAgree","POffer","DOffer"];
     static readonly double[] Tolerances=[0,1e-8,1e-6,1e-4,1e-3];
     sealed record Profile(int Start,string Band,JsonArray Coordinates,double[] Vector,Dictionary<string,double> Reached,Dictionary<string,double?> Outcomes);
@@ -107,7 +108,7 @@ public static class MultipleReports
         Reports.Csv(Path.Combine(supplement,"Sources/grouping-summary.csv"),summaries);Reports.Csv(Path.Combine(supplement,"Sources/all-outcomes.csv"),dispositionRows);
         var ranges=dispositionRows.GroupBy(r=>(r["Risk"],r["Rule"])).Select(g=>new{Risk=g.Key.Item1,Rule=g.Key.Item2,Count=g.Count(),Ranges=g.First().Keys.Except(new[]{"Risk","Rule","Start"}).ToDictionary(k=>k,k=>new{Minimum=g.Select(r=>r[k] as double?).Min(),Maximum=g.Select(r=>r[k] as double?).Max()})});
         Files.Save(Path.Combine(supplement,"Sources/disposition-ranges.generated.json"),ranges);
-        File.WriteAllText(Path.Combine(supplement,"README.md"),$"# Multiple equilibria\n\n{rows.Count} accepted of {records.Count} starts. Accepted profiles undergo complete-vector, full best-response, numeric replay and welfare checks. Strict early (<0.001) and cap (<0.0025) acceptance remain separate; gains use the configured terminal-utility range.\n\n- [All outcomes](Sources/all-outcomes.csv)\n- [Grouping](Sources/catalog.json)\n- [Grouping counts](Sources/grouping-summary.csv)\n- [Complete profiles](Sources/Profiles)\n\nGrouping is descriptive: tolerance never changes acceptance. Recovery frequencies do not estimate litigant selection probabilities.\n");
+        File.WriteAllText(Path.Combine(supplement,"README.md"),$"# Multiple equilibria\n\n{rows.Count} accepted of {records.Count} starts. Accepted profiles undergo complete-vector, full best-response, numeric replay and welfare checks. Strict early (<0.001) and cap (<0.0025) acceptance remain separate; gains use the configured terminal-utility range.\n\n- [Welfare outcomes figure](Multiple%20equilibrium%20welfare%20outcomes.pdf)\n- [All outcomes](Sources/all-outcomes.csv)\n- [Grouping](Sources/catalog.json)\n- [Grouping counts](Sources/grouping-summary.csv)\n- [Complete profiles](Sources/Profiles)\n\nGrouping is descriptive: tolerance never changes acceptance. Recovery frequencies do not estimate litigant selection probabilities.\n");
         Figure(rows,records,plan,collection);
     }
     static void Figure(List<Dictionary<string,object?>> rows,JsonArray records,ResolvedArticlePlan plan,string collection)
@@ -133,7 +134,7 @@ public static class MultipleReports
             lines.Add($"\\node[rotate=90] at (-.12,{top-3.35:G17}) {{Start index}};");
         }
         lines.AddRange([WelfareFigure.Mark(5.5,.25,"american"),@"\node[anchor=west] at (5.85,.25) {American};",WelfareFigure.Mark(10,.25,"complete"),@"\node[anchor=west] at (10.3,.25) {British};",@"\end{tikzpicture}",@"\end{document}"]);
-        string sources=Path.Combine(collection,"Figures/Sources");Directory.CreateDirectory(sources);
+        string sources=Path.Combine(collection,Folder,"Sources");Directory.CreateDirectory(sources);
         File.WriteAllText(Path.Combine(sources,Stem+".tex"),WelfareFigure.Preamble+string.Join('\n',lines));
         Files.Save(Path.Combine(sources,Stem+".generated-data.json"),new{Rows=rows,PlottedPoints=points,AxisMaxima=bounds,AcceptedProfiles=rows.Count,AttemptedStarts=records.Count,Rejected=records.Where(a=>!a!["Accepted"]!.GetValue<bool>()),NoAveragingOrGrouping=true});
         Reports.Csv(Path.Combine(sources,Stem+".csv"),rows);
@@ -143,7 +144,7 @@ public static class MultipleReports
     {
         if(Directory.Exists(output))throw new IOException("Fresh output required.");var done=Files.Object(Path.Combine(run,"completed.json"));if(done["Passed"]?.GetValue<bool>()!=true)throw new InvalidDataException("Input run did not pass.");
         var plan=Files.Read<ResolvedArticlePlan>(Path.Combine(run,"resolved-plan.json"));Generate(Path.Combine(run,"ReportResults/MultipleStarts"),plan,output);
-        string source=Path.Combine(output,"Figures/Sources",Stem+".tex"),pdf=Path.Combine(output,"Figures",Stem+".pdf");
+        string source=Path.Combine(output,Folder,"Sources",Stem+".tex"),pdf=Path.Combine(output,Folder,Stem+".pdf");
         await Commands.Run(Path.Combine(output,"logs"),"latex","lualatex",["-interaction=nonstopmode","-halt-on-error","-output-directory="+Path.GetDirectoryName(pdf),source],Path.GetDirectoryName(source)!);
         await Commands.Run(Path.Combine(output,"logs"),"preview","pdftoppm",["-scale-to","1800","-singlefile","-png",pdf,Path.ChangeExtension(pdf,null)],output);
         Files.Save(Path.Combine(output,"completed.json"),new{Passed=true,SolvesStarted=0,FreshlyGenerated=true,VisualReviewPending=true});
@@ -152,8 +153,8 @@ public static class MultipleReports
     {
         var a=Files.Object(Path.Combine(generated,"Supplemental materials/Multiple equilibria/Sources/catalog.json"));var b=Files.Object(Path.Combine(reference,"Supplemental materials/Multiple equilibria/Sources/catalog.json"));
         Files.EqualScience(a["Catalogs"],b["Catalogs"],"Every grouping and maximum within-group distance");
-        string prior=Path.Combine(reference,"Figures/Sources",Stem+".json");if(!File.Exists(prior))prior=Path.Combine(reference,"Figures/Sources",Stem+".generated-data.json");
-        a=Files.Object(Path.Combine(generated,"Figures/Sources",Stem+".generated-data.json"));b=Files.Object(prior);
+        string prior=new[]{Path.Combine(reference,Folder,"Sources",Stem+".generated-data.json"),Path.Combine(reference,Folder,"Sources",Stem+".json"),Path.Combine(reference,"Figures/Sources","Figure 8 - "+Stem+".generated-data.json"),Path.Combine(reference,"Figures/Sources","Figure 8 - "+Stem+".json")}.First(File.Exists);
+        a=Files.Object(Path.Combine(generated,Folder,"Sources",Stem+".generated-data.json"));b=Files.Object(prior);
         foreach(string field in new[]{"Rows","PlottedPoints","AxisMaxima","AcceptedProfiles","AttemptedStarts"})Files.EqualScience(a[field],b[field],"Multiple welfare figure "+field);
         Files.Save(output,new{Passed=true,ExactScientificValues=true,GroupingTolerancesDoNotReplaceExactComparison=true});
     }

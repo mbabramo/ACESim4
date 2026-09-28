@@ -29,6 +29,8 @@ public static class Rendering
                 artifacts.Add(new(Path.GetRelativePath(collection,source),Path.GetRelativePath(collection,Path.Combine(Path.GetDirectoryName(Path.GetDirectoryName(source)!)!,Path.GetFileNameWithoutExtension(source)+".pdf")),"StrategicDecomposition"));
         if(plan.Steps.Contains("Welfare"))foreach(string stem in new[]{"welfare-overview","welfare-decompositions"})
             artifacts.Add(new($"Supplemental materials/Generated pairwise comparisons/Sources/{stem}.tex",$"Supplemental materials/Generated pairwise comparisons/{stem}.pdf","WelfareSupplement"));
+        if(plan.Steps.Contains("MultipleStarts"))
+            artifacts.Add(new($"{MultipleReports.Folder}/Sources/{MultipleReports.Stem}.tex",$"{MultipleReports.Folder}/{MultipleReports.Stem}.pdf","MultipleEquilibriaSupplement"));
         if(artifacts.Select(a=>a.Output).Distinct().Count()!=artifacts.Count)throw new InvalidDataException("Repeated artifact path.");
         await Compile(artifacts.OrderBy(a=>a.Output,StringComparer.Ordinal).ToArray(),collection,work,workers);
     }
