@@ -47,7 +47,7 @@ public static class MainTables
             foreach(var row in sections[n].Rows)
                 body.Add(row.Skip(1).All(x=>x=="Pending")?Escape(row[0])+$" & \\multicolumn{{{row.Length-1}}}{{c}}{{Pending}}"+@"\\":string.Join(" & ",row.Select(Escape))+@"\\");
             body.Add(@"\bottomrule\end{tabular}");
-            if(title.StartsWith("Table 2")||title.StartsWith("Table 3"))body.Add(@"\par\smallskip{\footnotesize Action/reach: percent. Contributions: percentage points. C/E: continue/exit.}");
+            if(n==sections.Length-1 && (title.StartsWith("Table 2")||title.StartsWith("Table 3")))body.Add(@"\par\smallskip{\footnotesize Action/reach: percent. Contributions: percentage points. C/E: continue/exit.}");
             body.AddRange([@"\end{minipage}",@"\end{document}"]);
             string name=title+(sections.Length>1?$" - panel {n+1}":"");pieces.Add(name+".tex");
             File.WriteAllText(Path.Combine(dir,name+".tex"),WelfareFigure.Preamble.Replace("[10pt,tikz,border=5pt]","[10pt,border=5pt]")+string.Join('\n',body));
@@ -56,7 +56,7 @@ public static class MainTables
         {
             string preamble=WelfareFigure.Preamble.Replace("[10pt,tikz,border=5pt]","[10pt,border=5pt]");
             var blocks=pieces.Select(p=>File.ReadAllText(Path.Combine(dir,p)).Replace(preamble,"").Replace(@"\end{document}","").Trim()).ToArray();
-            var panelBreak=title==Summary?"\n\\\\[12pt]\n\\noalign{\\vskip 4pt}\n":"\n\\\\[12pt]\n";
+            var panelBreak="\n\\\\[12pt]\n\\noalign{\\vskip 4pt}\n";
             File.WriteAllText(Path.Combine(dir,title+".tex"),preamble+"\\begin{tabular}{@{}l@{}}\n"+string.Join(panelBreak,blocks)+"\n\\end{tabular}\n\\end{document}\n");
         }
         else if(pieces.Count>1)File.WriteAllText(Path.Combine(dir,title+".tex"),"% Compile each panel source independently; merge in the listed order.\n"+string.Join('\n',pieces.Select(p=>"% "+p))+"\n");
