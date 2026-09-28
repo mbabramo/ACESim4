@@ -32,7 +32,7 @@ public static class MainTables
     }
     public static bool Owns(string path)=>new[]{Primitives,Summary}.Any(s=>path.StartsWith("Tables/Sources/"+s,StringComparison.Ordinal));
     public static string Escape(string text)=>string.Concat(text.Select(c=>c switch{'&'=>@"\&",'%'=>@"\%",'_'=>@"\_",'#'=>@"\#",'>'=>@"$\to$",'×'=>@"$\times$",'α'=>@"$\alpha$",_=>c.ToString()}));
-    public static void Table(string collection,string title,Section[] sections,double[] widths,string[] headings)
+    public static void Table(string collection,string title,Section[] sections,double[] widths,string[] headings,bool combinePanels=false)
     {
         string dir=Path.Combine(collection,"Tables/Sources");Directory.CreateDirectory(dir);var pieces=new List<string>();
         Files.Save(Path.Combine(dir,title+".layout.json"),new{Headings=headings,Sections=sections.Select(s=>new object[]{s.Subtitle,s.Rows}),EmbeddedTitle=false,Typeface="Latin Modern"});
@@ -52,7 +52,13 @@ public static class MainTables
             string name=title+(sections.Length>1?$" - panel {n+1}":"");pieces.Add(name+".tex");
             File.WriteAllText(Path.Combine(dir,name+".tex"),WelfareFigure.Preamble.Replace("[10pt,tikz,border=5pt]","[10pt,border=5pt]")+string.Join('\n',body));
         }
-        if(pieces.Count>1)File.WriteAllText(Path.Combine(dir,title+".tex"),"% Compile each panel source independently; merge in the listed order.\n"+string.Join('\n',pieces.Select(p=>"% "+p))+"\n");
+        if(combinePanels&&pieces.Count>1)
+        {
+            string preamble=WelfareFigure.Preamble.Replace("[10pt,tikz,border=5pt]","[10pt,border=5pt]");
+            var blocks=pieces.Select(p=>File.ReadAllText(Path.Combine(dir,p)).Replace(preamble,"").Replace(@"\end{document}","").Trim()).ToArray();
+            File.WriteAllText(Path.Combine(dir,title+".tex"),preamble+"\\begin{tabular}{@{}l@{}}\n"+string.Join("\n\\\\[12pt]\n",blocks)+"\n\\end{tabular}\n\\end{document}\n");
+        }
+        else if(pieces.Count>1)File.WriteAllText(Path.Combine(dir,title+".tex"),"% Compile each panel source independently; merge in the listed order.\n"+string.Join('\n',pieces.Select(p=>"% "+p))+"\n");
     }
     public static void Generate(ResolvedArticlePlan plan,Dictionary<string,(JsonObject Audit,JsonObject Profile)> profiles,string collection)
     {

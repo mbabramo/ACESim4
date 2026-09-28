@@ -261,7 +261,9 @@ With the change from trial to complete fee-shifting, however, the story is more 
 \subsection{Risk Aversion}
 \label{sec:risk-aversion}
 
-Figure \ref{fig:risk-averse-dispositions} reports dispositions when both parties have CARA risk aversion with coefficient $\alpha=2$, holding ordinary costs and the information structure fixed. Figure \ref{fig:risk-averse-participation-and-offers} shows the corresponding participation and offer strategies. Table \ref{tab:risk-averse-strategy-changes} presents selected strategy changes from introducing risk aversion and from extending fee shifting under risk aversion.
+Figure \ref{fig:risk-averse-dispositions} reports dispositions when both parties have CARA risk aversion with coefficient $\alpha=2$, holding ordinary costs and the information structure fixed. Figure \ref{fig:risk-averse-participation-and-offers} shows the corresponding participation and offer strategies. Table \ref{tab:risk-averse-strategy-changes} presents the strategy changes discussed below, with the American rule in Panel A and the British rule in Panel B.
+
+The dispositions are strikingly different for the American rule. The plaintiff always files, the defendant always answers, and settlement is reached $\ArticleAmericanRaSettlement\%$ of the time, with trial occurring on the remaining occasions. Comparing the risk neutral to the risk averse equilibrium, as in Table \ref{tab:risk-averse-strategy-changes}, tells us that the increased willingness to file and answer arise entirely because of the changes in party offers. These offers now have considerable overlap, as shown in Figure \ref{fig:risk-averse-participation-and-offers}, though still not exhibiting a gradual increase with increased signals. Rather, both are step functions, with offers rising from $0.25$ to $0.75$, albeit at different signals, reaching the higher value at $0.65$ for the plaintiff's signal and $0.45$ for the defendant's signal. Panel A of Table \ref{tab:risk-averse-strategy-changes} attributes the selected offer changes to changes in the opponent's offers. 
 
 \begin{figure}[H]
     \centering
@@ -279,41 +281,12 @@ Figure \ref{fig:risk-averse-dispositions} reports dispositions when both parties
 
 \begin{table}[H]
 \centering
-\caption{Selected strategy changes involving risk aversion}
+\caption{Selected strategy changes from introducing risk aversion}
 \label{tab:risk-averse-strategy-changes}
-\includegraphics[page=1,width=\linewidth,height=0.71\textheight,keepaspectratio]{../Tables/Table 3 - Risk-averse strategy changes.pdf}
+\includegraphics[width=\linewidth,height=0.71\textheight,keepaspectratio]{../Tables/Table 3 - Risk-averse strategy changes.pdf}
 \end{table}
 
-\begin{table}[H]
-\ContinuedFloat
-\centering
-\caption{Selected strategy changes involving risk aversion (continued)}
-\includegraphics[page=2,width=\linewidth,height=0.71\textheight,keepaspectratio]{../Tables/Table 3 - Risk-averse strategy changes.pdf}
-\end{table}
-
-\begin{table}[H]
-\ContinuedFloat
-\centering
-\caption{Selected strategy changes involving risk aversion (continued)}
-\includegraphics[page=3,width=\linewidth,height=0.71\textheight,keepaspectratio]{../Tables/Table 3 - Risk-averse strategy changes.pdf}
-\par\smallskip
-    \begin{minipage}{\linewidth}
-    \footnotesize\setstretch{1}
-\revisionnote{Panel identities, selected histories and the stated zero remainder/tie sensitivities must match the new three-page Table 3.}{    \textit{Note:} Panels A--C change both parties' risk preferences; panel D changes the fee rule. Contributions are defined as in Table \ref{tab:strategy-mechanisms}, with opponent-exit contributions also shown. Demand and offer amounts and contributions are fractions of damages. Displayed histories are reached in both equilibria. The exit commitment applies after bargaining failure; demands and offers condition on commitment to continue. Remaining contributions are zero. The sensitivities described in the note to Table \ref{tab:strategy-mechanisms} also affect the panel B contributions for plaintiff exit at signal $0.45$ and defendant default at signals $0.45$ and $0.55$. Full results and diagnostic checks are in the \href{https://github.com/mbabramo/correlated-signals-article}{online repository}.}
-    \end{minipage}
-\end{table}
-
-\revisionnote{The settlement percentage has been corrected, but the offer thresholds, focal actions and causal attributions still describe the previous equilibrium.}{%
-Consider first the effect of adding risk aversion, holding constant the fee-shifting rule. With the American rule, settlement becomes the dominant method of resolution, occurring in $\ArticleAmericanRaSettlement\%$ of cases. Interestingly, however, the players' strategies still do not embody gradual increases in offers based on signals. Instead, each party's strategy pools at the $0.15$ level for signals up to $0.45$ and $0.85$ for higher signals. Table \ref{tab:risk-averse-strategy-changes} highlights that some of these offer changes (such as the defendant offering $0.85$ instead of $0.05$ at signal level $0.65$ and the plaintiff demanding $0.15$ instead of $0.75$ at the mirror signal $0.35$) are predominantly direct consequences of risk aversion. The risk of trial leads parties to become generous at signals that indicate slight weakness in their case. The more interesting change is in filing and answering. The plaintiff now always files for signals less than or equal to $0.35$, and what motivates this change is not the direct effect of risk aversion, but the change in defendant offers. With signal $0.35$, the direct effect of risk aversion is that the plaintiff switches from risky and uncertain filing to not filing, but the increased generosity of the defendant's offers entirely counters this.%
-}
-
-\revisionnote{The trial-only comparison is now an extension, and the stated actions and attribution must be reconciled with the current Table 3.}{%
-When risk aversion is added to the trial fee-shifting baseline, the possibility of late exit emerges as an important factor. Sometimes, it is worthwhile for a party to file or answer and hope for an advantageous settlement, but if settlement fails, then exit is more attractive than trial. This is especially so when fees incurred during trial are shifted. Table \ref{tab:risk-averse-strategy-changes} illustrates that introducing risk aversion under trial fee shifting directly induces the defendant at signal $0.45$ to commit to default if settlement fails. Because each player has offer strategies contingent on the player's exit decision, this changes the defendant's offer strategies in turn, and it also becomes more profitable for the plaintiff to exit. Finally, adding risk aversion to complete fee shifting leads to a smaller incidence of exit. Instead, the most notable consequence is that the plaintiff offer, when the plaintiff decides to continue instead of exit should bargaining fail, falls from $0.95$ to just $0.05$ at signals $0.45$--$0.55$, part of a pattern of greatly increased settlement.%
-}
-
-\revisionnote{The old panel-D interpretation and universal-answering claim do not describe the current table or British risk-averse profile.}{%
-Yet the most revealing decomposition in Table \ref{tab:risk-averse-strategy-changes} is in panel D, comparing trial to complete fee-shifting, both under risk aversion. The defendant now answers all the time, even when its signal corresponds to a strong plaintiff case. This change is mostly a direct consequence of the change in the fee-shifting rule. The logic is as above, that with complete fee-shifting, once the plaintiff enters, answering is the only means that the defendant has to potentially escape paying the fees the plaintiff has already incurred for filing. Sinking fees that the other party may need to pay can provide that party a strong incentive to keep litigating. With risk aversion, however, this continued fighting is more likely to result in a settlement or exit than in a trial.%
-}
+The British rule dispositions are closer to the results under risk neutrality. The plaintiff does not file in $39.2\%$, and the defendant does not answer in $35.1\%$, of all cases. This time, there is some settlement, $6.0\%$ of all cases. Interestingly, the remaining cases include considerably more premature exits ($7.8\%$ per party) than trials. This reflects the simple intuition that risk-averse parties abhor trial. Panel B of Table \ref{tab:risk-averse-strategy-changes} reflects that, while also showing that the plaintiff's reduced willingness to file is also a direct effect of risk aversion. Some other changes in actions, such as the defendant's willingness to agree to bargain at signal $0.35$, conditional on a commitment to continue, reflect a complex mix of factors. All in all, the British rule results with risk aversion are broadly consistent with the observation that the British rule will lead to less litigation, though the data do not show it leads to any increase in trial. 
 
 \subsection{Welfare Analysis}
 \label{sec:welfare-analysis}

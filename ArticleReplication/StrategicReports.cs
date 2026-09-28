@@ -91,22 +91,26 @@ public static class StrategicReports
         string[] headings=["Decision","Signal","Own exit","Action","Action %","Reach %","Direct","Entry","Offers","Exit","Agree"];
         for(int t=0;t<2;t++)
         {
-            var selected=t==0?panels.Take(1):panels.Skip(1);var sections=new List<MainTables.Section>();
+            var selected=t==0?panels.Take(1):new[]{panels[2],panels[3]}.Select((p,n)=>{
+                var copy=(JsonObject)p.DeepClone();string[] keep=n==0?["P Files","D Answers","P Offer","D Offer"]:["P Abandons","D Defaults","P Files","D Agrees To Bargain"];
+                copy["Rows"]=new JsonArray(keep.Select(d=>p["Rows"]!.AsArray().Single(r=>r!["Decision"]!.GetValue<string>()==d)!.DeepClone()).ToArray());
+                copy["Title"]=(n==0?"Panel A. American":"Panel B. British")+" | Risk neutral to risk averse";return copy;});var sections=new List<MainTables.Section>();
             foreach(var panel in selected)
             {
-                var rows=new List<string[]>();int i=0;
+                var rows=new List<string[]>();
                 foreach(var row in panel["Rows"]!.AsArray())
                 {
-                    if(row!["Eligible"]!.GetValue<bool>()!=true){rows.Add([Labels[i++],"--","--","--","No eligible row","--","--","--","--","--","--"]);continue;}
+                    int i=Array.IndexOf(Decisions,row!["Decision"]!.GetValue<string>());
+                    if(row["Eligible"]!.GetValue<bool>()!=true){rows.Add([Labels[i],"--","--","--","No eligible row","--","--","--","--","--","--"]);continue;}
                     string own=row["ExitCommitment"]==null?"--":row["ExitCommitment"]!.GetValue<int>()==1?"E":"C";
-                    var cells=new List<string>{Labels[i++],$"{row["Signal"]!.GetValue<double>():F2}",own,row["Action"]!.GetValue<string>(),$"{100*row["SourceProbability"]!.GetValue<double>():F1} > {100*row["TargetProbability"]!.GetValue<double>():F1}",$"{100*row["SourceReach"]!.GetValue<double>():F2} > {100*row["TargetReach"]!.GetValue<double>():F2}"};
+                    var cells=new List<string>{Labels[i],$"{row["Signal"]!.GetValue<double>():F2}",own,row["Action"]!.GetValue<string>(),$"{100*row["SourceProbability"]!.GetValue<double>():F1} > {100*row["TargetProbability"]!.GetValue<double>():F1}",$"{100*row["SourceReach"]!.GetValue<double>():F2} > {100*row["TargetReach"]!.GetValue<double>():F2}"};
                     foreach(string field in Fields.Take(5)){double value=row["Allocation"]![field]!.GetValue<double>();cells.Add(row["CounterfactualUndefined"]!.GetValue<bool>()?"--":(double.IsNegative(value)?"-":"+")+Math.Abs(value).ToString("F1"));}rows.Add(cells.ToArray());
                 }
                 sections.Add(new(panel["Title"]!.GetValue<string>(),rows.ToArray()));
             }
-            MainTables.Table(collection,Stems[t],sections.ToArray(),[93,32,27,35,71,79,48,48,48,48,48],headings);
+            MainTables.Table(collection,Stems[t],sections.ToArray(),[93,32,27,35,71,79,48,48,48,48,48],headings,combinePanels:t==1);
             Files.Save(Path.Combine(collection,"Tables/Sources",Stems[t]+".generated-data.json"),new{Panels=selected,RecomputedFromCachedCoalitions=true,IndependentSubsetFormulaVerified=true,NoEquilibriumSolves=true});
-            File.WriteAllText(Path.Combine(collection,"Tables/Sources",Stems[t]+".txt"),"Selected strategic-response decompositions. Within each decision family, retain the largest action-probability change reached at both endpoints, keeping zero changes and original order for exact ties. Opponent contributions average all 24 replacement orders. Full reconciliation, complete supports and sensitivity diagnostics remain in the supplement; selected information sets are illustrations, not aggregate causal effects.\n");
+            File.WriteAllText(Path.Combine(collection,"Tables/Sources",Stems[t]+".txt"),(t==1?"Manuscript-selected rows: American filing, answering and offers; British exit commitments, filing and agreement to bargain. Panels and rows follow the text. ":"")+"Selected strategic-response decompositions. Within each decision family, retain the largest action-probability change reached at both endpoints, keeping zero changes and original order for exact ties. Opponent contributions average all 24 replacement orders. Full reconciliation, complete supports and sensitivity diagnostics remain in the supplement; selected information sets are illustrations, not aggregate causal effects.\n");
         }
         if(fullSupplement)Files.Save(Path.Combine(collection,"Supplemental materials/Equilibrium strategy changes/generated-manifest.json"),new{Passed=true,Directions=index,Pending=validation["Pending"],GeneratedFromCoalitions=true});
     }
