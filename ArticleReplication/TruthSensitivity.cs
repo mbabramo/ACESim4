@@ -52,6 +52,7 @@ public static class TruthSensitivity
             }
             text.Add("");
         }
+        if(text.Count>0&&text[^1].Length==0)text.RemoveAt(text.Count-1);
         string output=Path.Combine(collection,"Results/Aggregated Data/Truth sensitivity");Directory.CreateDirectory(output);
         Reports.Csv(Path.Combine(output,"truth-sensitivity.csv"),rows);
         File.WriteAllLines(Path.Combine(output,"truth-sensitivity.md"),text);

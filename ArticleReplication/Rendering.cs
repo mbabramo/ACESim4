@@ -16,7 +16,6 @@ public static class Rendering
         if(plan.Steps.Contains("Strategic"))StrategicReports.Generate(Path.Combine(work,"ReportResults/Strategic"),plan,collection);
         if(plan.Steps.Contains("Welfare"))WelfareSupplement.Generate(plan,profiles,collection,work);
         var artifacts=new List<Artifact>();
-        if(plan.Steps.Contains("TruthSensitivity"))TruthSensitivityFigure.Generate(Path.Combine(collection,"Results/Aggregated Data/Truth sensitivity/truth-sensitivity.csv"),collection);
         foreach(string folder in new[]{"Figures","Tables"})
         {
             string dir=Path.Combine(collection,folder,"Sources");
