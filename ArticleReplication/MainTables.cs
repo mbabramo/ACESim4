@@ -97,7 +97,7 @@ public static class MainTables
             "merits-distribution"=>"Merits: "+x.Variant.Replace('-',' '),"direct-binary"=>"Calibrated direct binary","asymmetric-risk"=>x.AlphaP>0?"Plaintiff-only risk aversion":"Defendant-only risk aversion",_=>throw new InvalidDataException("Undescribed article family")};
         foreach(int risk in new[]{0,2})
         {
-            var rows=plan.Cases.Where(x=>x.FeeRule is "complete" or "trial-only"&&x.AlphaP==risk&&x.AlphaD==risk).OrderBy(FamilyOrder).ThenBy(Within).ThenBy(x=>x.Variant,StringComparer.Ordinal).Select(x=>Row(x,Label(x))).ToArray();
+            var rows=plan.Cases.Where(x=>(x.FeeRule is "complete" or "trial-only") && (x.Family is not ("baseline" or "cost-multiplier")) && x.AlphaP==risk && x.AlphaD==risk).OrderBy(FamilyOrder).ThenBy(Within).ThenBy(x=>x.Variant,StringComparer.Ordinal).Select(x=>Row(x,Label(x))).ToArray();
             for(int i=0;i<rows.Length;i+=24)sections.Add(new((risk==0?"Risk neutral":"Symmetric risk aversion")+(i==0?" | British minus American":" | continuation"),rows.Skip(i).Take(24).ToArray()));
         }
         var asymmetric=plan.Cases.Where(x=>x.Family=="asymmetric-risk"&&x.FeeRule=="complete").OrderByDescending(x=>x.AlphaP).Select(x=>Row(x,Label(x))).ToArray();
