@@ -102,7 +102,7 @@ public static class MainTables
         }
         var asymmetric=plan.Cases.Where(x=>x.Family=="asymmetric-risk"&&x.FeeRule=="complete").OrderByDescending(x=>x.AlphaP).Select(x=>Row(x,Label(x))).ToArray();
         if(asymmetric.Length>0)sections.Add(new("Asymmetric risk aversion | British minus American",asymmetric));
-        Table(collection,Summary,sections.ToArray(),[254,76,76,73,73,73,75,75],["Specification","P shortfall","D nonliable","D excess","Gross error","Real costs","Trial (pp)","Settle (pp)"]);
+        Table(collection,Summary,sections.Select((s,i)=>s with{Subtitle=$"Panel {(char)('A'+i)}. "+s.Subtitle}).ToArray(),[254,76,76,73,73,73,75,75],["Specification","P shortfall","D nonliable","D excess","Gross error","Real costs","Trial (pp)","Settle (pp)"],combinePanels:true);
         Files.Save(Path.Combine(collection,"Tables/Sources",Summary+".generated-data.json"),new{Comparisons=records,Source="Central plan and newly revalidated complete profiles"});
         File.WriteAllText(Path.Combine(collection,"Tables",Primitives+".txt"),"Baseline model primitives from the central case definition.\n");
         File.WriteAllText(Path.Combine(collection,"Tables",Summary+".txt"),"British minus American for matched cases. Monetary columns use damages; trial and settlement use percentage points among all potential disputes. Pending comparisons have an unavailable endpoint and are never replaced by zero.\n");
