@@ -15,6 +15,10 @@ public static class Rendering
         MainTables.Generate(plan,profiles,collection);
         if(plan.Steps.Contains("Strategic"))StrategicReports.Generate(Path.Combine(work,"ReportResults/Strategic"),plan,collection);
         if(plan.Steps.Contains("Welfare"))WelfareSupplement.Generate(plan,profiles,collection,work);
+        await Compile(Artifacts(collection,plan,profiles.Keys),collection,work,workers);
+    }
+    public static Artifact[] Artifacts(string collection,ResolvedArticlePlan plan,IEnumerable<string> profileIds)
+    {
         var artifacts=new List<Artifact>();
         foreach(string folder in new[]{"Figures","Tables"})
         {
@@ -22,7 +26,7 @@ public static class Rendering
             foreach(string file in Directory.GetFiles(dir,"*.tex").Where(f=>!Path.GetFileName(f).Contains(" - panel ")))
                 artifacts.Add(new(Path.GetRelativePath(collection,file),folder+"/"+Path.GetFileNameWithoutExtension(file)+".pdf","NumberedExhibit"));
         }
-        foreach(string id in profiles.Keys)artifacts.Add(new($"Results/Individual simulations/{id}/Sources/strategy.tex",$"Results/Individual simulations/{id}/strategy.pdf","CompletePrimaryStrategy"));
+        foreach(string id in profileIds)artifacts.Add(new($"Results/Individual simulations/{id}/Sources/strategy.tex",$"Results/Individual simulations/{id}/strategy.pdf","CompletePrimaryStrategy"));
         if(plan.Steps.Contains("Strategic"))
             foreach(string source in Directory.GetFiles(Path.Combine(collection,"Supplemental materials/Equilibrium strategy changes"),"*.tex",SearchOption.AllDirectories))
                 artifacts.Add(new(Path.GetRelativePath(collection,source),Path.GetRelativePath(collection,Path.Combine(Path.GetDirectoryName(Path.GetDirectoryName(source)!)!,Path.GetFileNameWithoutExtension(source)+".pdf")),"StrategicDecomposition"));
@@ -31,14 +35,18 @@ public static class Rendering
         if(plan.Steps.Contains("MultipleStarts"))
             artifacts.Add(new($"{MultipleReports.Folder}/Sources/{MultipleReports.Stem}.tex",$"{MultipleReports.Folder}/{MultipleReports.Stem}.pdf","MultipleEquilibriaSupplement"));
         if(artifacts.Select(a=>a.Output).Distinct().Count()!=artifacts.Count)throw new InvalidDataException("Repeated artifact path.");
-        await Compile(artifacts.OrderBy(a=>a.Output,StringComparer.Ordinal).ToArray(),collection,work,workers);
+        return artifacts.OrderBy(a=>a.Output,StringComparer.Ordinal).ToArray();
     }
     public static async Task Compile(Artifact[] artifacts,string collection,string work,int workers)
     {
         var completed=new System.Collections.Concurrent.ConcurrentBag<object>();
-        await Parallel.ForEachAsync(artifacts.Select((r,i)=>(r,i)),new ParallelOptions{MaxDegreeOfParallelism=workers},async(item,ct)=>{
+        var retries=new System.Collections.Concurrent.ConcurrentQueue<(Artifact r,int i)>();
+        bool FontCacheRace(int i)=>Directory.GetFiles(Path.Combine(work,"logs"),$"latex-{i:D4}-*.stdout.log")
+            .Any(p=>File.ReadAllText(p).Contains("no writeable cache path",StringComparison.Ordinal));
+        async Task Render((Artifact r,int i) item,string attempt)
+        {
             var r=item.r;string source=Files.Under(collection,r.Source),dest=Files.Under(collection,r.Output);
-            string dir=Path.Combine(work,"render",item.i.ToString("D4"));Directory.CreateDirectory(dir);
+            string dir=Path.Combine(work,"render",item.i.ToString("D4")+attempt);Directory.CreateDirectory(dir);
             string text=File.ReadAllText(source);var parts=new List<string>();
             if(!text.Contains("\\documentclass"))
             {
@@ -50,15 +58,21 @@ public static class Rendering
             for(int n=0;n<parts.Count;n++)
             {
                 int passes=File.ReadAllText(parts[n]).Contains("longtable")?2:1;
-                for(int pass=1;pass<=passes;pass++)await Commands.Run(Path.Combine(work,"logs"),$"latex-{item.i:D4}-{n}-{pass}","lualatex",["-interaction=nonstopmode","-halt-on-error","-output-directory="+dir,parts[n]],Path.GetDirectoryName(parts[n])!);
+                for(int pass=1;pass<=passes;pass++)await Commands.Run(Path.Combine(work,"logs"),$"latex-{item.i:D4}-{n}-{pass}"+attempt,"lualatex",["-interaction=nonstopmode","-halt-on-error","-output-directory="+dir,parts[n]],Path.GetDirectoryName(parts[n])!);
                 pdfs.Add(Path.Combine(dir,Path.GetFileNameWithoutExtension(parts[n])+".pdf"));
             }
             Directory.CreateDirectory(Path.GetDirectoryName(dest)!);
-            if(pdfs.Count==1)Files.CopyVerified(pdfs[0],dest);else await Commands.Run(Path.Combine(work,"logs"),$"merge-{item.i:D4}","pdfunite",pdfs.Append(dest),dir);
+            if(pdfs.Count==1)Files.CopyVerified(pdfs[0],dest);else await Commands.Run(Path.Combine(work,"logs"),$"merge-{item.i:D4}"+attempt,"pdfunite",pdfs.Append(dest),dir);
             string prefix=Path.ChangeExtension(dest,null);
-            await Commands.Run(Path.Combine(work,"logs"),$"preview-{item.i:D4}","pdftoppm",["-scale-to","1800","-singlefile","-png",dest,prefix],dir);
+            await Commands.Run(Path.Combine(work,"logs"),$"preview-{item.i:D4}"+attempt,"pdftoppm",["-scale-to","1800","-singlefile","-png",dest,prefix],dir);
             completed.Add(new{r.Output,r.Source,r.Kind,SourceSha256=Files.Sha(source),PdfSha256=Files.Sha(dest),PreviewSha256=Files.Sha(prefix+".png"),FreshScientificLayout=true,Parts=parts.Select(p=>new{Path=Path.GetRelativePath(collection,p),Sha256=Files.Sha(p)})});
+        }
+        await Parallel.ForEachAsync(artifacts.Select((r,i)=>(r,i)),new ParallelOptions{MaxDegreeOfParallelism=workers},async(item,ct)=>{
+            try{await Render(item,"");}
+            catch(IOException) when(FontCacheRace(item.i)){retries.Enqueue(item);}
         });
+        // Match the standard chart compiler: retry only the recognized transient font-cache failure, serially.
+        foreach(var item in retries)await Render(item,"-serial-retry");
         Files.Save(Path.Combine(work,"rendering.json"),new{Passed=true,Artifacts=completed,VisualReviewPending=true,ScientificLayoutRegenerationPending=false});
     }
 }

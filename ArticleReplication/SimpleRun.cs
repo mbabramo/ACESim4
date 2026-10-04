@@ -88,7 +88,7 @@ public static class SimpleRun
                 string request=Path.Combine(output,"requests/standard-litigcharts.json");Files.Save(request,new LitigCharts.FinalArticleResultsCommand.Request(rows,plan.Cases,Path.Combine(collection,"Results"),Path.Combine(collection,"Supplemental materials"),workers));await Commands.Run(logs,"standard-litigcharts","dotnet",[typeof(LitigCharts.FinalArticleResultsCommand).Assembly.Location,"final-article-results","--request",request],output);StandardCoverage.Validate(request,Path.Combine(output,"standard-coverage.json"));
             }
             if(plan.Steps.Contains("Manuscript"))await Manuscript.Run(generated,manifest,collection,output);
-            CollectionDocumentation.Generate(plan,collection,profiles.Count);
+            CollectionDocumentation.Generate(plan,collection,profiles.Count,output);
             int searchSolves=plan.Steps.Contains("MultipleStarts")?Files.Object(Path.Combine(raw,"MultipleStarts/completed.json"))["SolvesStarted"]!.GetValue<int>():0;
             Files.Save(Path.Combine(output,"completed.json"),new{Passed=true,CompleteArticle=false,FinishedUtc=DateTime.UtcNow,PrimaryProfiles=profiles.Count,ReservedExternalCases=jobs.Count(j=>j.Disposition=="AwaitExternalResult"),MissingCases=jobs.Count(j=>j.Disposition=="MissingResult"),ExactSolves=ready.Count(j=>j.Disposition=="Compute")+historySolves,HistoryOnlySolves=historySolves,ApproximateSolves=searchSolves,ShortcutDirectory=Path.GetRelativePath(output,shortcuts),FreshDownstreamCalculations=true,InputManifestsRequired=false});
         }

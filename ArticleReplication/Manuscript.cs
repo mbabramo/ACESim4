@@ -2,7 +2,7 @@ namespace ArticleReplication;
 
 public static class Manuscript
 {
-    public static async Task Run(string bundle,BundleManifest manifest,string collection,string work)
+    public static async Task Run(string bundle,BundleManifest manifest,string collection,string work,string? calculations=null)
     {
         string directory=Path.Combine(collection,"Article and bibliography");Directory.CreateDirectory(directory);
         var assembly=typeof(Manuscript).Assembly;const string prefix="ArticleReplication.Authored/";
@@ -12,7 +12,7 @@ public static class Manuscript
             string relative=name[prefix.Length..].Replace('\\','/');string target=relative.StartsWith("Manuscript/")?Files.Under(directory,relative[11..]):relative.StartsWith("Utility curves/")?Files.Under(collection,"Supplemental materials/Risk aversion utility curves/"+relative[15..]):throw new InvalidDataException("Unknown authored asset.");
             Directory.CreateDirectory(Path.GetDirectoryName(target)!);using var input=assembly.GetManifestResourceStream(name)!;using(var output=new FileStream(target,FileMode.CreateNew))input.CopyTo(output);sources.Add(new{Resource=name,Sha256=Files.Sha(target)});
         }
-        ManuscriptValues.Generate(collection,work);
+        ManuscriptValues.Generate(collection,calculations??work);
         string utility=Path.Combine(collection,"Supplemental materials/Risk aversion utility curves"),utilitySource=Path.Combine(utility,"risk aversion v2.tex");
         string logs=Path.Combine(work,"logs");
         await Commands.Run(logs,"utility-curves","lualatex",["-interaction=nonstopmode","-halt-on-error","risk aversion v2.tex"],utility);

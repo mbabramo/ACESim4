@@ -4,6 +4,7 @@ using ACESimBase.Util.DiscreteProbabilities;
 using FluentAssertions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 
 namespace ACESimTest.GameTests
@@ -109,6 +110,34 @@ namespace ACESimTest.GameTests
         }
 
         [TestMethod]
+        public void BaselineProbabilities_StayWithinOneBillionth_WhenQuadratureIncreasesFrom64To128()
+        {
+            // Compare the production probability calculations before solving an equilibrium.
+            // The bound applies to the baseline information structure, not equilibrium outcomes.
+            const double maximumAbsoluteChange = 1E-9;
+            Dictionary<string, double> probabilities64 = GetBaselineProbabilitySnapshot(64);
+            Dictionary<string, double> probabilities128 = GetBaselineProbabilitySnapshot(128);
+
+            probabilities128.Keys.Should().BeEquivalentTo(probabilities64.Keys);
+            probabilities64.Values.Concat(probabilities128.Values).Should().OnlyContain(
+                probability => double.IsFinite(probability) && probability >= 0.0 && probability <= 1.0);
+
+            var largestChange = probabilities64.Select(entry => new
+                {
+                    Probability = entry.Key,
+                    Change = Math.Abs(entry.Value - probabilities128[entry.Key]),
+                })
+                .OrderByDescending(entry => entry.Change)
+                .First();
+
+            Console.WriteLine(FormattableString.Invariant(
+                $"Compared {probabilities64.Count} baseline probabilities at 64 and 128 quadrature points. Maximum absolute change: {largestChange.Change:G17}; probability: {largestChange.Probability}."));
+            largestChange.Change.Should().BeLessThanOrEqualTo(maximumAbsoluteChange,
+                "every baseline probability must satisfy the integration bound; the largest change is for {0}",
+                largestChange.Probability);
+        }
+
+        [TestMethod]
         public void BetaQualityDistributions_AreStableSymmetricAndIntegratedOutsideTheGameTree()
         {
             double[] extremeMass = new double[3];
@@ -144,6 +173,63 @@ namespace ACESimTest.GameTests
                 .Should().BeGreaterThan(extremeMass[(int)ContinuousQualityDistribution.BetaTwoTwo]);
             centerMass[(int)ContinuousQualityDistribution.BetaTwoTwo]
                 .Should().BeGreaterThan(centerMass[(int)ContinuousQualityDistribution.BetaHalfHalf]);
+        }
+
+        private static Dictionary<string, double> GetBaselineProbabilitySnapshot(int quadratureOrder)
+        {
+            LitigGameOptions options = GetUniformOptions(quadratureOrder);
+            options.NumLiabilitySignals.Should().Be(10);
+            options.NumCourtLiabilitySignals.Should().Be(2);
+            options.PLiabilityNoiseStdev.Should().Be(0.2);
+            options.DLiabilityNoiseStdev.Should().Be(0.2);
+            options.CourtLiabilityNoiseStdev.Should().Be(0.2);
+            options.PLiabilitySignalParameters.SignalBoundaryMode.Should().Be(DiscreteSignalBoundaryMode.EqualWidth);
+            options.DLiabilitySignalParameters.SignalBoundaryMode.Should().Be(DiscreteSignalBoundaryMode.EqualWidth);
+
+            var generator = (LitigGameUniformQualityDisputeGenerator)options.LitigGameDisputeGenerator;
+            generator.QualityDistribution.Should().Be(ContinuousQualityDistribution.Uniform);
+            var definition = new LitigGameDefinition();
+            definition.Setup(options);
+
+            var probabilities = new Dictionary<string, double>();
+            void AddDistribution(string name, double[] values)
+            {
+                values.Sum().Should().BeApproximately(1.0, 1E-12, "{0} is a probability distribution", name);
+                for (int i = 0; i < values.Length; i++)
+                    probabilities.Add($"{name}[{i + 1}]", values[i]);
+            }
+
+            double[] pSignals = generator.BayesianCalculations_GetPLiabilitySignalProbabilities(null);
+            AddDistribution("P signal", pSignals);
+            AddDistribution("D signal", generator.BayesianCalculations_GetDLiabilitySignalProbabilities(null));
+            AddDistribution("Truth", generator.GetPostPrimaryChanceProbabilities(definition, default));
+
+            for (byte p = 1; p <= options.NumLiabilitySignals; p++)
+            {
+                double[] dSignals = generator.BayesianCalculations_GetDLiabilitySignalProbabilities(p);
+                AddDistribution($"D signal | P={p}", dSignals);
+                for (byte d = 1; d <= options.NumLiabilitySignals; d++)
+                {
+                    double jointPD = pSignals[p - 1] * dSignals[d - 1];
+                    probabilities.Add($"P={p}, D={d}", jointPD);
+                    AddDistribution($"Truth | P={p}, D={d}",
+                        generator.BayesianCalculations_GetLiabilityStrengthProbabilities(p, d, null));
+
+                    double[] courtSignals = generator.BayesianCalculations_GetCLiabilitySignalProbabilities(p, d);
+                    AddDistribution($"Court signal | P={p}, D={d}", courtSignals);
+                    for (byte c = 1; c <= options.NumCourtLiabilitySignals; c++)
+                    {
+                        double jointPDC = jointPD * courtSignals[c - 1];
+                        probabilities.Add($"P={p}, D={d}, C={c}", jointPDC);
+                        double[] truth = generator.BayesianCalculations_GetLiabilityStrengthProbabilities(p, d, c);
+                        AddDistribution($"Truth | P={p}, D={d}, C={c}", truth);
+                        for (int t = 0; t < truth.Length; t++)
+                            probabilities.Add($"P={p}, D={d}, C={c}, T={t}", jointPDC * truth[t]);
+                    }
+                }
+            }
+
+            return probabilities;
         }
 
         private static LitigGameOptions GetUniformOptions(int quadratureOrder)

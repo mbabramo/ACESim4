@@ -27,6 +27,9 @@ public static class Program
                 case "truth-figure":await TruthSensitivityFigure.FromRun(Get("run"),Get("output"));return 0;
                 case "run":await SimpleRun.Run(options);return 0;
                 case "test-shortcuts":ShortcutTests.Run(Get("output"));return 0;
+                case "index-collection":CollectionDocumentation.FromRun(Get("run"));return 0;
+                case "finish-reporting":await FinishReporting.Run(options);return 0;
+                case "finish-manuscript":await FinishReporting.ManuscriptOnly(options);return 0;
                 case "verify-saved-solves":ShortcutTests.Compare(Get("generated"),Get("reference"),Get("output"));return 0;
                 case "verify-history-reproduction":ShortcutTests.CompareHistory(Get("generated"),Get("reference"),Get("output"));return 0;
                 case "verify-csv-reproduction":ShortcutTests.CompareCsv(Get("generated"),Get("reference"),Get("output"));return 0;

@@ -50,6 +50,10 @@ See [INSTALL.md](INSTALL.md) for installed .NET, TeX, fonts, PDF utilities and t
 
 Full collection validation, visual review and eventual live-repository migration remain separate release gates. Completion records retain `CompleteArticle: false` until full release evidence is assembled.
 
+If rendering or a manuscript dependency fails after scientific stages pass, `finish-reporting --run CALCULATION_RUN --output NEW_DIRECTORY --workers N --other-workers N` regenerates presentation without repeating calculations. If all reports have already rendered, `finish-manuscript --reporting REPORTING_RUN --output NEW_DIRECTORY` checks their retained evidence and rebuilds only the current authored manuscript. Failed attempts remain intact. `index-collection --run PASSED_RUN` refreshes portable documentation; execution records stay outside the published article folder.
+
+The optional full [saved-solutions release](https://github.com/mbabramo/correlated-signals-article/releases) contains 74 primary profiles, 200 search outcomes and four compressed histories. Large HTML histories use adjacent local JavaScript chunks; keep those folders with the viewers. No recorded frame or numerical value is omitted.
+
 ### Truth-formula sensitivity
 
 The default `TruthSensitivity` step (which can be omitted with `--steps`) revalidates the selected main-cost equilibria and freshly integrates alternative truth probabilities over posterior merits. It holds merits, signals, court decisions, payoffs and strategies fixed. No equilibrium search is started by this step. Include `Primary` and supply positive, distinct `--truth-exponents` containing 1. The approved default exponents are 0.5, 1, and 2; override them with `--truth-exponents`. The formula is `q^k / (q^k + (1-q)^k)`.
