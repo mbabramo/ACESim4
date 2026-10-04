@@ -51,7 +51,7 @@ jobs:
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           repository: mbabramo/correlated-signals-article
-          ref: 90fa4c708e6aa7d1b2cb48172e9829b3ece32a71
+          ref: f984a08b34cd321d675bca60faa0f768c6881965
           path: published-reference
           persist-credentials: false
       - name: Verify every scientific profile and retain the entire collection
