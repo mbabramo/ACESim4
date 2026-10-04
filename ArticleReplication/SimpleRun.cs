@@ -28,9 +28,6 @@ public static class SimpleRun
         if(plan.Steps.Contains("Trembles")&&!plan.Steps.Contains("MultipleStarts"))throw new ArgumentException("Trembles requires MultipleStarts.");
         if(plan.Steps.Contains("Manuscript")&&new[]{"Exhibits","Welfare","Strategic","MultipleStarts","TruthSensitivity","Trembles"}.Except(plan.Steps).Any())throw new ArgumentException("Manuscript requires its data/exhibit stages.");
         var reserved=args.GetValueOrDefault("reserve-cases","").Split(',',StringSplitOptions.RemoveEmptyEntries).ToHashSet(StringComparer.Ordinal);
-        // Temporary local deployment guard. It is not part of the scientific article protocol or saved inputs.
-        if(OperatingSystem.IsWindows()&&Directory.Exists(@"C:\Users\Admin\Documents\Codex\correlated-signals-final-20260923"))
-            reserved.UnionWith(["grid__signals-8-offers-15__complete__ra__cost-1","grid__signals-12-offers-8__complete__ra__cost-1"]);
         var jobs=plan.Cases.Select(c=>new{Case=c,Shortcut=input==null?null:SolveShortcut.PrimaryPath(input,c.Id)}).Select(j=>new{j.Case,j.Shortcut,Disposition=j.Shortcut!=null&&File.Exists(j.Shortcut)?"ReuseSavedSolve":reserved.Contains(j.Case.Id)?"AwaitExternalResult":computeMissing?"Compute":"MissingResult"}).ToArray();
         foreach(var job in jobs.Where(j=>j.Disposition=="ReuseSavedSolve"))SolveShortcut.Read(job.Shortcut!,job.Case.Id,"ExactPrimary",0,settings);
         Directory.CreateDirectory(output);string raw=Path.Combine(output,"ReportResults"),collection=Path.Combine(output,"article"),logs=Path.Combine(output,"logs");Directory.CreateDirectory(collection);

@@ -36,7 +36,7 @@ Defaults are in `CorrelatedSignalsSettings`. Useful overrides include `--costs 0
 
 The primary stage uses the ordinary exact solver with its existing seed, completion and validation conventions. MultipleStarts uses the separate stable floating-point search and its existing immediate/capped acceptance criteria. Saved complete profiles retain off-path strategies and agreement decisions. StandardReports runs the existing report generator and LitigCharts, including editable sources and previews. Exhibits and manuscript numeric bindings use native C# generators and embedded authored/layout sources.
 
-Each numerical worker is single-threaded. `--workers` plus `--other-workers` may not exceed 32. `--reserve-cases` leaves specified unavailable cases pending. A temporary local guard also reserves the two original unfinished grid cases on the development machine; no frozen worker or original build is modified.
+Each numerical worker is single-threaded. `--workers` plus `--other-workers` may not exceed 32. `--reserve-cases` leaves specified unavailable cases pending. Reservations are explicit command-line choices, not hidden machine-dependent settings. The current article plan excludes the still-running 8/15 and 5/15 backups; none of their workers, frozen builds or outputs is modified.
 
 ## Tools, migration and verification
 
