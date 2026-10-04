@@ -52,6 +52,8 @@ public static class Program
                 case "verify-main-figures":MainFigureVerification.Run(Get("generated"),Get("reference"),Get("output"));return 0;
                 case "container-build":await ContainerBuild.Run(options);return 0;
                 case "verify-container-release":ContainerRelease.Verify(Get("run"),Get("reference-article"),Get("output"));return 0;
+                case "verify-delivery":DeliveryVerification.Compare(Get("generated"),Get("published"),Get("output"));return 0;
+                case "test-delivery-verification":DeliveryVerification.Test(Get("output"));return 0;
                 case "pack":Bundle.Pack(Get("article"),Get("reproduction"),Get("output"));return 0;
                 case "pack-computations":ComputationBundle.Pack(Get("legacy-solutions"),Get("output"),options.GetValueOrDefault("approximate-inputs"),options.GetValueOrDefault("histories"));return 0;
                 case "pack-approximate":ApproximateCache.Pack(Get("legacy-solutions"),Get("output"));return 0;

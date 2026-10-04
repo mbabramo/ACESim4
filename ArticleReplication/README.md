@@ -76,6 +76,14 @@ See [INSTALL.md](INSTALL.md) for installed .NET, TeX, fonts, PDF utilities and t
 
 Full collection validation, visual review and eventual live-repository migration remain separate release gates. Completion records retain `CompleteArticle: false` until full release evidence is assembled.
 
+After copying a completed fresh collection into the article repository, the maintainer can check every file and directory with:
+
+```sh
+dotnet run --project ArticleReplication -c Release -- verify-delivery --generated /path/fresh-run/article --published /path/article-repository --output /path/outside-both/delivery-check.json
+```
+
+This read-only command accounts for every file on both sides, compares bytes without normalization, and rejects extra or missing directories, including empty leftovers. Only the top-level `.git` and author-maintained `Article and bibliography` entries are excluded. The verification record must be outside both collections. `test-delivery-verification --output NEW_DIR` exercises missing/extra files, changed bytes, empty directory leftovers and the author-folder boundary. These are publication checks, not input-bundle requirements.
+
 If rendering or a manuscript dependency fails after scientific stages pass, `finish-reporting --run CALCULATION_RUN --output NEW_DIRECTORY --workers N --other-workers N` regenerates presentation without repeating calculations. If all reports have already rendered, `finish-manuscript --reporting REPORTING_RUN --output NEW_DIRECTORY` checks their retained evidence and rebuilds only the current authored manuscript. Failed attempts remain intact. `index-collection --run PASSED_RUN` refreshes portable documentation; execution records stay outside the published article folder.
 
 The optional full [saved-solutions release](https://github.com/mbabramo/correlated-signals-article/releases) contains 74 primary profiles, 200 search outcomes and four compressed histories. Large HTML histories use adjacent local JavaScript chunks; keep those folders with the viewers. No recorded frame or numerical value is omitted.
