@@ -1,5 +1,17 @@
 # Correlated-signals article replication
 
+## Journal replication
+
+Download or clone the [correlated-signals code branch](https://github.com/mbabramo/ACESim4/tree/correlated-signals), install the tools in [INSTALL.md](INSTALL.md), and extract the optional [saved-solutions archive](https://github.com/mbabramo/correlated-signals-article/releases) into a sibling `saved-solutions` directory. From the code root, this single command rebuilds the code, verifies the saved solutions and regenerates the research outputs:
+
+```sh
+dotnet run --project ArticleReplication -c Release -- rebuild --source . --output ../replication-output --input ../saved-solutions --missing wait --workers 4
+```
+
+The new directory `../replication-output/run/article` contains **Results**, **Tables**, **Figures** and **Supplemental materials**. The separately maintained manuscript and bibliography are not part of this default command. The output directory must not already exist and must be outside the code checkout. With the complete supplied archive no equilibrium searches or history recreations are needed. For a calculation without shortcuts, omit `--input` and change `--missing wait` to `--missing compute`; exact solves may take much longer. Commands work in PowerShell and a Linux shell after the prerequisites are installed.
+
+## Commands
+
 The public command is `run`. Scientific settings come from `ArticlePlan.cs` and optional command-line overrides. No input settings file, provenance record, integrity manifest, prior report or article checkout is required.
 
 ```sh

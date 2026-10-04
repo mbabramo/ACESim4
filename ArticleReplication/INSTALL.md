@@ -57,4 +57,4 @@ On shared hosts choose workers to leave the total, including other calculations,
 
 ## Scope of the current implementation
 
-The public command reads only saved `.equ` and optional `.history` files. Omit the input mount and `--input` to solve afresh. Use `--missing wait` or `--reserve-cases` when unavailable cases must remain pending. See [README.md](README.md) for C#/CLI settings and selected stages. Whole-collection validation, visual review and final migration remain release gates; a selected-stage test is not a full article release. The development machine separately reserves the two protected external grid cases.
+The public command reads only saved `.equ` and optional `.history` files. Omit the input mount and `--input` to solve afresh. Use `--missing wait` or explicit `--reserve-cases` when unavailable cases must remain pending. See [README.md](README.md) for the journal command, C#/CLI settings and selected stages. Default replication generates the research-output folders; manuscript compilation is an optional author step. A selected-stage test is not a whole-collection test. No machine-specific case reservations are implicit.
