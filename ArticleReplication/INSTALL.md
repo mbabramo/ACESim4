@@ -1,12 +1,30 @@
-# Installed tools and container deployment
+# Container replication and native installation
 
-The tools below are system prerequisites. They are never copied into the article output or computational-input bundle. The C# application and its NuGet dependencies are built normally.
+## Run the published container
 
-## Windows
+Install [Docker Desktop](https://docs.docker.com/desktop/) on Windows and select Linux containers, or install [Docker Engine](https://docs.docker.com/engine/install/) on Linux. Start Docker and ensure `docker version` shows a server. The release image is Linux x86-64; ARM emulation is not part of the tested platform. Allow four CPUs and sufficient memory for the full reporting run (the hosted validation runner has 16 GiB).
+
+Download and extract [correlated-signals-saved-solutions.zip](https://github.com/mbabramo/correlated-signals-article/releases/download/replication-20261004/correlated-signals-saved-solutions.zip). The extracted folder must directly contain `Equilibria`, `Search` and `Histories`. Create a separate empty output-parent folder. Replace the two host paths with absolute paths to those existing folders:
+
+```sh
+docker run --rm --network none --cpus 4 --mount "type=bind,source=/absolute/path/saved-solutions,target=/inputs,readonly" --mount "type=bind,source=/absolute/path/output,target=/output" ghcr.io/mbabramo/acesim-correlated-signals:2026-10-04 run --input /inputs --output /output/run --missing wait --workers 4
+```
+
+The command works on one line in PowerShell or a Linux shell. Windows host paths may be `C:/Replication/saved-solutions` and `C:/Replication/output`, including spaces inside the quoted mount argument. Docker downloads the public image automatically when needed; no registry login is required. Internet access is needed for downloading Docker, the image and optional solutions, but replication itself runs with networking disabled.
+
+Read the generated research collection in the host output folder's `run/article`. The `run` subdirectory must be new. The manuscript remains separate. Choose fewer workers and matching `--cpus` if needed; each numerical child remains single-threaded. On Linux, the default container process writes files as root. The image includes the application, .NET runtime, TeX, fonts and PDF tools; the saved equilibrium/history files are separate optional inputs. They are mathematically checked on reuse; decompositions and reporting are recalculated.
+
+The [image package](https://github.com/users/mbabramo/packages/container/package/acesim-correlated-signals) provides version tags and digests. The dated release tag identifies this article collection; a digest can be substituted for the tag to select the exact image. Source and the automated build/test/publish workflow are in the `correlated-signals` branch. The workflow publishes only after the complete saved-solutions run and native release checks pass.
+
+## Native alternative
+
+Use the following prerequisites only when running/building natively. They are already installed in the published image. They are never copied into the article output or computational-input bundle.
+
+### Windows
 
 Install the SDK version in [`global.json`](../global.json) (currently .NET SDK 10.0.401), plus the .NET 9 runtime for the application's `net9.0` target. Install [MiKTeX](https://miktex.org/download) or [TeX Live](https://tug.org/texlive/), including LuaLaTeX, BibTeX, Latin Modern, standalone, PGF/TikZ/PGFPlots, booktabs, tabularx and microtype. Install [Poppler](https://poppler.freedesktop.org/) command-line tools through your preferred Windows package distributor. Put their executable directories on PATH.
 
-## Linux
+### Linux
 
 Install the same .NET SDK and runtime from [Microsoft's installation instructions](https://learn.microsoft.com/en-us/dotnet/core/install/linux). On Debian/Ubuntu install the rendering dependencies:
 

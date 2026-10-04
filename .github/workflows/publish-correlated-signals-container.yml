@@ -1,0 +1,118 @@
+name: Publish correlated-signals container
+
+on:
+  push:
+    tags:
+      - 'correlated-signals-container-*'
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: correlated-signals-container
+  cancel-in-progress: false
+
+jobs:
+  validate-and-publish:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 240
+    env:
+      IMAGE_REPOSITORY: ghcr.io/mbabramo/acesim-correlated-signals
+      DOTNET_PROCESSOR_COUNT: '1'
+      DOTNET_CLI_TELEMETRY_OPTOUT: '1'
+      OMP_NUM_THREADS: '1'
+      MKL_NUM_THREADS: '1'
+      OPENBLAS_NUM_THREADS: '1'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4
+        with:
+          global-json-file: global.json
+          dotnet-version: '9.0.x'
+      - name: Set release paths
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="${GITHUB_REF_NAME#correlated-signals-container-}"
+          [[ "$version" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}([.][0-9]+)?$ ]]
+          echo "IMAGE=$IMAGE_REPOSITORY:$version" >> "$GITHUB_ENV"
+          echo "RECORDS=$RUNNER_TEMP/container-records" >> "$GITHUB_ENV"
+          echo "EVIDENCE=$RUNNER_TEMP/release-evidence" >> "$GITHUB_ENV"
+          echo "REPLICATION=$RUNNER_TEMP/replication" >> "$GITHUB_ENV"
+          mkdir -p "$RUNNER_TEMP/release-evidence" "$RUNNER_TEMP/replication" "$RUNNER_TEMP/saved-solutions"
+          df -h
+          docker version
+      - name: Build the image through the C# project
+        shell: bash
+        run: |
+          set -euo pipefail
+          dotnet build ArticleReplication/ArticleReplication.csproj -c Release -m:1 -p:UseSharedCompilation=false -p:BuildReplicationContainer=true -p:ArticleContainerTag="$IMAGE" -p:ArticleContainerRevision="$GITHUB_SHA" -p:ArticleContainerRecords="$RECORDS"
+          docker image inspect "$IMAGE" > "$EVIDENCE/image-inspect.json"
+          cp "$RECORDS/completed.json" "$EVIDENCE/container-build.json"
+      - name: Download the public saved solutions
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --location --retry 3 https://github.com/mbabramo/correlated-signals-article/releases/download/replication-20261004/correlated-signals-saved-solutions.zip --output "$RUNNER_TEMP/saved-solutions.zip"
+          unzip -q "$RUNNER_TEMP/saved-solutions.zip" -d "$RUNNER_TEMP/saved-solutions"
+      - name: Check the tools and shortcut contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker run --rm --network none --cpus 1 --mount "type=bind,source=$REPLICATION,target=/output" "$IMAGE" doctor --output /output/doctor
+          docker run --rm --network none --cpus 1 --mount "type=bind,source=$REPLICATION,target=/output" "$IMAGE" test-shortcuts --output /output/shortcut-tests.json
+          docker run --rm --network none --cpus 1 --mount "type=bind,source=$REPLICATION,target=/output" "$IMAGE" test-manuscript-boundary --output /output/manuscript-boundary
+      - name: Run the complete journal replication with networking disabled
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker run --name correlated-signals-release-test --network none --cpus 4 --mount "type=bind,source=$RUNNER_TEMP/saved-solutions,target=/inputs,readonly" --mount "type=bind,source=$REPLICATION,target=/output" "$IMAGE" run --input /inputs --output /output/full --missing wait --workers 4 2>&1 | tee "$EVIDENCE/replication.log"
+      - name: Fetch the published scientific regression reference
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          repository: mbabramo/correlated-signals-article
+          ref: 90fa4c708e6aa7d1b2cb48172e9829b3ece32a71
+          path: published-reference
+          persist-credentials: false
+      - name: Verify the full collection and exact scientific equality
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker run --rm --network none --cpus 1 --mount "type=bind,source=$REPLICATION,target=/output" --mount "type=bind,source=$GITHUB_WORKSPACE/published-reference,target=/reference,readonly" "$IMAGE" verify-container-release --run /output/full --reference-article /reference --output /output/release-validation.json
+          cp "$REPLICATION/release-validation.json" "$EVIDENCE/release-validation.json"
+      - name: Publish the tested image to GitHub Container Registry
+        shell: bash
+        env:
+          REGISTRY_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          printf '%s' "$REGISTRY_TOKEN" | docker login ghcr.io --username "$GITHUB_ACTOR" --password-stdin
+          docker push "$IMAGE" 2>&1 | tee "$EVIDENCE/push.log"
+          docker tag "$IMAGE" "$IMAGE_REPOSITORY:sha-$GITHUB_SHA"
+          docker push "$IMAGE_REPOSITORY:sha-$GITHUB_SHA"
+          docker image inspect "$IMAGE" > "$EVIDENCE/published-image.json"
+          docker logout ghcr.io
+      - name: Collect reports and visual-review assets
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$EVIDENCE/receipts" "$EVIDENCE/figures" "$EVIDENCE/tables"
+          shopt -s nullglob
+          for f in "$REPLICATION"/full/*.json "$REPLICATION"/shortcut-tests.json "$REPLICATION"/manuscript-boundary/passed.json; do cp "$f" "$EVIDENCE/receipts/"; done
+          for f in "$REPLICATION"/full/article/Figures/*.png "$REPLICATION"/full/article/Figures/*.pdf; do cp "$f" "$EVIDENCE/figures/"; done
+          for f in "$REPLICATION"/full/article/Tables/*.png "$REPLICATION"/full/article/Tables/*.pdf; do cp "$f" "$EVIDENCE/tables/"; done
+          if [[ -f "$REPLICATION/full/article/README.md" ]]; then cp "$REPLICATION/full/article/README.md" "$EVIDENCE/collection-README.md"; fi
+          if [[ -d "$REPLICATION/full/logs" ]]; then cp -r "$REPLICATION/full/logs" "$EVIDENCE/replication-logs"; fi
+          if [[ -d "$RECORDS/logs" ]]; then cp -r "$RECORDS/logs" "$EVIDENCE/build-logs"; fi
+          if docker container inspect correlated-signals-release-test >/dev/null 2>&1; then docker container inspect correlated-signals-release-test > "$EVIDENCE/container-exit.json"; fi
+          df -h > "$EVIDENCE/disk-space.txt"
+      - name: Retain validation and visual-review evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: correlated-signals-container-evidence
+          path: ${{ runner.temp }}/release-evidence/
+          retention-days: 30
+          if-no-files-found: error

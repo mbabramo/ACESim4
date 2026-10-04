@@ -50,15 +50,15 @@ public static class CollectionDocumentation
 
             ## Replication
 
-            Use the `ArticleReplication` C# project in the [ACESim4 correlated-signals branch](https://github.com/mbabramo/ACESim4/tree/correlated-signals). Follow its [installation instructions](https://github.com/mbabramo/ACESim4/blob/correlated-signals/ArticleReplication/INSTALL.md) for .NET, TeX, fonts and PDF tools, or use its container build target. Tools are installed separately.
+            Install Docker with Linux-container support. The published image contains the C# application, .NET, TeX, fonts and PDF tools; these do not need separate installation. See the [container instructions]({{ContainerRelease.Instructions}}) for Windows/Linux setup and the alternative native source build.
 
-            Download and extract the optional saved-solutions archive from the [article repository releases](https://github.com/mbabramo/correlated-signals-article/releases). From the code checkout, run:
+            Download and extract the [saved-solutions archive](https://github.com/mbabramo/correlated-signals-article/releases/tag/replication-20261004). Create an empty output-parent folder. Replace the two host paths below with absolute paths to those existing folders:
 
             ```sh
-            dotnet run --project ArticleReplication -c Release -- rebuild --source . --output /path/new-rebuild --input /path/saved-solutions --missing wait --workers 4
+            docker run --rm --network none --cpus 4 --mount "type=bind,source=/absolute/path/saved-solutions,target=/inputs,readonly" --mount "type=bind,source=/absolute/path/output,target=/output" {{ContainerRelease.Image}} run --input /inputs --output /output/run --missing wait --workers 4
             ```
 
-            Read the collection in `new-rebuild/run/article`. Remove `--input` and use `--missing compute` for a complete fresh calculation, which can take substantially longer. Settings and stage switches are documented in the [coordinator README](https://github.com/mbabramo/ACESim4/blob/correlated-signals/ArticleReplication/README.md). Worker counts must account for other active computations.
+            Docker downloads the public image automatically if needed; no registry login or code checkout is required. On Windows host paths can be written as `C:/Replication/saved-solutions` and `C:/Replication/output`. Read the collection in the host output folder's `run/article`. The `run` subdirectory must not already exist. The image is Linux x86-64. Remove the input mount and `--input`, and use `--missing compute`, for a complete fresh calculation, which can take substantially longer. Settings and stage switches are documented in the [C# coordinator](https://github.com/mbabramo/ACESim4/tree/correlated-signals/ArticleReplication). Worker counts must account for other active computations.
 
             Shortcuts contain only complete primary equilibria, the {{plan.ExpectedApproximateStarts}} multiple-start outcomes (including explicit failed attempts), and optional solver histories. Every accepted profile is revalidated; histories are replay-checked. Decompositions, tremble experiments, reports and exhibits are freshly generated. The manuscript PDF is compiled only when explicitly requested. Failed searches are not proofs of nonexistence. Exact-primary, approximate-search and trajectory-replay criteria remain distinct.
 

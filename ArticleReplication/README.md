@@ -2,7 +2,19 @@
 
 ## Journal replication
 
-Download or clone the [correlated-signals code branch](https://github.com/mbabramo/ACESim4/tree/correlated-signals), install the tools in [INSTALL.md](INSTALL.md), and extract the optional [saved-solutions archive](https://github.com/mbabramo/correlated-signals-article/releases) into a sibling `saved-solutions` directory. From the code root, this single command rebuilds the code, verifies the saved solutions and regenerates the research outputs:
+The primary journal workflow uses the public Linux x86-64 image `ghcr.io/mbabramo/acesim-correlated-signals:2026-10-04`. Install Docker with Linux-container support, extract the [saved-solutions archive](https://github.com/mbabramo/correlated-signals-article/releases/tag/replication-20261004), and create an empty output-parent folder. Replace the host paths with absolute paths to those existing folders:
+
+```sh
+docker run --rm --network none --cpus 4 --mount "type=bind,source=/absolute/path/saved-solutions,target=/inputs,readonly" --mount "type=bind,source=/absolute/path/output,target=/output" ghcr.io/mbabramo/acesim-correlated-signals:2026-10-04 run --input /inputs --output /output/run --missing wait --workers 4
+```
+
+Docker pulls the image automatically when it is absent. No registry login, source checkout or separate .NET, TeX or fonts is required. Windows host paths can use `C:/Replication/saved-solutions` and `C:/Replication/output`. Results are in the host output folder's `run/article`; `run` must not already exist. The image contains application/tool dependencies, while the saved solutions stay separate and are mounted read-only. The full application runs without network access. See [INSTALL.md](INSTALL.md) for platform and build details.
+
+The command regenerates **Results**, **Tables**, **Figures** and **Supplemental materials**. The author-maintained manuscript and bibliography remain separate. For a no-shortcut calculation, remove the input mount and `--input`, and change `--missing wait` to `--missing compute`.
+
+### Alternative: rebuild and run natively
+
+Download or clone the [correlated-signals code branch](https://github.com/mbabramo/ACESim4/tree/correlated-signals), install the native tools in [INSTALL.md](INSTALL.md), and extract the optional saved-solutions archive into a sibling `saved-solutions` directory. From the code root:
 
 ```sh
 dotnet run --project ArticleReplication -c Release -- rebuild --source . --output ../replication-output --input ../saved-solutions --missing wait --workers 4
