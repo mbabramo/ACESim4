@@ -12,14 +12,15 @@ jobs:
   anonymous-download:
     runs-on: ubuntu-24.04
     timeout-minutes: 240
-    env:
-      DOCKER_CONFIG: ${{ runner.temp }}/anonymous-docker
     steps:
       - name: Pull without registry credentials
         shell: bash
         run: |
           set -euo pipefail
+          export DOCKER_CONFIG="$RUNNER_TEMP/anonymous-docker"
+          echo "DOCKER_CONFIG=$DOCKER_CONFIG" >> "$GITHUB_ENV"
           version="${GITHUB_REF_NAME#correlated-signals-public-check-}"
+          version="${version%%-retry-*}"
           [[ "$version" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}([.][0-9]+)?$ ]]
           image="ghcr.io/mbabramo/acesim-correlated-signals:$version"
           echo "IMAGE=$image" >> "$GITHUB_ENV"
