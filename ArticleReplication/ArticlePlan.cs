@@ -15,7 +15,7 @@ public sealed record CorrelatedSignalsSettings
     public byte BaselineSignals { get; init; } = 10;
     public int BaselineOffers { get; init; } = 10;
     public double[] NoiseLevels { get; init; } = [.1, .4];
-    public Grid[] Grids { get; init; } = [new(8,15,"rn"),new(8,12,"ra"),new(12,8),new(8,8)];
+    public Grid[] Grids { get; init; } = [new(8,12),new(12,8),new(8,8)];
     public int StartsPerCore { get; init; } = 50;
     public int ApproximatePivotLimit { get; init; } = 20000;
     public double ApproximateRoundingCutoff { get; init; } = .005;

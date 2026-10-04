@@ -30,7 +30,7 @@ These are readable, versioned JSON formats. A failed attempt means that this sea
 
 ## Settings and stages
 
-Defaults are in `CorrelatedSignalsSettings`. Useful overrides include `--costs 0.25,0.5,1,2,4`, `--starts 50`, `--pivots 20000`, `--cutoff 0.005`, `--noise 0.1,0.4`, `--grids 8x15:rn,8x12:ra,12x8,8x8`, `--extensions false`, and `--trial-only false`. A grid without a risk suffix applies to both risk preferences. The article retains risk-neutral 8/15 and uses the first completed, fully validated 8/12 risk-averse pair. Costs must include the reference multiplier 1. Fifty starts for each of the four core games means 200 attempts.
+Defaults are in `CorrelatedSignalsSettings`. Useful overrides include `--costs 0.25,0.5,1,2,4`, `--starts 50`, `--pivots 20000`, `--cutoff 0.005`, `--noise 0.1,0.4`, `--grids 8x12,12x8,8x8`, `--extensions false`, and `--trial-only false`. A grid without a risk suffix applies to both risk preferences. The article uses matched American/British comparisons at 8/12 and 12/8 for both risk preferences, with 8/8 as the control. The 15-based grids are excluded. Costs must include the reference multiplier 1. Fifty starts for each of the four core games means 200 attempts.
 
 `--steps Primary,MultipleStarts,Welfare,TruthSensitivity,Strategic,Trembles,Histories,StandardReports,Exhibits,Manuscript` is the default. Primary is required. Trembles includes the selected multiple-start profiles. Manuscript requires its contributing calculation/exhibit stages. `--cases case-id,...` permits a bounded test of the same full games. Never interpret a selected subset as a full article release.
 

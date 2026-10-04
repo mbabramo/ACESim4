@@ -10,7 +10,10 @@ public static class ManuscriptValues
         JsonObject Audit(string id)=>Files.Object(Path.Combine(work,"ReportResults/Primary",id,"validation.json"));
         string rn="baseline__standard__american__rn__cost-1",ra="baseline__standard__american__ra__cost-1";
         var a=Audit(rn);values.Add("ArticleBaselineNodes",a["GameIdentity"]!["TreeNodes"]!.GetValue<int>().ToString("N0"));
-        string grid="grid__signals-8-offers-15__american__rn__cost-1";values.Add("ArticleGridNodes",Audit(grid)["GameIdentity"]!["TreeNodes"]!.GetValue<int>().ToString("N0"));
+        var firstGrid=plan.Settings.Grids.First(g=>g.Risk is null or "rn");
+        string grid=plan.Cases.Single(c=>c.Family=="grid"&&c.Signals==firstGrid.Signals&&c.Offers.Length==firstGrid.Offers&&c.FeeRule=="american"&&c.AlphaP==0&&c.AlphaD==0).Id;
+        values.Add("ArticleGridNodes",Audit(grid)["GameIdentity"]!["TreeNodes"]!.GetValue<int>().ToString("N0"));
+        values.Add("ArticleGridSpecifications",string.Join(", ",plan.Settings.Grids.Select(g=>$"{g.Signals} signals and {g.Offers} offers"+(g.Risk==null?"":g.Risk=="rn"?" under risk neutrality":" under risk aversion"))));
         var panel=Files.Object(Path.Combine(collection,"Figures/Sources/Figure 1 - Information structure.generated-data.json"))["Panels"]![0]!;
         int source=panel["Sources"]!.AsArray().Select(s=>s!.GetValue<string>()).ToList().IndexOf("0.60--0.80");if(source<0)throw new InvalidDataException("Manuscript highlighted interval changed.");
         double[] probabilities=panel["JointMass"]![source]!.AsArray().Select(p=>p!.GetValue<double>()).ToArray();double denominator=probabilities.Sum();var labels=panel["Destinations"]!.AsArray().Select(s=>double.Parse(s!.GetValue<string>())).ToArray();
@@ -23,6 +26,46 @@ public static class ManuscriptValues
         foreach(var (prefix,field) in new[]{("ArticleRaExpenditure","RealLitigationExpenditures"),("ArticleRaGross","GrossOutcomeError")}){values.Add(prefix+"Min",selected.Min(r=>r![field]!.GetValue<double>()).ToString("F3"));values.Add(prefix+"Max",selected.Max(r=>r![field]!.GetValue<double>()).ToString("F3"));}
         var outcomes=Reports.ReadCsv(Path.Combine(collection,"Supplemental materials/Multiple equilibria/Sources/all-outcomes.csv")).Where(r=>r["Risk"]=="ra"&&r["Rule"]=="american").ToArray();values.Add("ArticleRaSettlementMin",(100*outcomes.Min(r=>double.Parse(r["Settlement"]))).ToString("F1"));values.Add("ArticleRaSettlementMax",(100*outcomes.Max(r=>double.Parse(r["Settlement"]))).ToString("F1"));
         values.Add("ArticleRnExpenditure",a["Welfare"]!["Headline"]!["RealLitigationExpenditures"]!.GetValue<double>().ToString("F3"));values.Add("ArticleRnGross",a["Welfare"]!["Headline"]!["GrossOutcomeError"]!.GetValue<double>().ToString("F3"));
-        string dir=Path.Combine(collection,"Article and bibliography");File.WriteAllText(Path.Combine(dir,"generated-values.tex"),"% Generated only from current validated data.\n"+string.Join('\n',values.Select(p=>$"\\newcommand{{\\{p.Key}}}{{{p.Value}}}"))+"\n");Files.Save(Path.Combine(dir,"generated-values.json"),new{Values=values,Source="Current validated profiles, search catalog and model signal matrix",AuthoredProsePreserved=true,AuthoredNumericalClaimsRequireReview=true});
+        JsonObject Profile(string id)=>Files.Object(Directory.GetFiles(Path.Combine(work,"ReportResults/Primary",id,"Sources/Profiles"),"*.json").Single());
+        double Metric(string id,string name)=>Profile(id)["Metrics"]![name]!.GetValue<double>();
+        void Number(string key,double n,string format="F1")=>values.Add(key,n.ToString(format,System.Globalization.CultureInfo.InvariantCulture));
+        foreach(var (prefix,risk,rule) in new[]{("AmericanRn","rn","american"),("BritishRn","rn","complete"),("AmericanRa","ra","american"),("BritishRa","ra","complete")})
+        {
+            string id=$"baseline__standard__{rule}__{risk}__cost-1";
+            Number("Article"+prefix+"Nonfiling",100*(1-Metric(id,"Filing")));
+            Number("Article"+prefix+"Nonanswering",100*(Metric(id,"Filing")-Metric(id,"JointFileAnswer")));
+            foreach(string metric in new[]{"Settlement","Trial","Abandonment","Default"})
+                if(!values.ContainsKey("Article"+prefix+metric))Number("Article"+prefix+metric,100*Metric(id,metric));
+        }
+        foreach(string rule in new[]{"american","complete"})
+        {
+            var noisy=plan.Cases.Single(c=>c.Family=="court-noise"&&c.CourtSigma==plan.Settings.NoiseLevels.Max()&&c.FeeRule==rule&&c.AlphaP==0);
+            Number("ArticleNoisyCourt"+(rule=="american"?"American":"British")+"Settlement",100*Metric(noisy.Id,"Settlement"));
+        }
+        double gridSettlement=100*Metric(grid,"Settlement"),baselineSettlement=100*Metric(rn,"Settlement");
+        string movement=gridSettlement<baselineSettlement?"falling":gridSettlement>baselineSettlement?"rising":"remaining unchanged";
+        values.Add("ArticleGridSettlementComparison",$"{movement} from ${baselineSettlement:F1}\\%$ to ${gridSettlement:F1}\\%$ with {firstGrid.Signals} signals and {firstGrid.Offers} offers");
+        Number("ArticlePivotLimit",plan.Settings.ApproximatePivotLimit,"N0");
+        Number("ArticleRoundingCutoff",plan.Settings.ApproximateRoundingCutoff,"G");
+        var britishRa=rows.Where(r=>r!["Risk"]!.GetValue<string>()=="ra"&&r["Rule"]!.GetValue<string>()=="complete").ToArray();
+        var reference=Audit(ra)["Welfare"]!["Headline"]!;
+        bool Reversal(JsonNode r,string metric)=>r[metric]!.GetValue<double>()>reference[metric]!.GetValue<double>();
+        int pReversals=britishRa.Count(r=>Reversal(r!,"MeritoriousPlaintiffShortfall")),dReversals=britishRa.Count(r=>Reversal(r!,"NonliableDefendantBurden"));
+        int both=britishRa.Count(r=>Reversal(r!,"MeritoriousPlaintiffShortfall")&&Reversal(r!,"NonliableDefendantBurden"));
+        values.Add("ArticleAcceptedBritishRa",britishRa.Length.ToString());values.Add("ArticlePlaintiffReversals",pReversals.ToString());values.Add("ArticleDefendantReversals",dReversals.ToString());
+        values.Add("ArticleBothReversalsSentence",both==0?"None reversed both comparisons":$"{both} reversed both comparisons");
+        values.Add("ArticleUsualBritishRa",(britishRa.Length-pReversals-dReversals+both).ToString());
+        string sensitivity=Path.Combine(collection,"Results/Aggregated Data/Equilibrium sensitivity/validation-and-summary.json");
+        var groups=Files.Object(sensitivity)["Groups"]!.AsArray().Where(g=>g!["Risk"]!.GetValue<string>()=="ra"&&g["Rule"]!.GetValue<string>()=="complete").ToArray();
+        double Median(string group)=>groups.Single(g=>g!["Group"]!.GetValue<string>()==group)!["Statistics"]!["WorstAdditionalGainAt1Percent"]!["Median"]!.GetValue<double>();
+        Number("ArticlePlaintiffTrembleRatio",Median("plaintiff reversal")/Median("other"));Number("ArticleDefendantTrembleRatio",Median("defendant reversal")/Median("other"));
+        var strategyRows=Files.Object(Path.Combine(collection,"Tables/Sources/Table 2 - Strategy mechanisms.layout.json"))["Sections"]![0]![1]!.AsArray();
+        foreach(var (name,decision) in new[]{("ArticleFilingBefore","P files"),("ArticleAnsweringBefore","D answers")})
+            values.Add(name,strategyRows.Single(r=>r![0]!.GetValue<string>()==decision)![4]!.GetValue<string>().Split('>')[0].Trim());
+        string dir=Path.Combine(collection,"Article and bibliography");File.WriteAllText(Path.Combine(dir,"generated-values.tex"),"% Generated only from current validated data.\n"+string.Join('\n',values.Select(p=>$"\\newcommand{{\\{p.Key}}}{{{p.Value}}}"))+"\n");
+        string manuscript=File.ReadAllText(Path.Combine(dir,"corr_signals.tex"));
+        var used=System.Text.RegularExpressions.Regex.Matches(manuscript,@"\\(Article[A-Za-z]+)").Select(m=>m.Groups[1].Value).Distinct().Order().ToArray();
+        if(!manuscript.Contains(@"\input{generated-values.tex}")||used.Except(values.Keys).Any())throw new InvalidDataException("Manuscript numerical bindings are missing or undefined.");
+        Files.Save(Path.Combine(dir,"generated-values.json"),new{Values=values,UsedBindings=used,Source="Current validated profiles, search catalog, tremble statistics, strategy tables and model signal matrix",AuthoredProsePreserved=true,AuthoredNumericalClaimsRequireReview=true});
     }
 }

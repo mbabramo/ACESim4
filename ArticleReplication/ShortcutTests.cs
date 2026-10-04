@@ -59,12 +59,12 @@ public static class ShortcutTests
     {
         var settings=new CorrelatedSignalsSettings();var passed=new List<string>();
         var plan=ArticlePlan.Resolve(settings,ArticlePlan.PublishedCalibration);
-        if(plan.Cases.Length!=74||plan.Welfare.Length!=36||plan.Strategic.Length!=146||plan.Cases.Any(c=>c.Id=="grid__signals-8-offers-15__complete__ra__cost-1")||!plan.Cases.Any(c=>c.Id=="grid__signals-8-offers-12__complete__ra__cost-1"))throw new InvalidDataException("Selected-grid plan is inconsistent.");
-        passed.Add("Default plan selects the completed 8/12 RA pair while retaining 8/15 RN");
+        if(plan.Cases.Length!=74||plan.Welfare.Length!=36||plan.Strategic.Length!=150||plan.Cases.Any(c=>c.Family=="grid"&&(c.Signals==15||c.Offers.Length==15))||plan.Cases.Count(c=>c.Family=="grid"&&c.Signals==8&&c.Offers.Length==12)!=4)throw new InvalidDataException("Selected-grid plan is inconsistent.");
+        passed.Add("Default plan selects both risks and rules at 8/12, 12/8 and the 8/8 control, without 15-based grids");
         var legacy=RunSettings.Resolve(new(){["grids"]="8x15,12x8,8x8"});
         if(ArticlePlan.Resolve(legacy,ArticlePlan.PublishedCalibration).Strategic.Length!=150)throw new InvalidDataException("Unqualified grid override must apply to both risk preferences.");
         passed.Add("Unqualified CLI grids preserve the original both-risk interpretation");
-        var explicitGrids=RunSettings.Resolve(new(){["grids"]="8x15:rn,8x12:ra,12x8,8x8"});
+        var explicitGrids=RunSettings.Resolve(new(){["grids"]="8x12:rn,8x12:ra,12x8,8x8"});
         if(!ArticlePlan.Resolve(explicitGrids,ArticlePlan.PublishedCalibration).Cases.Select(c=>c.Id).SequenceEqual(plan.Cases.Select(c=>c.Id)))throw new InvalidDataException("Risk-qualified CLI grids differ from the defaults.");
         passed.Add("Explicit CLI grid qualifiers reproduce the default case selection");
         void Accept(string name,SolveShortcut r,CorrelatedSignalsSettings? s=null){r.Check("case","ApproximateStart",0,s??settings);passed.Add(name);}
