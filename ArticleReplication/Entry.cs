@@ -83,6 +83,8 @@ internal static class Entry
         developer.SaveWeightedGameProgressesAfterEachReport=true;developer.SavedWeightedGameProgresses.Clear();
         developer.ActionStrategy=ActionStrategies.CurrentProbability;
         var replay=await developer.GenerateReportsByPlaying(false);
+        if(Environment.GetEnvironmentVariable("ARTICLE_REPLAY_DIAGNOSTICS")=="1")
+            ArticleReplication.ReplayDiagnostics.Write(output,options,developer.SavedWeightedGameProgresses);
         var welfare=SavedProfileWelfare.Evaluate(options,developer.SavedWeightedGameProgresses);
         Directory.CreateDirectory(output);
         string report=Path.Combine(output,"replayed-report.csv");File.WriteAllText(report,replay.csvReports.Single());

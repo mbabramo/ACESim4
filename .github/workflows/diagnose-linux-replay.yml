@@ -33,11 +33,13 @@ jobs:
           dotnet build ArticleReplication/ArticleReplication.csproj -c Release -m:1 -p:UseSharedCompilation=false -p:BuildReplicationContainer=true -p:ArticleContainerTag=acesim:diagnostic -p:ArticleContainerRevision="$GITHUB_SHA" -p:ArticleContainerRecords="$RUNNER_TEMP/build-records"
           curl --fail --location --retry 3 https://github.com/mbabramo/correlated-signals-article/releases/download/replication-20261004/correlated-signals-saved-solutions.zip --output "$RUNNER_TEMP/inputs.zip"
           unzip -q "$RUNNER_TEMP/inputs.zip" -d "$RUNNER_TEMP/inputs"
-      - name: Replay every primary profile without new solves
+      - name: Inspect the five differing replays without new solves
         shell: bash
         run: |
           set -euo pipefail
-          docker run --rm --network none --cpus 4 -v "$RUNNER_TEMP/inputs:/inputs:ro" -v "$RUNNER_TEMP/diagnostic:/output" acesim:diagnostic run --input /inputs --output /output/default --steps Primary --missing wait --workers 4
+          cases='grid__signals-12-offers-8__complete__ra__cost-1,merits-distribution__polarized__american__ra__cost-1,merits-distribution__polarized__american__rn__cost-1,merits-distribution__polarized__complete__ra__cost-1,merits-distribution__polarized__complete__rn__cost-1'
+          docker run --rm --network none --cpus 1 -e ARTICLE_REPLAY_DIAGNOSTICS=1 -v "$RUNNER_TEMP/inputs:/inputs:ro" -v "$RUNNER_TEMP/diagnostic:/output" acesim:diagnostic run --input /inputs --output /output/default --steps Primary --cases "$cases" --missing wait --workers 1
+          docker run --rm --network none --cpus 1 -e ARTICLE_REPLAY_DIAGNOSTICS=1 -e DOTNET_EnableHWIntrinsic=0 -v "$RUNNER_TEMP/inputs:/inputs:ro" -v "$RUNNER_TEMP/diagnostic:/output" acesim:diagnostic run --input /inputs --output /output/no-intrinsics --steps Primary --cases "$cases" --missing wait --workers 1
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: always()
         with:
