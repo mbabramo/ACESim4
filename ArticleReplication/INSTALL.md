@@ -76,3 +76,9 @@ On shared hosts choose workers to leave the total, including other calculations,
 ## Scope of the current implementation
 
 The public command reads only saved `.equ` and optional `.history` files. Omit the input mount and `--input` to solve afresh. Use `--missing wait` or explicit `--reserve-cases` when unavailable cases must remain pending. See [README.md](README.md) for the journal command, C#/CLI settings and selected stages. Default replication generates the research-output folders; manuscript compilation is an optional author step. A selected-stage test is not a whole-collection test. No machine-specific case reservations are implicit.
+
+## Publishing a new tested image
+
+The repository's `publish-correlated-signals-container.yml` workflow is triggered by a version tag such as `correlated-signals-container-2026-10-04` on the selected `correlated-signals` commit. Update `ContainerRelease.Image` and the instructions for a new version before tagging. The workflow uses the C# project's MSBuild container target, downloads the public saved-solutions archive, runs the complete default replication without network access, and compares complete strategies and numeric reports with a pinned published reference. That reference is used only for release testing, never as a required journal input. It pushes the dated image and a source-commit tag only after these checks pass.
+
+GitHub's workflow token supplies registry access; no personal registry token is required. A newly created GitHub package is private by default, so its owner must set package visibility to Public once for anonymous journal downloads. The separate `check-public-correlated-signals-container.yml` workflow, triggered by a `correlated-signals-public-check-2026-10-04` tag, pulls with an empty Docker credential directory and runs the application/tool preflight. Validation logs and review assets are retained as workflow artifacts. Do not reuse a published version tag for a different image.

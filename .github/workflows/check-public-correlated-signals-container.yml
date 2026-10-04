@@ -1,0 +1,42 @@
+name: Check public correlated-signals container
+
+on:
+  push:
+    tags:
+      - 'correlated-signals-public-check-*'
+
+permissions:
+  contents: read
+
+jobs:
+  anonymous-download:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      DOCKER_CONFIG: ${{ runner.temp }}/anonymous-docker
+    steps:
+      - name: Pull without registry credentials
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="${GITHUB_REF_NAME#correlated-signals-public-check-}"
+          [[ "$version" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}([.][0-9]+)?$ ]]
+          image="ghcr.io/mbabramo/acesim-correlated-signals:$version"
+          echo "IMAGE=$image" >> "$GITHUB_ENV"
+          mkdir -p "$DOCKER_CONFIG" "$RUNNER_TEMP/public-check"
+          docker pull "$image" 2>&1 | tee "$RUNNER_TEMP/public-check/anonymous-pull.log"
+          docker image inspect "$image" > "$RUNNER_TEMP/public-check/image-inspect.json"
+      - name: Run the downloaded application and rendering preflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker run --rm --network none --cpus 1 "$IMAGE" --help
+          docker run --rm --network none --cpus 1 --mount "type=bind,source=$RUNNER_TEMP/public-check,target=/output" "$IMAGE" doctor --output /output/doctor
+          docker run --rm --network none --cpus 1 --mount "type=bind,source=$RUNNER_TEMP/public-check,target=/output" "$IMAGE" test-shortcuts --output /output/shortcut-tests.json
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: correlated-signals-public-download-check
+          path: ${{ runner.temp }}/public-check/
+          retention-days: 30
+          if-no-files-found: error
