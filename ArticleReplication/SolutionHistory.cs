@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.IO.Compression;
 using ACESim;
 using ACESimBase.GameSolvingAlgorithms;
 using ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm;
@@ -13,7 +14,13 @@ namespace ArticleReplication;
 public static class SolutionHistory
 {
     public sealed record Header(string Format,string CaseId,int Seed,int Pivots,SetMetadata[] InformationSets);
-    public static string PathFor(string root,string id)=>Files.Under(root,"Histories/"+id+".history");
+    public static string PathFor(string root,string id)
+    {
+        string plain=Files.Under(root,"Histories/"+id+".history");
+        return File.Exists(plain)||!File.Exists(plain+".gz")?plain:plain+".gz";
+    }
+    public static StreamReader Open(string path)=>new(path.EndsWith(".gz",StringComparison.OrdinalIgnoreCase)
+        ?new GZipStream(File.OpenRead(path),CompressionMode.Decompress):File.OpenRead(path));
     public sealed class Capture : IDisposable
     {
         readonly SequenceForm game;readonly string path;readonly StreamWriter writer;
@@ -64,7 +71,7 @@ public static class SolutionHistory
             game.EvolutionSettings.CustomSequenceFormInitialization=false;game.EvolutionSettings.SequenceFormUseRandomSeed=false;
             await game.RunAlgorithm(game.GameDefinition.OptionSetName);capture.Complete(id);
         }
-        using var reader=new StreamReader(file);var header=JsonSerializer.Deserialize<Header>(reader.ReadLine()!,CompactJson)!;
+        using var reader=Open(file);var header=JsonSerializer.Deserialize<Header>(reader.ReadLine()!,CompactJson)!;
         if(header.Format!="correlated-signals-history-v1"||header.CaseId!=id||header.Seed!=0)throw new InvalidDataException("History identity or initialization differs.");
         ECTAStrategyDiagnostics<ExactValue>? engine=null;
         try{game.TraceECTA<ExactValue>(beforeSolve:tree=>{engine=new(tree,game.TraceOutcomeUtilities());throw new Prepared();});}catch(Prepared){ }

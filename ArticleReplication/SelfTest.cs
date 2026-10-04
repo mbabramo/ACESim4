@@ -12,18 +12,20 @@ public static class SelfTest
         void Check(bool condition,string name){if(!condition)throw new InvalidDataException(name);tests.Add(name);}
         void Throws(Action action,string name){bool failed=false;try{action();}catch(Exception e)when(e is InvalidDataException or ArgumentException){failed=true;}Check(failed,name);}
         var settings=new CorrelatedSignalsSettings();var plan=ArticlePlan.Resolve(settings,manifest.Calibration);
-        Check(plan.Cases.Length==74&&plan.Welfare.Length==36&&plan.Strategic.Length==150&&plan.ExpectedApproximateStarts==200,"Existing article has 74 cases, 36 welfare pairs, 150 strategic directions and 200 starts");
+        Check(plan.Cases.Length==74&&plan.Welfare.Length==36&&plan.Strategic.Length==146&&plan.ExpectedApproximateStarts==200,"Article has 74 cases, 36 welfare pairs, 146 strategic directions and 200 starts");
+        Check(plan.Cases.Any(c=>c.Id=="grid__signals-8-offers-15__complete__rn__cost-1")&&plan.Cases.Any(c=>c.Id=="grid__signals-8-offers-12__complete__ra__cost-1")&&!plan.Cases.Any(c=>c.Id=="grid__signals-8-offers-15__complete__ra__cost-1"),"Selected grids retain 8/15 RN and use the first validated 8/12 RA pair");
         var primary=Files.Read<PrimaryInput[]>(Path.Combine(bundle,"inputs/primary.json"));
+        var legacyPlan=ArticlePlan.Resolve(settings with{Grids=[new(8,15),new(12,8),new(8,8)]},manifest.Calibration);
         foreach(var old in primary)
         {
-            var spec=plan.Cases.Single(x=>x.Id==old.CaseId);
+            var spec=legacyPlan.Cases.Single(x=>x.Id==old.CaseId);
             Files.EqualScience(JsonSerializer.SerializeToNode(old.Case,Files.Json),JsonSerializer.SerializeToNode(spec,Files.Json),old.CaseId);
             // This also exercises the original C# constructor, without initializing or solving a game.
             FinalArticleCaseFactory.Create(spec);
         }
         Check(primary.Length==72,"All 72 frozen case specifications exactly equal the central plan");
         var reduced=ArticlePlan.Resolve(settings with{MainCostMultipliers=[.5,1,2]},manifest.Calibration);
-        Check(reduced.Cases.Length==66&&reduced.Welfare.Length==32&&reduced.Strategic.Length==134,"One cost setting propagates to case and comparison counts");
+        Check(reduced.Cases.Length==66&&reduced.Welfare.Length==32&&reduced.Strategic.Length==130,"One cost setting propagates to case and comparison counts");
         var expanded=ArticlePlan.Resolve(settings with{MainCostMultipliers=[.5,.75,1,2]},manifest.Calibration);
         Check(expanded.Cases.Count(x=>x.CostMultiplier==.75)==4,"New cost produces all four risk/rule cases");
         foreach(var c in expanded.Cases.Where(x=>x.CostMultiplier==.75))FinalArticleCaseFactory.Create(c);

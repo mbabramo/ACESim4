@@ -10,7 +10,7 @@ public static class ShortcutTests
     }
     public static void CompareHistory(string generated,string reference,string output)
     {
-        using var a=new StreamReader(generated);using var b=new StreamReader(reference);int records=0;
+        using var a=SolutionHistory.Open(generated);using var b=SolutionHistory.Open(reference);int records=0;
         while(true)
         {
             string? x=a.ReadLine(),y=b.ReadLine();if(x==null&&y==null)break;
@@ -58,6 +58,15 @@ public static class ShortcutTests
     public static void Run(string output)
     {
         var settings=new CorrelatedSignalsSettings();var passed=new List<string>();
+        var plan=ArticlePlan.Resolve(settings,ArticlePlan.PublishedCalibration);
+        if(plan.Cases.Length!=74||plan.Welfare.Length!=36||plan.Strategic.Length!=146||plan.Cases.Any(c=>c.Id=="grid__signals-8-offers-15__complete__ra__cost-1")||!plan.Cases.Any(c=>c.Id=="grid__signals-8-offers-12__complete__ra__cost-1"))throw new InvalidDataException("Selected-grid plan is inconsistent.");
+        passed.Add("Default plan selects the completed 8/12 RA pair while retaining 8/15 RN");
+        var legacy=RunSettings.Resolve(new(){["grids"]="8x15,12x8,8x8"});
+        if(ArticlePlan.Resolve(legacy,ArticlePlan.PublishedCalibration).Strategic.Length!=150)throw new InvalidDataException("Unqualified grid override must apply to both risk preferences.");
+        passed.Add("Unqualified CLI grids preserve the original both-risk interpretation");
+        var explicitGrids=RunSettings.Resolve(new(){["grids"]="8x15:rn,8x12:ra,12x8,8x8"});
+        if(!ArticlePlan.Resolve(explicitGrids,ArticlePlan.PublishedCalibration).Cases.Select(c=>c.Id).SequenceEqual(plan.Cases.Select(c=>c.Id)))throw new InvalidDataException("Risk-qualified CLI grids differ from the defaults.");
+        passed.Add("Explicit CLI grid qualifiers reproduce the default case selection");
         void Accept(string name,SolveShortcut r,CorrelatedSignalsSettings? s=null){r.Check("case","ApproximateStart",0,s??settings);passed.Add(name);}
         void Reject(string name,SolveShortcut r,CorrelatedSignalsSettings? s=null)
         {try{r.Check("case","ApproximateStart",0,s??settings);}catch(InvalidDataException){passed.Add(name);return;}throw new InvalidDataException("Unexpected acceptance: "+name);}

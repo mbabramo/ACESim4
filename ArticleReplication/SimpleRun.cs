@@ -76,7 +76,7 @@ public static class SimpleRun
                     string history=existing!=null&&File.Exists(existing)?existing:captured;
                     if(!File.Exists(history)&&!computeMissing)throw new InvalidDataException("Missing saved history for "+id);
                     string dir=Path.Combine(raw,"Histories",id),request=Path.Combine(output,"requests","history-"+id+".json");Files.Save(request,new{Run=output,CaseId=id,Case=plan.Cases.Single(c=>c.Id==id),History=history,Output=dir});
-                    await Commands.Worker(logs,"history-"+id,output,"worker-solution-history",request);Files.CopyVerified(history,SolutionHistory.PathFor(shortcuts,id));Files.CopyVerified(Path.Combine(dir,id+".html"),Path.Combine(collection,"Supplemental materials/Equilibrium solution paths",id+".html"));var historyAudit=Files.Object(Path.Combine(dir,"validation.json"));histories.Add(historyAudit);historySolves+=historyAudit["SolvesStarted"]!.GetValue<int>();
+                    await Commands.Worker(logs,"history-"+id,output,"worker-solution-history",request);Files.CopyVerified(history,Files.Under(shortcuts,"Histories/"+id+".history"+(history.EndsWith(".gz",StringComparison.OrdinalIgnoreCase)?".gz":"")));Files.CopyVerified(Path.Combine(dir,id+".html"),Path.Combine(collection,"Supplemental materials/Equilibrium solution paths",id+".html"));var historyAudit=Files.Object(Path.Combine(dir,"validation.json"));histories.Add(historyAudit);historySolves+=historyAudit["SolvesStarted"]!.GetValue<int>();
                 }
                 Files.Save(Path.Combine(raw,"Histories/completed.json"),new{Passed=true,Histories=histories});
             }
@@ -88,6 +88,7 @@ public static class SimpleRun
                 string request=Path.Combine(output,"requests/standard-litigcharts.json");Files.Save(request,new LitigCharts.FinalArticleResultsCommand.Request(rows,plan.Cases,Path.Combine(collection,"Results"),Path.Combine(collection,"Supplemental materials"),workers));await Commands.Run(logs,"standard-litigcharts","dotnet",[typeof(LitigCharts.FinalArticleResultsCommand).Assembly.Location,"final-article-results","--request",request],output);StandardCoverage.Validate(request,Path.Combine(output,"standard-coverage.json"));
             }
             if(plan.Steps.Contains("Manuscript"))await Manuscript.Run(generated,manifest,collection,output);
+            CollectionDocumentation.Generate(plan,collection,profiles.Count);
             int searchSolves=plan.Steps.Contains("MultipleStarts")?Files.Object(Path.Combine(raw,"MultipleStarts/completed.json"))["SolvesStarted"]!.GetValue<int>():0;
             Files.Save(Path.Combine(output,"completed.json"),new{Passed=true,CompleteArticle=false,FinishedUtc=DateTime.UtcNow,PrimaryProfiles=profiles.Count,ReservedExternalCases=jobs.Count(j=>j.Disposition=="AwaitExternalResult"),MissingCases=jobs.Count(j=>j.Disposition=="MissingResult"),ExactSolves=ready.Count(j=>j.Disposition=="Compute")+historySolves,HistoryOnlySolves=historySolves,ApproximateSolves=searchSolves,ShortcutDirectory=Path.GetRelativePath(output,shortcuts),FreshDownstreamCalculations=true,InputManifestsRequired=false});
         }

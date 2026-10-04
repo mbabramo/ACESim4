@@ -67,16 +67,12 @@ public static class MainTables
         if(options.PInitialWealth!=options.DInitialWealth||options.NumDamagesStrengthPoints!=1)throw new InvalidDataException("Primitives template requires the declared equal-wealth, fixed-damages model.");
         double alpha=plan.Cases.Single(c=>c.Family=="baseline"&&c.FeeRule=="american"&&c.AlphaP>0).AlphaP;
         string[][] primitives=[
-            ["Merits and truth","Q is uniform on [0,1]; true liability T | Q is Bernoulli(Q)."],
-            ["Signals",$"{c.Signals} private signal bins per party; party noise {c.PartySigma:G}; court noise {c.CourtSigma:G}; two court findings."],
-            ["Damages and wealth",$"Damages {options.DamagesMax*options.DamagesMultiplier:G}; initial wealth {options.PInitialWealth:G} per party. Monetary quantities are in units of damages."],
-            ["Preferences",$"Risk neutral or symmetric CARA risk aversion with alpha = {alpha:G}."],
-            ["Costs",$"Filing / answering: {c.EntryCost:G} each; additional trial costs: {c.TrialCost:G} each; ordinary multiplier {c.CostMultiplier:G}."],
-            ["Private exit commitments","After filing and answering, each party commits whether to exit if bargaining fails."],
-            ["Agreement and offers","Simultaneous agreement; offers only if both agree. Separate information sets; own commitment is remembered."],
-            ["Offer actions",string.Join(", ",c.Offers.Select(x=>x.ToString("F2")))+"; overlapping offers settle at their midpoint."],
-            ["Unsuccessful bargaining","Apply private exit commitments: abandonment, default, mutual-exit lottery, or trial. Refusal is not a terminal disposition."],
-            ["Fee rules","American: own costs. British: loser pays at trial and the specified unilateral exits."+(plan.Settings.IncludeTrialOnly?$" Trial-only fee shifting is a separate cost-{plan.Settings.ReferenceCostMultiplier:G} extension.":"")]];
+            ["Merits and truth",@"$Q$ is uniformly distributed on [0,1]; true liability $T$ satisfies $\Pr(T=1\mid Q=q)=q$."],
+            ["Baseline signals",$"{c.Signals} signals per party, with 2 signals for court; "+(c.PartySigma==c.CourtSigma?$"party and court noise: {c.PartySigma:G}.":$"party noise: {c.PartySigma:G}; court noise: {c.CourtSigma:G}.")],
+            ["Damages and wealth",$"Damages {options.DamagesMax*options.DamagesMultiplier:G}; initial wealth {options.PInitialWealth:G} per party."],
+            ["Preferences",$"Risk neutral or symmetric CARA risk aversion with $\\alpha$ = {alpha:G}."],
+            ["Baseline costs",$"Filing and answering: {c.EntryCost:G} each; additional trial costs: {c.TrialCost:G} each."],
+            ["Offer actions",$"{c.Offers[0]:F2}, {c.Offers[1]:F2}, ..., {c.Offers[^1]:F2}."]];
         Table(collection,Primitives,[new("Baseline specification; case-specific departures are reported in the robustness materials",primitives)],[156,620],["Primitive","Value / interpretation"]);
         var sections=new List<Section>();var records=new List<object>();
         double Headline(string id,string measure)=>profiles[id].Audit["Welfare"]!["Headline"]![measure]!.GetValue<double>();

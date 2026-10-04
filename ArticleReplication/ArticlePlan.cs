@@ -15,7 +15,7 @@ public sealed record CorrelatedSignalsSettings
     public byte BaselineSignals { get; init; } = 10;
     public int BaselineOffers { get; init; } = 10;
     public double[] NoiseLevels { get; init; } = [.1, .4];
-    public Grid[] Grids { get; init; } = [new(8,15),new(12,8),new(8,8)];
+    public Grid[] Grids { get; init; } = [new(8,15,"rn"),new(8,12,"ra"),new(12,8),new(8,8)];
     public int StartsPerCore { get; init; } = 50;
     public int ApproximatePivotLimit { get; init; } = 20000;
     public double ApproximateRoundingCutoff { get; init; } = .005;
@@ -26,7 +26,7 @@ public sealed record CorrelatedSignalsSettings
     public bool IncludeExtensions { get; init; } = true;
     public bool IncludeTrialOnly { get; init; } = true;
     public string[] Steps { get; init; } = ["Primary","MultipleStarts","Welfare","TruthSensitivity","Strategic","Trembles","Histories","StandardReports","Exhibits","Manuscript"];
-    public sealed record Grid(byte Signals,int Offers);
+    public sealed record Grid(byte Signals,int Offers,string? Risk=null);
 }
 
 public sealed record Calibration(double PartySigma,double CourtSigma,string Sha256);
@@ -77,7 +77,11 @@ public static class ArticlePlan
                     Add("private-noise","sigma-"+Number(sigma),fee,risk,1,party:sigma);
                     Add("court-noise","sigma-"+Number(sigma),fee,risk,1,court:sigma);
                 }
-                foreach(var grid in s.Grids)Add("grid",$"signals-{grid.Signals}-offers-{grid.Offers}",fee,risk,1,signals:grid.Signals,offers:grid.Offers);
+                foreach(var grid in s.Grids)
+                {
+                    if(grid.Risk is not (null or "rn" or "ra"))throw new InvalidDataException("Grid risk must be rn, ra, or omitted for both.");
+                    if(grid.Risk==null||grid.Risk==risk)Add("grid",$"signals-{grid.Signals}-offers-{grid.Offers}",fee,risk,1,signals:grid.Signals,offers:grid.Offers);
+                }
                 Add("merits-distribution","center-weighted",fee,risk,1,distribution:"beta-2-2");
                 Add("merits-distribution","polarized",fee,risk,1,distribution:"beta-half-half");
                 Add("direct-binary","calibrated-to-uniform-merits",fee,risk,1,distribution:"direct-binary",party:calibration.PartySigma,court:calibration.CourtSigma);

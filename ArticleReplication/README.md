@@ -22,7 +22,7 @@ Only these files are consumed by `run --input`:
 
 - `Equilibria/<case>.equ`: complete primary equilibrium probabilities, revalidated in the full game.
 - `Search/<case>/start-00000.equ`: complete approximate profile, or an explicit `NoEquilibriumFound` record for that initialization and budget.
-- `Histories/<case>.history`: the optional solver path, with its strategy frames and native pivot snapshots.
+- `Histories/<case>.history` or `<case>.history.gz`: the optional solver path, with its strategy frames and native pivot snapshots. Gzip changes only storage; every frame is validated after decompression.
 
 These are readable, versioned JSON formats. A failed attempt means that this search found no acceptable equilibrium; it is not a proof of nonexistence. Changed search budgets/cutoffs require recomputation, except an already-triggered identical early stopping rule within both budgets. Mathematical validation is mandatory for every reused strategy. History diagnostics and native-to-policy projections are recalculated against the current full game; these trajectory checks are distinct from an algebraic pivot equivalence proof.
 
@@ -30,9 +30,9 @@ These are readable, versioned JSON formats. A failed attempt means that this sea
 
 ## Settings and stages
 
-Defaults are in `CorrelatedSignalsSettings`. Useful overrides include `--costs 0.25,0.5,1,2,4`, `--starts 50`, `--pivots 20000`, `--cutoff 0.005`, `--noise 0.1,0.4`, `--grids 8x15,12x8,8x8`, `--extensions false`, and `--trial-only false`. Costs must include the reference multiplier 1. Fifty starts for each of the four core games means 200 attempts.
+Defaults are in `CorrelatedSignalsSettings`. Useful overrides include `--costs 0.25,0.5,1,2,4`, `--starts 50`, `--pivots 20000`, `--cutoff 0.005`, `--noise 0.1,0.4`, `--grids 8x15:rn,8x12:ra,12x8,8x8`, `--extensions false`, and `--trial-only false`. A grid without a risk suffix applies to both risk preferences. The article retains risk-neutral 8/15 and uses the first completed, fully validated 8/12 risk-averse pair. Costs must include the reference multiplier 1. Fifty starts for each of the four core games means 200 attempts.
 
-`--steps Primary,MultipleStarts,Welfare,Strategic,Trembles,Histories,StandardReports,Exhibits,Manuscript` is the default. Primary is required. Trembles includes the selected multiple-start profiles. Manuscript requires its contributing calculation/exhibit stages. `--cases case-id,...` permits a bounded test of the same full games. Never interpret a selected subset as a full article release.
+`--steps Primary,MultipleStarts,Welfare,TruthSensitivity,Strategic,Trembles,Histories,StandardReports,Exhibits,Manuscript` is the default. Primary is required. Trembles includes the selected multiple-start profiles. Manuscript requires its contributing calculation/exhibit stages. `--cases case-id,...` permits a bounded test of the same full games. Never interpret a selected subset as a full article release.
 
 The primary stage uses the ordinary exact solver with its existing seed, completion and validation conventions. MultipleStarts uses the separate stable floating-point search and its existing immediate/capped acceptance criteria. Saved complete profiles retain off-path strategies and agreement decisions. StandardReports runs the existing report generator and LitigCharts, including editable sources and previews. Exhibits and manuscript numeric bindings use native C# generators and embedded authored/layout sources.
 

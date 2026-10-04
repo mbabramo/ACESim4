@@ -16,7 +16,7 @@ public static class RunSettings
         if(args.TryGetValue("noise",out var noise))s=s with{NoiseLevels=noise.Split(',').Select(double.Parse).ToArray()};
         if(args.TryGetValue("trembles",out var trembles))s=s with{Trembles=trembles.Split(',').Select(double.Parse).ToArray()};
         if(args.TryGetValue("tremble-directions",out var directions))s=s with{TrembleDirections=int.Parse(directions)};
-        if(args.TryGetValue("grids",out var grids))s=s with{Grids=grids.Split(',').Select(g=>{var p=g.Split('x');return new CorrelatedSignalsSettings.Grid(byte.Parse(p[0]),int.Parse(p[1]));}).ToArray()};
+        if(args.TryGetValue("grids",out var grids))s=s with{Grids=grids.Split(',').Select(g=>{var risk=g.Split(':');if(risk.Length>2)throw new ArgumentException("Use signals x offers with optional :rn or :ra.");var p=risk[0].Split('x');if(p.Length!=2)throw new ArgumentException("Use signals x offers.");return new CorrelatedSignalsSettings.Grid(byte.Parse(p[0]),int.Parse(p[1]),risk.Length==2?risk[1]:null);}).ToArray()};
         if(args.TryGetValue("truth-exponents",out var truth))s=s with{TruthExponents=truth.Split(',').Select(double.Parse).ToArray()};
         return s;
     }
