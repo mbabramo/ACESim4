@@ -8,7 +8,7 @@ COPY ArticleReplication/ ArticleReplication/
 RUN dotnet restore ArticleReplication/ArticleReplication.csproj --locked-mode --disable-parallel
 RUN dotnet publish ArticleReplication/ArticleReplication.csproj -c Release --no-restore -m:1 /p:UseSharedCompilation=false /p:BuildReplicationContainer=false -o /application
 
-FROM mcr.microsoft.com/dotnet/runtime:9.0-bookworm-slim@sha256:8922cef0719da00335c6e3356007362b7015de9d2b15fb6e9d790f2e6e729c9a
+FROM mcr.microsoft.com/dotnet/runtime:9.0.11-bookworm-slim@sha256:9d81c225cf9fc0b338f62bfeebfe58433dd57fdedd7d05ed347c551bc630769b
 ENV DEBIAN_FRONTEND=noninteractive DOTNET_PROCESSOR_COUNT=1 DOTNET_CLI_TELEMETRY_OPTOUT=1 OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1
 RUN apt-get update && apt-get install -y --no-install-recommends texlive-luatex texlive-latex-extra texlive-pictures texlive-fonts-extra lmodern fonts-lmodern poppler-utils && mkdir -p /usr/share/article-replication && dpkg-query -W > /usr/share/article-replication/toolchain-packages.txt && rm -rf /var/lib/apt/lists/*
 RUN apt-get update && apt-get install -y --no-install-recommends fonts-clear-sans && luaotfload-tool --update --force && dpkg-query -W > /usr/share/article-replication/toolchain-packages.txt && rm -rf /var/lib/apt/lists/*

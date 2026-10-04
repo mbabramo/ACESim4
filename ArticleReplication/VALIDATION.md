@@ -1,5 +1,11 @@
 # Replication validation
 
+## Container release status — October 4, 2026
+
+The first complete Linux container run generated the collection and passed its individual audits, but failed the additional exact comparison with the published Windows results. The image was not published. A separate replay of all 74 primary profiles confirmed identical complete strategy vectors and best-response results. Five profiles have last-bit differences in a small number of reporting quantities; these remain under investigation. No tolerance was substituted for exact equality. The container command is not yet a validated public release.
+
+The beginner instructions are mirrored in the generated collection README. Release testing also includes the exact copy-and-paste command, using a directory with spaces, followed by a full anonymous image-download test. Neither that future test nor a successful full Linux release is claimed here.
+
 ## Current journal download test — October 4, 2026
 
 A fresh clone of the public `correlated-signals` branch at `cec938cf8a9e265a6759ded96e0475b9d1cbf690`, an empty NuGet cache, a newly extracted saved-solutions archive and a new output directory passed the documented full `rebuild` command. It completed in about 27 minutes on Windows with 27 workers. A journal may choose fewer workers; no scientific settings depend on that choice.
