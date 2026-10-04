@@ -62,6 +62,7 @@ jobs:
           set -euo pipefail
           docker run --rm --network none --cpus 1 --mount "type=bind,source=$REPLICATION,target=/output" "$IMAGE" doctor --output /output/doctor
           docker run --rm --network none --cpus 1 --mount "type=bind,source=$REPLICATION,target=/output" "$IMAGE" test-shortcuts --output /output/shortcut-tests.json
+          docker run --rm --network none --cpus 1 --mount "type=bind,source=$REPLICATION,target=/output" "$IMAGE" test-reporting-comparison --output /output/reporting-comparison-tests.json
           docker run --rm --network none --cpus 1 --mount "type=bind,source=$REPLICATION,target=/output" "$IMAGE" test-manuscript-boundary --output /output/manuscript-boundary
       - name: Run the complete journal replication with networking disabled
         shell: bash
@@ -75,7 +76,7 @@ jobs:
           ref: 90fa4c708e6aa7d1b2cb48172e9829b3ece32a71
           path: published-reference
           persist-credentials: false
-      - name: Verify the full collection and exact scientific equality
+      - name: Verify exact strategies and bounded floating-point reporting differences
         shell: bash
         run: |
           set -euo pipefail
@@ -100,7 +101,7 @@ jobs:
           set -euo pipefail
           mkdir -p "$EVIDENCE/receipts" "$EVIDENCE/figures" "$EVIDENCE/tables"
           shopt -s nullglob
-          for f in "$REPLICATION"/full/*.json "$REPLICATION"/shortcut-tests.json "$REPLICATION"/manuscript-boundary/passed.json; do cp "$f" "$EVIDENCE/receipts/"; done
+          for f in "$REPLICATION"/full/*.json "$REPLICATION"/shortcut-tests.json "$REPLICATION"/reporting-comparison-tests.json "$REPLICATION"/manuscript-boundary/passed.json; do cp "$f" "$EVIDENCE/receipts/"; done
           for f in "$REPLICATION"/full/article/Figures/*.png "$REPLICATION"/full/article/Figures/*.pdf; do cp "$f" "$EVIDENCE/figures/"; done
           for f in "$REPLICATION"/full/article/Tables/*.png "$REPLICATION"/full/article/Tables/*.pdf; do cp "$f" "$EVIDENCE/tables/"; done
           if [[ -f "$REPLICATION/full/article/README.md" ]]; then cp "$REPLICATION/full/article/README.md" "$EVIDENCE/collection-README.md"; fi

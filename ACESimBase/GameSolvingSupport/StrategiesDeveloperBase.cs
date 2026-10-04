@@ -3152,7 +3152,7 @@ namespace ACESim
         /// </summary>
         /// <param name="weightedGameProgresses"></param>
         /// <returns></returns>
-        public ReportCollection GenerateReportsFromGameProgressEnumeration(IEnumerable<(GameProgress progress, double weight)> weightedGameProgresses)
+        public ReportCollection GenerateReportsFromGameProgressEnumeration(IEnumerable<(GameProgress progress, double weight)> weightedGameProgresses, bool fullPrecision = false)
         {
             var simpleReportDefinitions = GetSimpleReportDefinitions();
             int simpleReportDefinitionsCount = simpleReportDefinitions.Count();
@@ -3173,7 +3173,7 @@ namespace ACESim
 
             for (int i = 0; i < simpleReportDefinitionsCount; i++)
             { 
-                ReportCollection result = ReportsBeingGenerated[i].BuildReport();
+                ReportCollection result = ReportsBeingGenerated[i].BuildReport(fullPrecision);
                 reportCollection.Add(result);
             }
 

@@ -48,6 +48,7 @@ public static class SimpleRun
                 string dir=Path.Combine(raw,"Primary",job.Case.Id),file=Directory.GetFiles(Path.Combine(dir,"Sources/Profiles"),"*.json").Single();var audit=Files.Object(Path.Combine(dir,"validation.json"));var profile=Files.Object(file);
                 if(audit["Passed"]?.GetValue<bool>()!=true)throw new InvalidDataException("Primary validation failed.");profiles.Add(job.Case.Id,(audit,profile));
                 string dest=Path.Combine(collection,"Results/Individual simulations",job.Case.Id,"Sources");Directory.CreateDirectory(dest);Files.CopyVerified(file,Path.Combine(dest,"complete-profile.json"));Files.CopyVerified(Path.Combine(dir,"validation.json"),Path.Combine(dest,"individual-audit.json"));Files.CopyVerified(Path.Combine(dir,"replayed-report.csv"),Path.Combine(dest,"replayed-report.csv"));File.WriteAllText(Path.Combine(dest,"strategy.tex"),StrategyExhibit.Generate(audit,profile));
+                Files.CopyVerified(Path.Combine(dir,"replayed-report-full-precision.csv"),Path.Combine(dest,"replayed-report-full-precision.csv"));
                 internalInputs.Add(new(job.Case.Id,job.Case,(JsonObject)audit["GameIdentity"]!.DeepClone(),null,null,[]));
             }
             Files.Save(Path.Combine(output,"primary-validation.json"),new{Passed=true,Profiles=ready.Select(j=>new{CaseId=j.Case.Id,Passed=true,FullProfileRevalidated=true}),SolvesStarted=ready.Count(j=>j.Disposition=="Compute")});

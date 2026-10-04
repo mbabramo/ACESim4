@@ -33,7 +33,7 @@ jobs:
           dotnet build ArticleReplication/ArticleReplication.csproj -c Release -m:1 -p:UseSharedCompilation=false -p:BuildReplicationContainer=true -p:ArticleContainerTag=acesim:diagnostic -p:ArticleContainerRevision="$GITHUB_SHA" -p:ArticleContainerRecords="$RUNNER_TEMP/build-records"
           curl --fail --location --retry 3 https://github.com/mbabramo/correlated-signals-article/releases/download/replication-20261004/correlated-signals-saved-solutions.zip --output "$RUNNER_TEMP/inputs.zip"
           unzip -q "$RUNNER_TEMP/inputs.zip" -d "$RUNNER_TEMP/inputs"
-      - name: Replay all primary profiles with the pinned reference runtime
+      - name: Replay all primary profiles with full-precision reports
         shell: bash
         run: |
           set -euo pipefail

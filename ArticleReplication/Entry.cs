@@ -88,6 +88,8 @@ internal static class Entry
         var welfare=SavedProfileWelfare.Evaluate(options,developer.SavedWeightedGameProgresses);
         Directory.CreateDirectory(output);
         string report=Path.Combine(output,"replayed-report.csv");File.WriteAllText(report,replay.csvReports.Single());
+        var fullPrecision=developer.GenerateReportsFromGameProgressEnumeration(developer.SavedWeightedGameProgresses,fullPrecision:true);
+        File.WriteAllText(Path.Combine(output,"replayed-report-full-precision.csv"),fullPrecision.csvReports.Single());
         int? cells=hasInputs&&inputFields.TryGetProperty("Numeric",out _)?MultipleEquilibriaStrategyAudit.ValidateReplay(Input("Numeric"),report):null;
         if(request.TryGetProperty("StandardReports",out var standard)&&standard.GetBoolean())
         {

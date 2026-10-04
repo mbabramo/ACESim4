@@ -33,6 +33,7 @@ jobs:
           docker run --rm --network none --cpus 1 "$IMAGE" --help
           docker run --rm --network none --cpus 1 --mount "type=bind,source=$RUNNER_TEMP/public-check,target=/output" "$IMAGE" doctor --output /output/doctor
           docker run --rm --network none --cpus 1 --mount "type=bind,source=$RUNNER_TEMP/public-check,target=/output" "$IMAGE" test-shortcuts --output /output/shortcut-tests.json
+          docker run --rm --network none --cpus 1 --mount "type=bind,source=$RUNNER_TEMP/public-check,target=/output" "$IMAGE" test-reporting-comparison --output /output/reporting-comparison-tests.json
       - name: Download the public saved solutions
         shell: bash
         run: |

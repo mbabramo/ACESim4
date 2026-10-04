@@ -27,6 +27,7 @@ public static class Program
                 case "truth-figure":await TruthSensitivityFigure.FromRun(Get("run"),Get("output"));return 0;
                 case "run":await SimpleRun.Run(options);return 0;
                 case "test-shortcuts":ShortcutTests.Run(Get("output"));return 0;
+                case "test-reporting-comparison":ReportingComparison.Test(Get("output"));return 0;
                 case "test-manuscript-boundary":await ShortcutTests.ManuscriptBoundary(Get("output"));return 0;
                 case "index-collection":CollectionDocumentation.FromRun(Get("run"));return 0;
                 case "finish-reporting":await FinishReporting.Run(options);return 0;
@@ -52,6 +53,7 @@ public static class Program
                 case "verify-main-figures":MainFigureVerification.Run(Get("generated"),Get("reference"),Get("output"));return 0;
                 case "container-build":await ContainerBuild.Run(options);return 0;
                 case "verify-container-release":ContainerRelease.Verify(Get("run"),Get("reference-article"),Get("output"));return 0;
+                case "verify-primary-release":ContainerRelease.VerifyPrimary(Get("collection"),Get("reference-article"),Get("output"));return 0;
                 case "verify-delivery":DeliveryVerification.Compare(Get("generated"),Get("published"),Get("output"));return 0;
                 case "test-delivery-verification":DeliveryVerification.Test(Get("output"));return 0;
                 case "pack":Bundle.Pack(Get("article"),Get("reproduction"),Get("output"));return 0;

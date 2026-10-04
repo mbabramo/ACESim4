@@ -10,6 +10,7 @@ public static class ContainerRelease
 
     public static void Verify(string run,string reference,string output)
     {
+        var reporting=new ReportingComparison();
         var completed=Files.Object(Path.Combine(run,"completed.json"));
         if(completed["Passed"]?.GetValue<bool>()!=true)throw new InvalidDataException("Completed full run required.");
         foreach(string key in new[]{"ReservedExternalCases","MissingCases","ExactSolves","HistoryOnlySolves","ApproximateSolves"})
@@ -26,23 +27,11 @@ public static class ContainerRelease
         void Profile(string a,string b)
         {
             var x=Files.Object(a);var y=Files.Object(b);
-            foreach(string key in new[]{"Profile","ActionReport","ReplayReport"}){x.Remove(key);y.Remove(key);}
-            Files.EqualScience(x,y,"Complete scientific profile: "+a);
+            reporting.Profile(x,y,"Profile: "+a);
         }
         void Fields(JsonObject a,JsonObject b,params string[] keys)
         {foreach(string key in keys)Files.EqualScience(a[key],b[key],key);}
-        foreach(var c in expected.Cases)
-        {
-            string relative="Results/Individual simulations/"+c.Id+"/Sources";
-            string a=Path.Combine(collection,relative),b=Path.Combine(reference,relative);
-            Profile(Path.Combine(a,"complete-profile.json"),Path.Combine(b,"complete-profile.json"));
-            var audit=Files.Object(Path.Combine(a,"individual-audit.json"));var referenceAudit=Files.Object(Path.Combine(b,"individual-audit.json"));
-            foreach(string key in new[]{"GameIdentity","FullBestResponseGains","CompleteStrategySha256","UnspecifiedOffPathInformationSets","Welfare"})
-                Files.EqualScience(audit[key],referenceAudit[key],c.Id+" "+key);
-            var x=Reports.ReadCsv(Path.Combine(a,"replayed-report.csv"));var y=Reports.ReadCsv(Path.Combine(b,"replayed-report.csv"));
-            foreach(var row in x.Concat(y))row.Remove("Seconds");
-            Files.EqualScience(System.Text.Json.JsonSerializer.SerializeToNode(x,Files.Json),System.Text.Json.JsonSerializer.SerializeToNode(y,Files.Json),c.Id+" numeric reports");
-        }
+        ComparePrimary(collection,reference,expected.Cases,reporting);
         string multiple="Supplemental materials/Multiple equilibria/Sources";
         var current=Files.Object(Path.Combine(collection,multiple,"catalog.json"))["Attempts"]!.AsArray();
         var previous=Files.Object(Path.Combine(reference,multiple,"catalog.json"))["Attempts"]!.AsArray().ToDictionary(r=>(r!["CaseId"]!.GetValue<string>(),r["StartIndex"]!.GetValue<int>()));
@@ -56,17 +45,49 @@ public static class ContainerRelease
             {
                 string name=id+$"-start-{start:D5}.json";
                 Profile(Path.Combine(collection,multiple,"Profiles",name),Path.Combine(reference,multiple,"Profiles",name));
-                Fields(a,b,"FullBestResponseRawGains","AverageGain","Threshold","StoppingPivot","Welfare");accepted++;
+                Fields(a,b,"FullBestResponseRawGains","AverageGain","Threshold","StoppingPivot");
+                reporting.Compare(a["Welfare"],b["Welfare"],id+" start "+start+" Welfare");accepted++;
             }
             else Fields(a,b,"Decision");
         }
         var table=Files.Object(Path.Combine(collection,"Tables/Sources/Table 5 - Overall results summary.generated-data.json"));
         var oldTable=Files.Object(Path.Combine(reference,"Tables/Sources/Table 5 - Overall results summary.generated-data.json"));
-        Files.EqualScience(table["Comparisons"],oldTable["Comparisons"],"Every Table 5 comparison");
+        reporting.Compare(table["Comparisons"],oldTable["Comparisons"],"Every Table 5 comparison");
         if(table["Comparisons"]!.AsArray().Any(c=>c!["Status"]!.GetValue<string>()!="audited"))throw new InvalidDataException("Pending Table 5 row.");
         var inventory=Files.Object(Path.Combine(collection,"Results/Aggregated Data/reporting-inventory.json"))["Files"]!.AsArray().Select(n=>n!.GetValue<string>()).Append("Results/Aggregated Data/reporting-inventory.json").ToHashSet(StringComparer.Ordinal);
         var actual=Directory.GetFiles(collection,"*",SearchOption.AllDirectories).Select(f=>Path.GetRelativePath(collection,f).Replace('\\','/')).ToHashSet(StringComparer.Ordinal);
         if(!actual.SetEquals(inventory))throw new InvalidDataException("Collection inventory differs from generated files.");
-        Files.Save(output,new{Passed=true,PrimaryProfiles=expected.Cases.Length,SearchAttempts=current.Count,AcceptedSearchProfiles=accepted,CompleteProfilesAndNumericReportsExactlyIdentical=true,NoToleranceSubstitution=true,ExpensiveSolvesStarted=0,ManuscriptGenerated=false,GeneratedFiles=actual.Count,Table5Comparisons=table["Comparisons"]!.AsArray().Count,AllDefaultStagesPassed=true,ReferenceUsedOnlyForReleaseRegression=true});
+        Files.Save(output,new{Passed=true,PrimaryProfiles=expected.Cases.Length,SearchAttempts=current.Count,AcceptedSearchProfiles=accepted,
+            CompleteStrategiesAndBestResponsesExactlyIdentical=true,ExactSolverChecksUnchanged=true,
+            ReportingAbsoluteTolerance=ReportingComparison.AbsoluteTolerance,ReportingDifferenceCount=reporting.Differences.Count,
+            MaximumReportingDifference=reporting.Differences.Count==0?0:reporting.Differences.Max(d=>d.AbsoluteDifference),ReportingDifferences=reporting.Differences,
+            ExplainedDisplayDifferences=reporting.DisplayDifferences,
+            ExpensiveSolvesStarted=0,ManuscriptGenerated=false,GeneratedFiles=actual.Count,Table5Comparisons=table["Comparisons"]!.AsArray().Count,AllDefaultStagesPassed=true,ReferenceUsedOnlyForReleaseRegression=true});
+    }
+
+    static void ComparePrimary(string collection,string reference,IEnumerable<ACESim.FinalArticleCase> cases,ReportingComparison reporting)
+    {
+        foreach(var c in cases)
+        {
+            string relative="Results/Individual simulations/"+c.Id+"/Sources";
+            string a=Path.Combine(collection,relative),b=Path.Combine(reference,relative);
+            reporting.Profile(Files.Object(Path.Combine(a,"complete-profile.json")),Files.Object(Path.Combine(b,"complete-profile.json")),c.Id+" profile");
+            var audit=Files.Object(Path.Combine(a,"individual-audit.json"));var referenceAudit=Files.Object(Path.Combine(b,"individual-audit.json"));
+            foreach(string key in new[]{"GameIdentity","FullBestResponseGains","CompleteStrategySha256","UnspecifiedOffPathInformationSets"})
+                Files.EqualScience(audit[key],referenceAudit[key],c.Id+" "+key);
+            reporting.Compare(audit["Welfare"],referenceAudit["Welfare"],c.Id+" Welfare");
+            var x=Reports.ReadCsv(Path.Combine(a,"replayed-report.csv"));var y=Reports.ReadCsv(Path.Combine(b,"replayed-report.csv"));
+            var fullX=Reports.ReadCsv(Path.Combine(a,"replayed-report-full-precision.csv"));var fullY=Reports.ReadCsv(Path.Combine(b,"replayed-report-full-precision.csv"));
+            reporting.Csv(x,y,fullX,fullY,c.Id+" numeric reports");
+        }
+    }
+
+    public static void VerifyPrimary(string collection,string reference,string output)
+    {
+        var reporting=new ReportingComparison();var expected=ArticlePlan.Resolve(new CorrelatedSignalsSettings(),ArticlePlan.PublishedCalibration);
+        ComparePrimary(collection,reference,expected.Cases,reporting);
+        Files.Save(output,new{Passed=true,Scope="Primary release regression only; not a complete container release",PrimaryProfiles=expected.Cases.Length,
+            CompleteStrategiesAndBestResponsesExactlyIdentical=true,ReportingAbsoluteTolerance=ReportingComparison.AbsoluteTolerance,
+            ReportingDifferenceCount=reporting.Differences.Count,ReportingDifferences=reporting.Differences,ExplainedDisplayDifferences=reporting.DisplayDifferences});
     }
 }

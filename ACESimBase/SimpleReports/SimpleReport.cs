@@ -88,7 +88,7 @@ namespace ACESim
             standardReport.Append(FormatTableString(text, columnWidth, isLastColumn));
         }
 
-        public ReportCollection BuildReport()
+        public ReportCollection BuildReport(bool fullPrecision = false)
         {
             StringBuilder standardReport = new StringBuilder();
             StringBuilder csvReport = new StringBuilder();
@@ -187,7 +187,9 @@ namespace ACESim
                             else
                                 value /= firstRowValues[c];
                         }
-                        string valueString = value == null ? "" : value.ToSignificantFigures_MaxLength(6, colItem.Width);
+                        string valueString = value == null ? "" : fullPrecision
+                            ? value.Value.ToString("R", System.Globalization.CultureInfo.InvariantCulture)
+                            : value.ToSignificantFigures_MaxLength(6, colItem.Width);
                         Append(standardReport, csvReport, true, valueString, colItem.Width, colItem == lastColumn);
                         i++;
                         c++;

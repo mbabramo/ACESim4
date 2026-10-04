@@ -77,6 +77,10 @@ On shared hosts choose workers to leave the total, including other calculations,
 
 ## Scope of the current implementation
 
+Release validation requires exact strategies, game identities, best-response results and search decisions. Derived floating-point report values may differ across operating systems by at most `1e-14` in absolute value; every accepted difference is recorded. This does not change the solver, its pivot rules, equilibrium acceptance, or reporting precision. Larger differences and structural changes fail the release check.
+
+Primary reports include a full-precision CSV alongside the formatted CSV. A formatting-midpoint difference in the latter is permitted only when the full-precision values meet the same tolerance and reproduce both printed numbers with the existing formatter.
+
 The public command reads only saved `.equ` and optional `.history` files. Omit the input mount and `--input` to solve afresh. Use `--missing wait` or explicit `--reserve-cases` when unavailable cases must remain pending. See [README.md](README.md) for the journal command, C#/CLI settings and selected stages. Default replication generates the research-output folders; manuscript compilation is an optional author step. A selected-stage test is not a whole-collection test. No machine-specific case reservations are implicit.
 
 ## Publishing a new tested image
