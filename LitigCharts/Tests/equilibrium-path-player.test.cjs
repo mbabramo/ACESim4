@@ -1,11 +1,11 @@
 // Unit-test the C#-embedded player with a fake clock/DOM/canvas, not a browser.
-// Run with: node --test scripts/tests/equilibrium-path-player.test.cjs
+// Run with: node --test LitigCharts/Tests/equilibrium-path-player.test.cjs
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
-const source = fs.readFileSync(path.join(__dirname, '../../LitigCharts/EquilibriumPathAnimation.cs'), 'utf8');
+const source = fs.readFileSync(path.join(__dirname, '../EquilibriumPathAnimation.cs'), 'utf8');
 const script = source.match(/<script>\s*([\s\S]*?)<\/script>/)[1];
 
 function fixture(id, count) {

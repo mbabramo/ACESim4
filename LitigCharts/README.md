@@ -1,34 +1,27 @@
 # Current article workflow
 
-The separate [agreement-to-bargain study](../scripts/Agreement-to-bargain.md)
-uses `--plan agreement-to-bargain` (`CS007AB`). `agreement-study-audit` reloads
-individual expanded-game or comparison profiles and exports joint participation,
-agreement, strategy and disposition data without solving. Its figures and tables
-belong only in `Supplemental materials/Agreement to bargain`.
+Use the C# [ArticleReplication project](../ArticleReplication/README.md) for the
+current correlated-signals article. Its documented container or native command
+validates the saved solutions and generates Results, Tables, Figures and
+Supplemental materials, including the standard LitigCharts diagrams. The author
+manuscript and bibliography are separate from default journal replication.
 
-Use `scripts/Rebuild-ArticleResults.ps1` for production plus diagrams, or add
-`-DiagramsOnly` for saved reports. The current config sets
-`UseArticleResultsLayout: true`. See [the complete workflow](../scripts/Article-results.md).
-`diagrams results` generates the retained routine study and excludes separate
-multiple-equilibrium analysis. Baseline includes all three fee rules crossed with
-RN/RA and costs; ordinary extensions share the same figure/table layout.
+Current case selection and stage settings are in `ArticleReplication/ArticlePlan.cs`.
+The obsolete PowerShell/Python orchestration has been removed. The command
+reference below describes older workflows and standalone LitigCharts
+capabilities; it does not determine the current article selection or folder layout.
 
-The separate [fee-rule comparison command](../scripts/Fee-rule-comparisons.md)
-reads saved welfare results and produces the pairwise robustness tables for all
-costs and for costs 0.5, 1 and 2, with counts and an audit CSV for each view.
-They are saved under the article's `Supplemental materials/Generated pairwise comparisons`; selected
-publication tables can subsequently be extracted to `Tables`.
+The standalone viewer regression test remains with this project:
+`node --test LitigCharts/Tests/equilibrium-path-player.test.cjs`.
+Node is needed only for that developer test, not for replication.
 
-The command reference below also documents older, explicitly requested workflows.
-Those do not determine the current article selection or folder layout.
+# Earlier article workflows and standalone commands
 
-# Article diagrams
-
-The routine suite includes the ten-case [Complete Fee-Shifting batch](../scripts/Exit-fee-extension.md).
+The older suite includes a ten-case Complete Fee-Shifting batch.
 Use `--plan exit-fees` to operate on that batch alone. CS004 contains 184 cases and CS006EF contains 92: every retained transformation covers all six fee/risk cases. CS004ME is a separate multiple-start workflow.
 
-Optional ECTA numerical-path exports are described in
-[Equilibrium paths](../scripts/Equilibrium-paths.md). The equilibrium-paths
+For current saved-history replication, see [ArticleReplication](../ArticleReplication/README.md).
+The standalone equilibrium-paths
 command records every pivot and its complete strategies and incentive gaps,
 then generates standalone heat-map animations. Use --render-only to regenerate
 animations from verified traces. It does not overwrite production equilibria.
@@ -66,7 +59,8 @@ the article's Tables folder; high-cost and individual comparisons go to
 Supplemental materials/Equilibrium changes. No production equilibrium is solved
 or overwritten. This calculation is not implicitly included in diagrams all.
 
-See [the calculation guide](../scripts/Equilibrium-strategy-changes.md).
+The current complete strategic workflow is coordinated by
+[ArticleReplication](../ArticleReplication/README.md).
 
 ## Other targets
 
@@ -154,7 +148,7 @@ or hand-maintained template is required. Compilation alone can use the generated
 .tex without .NET or the extraction inputs.
 
 For interpretation and legacy API details see
-[Game-tree-diagrams.md](../scripts/Game-tree-diagrams.md).
+[Game-tree-diagrams.md](docs/Game-tree-diagrams.md).
 
 ## Signal family
 
@@ -320,4 +314,5 @@ The equilibrium-changes command replaces the former pressure-table generator.
 It reuses saved equilibria, calculates all eight opponent-component coalitions,
 and displays only changed, commonly reached decisions with direct-first additive
 contributions. Ties, selection residuals, and counterfactual reach are explicit.
-See [the calculation and reproduction guide](../scripts/Equilibrium-strategy-changes.md).
+For current calculation and reproduction, see
+[ArticleReplication](../ArticleReplication/README.md).

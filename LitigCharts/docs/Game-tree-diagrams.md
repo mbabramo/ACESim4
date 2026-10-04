@@ -1,7 +1,9 @@
 # Regenerating article diagrams
 
 The workflow is now in the existing C# **LitigCharts** project. See
-[LitigCharts/README.md](../LitigCharts/README.md) for commands and configuration.
+[LitigCharts/README.md](../README.md) for standalone commands and configuration,
+or [ArticleReplication](../../ArticleReplication/README.md) for the current
+complete article workflow.
 The former PowerShell wrappers and independently maintained LaTeX template have
 been retired. C# owns both numerical binding and the worked-path layout.
 
