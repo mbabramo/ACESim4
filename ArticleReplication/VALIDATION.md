@@ -1,4 +1,18 @@
-# Replication validation — simplified input contract
+# Replication validation
+
+## Current journal download test — October 4, 2026
+
+A fresh clone of the public `correlated-signals` branch at `cec938cf8a9e265a6759ded96e0475b9d1cbf690`, an empty NuGet cache, a newly extracted saved-solutions archive and a new output directory passed the documented full `rebuild` command. It completed in about 27 minutes on Windows with 27 workers. A journal may choose fewer workers; no scientific settings depend on that choice.
+
+The command rebuilt its dependencies, individually revalidated all 74 primary profiles and 200 search records (199 accepted), and started zero expensive solves. Complete saved strategies and numeric reports matched their regression references exactly. It freshly calculated 36 welfare pairs, 150 strategic directions, 6,496 tremble checks and 150 truth-sensitivity rows, and checked 13,680 history frames. It generated 238 custom PDFs and 697 standard diagrams: 4,331 files in the four research-output folders, with all 812 relative Markdown links resolving. All 28 Table 5 comparisons are audited, with no pending row.
+
+Default replication generated no manuscript folder. The author-maintained manuscript is separate; its separately reviewed optional build is 25 pages. All 11 numbered exhibits and representative supplemental outputs were visually reviewed; 21 reviewed previews remain identical in the clean GitHub test. Numeric history replay and static viewer checks passed, but browser security restrictions prevented manual testing of interactive viewer controls. The updated full collection has been tested on Windows; the earlier Linux core and fresh-solve parity checks below do not constitute a fresh full Linux/container test.
+
+The saved-solutions download contains only 74 primary `.equ` files, 200 search `.equ` records and four compressed histories. It contains no settings, provenance, old reports or cached decompositions. The source instructions and archive are linked from the repository README. Temporary execution evidence remains outside the repositories. No complete no-input rerun of every expensive game is claimed.
+
+## Earlier validation records
+
+The chronological records below describe earlier tests and their then-pending work. The current status above supersedes their pending-grid and pending-repeat statements.
 
 These tests ran in isolated directories. Live code/article repositories and frozen workers were not modified, and automatic monitoring remains disabled. The original two grid cases were reserved, not duplicated. This is implementation evidence, not a full article-release certificate.
 
