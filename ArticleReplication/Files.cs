@@ -41,7 +41,7 @@ public static class Files
         if(a is JsonArray u&&b is JsonArray v)
         {if(u.Count!=v.Count)throw new InvalidDataException(context+": length");for(int i=0;i<u.Count;i++)EqualScience(u[i],v[i],context+"/"+i);return;}
         if(a.GetValueKind()==JsonValueKind.Number&&b.GetValueKind()==JsonValueKind.Number)
-        {double x1=a.GetValue<double>(),x2=b.GetValue<double>();if(!double.IsFinite(x1)||x1!=x2)throw new InvalidDataException(context+": numeric difference");return;}
+        {double x1=a.GetValue<double>(),x2=b.GetValue<double>();if(!double.IsFinite(x1)||x1!=x2)throw new InvalidDataException(context+$": numeric difference ({x1:R} versus {x2:R})");return;}
         if(!JsonNode.DeepEquals(a,b))throw new InvalidDataException(context+": difference");
     }
 }

@@ -4,15 +4,17 @@
 
 Install [Docker Desktop](https://docs.docker.com/desktop/) on Windows and select Linux containers, or install [Docker Engine](https://docs.docker.com/engine/install/) on Linux. Start Docker and ensure `docker version` shows a server. The release image is Linux x86-64; ARM emulation is not part of the tested platform. Allow four CPUs and sufficient memory for the full reporting run (the hosted validation runner has 16 GiB).
 
-Download and extract [correlated-signals-saved-solutions.zip](https://github.com/mbabramo/correlated-signals-article/releases/download/replication-20261004/correlated-signals-saved-solutions.zip). The extracted folder must directly contain `Equilibria`, `Search` and `Histories`. Create a separate empty output-parent folder. Replace the two host paths with absolute paths to those existing folders:
+Create a new folder called `replication`. Download [correlated-signals-saved-solutions.zip](https://github.com/mbabramo/correlated-signals-article/releases/download/replication-20261004/correlated-signals-saved-solutions.zip) and extract its contents into `replication/solutions`. The `solutions` folder must directly contain `Equilibria`, `Search` and `Histories`.
+
+Open PowerShell on Windows, or a Linux terminal, in the `replication` folder. On Windows, right-click inside the folder and choose **Open in Terminal**, using a PowerShell tab. Paste this entire command; no paths need editing:
 
 ```sh
-docker run --rm --network none --cpus 4 --mount "type=bind,source=/absolute/path/saved-solutions,target=/inputs,readonly" --mount "type=bind,source=/absolute/path/output,target=/output" ghcr.io/mbabramo/acesim-correlated-signals:2026-10-04 run --input /inputs --output /output/run --missing wait --workers 4
+docker run --rm --network none --cpus 4 -v "${PWD}/solutions:/inputs:ro" -v "${PWD}/output:/output" ghcr.io/mbabramo/acesim-correlated-signals:2026-10-04.1 run --input /inputs --output /output/run --missing wait --workers 4
 ```
 
-The command works on one line in PowerShell or a Linux shell. Windows host paths may be `C:/Replication/saved-solutions` and `C:/Replication/output`, including spaces inside the quoted mount argument. Docker downloads the public image automatically when needed; no registry login is required. Internet access is needed for downloading Docker, the image and optional solutions, but replication itself runs with networking disabled.
+`${PWD}` means the current folder in both PowerShell and a Linux shell. Docker downloads the software and creates the output folder automatically; no registry login is required. Internet access is needed for downloading Docker, the software and saved solutions, but replication itself runs with networking disabled.
 
-Read the generated research collection in the host output folder's `run/article`. The `run` subdirectory must be new. The manuscript remains separate. Choose fewer workers and matching `--cpus` if needed; each numerical child remains single-threaded. On Linux, the default container process writes files as root. The image includes the application, .NET runtime, TeX, fonts and PDF tools; the saved equilibrium/history files are separate optional inputs. They are mathematically checked on reuse; decompositions and reporting are recalculated.
+Leave the terminal open until the command finishes, then open **`replication/output/run/article`**. Use a new `replication` folder to repeat the exercise: an existing run is never overwritten. The manuscript remains separate. Choose fewer workers and matching `--cpus` if needed; each numerical child remains single-threaded. On Linux, the default container process writes files as root. The image includes the application, .NET runtime, TeX, fonts and PDF tools; the saved equilibrium/history files are separate optional inputs. They are mathematically checked on reuse; decompositions and reporting are recalculated.
 
 The [image package](https://github.com/users/mbabramo/packages/container/package/acesim-correlated-signals) provides version tags and digests. The dated release tag identifies this article collection; a digest can be substituted for the tag to select the exact image. Source and the automated build/test/publish workflow are in the `correlated-signals` branch. The workflow publishes only after the complete saved-solutions run and native release checks pass.
 

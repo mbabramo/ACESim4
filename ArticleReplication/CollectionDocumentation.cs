@@ -31,7 +31,7 @@ public static class CollectionDocumentation
                 .Select(f=>$"- [{Path.GetFileNameWithoutExtension(f)}]({Link(Path.GetFileName(f))})")):"This stage was not requested.";
         }
         string grids=string.Join("; ",plan.Settings.Grids.Select(g=>$"{g.Signals} signals / {g.Offers} offers ({g.Risk switch {"rn"=>"risk-neutral","ra"=>"risk-averse",_=>"both risk preferences"}})"));
-        string articleLink=plan.Steps.Contains("Manuscript")?"[Article PDF](Article%20and%20bibliography/corr_signals.pdf)":"[Author-maintained article](https://github.com/mbabramo/correlated-signals-article/tree/main/Article%20and%20bibliography)";
+        string articleLink=plan.Steps.Contains("Manuscript")?"[Article PDF](Article%20and%20bibliography/corr_signals.pdf)":"[Article](https://github.com/mbabramo/correlated-signals-article/tree/main/Article%20and%20bibliography)";
         Write(".gitignore","# Local rebuilds and editor/compiler intermediates\n.reproduction/\n*.aux\n*.log\n*.out\n*.bbl\n*.blg\n*.bcf\n*.run.xml\n*.synctex.gz\n*-blx.bib\n");
         Write(".gitattributes","# Keep generated data and PDF/source assets byte-identical across checkouts.\n* -text -ident\n");
         Write("README.md",$$"""
@@ -39,30 +39,31 @@ public static class CollectionDocumentation
 
             {{articleLink}} · [Figures](Figures/README.md) · [Tables](Tables/README.md)
 
-            This collection contains {{profiles}} validated primary profiles from the {{plan.Cases.Length}}-case resolved article plan. The grid comparisons are {{grids}}. American and British denote the principal rules; trial-only fee shifting is a separate extension.
-
             - **Figures** and **Tables**: exhibits included in the article, with editable sources and previews.
             - **Results/Individual simulations**: complete strategies, audits, numerical reports and standard diagrams for every reported game.
             - **Results/Aggregated Data**: matched comparisons, welfare measures, truth-formula sensitivity and tremble responses.
             - **Supplemental materials**: multiple-equilibrium results, decompositions, solution-path viewers, signal and game-tree diagrams, and utility curves.
 
-            The **Article and bibliography** folder is author-maintained and separate from default replication. The journal command generates the four research-output folders above. An optional `--manuscript true` author build also compiles the embedded manuscript snapshot with generated numerical bindings; it never overwrites the author's checkout.
+            Replication regenerates the results, tables, figures and supplemental materials. The article and bibliography are maintained separately.
 
             ## Replication
 
-            Install Docker with Linux-container support. The published image contains the C# application, .NET, TeX, fonts and PDF tools; these do not need separate installation. See the [container instructions]({{ContainerRelease.Instructions}}) for Windows/Linux setup and the alternative native source build.
+            No programming experience is required. Docker runs the replication software with its required tools already installed.
 
-            Download and extract the [saved-solutions archive](https://github.com/mbabramo/correlated-signals-article/releases/tag/replication-20261004). Create an empty output-parent folder. Replace the two host paths below with absolute paths to those existing folders:
+            1. **Install and start Docker.** Use [Docker Desktop for Windows](https://docs.docker.com/desktop/setup/install/windows-install/) or [Docker Engine for Linux](https://docs.docker.com/engine/install/). On Windows, use Linux containers (the default).
+            2. **Download the saved solutions.** Create a new folder called `replication`. Download [this ZIP file](https://github.com/mbabramo/correlated-signals-article/releases/download/replication-20261004/correlated-signals-saved-solutions.zip), extract it, and put its contents in a folder named `solutions` inside `replication`. The `solutions` folder should contain `Equilibria`, `Search` and `Histories` directly.
+            3. **Open a terminal in the `replication` folder.** On Windows, right-click inside that folder and choose **Open in Terminal**, using a PowerShell tab. On Linux, open a terminal in that folder.
+            4. **Copy and paste this entire command**, then press Enter. You do not need to change any paths:
 
             ```sh
-            docker run --rm --network none --cpus 4 --mount "type=bind,source=/absolute/path/saved-solutions,target=/inputs,readonly" --mount "type=bind,source=/absolute/path/output,target=/output" {{ContainerRelease.Image}} run --input /inputs --output /output/run --missing wait --workers 4
+            docker run --rm --network none --cpus 4 -v "${PWD}/solutions:/inputs:ro" -v "${PWD}/output:/output" {{ContainerRelease.Image}} run --input /inputs --output /output/run --missing wait --workers 4
             ```
 
-            Docker downloads the public image automatically if needed; no registry login or code checkout is required. On Windows host paths can be written as `C:/Replication/saved-solutions` and `C:/Replication/output`. Read the collection in the host output folder's `run/article`. The `run` subdirectory must not already exist. The image is Linux x86-64. Remove the input mount and `--input`, and use `--missing compute`, for a complete fresh calculation, which can take substantially longer. Settings and stage switches are documented in the [C# coordinator](https://github.com/mbabramo/ACESim4/tree/correlated-signals/ArticleReplication). Worker counts must account for other active computations.
+            The first run downloads the software automatically; you do not need a GitHub account or a copy of the code. Leave the terminal open until it finishes. The completed results will be in **`replication/output/run/article`**. The program creates the output folders for you and refuses to overwrite an existing run. Use a new `replication` folder if you want to repeat the exercise.
 
-            Shortcuts contain only complete primary equilibria, the {{plan.ExpectedApproximateStarts}} multiple-start outcomes (including explicit failed attempts), and optional solver histories. Every accepted profile is revalidated; histories are replay-checked. Decompositions, tremble experiments, reports and exhibits are freshly generated. The manuscript PDF is compiled only when explicitly requested. Failed searches are not proofs of nonexistence. Exact-primary, approximate-search and trajectory-replay criteria remain distinct.
+            The supplied solutions avoid repeating the slow equilibrium searches. The program checks those solutions and recalculates the analyses, tables and figures. This command is for Windows or Linux on an Intel/AMD computer; the tested machine has four available processors and 16 GB of memory.
 
-            The case inventory is [selected-primary-catalog.json](Results/Aggregated%20Data/selected-primary-catalog.json). Temporary build, execution and release-review records belong outside this published collection.
+            [Detailed instructions and other options]({{ContainerRelease.Instructions}}) · [C# source code](https://github.com/mbabramo/ACESim4/tree/correlated-signals) · [Simulation inventory](Results/Aggregated%20Data/selected-primary-catalog.json)
             """);
         Write("Figures/README.md","# Article figures\n\nOnly figures included in the manuscript are numbered here. Editable TeX/data are in `Sources`.\n\n"+Index("Figures","*.pdf"));
         Write("Tables/README.md","# Article tables\n\nEditable TeX and data are in `Sources`. Figure 7 replaces the former welfare table; numbering follows the manuscript.\n\n"+Index("Tables","*.pdf"));
@@ -70,6 +71,9 @@ public static class CollectionDocumentation
         string supplemental=Path.Combine(collection,"Supplemental materials");Directory.CreateDirectory(supplemental);
         Write("Supplemental materials/README.md","# Supplemental materials\n\n"+string.Join('\n',Directory.GetDirectories(supplemental).Order(StringComparer.Ordinal).Select(d=>$"- [{Path.GetFileName(d)}]({Link(Path.GetFileName(d))}/)")));
         if(plan.Steps.Contains("Histories"))Write("Supplemental materials/Equilibrium solution paths/README.md","# Equilibrium solution paths\n\nThe four core-game viewers retain complete recorded strategies and native solver coordinates. Each saved frame is replay-checked against the current game and final equilibrium; this is distinct from an algebraic proof of every tableau pivot. Open these HTML files locally in a current Chrome, Edge or Firefox browser. Keep any adjacent `-data` folder beside its HTML file: large traces use local script chunks to stay below repository file limits. The compressed payload is reconstructed exactly, with no omitted frames or rounded values.\n\n"+Index("Supplemental materials/Equilibrium solution paths","*.html"));
+        // Git cannot retain empty directories; do not publish empty execution-record leftovers.
+        foreach(string directory in Directory.GetDirectories(collection,"*",SearchOption.AllDirectories).OrderByDescending(p=>p.Length))
+            if(!Directory.EnumerateFileSystemEntries(directory).Any())Directory.Delete(directory);
         Files.Save(Path.Combine(collection,"Results/Aggregated Data/reporting-inventory.json"),new{
             PrimaryCases=plan.Cases.Select(c=>c.Id),AvailableProfiles=profiles,ExpectedPrimaryCases=plan.Cases.Length,
             WelfareComparisons=plan.Welfare,StrategicComparisons=plan.Strategic,ExpectedSearchAttempts=plan.ExpectedApproximateStarts,

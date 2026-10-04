@@ -5,7 +5,7 @@ namespace ArticleReplication;
 /// <summary>Release checks against published results; never an input to replication.</summary>
 public static class ContainerRelease
 {
-    public const string Image = "ghcr.io/mbabramo/acesim-correlated-signals:2026-10-04";
+    public const string Image = "ghcr.io/mbabramo/acesim-correlated-signals:2026-10-04.1";
     public const string Instructions = "https://github.com/mbabramo/ACESim4/blob/correlated-signals/ArticleReplication/INSTALL.md";
 
     public static void Verify(string run,string reference,string output)

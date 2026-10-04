@@ -2,13 +2,15 @@
 
 ## Journal replication
 
-The primary journal workflow uses the public Linux x86-64 image `ghcr.io/mbabramo/acesim-correlated-signals:2026-10-04`. Install Docker with Linux-container support, extract the [saved-solutions archive](https://github.com/mbabramo/correlated-signals-article/releases/tag/replication-20261004), and create an empty output-parent folder. Replace the host paths with absolute paths to those existing folders:
+No programming experience is required. Install and start Docker, then create a new folder called `replication`. Download the [saved-solutions ZIP](https://github.com/mbabramo/correlated-signals-article/releases/download/replication-20261004/correlated-signals-saved-solutions.zip) and extract its contents into `replication/solutions`. That folder should directly contain `Equilibria`, `Search` and `Histories`.
+
+Open PowerShell (Windows) or a terminal (Linux) in the `replication` folder. Copy and paste this entire command; no paths need editing:
 
 ```sh
-docker run --rm --network none --cpus 4 --mount "type=bind,source=/absolute/path/saved-solutions,target=/inputs,readonly" --mount "type=bind,source=/absolute/path/output,target=/output" ghcr.io/mbabramo/acesim-correlated-signals:2026-10-04 run --input /inputs --output /output/run --missing wait --workers 4
+docker run --rm --network none --cpus 4 -v "${PWD}/solutions:/inputs:ro" -v "${PWD}/output:/output" ghcr.io/mbabramo/acesim-correlated-signals:2026-10-04.1 run --input /inputs --output /output/run --missing wait --workers 4
 ```
 
-Docker pulls the image automatically when it is absent. No registry login, source checkout or separate .NET, TeX or fonts is required. Windows host paths can use `C:/Replication/saved-solutions` and `C:/Replication/output`. Results are in the host output folder's `run/article`; `run` must not already exist. The image contains application/tool dependencies, while the saved solutions stay separate and are mounted read-only. The full application runs without network access. See [INSTALL.md](INSTALL.md) for platform and build details.
+Docker downloads the software and creates the output folders automatically. Leave the terminal open until the command finishes; then open **`replication/output/run/article`**. No GitHub login, source checkout, .NET or TeX installation is required. Use a new folder to repeat the exercise: an existing run is never overwritten. See [INSTALL.md](INSTALL.md) for Docker installation links and platform requirements.
 
 The command regenerates **Results**, **Tables**, **Figures** and **Supplemental materials**. The author-maintained manuscript and bibliography remain separate. For a no-shortcut calculation, remove the input mount and `--input`, and change `--missing wait` to `--missing compute`.
 

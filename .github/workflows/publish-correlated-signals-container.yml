@@ -104,6 +104,7 @@ jobs:
           for f in "$REPLICATION"/full/article/Figures/*.png "$REPLICATION"/full/article/Figures/*.pdf; do cp "$f" "$EVIDENCE/figures/"; done
           for f in "$REPLICATION"/full/article/Tables/*.png "$REPLICATION"/full/article/Tables/*.pdf; do cp "$f" "$EVIDENCE/tables/"; done
           if [[ -f "$REPLICATION/full/article/README.md" ]]; then cp "$REPLICATION/full/article/README.md" "$EVIDENCE/collection-README.md"; fi
+          if [[ -d "$REPLICATION/full/article" ]]; then tar -C "$REPLICATION/full" -czf "$EVIDENCE/generated-collection.tar.gz" article; fi
           if [[ -d "$REPLICATION/full/logs" ]]; then cp -r "$REPLICATION/full/logs" "$EVIDENCE/replication-logs"; fi
           if [[ -d "$RECORDS/logs" ]]; then cp -r "$RECORDS/logs" "$EVIDENCE/build-logs"; fi
           if docker container inspect correlated-signals-release-test >/dev/null 2>&1; then docker container inspect correlated-signals-release-test > "$EVIDENCE/container-exit.json"; fi

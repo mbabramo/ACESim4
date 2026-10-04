@@ -13,7 +13,9 @@ public static class ShortcutTests
         if(disabled.Steps.Contains("Manuscript"))throw new InvalidDataException("Explicit exclusion failed.");
         string collection=Path.Combine(output,"article");
         await UtilityCurves.Run(collection,output);
+        Directory.CreateDirectory(Path.Combine(collection,"Results/Run records/obsolete-empty"));
         CollectionDocumentation.Generate(ArticlePlan.Resolve(defaults,ArticlePlan.PublishedCalibration),collection,0,output);
+        if(Directory.Exists(Path.Combine(collection,"Results/Run records")))throw new InvalidDataException("Empty execution directories leaked into the published collection.");
         if(Directory.Exists(Path.Combine(collection,"Article and bibliography")))throw new InvalidDataException("Default presentation created manuscript assets.");
         string utility=Path.Combine(collection,"Supplemental materials/Risk aversion utility curves");
         foreach(string file in new[]{"risk aversion v2.tex","risk aversion v2.pdf","risk aversion.pdf","README.md"})
