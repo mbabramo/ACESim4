@@ -16,13 +16,13 @@ The command regenerates **Results**, **Tables**, **Figures** and **Supplemental 
 
 ### Alternative: rebuild and run natively
 
-Download or clone the [correlated-signals code branch](https://github.com/mbabramo/ACESim4/tree/correlated-signals), install the native tools in [INSTALL.md](INSTALL.md), and extract the optional saved-solutions archive into a sibling `saved-solutions` directory. From the code root:
+Follow the [step-by-step instructions for running without Docker](INSTALL.md#run-without-docker): install .NET, TeX/fonts and PDF tools, extract the code into `replication/code`, and extract the saved solutions into `replication/solutions`. No Docker, Visual Studio or Git installation is needed. From `replication/code`, run:
 
 ```sh
-dotnet run --project ArticleReplication -c Release -- rebuild --source . --output ../replication-output --input ../saved-solutions --missing wait --workers 4
+dotnet run --project ArticleReplication -c Release -- rebuild --source . --output ../output --input ../solutions --missing wait --workers 4
 ```
 
-The new directory `../replication-output/run/article` contains **Results**, **Tables**, **Figures** and **Supplemental materials**. The separately maintained manuscript and bibliography are not part of this default command. The output directory must not already exist and must be outside the code checkout. With the complete supplied archive no equilibrium searches or history recreations are needed. For a calculation without shortcuts, omit `--input` and change `--missing wait` to `--missing compute`; exact solves may take much longer. Commands work in PowerShell and a Linux shell after the prerequisites are installed.
+The new directory `replication/output/run/article` contains **Results**, **Tables**, **Figures** and **Supplemental materials**. The separately maintained manuscript and bibliography are not part of this default command. The output directory must not already exist and must be outside the code checkout. With the complete supplied archive no equilibrium searches or history recreations are needed. For a calculation without shortcuts, omit `--input ../solutions` and change `--missing wait` to `--missing compute`; exact solves may take much longer. Commands work in PowerShell and a Linux shell after the prerequisites are installed.
 
 ## Commands
 

@@ -1,5 +1,7 @@
 # Container replication and native installation
 
+Choose either [Docker](#run-the-published-container), which includes the required tools, or [running without Docker](#run-without-docker), which installs those tools on your own computer. Both regenerate the same research-output folders from the same saved solutions. The manuscript is maintained separately.
+
 ## Run the published container
 
 Install [Docker Desktop](https://docs.docker.com/desktop/) on Windows and select Linux containers, or install [Docker Engine](https://docs.docker.com/engine/install/) on Linux. Start Docker and ensure `docker version` shows a server. The release image is Linux x86-64; ARM emulation is not part of the tested platform. Allow four CPUs and sufficient memory for the full reporting run (the hosted validation runner has 16 GiB).
@@ -18,30 +20,75 @@ Leave the terminal open until the command finishes, then open **`replication/out
 
 The [image package](https://github.com/users/mbabramo/packages/container/package/acesim-correlated-signals) provides version tags and digests. The dated release tag identifies this article collection; a digest can be substituted for the tag to select the exact image. Source and the automated build/test/publish workflow are in the `correlated-signals` branch. The workflow publishes only after the complete saved-solutions run and native release checks pass.
 
-## Native alternative
+## Run without Docker
 
-Use the following prerequisites only when running/building natively. They are already installed in the published image. They are never copied into the article output or computational-input bundle.
+This option downloads the C# source and builds it on your computer. You do not need Docker, Visual Studio, Git or a GitHub account. Install the tools once, then use the single reproduction command below. They stay installed on your computer; they are not copied into the results or saved-solutions folder.
 
-### Windows
+### 1. Install the tools
 
-Install the SDK version in [`global.json`](../global.json) (currently .NET SDK 10.0.401), plus the .NET 9 runtime for the application's `net9.0` target. Install [MiKTeX](https://miktex.org/download) or [TeX Live](https://tug.org/texlive/), including LuaLaTeX, BibTeX, Latin Modern, standalone, PGF/TikZ/PGFPlots, booktabs, tabularx and microtype. Install [Poppler](https://poppler.freedesktop.org/) command-line tools through your preferred Windows package distributor. Put their executable directories on PATH.
+**Windows (Intel/AMD, 64-bit)**
 
-### Linux
+- **.NET:** install the **.NET SDK 10.0.401**, as specified in [`global.json`](../global.json), and the **.NET 9 Runtime**. Use Microsoft's [Windows installation instructions](https://learn.microsoft.com/en-us/dotnet/core/install/windows) and [downloads](https://dotnet.microsoft.com/en-us/download/dotnet). The SDK is needed to build the code; the separate version 9 runtime runs the application.
+- **TeX and fonts:** install [TeX Live](https://tug.org/texlive/) with its full package selection. Alternatively, install [MiKTeX](https://miktex.org/howto/install-miktex) and use MiKTeX Console to install the required packages before running: LuaLaTeX, BibTeX, Latin Modern, [Clear Sans](https://ctan.org/pkg/clearsans), standalone, PGF/TikZ/PGFPlots, booktabs, tabularx and microtype. Clear Sans needs its fonts as well as its TeX package.
+- **PDF tools:** download the binary ZIP from the [Poppler Windows releases](https://github.com/oschwartz10612/poppler-windows/releases), extract it to a permanent folder, and add its `Library/bin` folder to your user **Path**. In Windows search, open **Edit environment variables for your account**, select **Path**, then **Edit → New** and add that folder. It must contain `pdftoppm.exe` and `pdfunite.exe`.
 
-Install the same .NET SDK and runtime from [Microsoft's installation instructions](https://learn.microsoft.com/en-us/dotnet/core/install/linux). On Debian/Ubuntu install the rendering dependencies:
+Close and reopen your terminal after installation so that it sees the installed tools.
+
+**Linux (Intel/AMD, 64-bit)**
+
+Install **.NET SDK 10.0.401** and the **.NET 9 Runtime** using [Microsoft's Linux instructions](https://learn.microsoft.com/en-us/dotnet/core/install/linux). For Debian/Ubuntu, install the rendering tools and fonts with:
 
 ```sh
 sudo apt-get update
 sudo apt-get install texlive-luatex texlive-latex-extra texlive-pictures texlive-fonts-extra lmodern fonts-lmodern fonts-clear-sans poppler-utils
 ```
 
-Standard reports also use [Clear Sans](https://packages.debian.org/bookworm/fonts-clear-sans); both its TeX support and actual font files are required. Other distributions can install equivalent packages. Check prerequisites before any expensive calculation:
+Other distributions can install equivalent packages. These TeX/font packages are large; allow sufficient disk space. No Python installation is required.
 
-```sh
-dotnet run --project ArticleReplication -c Release -- doctor --output /absolute/path/new-preflight
+### 2. Download the code and saved solutions
+
+Create a new folder named `replication`. Download and extract:
+
+- The [C# source ZIP for the correlated-signals branch](https://github.com/mbabramo/ACESim4/archive/refs/heads/correlated-signals.zip). Rename the extracted `ACESim4-correlated-signals` folder to **`code`** and put it inside `replication`. The `code` folder should directly contain `global.json` and `ArticleReplication`.
+- The [saved-solutions ZIP](https://github.com/mbabramo/correlated-signals-article/releases/download/replication-20261004/correlated-signals-saved-solutions.zip). Extract its contents into **`replication/solutions`**, which should directly contain `Equilibria`, `Search` and `Histories`.
+
+The folders should look like this; do not create `output` yourself:
+
+```text
+replication/
+  code/
+    global.json
+    ArticleReplication/
+    ...
+  solutions/
+    Equilibria/
+    Search/
+    Histories/
 ```
 
-This records tool versions and executable/font hashes, compiles a font/TikZ test, renders a PNG and merges two PDF pages. A missing tool fails with logs. No automatic tool installation occurs. A downloaded source archive works without Git: `rebuild` snapshots and hashes the actual source files before compilation.
+### 3. Run one command
+
+Open PowerShell on Windows, or a terminal on Linux, **inside `replication/code`**. On Windows, right-click inside the `code` folder and choose **Open in Terminal**, using a PowerShell tab. Paste this entire line without changing any paths:
+
+```sh
+dotnet run --project ArticleReplication -c Release -- rebuild --source . --output ../output --input ../solutions --missing wait --workers 4
+```
+
+The command checks the installed tools, rebuilds the required C# projects, verifies the saved solutions, and regenerates all the analyses and exhibits. It downloads code dependencies during the build, so keep an internet connection available. With the complete saved-solutions archive, it starts no equilibrium searches or solver-history recreations. Missing inputs remain pending because of `--missing wait`.
+
+Leave the terminal open until it finishes, then open **`replication/output/run/article`** for Results, Tables, Figures and Supplemental materials. Four workers are used; reduce `--workers 4` if necessary. The output directory must be new and outside `code`. To repeat the exercise, use another new `replication` folder and keep the earlier results.
+
+### If a tool is missing
+
+Read the error in the terminal. You can test just the installed tools before attempting replication, from the same `code` folder:
+
+```sh
+dotnet run --project ArticleReplication -c Release -- doctor --output ../tool-check
+```
+
+The check compiles a font/TikZ example, renders a PNG and merges two PDF pages. Its logs are in `replication/tool-check/logs`. If an executable is missing, install it and ensure its folder is on **Path**, then reopen the terminal. If a font/package is missing, install it through your TeX distribution. Use a fresh folder name such as `../tool-check-2` when repeating the check. The program never installs tools automatically.
+
+To calculate everything without saved solutions, omit `--input ../solutions` and replace `--missing wait` with `--missing compute` in the reproduction command. This includes the expensive equilibrium searches and solver histories and can take much longer. The saved-solutions route verifies those calculations' reusable outputs instead.
 
 ## Build the container through MSBuild
 

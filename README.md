@@ -14,4 +14,14 @@ Docker downloads the software and creates the output folders automatically. No G
 
 When the command finishes, open **`replication/output/run/article`** for the regenerated Results, Tables, Figures and Supplemental materials. An existing run is never overwritten; use a new folder to repeat the exercise. The manuscript and bibliography remain separate.
 
-To calculate equilibria and solver histories afresh, omit the input mount and `--input`, and use `--missing compute`; this can take much longer. The [replication guide](ArticleReplication/README.md) also retains the one-command native source rebuild, settings and optional stages. The [validation summary](ArticleReplication/VALIDATION.md) records completed checks and their scope.
+To calculate equilibria and solver histories afresh, omit the input mount and `--input`, and use `--missing compute`; this can take much longer. The [validation summary](ArticleReplication/VALIDATION.md) records completed checks and their scope.
+
+## Replicate without Docker
+
+Follow the [Windows/Linux setup instructions](ArticleReplication/INSTALL.md#run-without-docker) to install .NET, TeX/fonts and PDF tools. Extract the code into `replication/code` and the saved solutions into `replication/solutions`. From the `code` folder, run this one line:
+
+```sh
+dotnet run --project ArticleReplication -c Release -- rebuild --source . --output ../output --input ../solutions --missing wait --workers 4
+```
+
+This rebuilds the C# projects, verifies the saved solutions and generates the same research-output folders at **`replication/output/run/article`**. Docker, Visual Studio and Git are not required. The [replication guide](ArticleReplication/README.md) describes settings and optional stages.
