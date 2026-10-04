@@ -36,7 +36,9 @@ public static class ContainerRelease
             string relative="Results/Individual simulations/"+c.Id+"/Sources";
             string a=Path.Combine(collection,relative),b=Path.Combine(reference,relative);
             Profile(Path.Combine(a,"complete-profile.json"),Path.Combine(b,"complete-profile.json"));
-            Fields(Files.Object(Path.Combine(a,"individual-audit.json")),Files.Object(Path.Combine(b,"individual-audit.json")),"GameIdentity","FullBestResponseGains","CompleteStrategySha256","UnspecifiedOffPathInformationSets","Welfare");
+            var audit=Files.Object(Path.Combine(a,"individual-audit.json"));var referenceAudit=Files.Object(Path.Combine(b,"individual-audit.json"));
+            foreach(string key in new[]{"GameIdentity","FullBestResponseGains","CompleteStrategySha256","UnspecifiedOffPathInformationSets","Welfare"})
+                Files.EqualScience(audit[key],referenceAudit[key],c.Id+" "+key);
             var x=Reports.ReadCsv(Path.Combine(a,"replayed-report.csv"));var y=Reports.ReadCsv(Path.Combine(b,"replayed-report.csv"));
             foreach(var row in x.Concat(y))row.Remove("Seconds");
             Files.EqualScience(System.Text.Json.JsonSerializer.SerializeToNode(x,Files.Json),System.Text.Json.JsonSerializer.SerializeToNode(y,Files.Json),c.Id+" numeric reports");
