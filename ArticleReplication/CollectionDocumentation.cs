@@ -31,20 +31,22 @@ public static class CollectionDocumentation
                 .Select(f=>$"- [{Path.GetFileNameWithoutExtension(f)}]({Link(Path.GetFileName(f))})")):"This stage was not requested.";
         }
         string grids=string.Join("; ",plan.Settings.Grids.Select(g=>$"{g.Signals} signals / {g.Offers} offers ({g.Risk switch {"rn"=>"risk-neutral","ra"=>"risk-averse",_=>"both risk preferences"}})"));
+        string articleLink=plan.Steps.Contains("Manuscript")?"[Article PDF](Article%20and%20bibliography/corr_signals.pdf)":"[Author-maintained article](https://github.com/mbabramo/correlated-signals-article/tree/main/Article%20and%20bibliography)";
         Write(".gitignore","# Local rebuilds and editor/compiler intermediates\n.reproduction/\n*.aux\n*.log\n*.out\n*.bbl\n*.blg\n*.bcf\n*.run.xml\n*.synctex.gz\n*-blx.bib\n");
         Write(".gitattributes","# Keep generated data and PDF/source assets byte-identical across checkouts.\n* -text -ident\n");
         Write("README.md",$$"""
             # Correlated signals in litigation
 
-            [Article PDF](Article%20and%20bibliography/corr_signals.pdf) · [Figures](Figures/README.md) · [Tables](Tables/README.md)
+            {{articleLink}} · [Figures](Figures/README.md) · [Tables](Tables/README.md)
 
             This collection contains {{profiles}} validated primary profiles from the {{plan.Cases.Length}}-case resolved article plan. The grid comparisons are {{grids}}. American and British denote the principal rules; trial-only fee shifting is a separate extension.
 
-            - **Article and bibliography**: current manuscript, bibliography and generated numerical bindings.
             - **Figures** and **Tables**: exhibits included in the article, with editable sources and previews.
             - **Results/Individual simulations**: complete strategies, audits, numerical reports and standard diagrams for every reported game.
             - **Results/Aggregated Data**: matched comparisons, welfare measures, truth-formula sensitivity and tremble responses.
             - **Supplemental materials**: multiple-equilibrium results, decompositions, solution-path viewers, signal and game-tree diagrams, and utility curves.
+
+            The **Article and bibliography** folder is author-maintained and separate from default replication. The journal command generates the four research-output folders above. An optional `--manuscript true` author build also compiles the embedded manuscript snapshot with generated numerical bindings; it never overwrites the author's checkout.
 
             ## Replication
 
@@ -58,7 +60,7 @@ public static class CollectionDocumentation
 
             Read the collection in `new-rebuild/run/article`. Remove `--input` and use `--missing compute` for a complete fresh calculation, which can take substantially longer. Settings and stage switches are documented in the [coordinator README](https://github.com/mbabramo/ACESim4/blob/correlated-signals/ArticleReplication/README.md). Worker counts must account for other active computations.
 
-            Shortcuts contain only complete primary equilibria, the {{plan.ExpectedApproximateStarts}} multiple-start outcomes (including explicit failed attempts), and optional solver histories. Every accepted profile is revalidated; histories are replay-checked. Decompositions, tremble experiments, reports, exhibits and the PDF are freshly generated. Failed searches are not proofs of nonexistence. Exact-primary, approximate-search and trajectory-replay criteria remain distinct.
+            Shortcuts contain only complete primary equilibria, the {{plan.ExpectedApproximateStarts}} multiple-start outcomes (including explicit failed attempts), and optional solver histories. Every accepted profile is revalidated; histories are replay-checked. Decompositions, tremble experiments, reports and exhibits are freshly generated. The manuscript PDF is compiled only when explicitly requested. Failed searches are not proofs of nonexistence. Exact-primary, approximate-search and trajectory-replay criteria remain distinct.
 
             The case inventory is [selected-primary-catalog.json](Results/Aggregated%20Data/selected-primary-catalog.json). Temporary build, execution and release-review records belong outside this published collection.
             """);

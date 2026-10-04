@@ -16,6 +16,7 @@ public static class Rendering
         if(plan.Steps.Contains("Strategic"))StrategicReports.Generate(Path.Combine(work,"ReportResults/Strategic"),plan,collection);
         if(plan.Steps.Contains("Welfare"))WelfareSupplement.Generate(plan,profiles,collection,work);
         await Compile(Artifacts(collection,plan,profiles.Keys),collection,work,workers);
+        if(!plan.Steps.Contains("Manuscript"))await UtilityCurves.Run(collection,work);
     }
     public static Artifact[] Artifacts(string collection,ResolvedArticlePlan plan,IEnumerable<string> profileIds)
     {

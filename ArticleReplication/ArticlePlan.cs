@@ -25,7 +25,7 @@ public sealed record CorrelatedSignalsSettings
     public int TrembleDirections { get; init; } = 5;
     public bool IncludeExtensions { get; init; } = true;
     public bool IncludeTrialOnly { get; init; } = true;
-    public string[] Steps { get; init; } = ["Primary","MultipleStarts","Welfare","TruthSensitivity","Strategic","Trembles","Histories","StandardReports","Exhibits","Manuscript"];
+    public string[] Steps { get; init; } = ["Primary","MultipleStarts","Welfare","TruthSensitivity","Strategic","Trembles","Histories","StandardReports","Exhibits"];
     public sealed record Grid(byte Signals,int Offers,string? Risk=null);
 }
 

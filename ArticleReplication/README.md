@@ -14,7 +14,7 @@ For a fresh source snapshot, locked dependency restore and Release rebuild of al
 dotnet run --project ArticleReplication -c Release -- rebuild --source /path/code --output /path/new-rebuild --input /path/saved-solves --workers 4
 ```
 
-The output contains `ReportResults` (fresh calculations, audits and reusable solve files), `article` (the existing Results, Supplemental materials, Tables and Figures organization), and execution/build records. `rebuild` places these under `run`. Logs and hashes are generated output, not required inputs.
+The output contains `ReportResults` (fresh calculations, audits and reusable solve files), `article` (the existing Results, Supplemental materials, Tables and Figures organization), and execution/build records. `rebuild` places these under `run`. The author-maintained **Article and bibliography** folder is separate: default replication neither generates nor replaces it. Logs and hashes are generated output, not required inputs.
 
 ## Optional saved solves
 
@@ -32,7 +32,9 @@ These are readable, versioned JSON formats. A failed attempt means that this sea
 
 Defaults are in `CorrelatedSignalsSettings`. Useful overrides include `--costs 0.25,0.5,1,2,4`, `--starts 50`, `--pivots 20000`, `--cutoff 0.005`, `--noise 0.1,0.4`, `--grids 8x12,12x8,8x8`, `--extensions false`, and `--trial-only false`. A grid without a risk suffix applies to both risk preferences. The article uses matched American/British comparisons at 8/12 and 12/8 for both risk preferences, with 8/8 as the control. The 15-based grids are excluded. Costs must include the reference multiplier 1. Fifty starts for each of the four core games means 200 attempts.
 
-`--steps Primary,MultipleStarts,Welfare,TruthSensitivity,Strategic,Trembles,Histories,StandardReports,Exhibits,Manuscript` is the default. Primary is required. Trembles includes the selected multiple-start profiles. Manuscript requires its contributing calculation/exhibit stages. `--cases case-id,...` permits a bounded test of the same full games. Never interpret a selected subset as a full article release.
+`--steps Primary,MultipleStarts,Welfare,TruthSensitivity,Strategic,Trembles,Histories,StandardReports,Exhibits` is the default. Primary is required. Trembles includes the selected multiple-start profiles. Supplemental utility curves are generated with Exhibits independently of the manuscript. `--cases case-id,...` permits a bounded test of the same full games. Never interpret a selected subset as a full article release.
+
+Authors may add `--manuscript true` to compile the embedded manuscript snapshot in the fresh output directory after its contributing calculation/exhibit stages. This is optional and is not part of the journal's default replication command. It does not write to the separately maintained manuscript folder.
 
 The primary stage uses the ordinary exact solver with its existing seed, completion and validation conventions. MultipleStarts uses the separate stable floating-point search and its existing immediate/capped acceptance criteria. Saved complete profiles retain off-path strategies and agreement decisions. StandardReports runs the existing report generator and LitigCharts, including editable sources and previews. Exhibits and manuscript numeric bindings use native C# generators and embedded authored/layout sources.
 

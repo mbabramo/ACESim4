@@ -24,6 +24,7 @@ public static class FinishReporting
         foreach(var artifact in Files.Object(Path.Combine(reporting,"standard-coverage.json"))["Files"]!.AsArray())
             if(Files.Sha(artifact!["Path"]!.GetValue<string>())!=artifact["Sha256"]!.GetValue<string>())throw new InvalidDataException("Changed standard output.");
         var plan=Files.Read<ResolvedArticlePlan>(Path.Combine(reporting,"resolved-plan.json"));
+        plan=plan with{Steps=plan.Steps.Union(["Manuscript"]).ToArray()};
         Directory.CreateDirectory(output);
         foreach(string file in Directory.GetFiles(old,"*",SearchOption.AllDirectories))
         {
@@ -32,6 +33,7 @@ public static class FinishReporting
             Files.CopyVerified(file,Files.Under(collection,relative));
         }
         foreach(string receipt in new[]{"resolved-plan.json","calculation-evidence.json","rendering.json","standard-coverage.json","solution-path-packaging.json"})Files.CopyVerified(Path.Combine(reporting,receipt),Path.Combine(output,receipt));
+        Files.Save(Path.Combine(output,"resolved-plan.json"),plan,replace:true);
         var manifest=new BundleManifest("generated-this-run",DateTime.UtcNow,"current",ArticlePlan.PublishedCalibration,[],[],plan.Cases.Select(c=>c.Id).ToArray(),[]);
         await Manuscript.Run(Path.Combine(run,"generated-inputs"),manifest,collection,output,run);
         CollectionDocumentation.Generate(plan,collection,plan.Cases.Length,output);
@@ -73,7 +75,8 @@ public static class FinishReporting
         await Commands.Run(Path.Combine(output,"logs"),"standard-litigcharts","dotnet",[typeof(LitigCharts.FinalArticleResultsCommand).Assembly.Location,"final-article-results","--request",request],output);
         StandardCoverage.Validate(request,Path.Combine(output,"standard-coverage.json"));
         var manifest=new BundleManifest("generated-this-run",DateTime.UtcNow,"current",ArticlePlan.PublishedCalibration,[],[],ids,[]);
-        await Manuscript.Run(Path.Combine(run,"generated-inputs"),manifest,collection,output,run);
+        if(plan.Steps.Contains("Manuscript"))await Manuscript.Run(Path.Combine(run,"generated-inputs"),manifest,collection,output,run);
+        else await UtilityCurves.Run(collection,output);
         CollectionDocumentation.Generate(plan,collection,ids.Length,output);
         Files.Save(Path.Combine(output,"completed.json"),new{Passed=true,CompleteArticle=false,FinishedUtc=DateTime.UtcNow,CalculationRun=run,PrimaryProfiles=ids.Length,SolvesStarted=0,CalculationsRepeated=false,VisualReviewRequired=true});
     }

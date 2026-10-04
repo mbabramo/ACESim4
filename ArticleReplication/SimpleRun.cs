@@ -8,7 +8,7 @@ public static class SimpleRun
 {
     public static async Task Run(Dictionary<string,string> args)
     {
-        string[] allowed=["input","output","article","costs","steps","starts","pivots","cutoff","gain-units","extensions","trial-only","noise","grids","trembles","tremble-directions","workers","other-workers","cases","reserve-cases","missing","truth-exponents"];
+        string[] allowed=["input","output","article","costs","steps","starts","pivots","cutoff","gain-units","extensions","trial-only","noise","grids","trembles","tremble-directions","workers","other-workers","cases","reserve-cases","missing","truth-exponents","manuscript"];
         if(args.Keys.Except(allowed,StringComparer.OrdinalIgnoreCase).Any())throw new ArgumentException("Unknown run option: "+string.Join(',',args.Keys.Except(allowed,StringComparer.OrdinalIgnoreCase)));
         if(args.GetValueOrDefault("article","CorrelatedSignals")!="CorrelatedSignals")throw new ArgumentException("Only CorrelatedSignals is implemented.");
         string output=Path.GetFullPath(args["output"]);string? input=args.TryGetValue("input",out var value)?Path.GetFullPath(value):null;

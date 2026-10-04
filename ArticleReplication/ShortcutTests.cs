@@ -2,6 +2,25 @@ namespace ArticleReplication;
 
 public static class ShortcutTests
 {
+    public static async Task ManuscriptBoundary(string output)
+    {
+        if(Directory.Exists(output))throw new IOException("Use a fresh test directory.");
+        var defaults=RunSettings.Resolve(new());
+        if(defaults.Steps.Contains("Manuscript")||!defaults.Steps.Contains("Exhibits"))throw new InvalidDataException("Default replication must generate exhibits without the manuscript.");
+        var optional=RunSettings.Resolve(new(){{"manuscript","true"}});
+        if(!optional.Steps.Contains("Manuscript")||!optional.Steps.Except(["Manuscript"]).SequenceEqual(defaults.Steps))throw new InvalidDataException("Author opt-in changed research stages.");
+        var disabled=RunSettings.Resolve(new(){{"steps","Primary,Manuscript"},{"manuscript","false"}});
+        if(disabled.Steps.Contains("Manuscript"))throw new InvalidDataException("Explicit exclusion failed.");
+        string collection=Path.Combine(output,"article");
+        await UtilityCurves.Run(collection,output);
+        CollectionDocumentation.Generate(ArticlePlan.Resolve(defaults,ArticlePlan.PublishedCalibration),collection,0,output);
+        if(Directory.Exists(Path.Combine(collection,"Article and bibliography")))throw new InvalidDataException("Default presentation created manuscript assets.");
+        string utility=Path.Combine(collection,"Supplemental materials/Risk aversion utility curves");
+        foreach(string file in new[]{"risk aversion v2.tex","risk aversion v2.pdf","risk aversion.pdf","README.md"})
+            if(!File.Exists(Path.Combine(utility,file)))throw new InvalidDataException("Missing supplemental utility asset: "+file);
+        if(File.ReadAllText(Path.Combine(collection,"README.md")).Contains("](Article%20and%20bibliography/corr_signals.pdf)"))throw new InvalidDataException("Default README links to an ungenerated manuscript.");
+        Files.Save(Path.Combine(output,"passed.json"),new{Passed=true,DefaultManuscript=false,ExplicitAuthorOptIn=true,UtilityCurvesGenerated=true,ManuscriptFolderCreated=false,ScientificStagesUnchanged=true});
+    }
     public static void CompareCsv(string generated,string reference,string output)
     {
         var a=Reports.ReadCsv(generated);var b=Reports.ReadCsv(reference);
