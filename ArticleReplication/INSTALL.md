@@ -15,13 +15,13 @@ Open PowerShell on Windows, or a Linux terminal, in the `replication` folder. On
 **With saved solutions:**
 
 ```sh
-docker run --rm --network none --cpus 4 -v "${PWD}/solutions:/inputs:ro" -v "${PWD}/output:/output" ghcr.io/mbabramo/acesim-correlated-signals:2026-10-04.1 run --input /inputs --output /output/run --missing wait --workers 4
+docker run --rm --network none --cpus 4 -v "${PWD}/solutions:/inputs:ro" -v "${PWD}/output:/output" ghcr.io/mbabramo/acesim-correlated-signals:2026-10-05 run --input /inputs --output /output/run --missing wait --workers 4
 ```
 
 **From scratch, without saved solutions:**
 
 ```sh
-docker run --rm --network none --cpus 4 -v "${PWD}/output:/output" ghcr.io/mbabramo/acesim-correlated-signals:2026-10-04.1 run --output /output/run --missing compute --workers 4
+docker run --rm --network none --cpus 4 -v "${PWD}/output:/output" ghcr.io/mbabramo/acesim-correlated-signals:2026-10-05 run --output /output/run --missing compute --workers 4
 ```
 
 This also calculates all equilibrium searches and solver histories and can take days or longer. It reads no saved inputs.

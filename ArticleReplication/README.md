@@ -9,13 +9,13 @@ Open PowerShell (Windows) or a terminal (Linux) in the `replication` folder. Cho
 **With saved solutions:**
 
 ```sh
-docker run --rm --network none --cpus 4 -v "${PWD}/solutions:/inputs:ro" -v "${PWD}/output:/output" ghcr.io/mbabramo/acesim-correlated-signals:2026-10-04.1 run --input /inputs --output /output/run --missing wait --workers 4
+docker run --rm --network none --cpus 4 -v "${PWD}/solutions:/inputs:ro" -v "${PWD}/output:/output" ghcr.io/mbabramo/acesim-correlated-signals:2026-10-05 run --input /inputs --output /output/run --missing wait --workers 4
 ```
 
 **From scratch, without saved solutions:** skip the solutions download and run this command in the same new `replication` folder. It calculates equilibria and solver histories as well, which can take days or longer.
 
 ```sh
-docker run --rm --network none --cpus 4 -v "${PWD}/output:/output" ghcr.io/mbabramo/acesim-correlated-signals:2026-10-04.1 run --output /output/run --missing compute --workers 4
+docker run --rm --network none --cpus 4 -v "${PWD}/output:/output" ghcr.io/mbabramo/acesim-correlated-signals:2026-10-05 run --output /output/run --missing compute --workers 4
 ```
 
 Docker downloads the software and creates the output folders automatically. Leave the terminal open until the command finishes; then open **`replication/output/run/article`**. No GitHub login, source checkout, .NET or TeX installation is required. Use a new folder to repeat the exercise: an existing run is never overwritten. See [INSTALL.md](INSTALL.md) for Docker installation links and platform requirements.

@@ -1,6 +1,10 @@
 # Replication validation
 
-## Published release
+## Current release update
+
+Image `2026-10-05` is being rebuilt from the current correlated-signals source, including the approximate-American comparison, expanded instructions and consecutive Table 4 numbering. The release workflow verifies the complete saved-solution collection against article commit `0d080991296db4099ea5af2326787a45a813ad4d` before publishing, and runs the new comparison regression checks in Linux. The prior verified image remains available. The following validation describes that prior release until the new build and public-download checks complete.
+
+## Previously verified release
 
 The complete Windows rebuild and two independent complete Linux container runs passed. The public image is `ghcr.io/mbabramo/acesim-correlated-signals:2026-10-04.1`, built from source `c44ccd6f6ec28f38ee4ad5d410768207afd26fe5`. Its immutable digest is `sha256:3a7056e3218c11c0f65299be9f3aa9425b879bc6f8b0d08d002a3b8d8421b7e9`.
 

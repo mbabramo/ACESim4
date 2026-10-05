@@ -35,6 +35,7 @@ jobs:
           docker run --rm --network none --cpus 1 --mount "type=bind,source=$RUNNER_TEMP/public-check,target=/output" "$IMAGE" doctor --output /output/doctor
           docker run --rm --network none --cpus 1 --mount "type=bind,source=$RUNNER_TEMP/public-check,target=/output" "$IMAGE" test-shortcuts --output /output/shortcut-tests.json
           docker run --rm --network none --cpus 1 --mount "type=bind,source=$RUNNER_TEMP/public-check,target=/output" "$IMAGE" test-reporting-comparison --output /output/reporting-comparison-tests.json
+          docker run --rm --network none --cpus 1 --mount "type=bind,source=$RUNNER_TEMP/public-check,target=/output" "$IMAGE" test-approximate-comparisons --output /output/approximate-comparison-tests.json
       - name: Download the public saved solutions
         shell: bash
         run: |
@@ -52,7 +53,7 @@ jobs:
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           repository: mbabramo/correlated-signals-article
-          ref: f984a08b34cd321d675bca60faa0f768c6881965
+          ref: 0d080991296db4099ea5af2326787a45a813ad4d
           path: published-reference
           persist-credentials: false
       - name: Verify every scientific profile and retain the entire collection

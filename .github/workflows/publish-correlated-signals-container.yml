@@ -63,6 +63,7 @@ jobs:
           docker run --rm --network none --cpus 1 --mount "type=bind,source=$REPLICATION,target=/output" "$IMAGE" doctor --output /output/doctor
           docker run --rm --network none --cpus 1 --mount "type=bind,source=$REPLICATION,target=/output" "$IMAGE" test-shortcuts --output /output/shortcut-tests.json
           docker run --rm --network none --cpus 1 --mount "type=bind,source=$REPLICATION,target=/output" "$IMAGE" test-reporting-comparison --output /output/reporting-comparison-tests.json
+          docker run --rm --network none --cpus 1 --mount "type=bind,source=$REPLICATION,target=/output" "$IMAGE" test-approximate-comparisons --output /output/approximate-comparison-tests.json
           docker run --rm --network none --cpus 1 --mount "type=bind,source=$REPLICATION,target=/output" "$IMAGE" test-manuscript-boundary --output /output/manuscript-boundary
       - name: Run the complete journal replication with networking disabled
         shell: bash
@@ -73,7 +74,7 @@ jobs:
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           repository: mbabramo/correlated-signals-article
-          ref: f984a08b34cd321d675bca60faa0f768c6881965
+          ref: 0d080991296db4099ea5af2326787a45a813ad4d
           path: published-reference
           persist-credentials: false
       - name: Verify exact strategies and bounded floating-point reporting differences
@@ -101,7 +102,7 @@ jobs:
           set -euo pipefail
           mkdir -p "$EVIDENCE/receipts" "$EVIDENCE/figures" "$EVIDENCE/tables"
           shopt -s nullglob
-          for f in "$REPLICATION"/full/*.json "$REPLICATION"/shortcut-tests.json "$REPLICATION"/reporting-comparison-tests.json "$REPLICATION"/manuscript-boundary/passed.json; do cp "$f" "$EVIDENCE/receipts/"; done
+          for f in "$REPLICATION"/full/*.json "$REPLICATION"/shortcut-tests.json "$REPLICATION"/reporting-comparison-tests.json "$REPLICATION"/approximate-comparison-tests.json "$REPLICATION"/manuscript-boundary/passed.json; do cp "$f" "$EVIDENCE/receipts/"; done
           for f in "$REPLICATION"/full/article/Figures/*.png "$REPLICATION"/full/article/Figures/*.pdf; do cp "$f" "$EVIDENCE/figures/"; done
           for f in "$REPLICATION"/full/article/Tables/*.png "$REPLICATION"/full/article/Tables/*.pdf; do cp "$f" "$EVIDENCE/tables/"; done
           if [[ -f "$REPLICATION/full/article/README.md" ]]; then cp "$REPLICATION/full/article/README.md" "$EVIDENCE/collection-README.md"; fi
