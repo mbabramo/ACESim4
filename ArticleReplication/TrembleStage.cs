@@ -66,7 +66,10 @@ public static class TrembleStage
         if(Files.Object(Path.Combine(stage,"suite-completed.json"))["Passed"]?.GetValue<bool>()!=true)throw new InvalidDataException("Incomplete tremble stage.");
         if(Directory.Exists(output))throw new IOException("Fresh sensitivity report required.");
         var profiles=JsonNode.Parse(File.ReadAllText(Path.Combine(stage,"profiles.json")))!.AsArray().ToDictionary(p=>p!["Id"]!.GetValue<string>());
-        var primary=profiles.Values.Where(p=>p!["Kind"]!.GetValue<string>()=="exact-primary").ToDictionary(p=>p!["CaseId"]!.GetValue<string>());
+        var references=profiles.Values.Where(p=>p!["CaseId"]!.GetValue<string>().Split("__")[2]=="complete")
+            .Select(p=>p!["CaseId"]!.GetValue<string>().Split("__")[3]).Distinct().ToDictionary(risk=>risk,risk=>ApproximateAmericanBenchmark.From(profiles.Values
+            .Where(p=>p!["Kind"]!.GetValue<string>()=="approximate"&&p["CaseId"]!.GetValue<string>()==$"baseline__standard__american__{risk}__cost-1")
+            .Select(p=>(p!["Welfare"]!["MeritoriousPlaintiffShortfall"]!.GetValue<double>(),p["Welfare"]!["NonliableDefendantBurden"]!.GetValue<double>()))));
         var protocol=Files.Object(Path.Combine(stage,"protocol.json"));double maxEpsilon=protocol["Epsilons"]!.AsArray().Max(v=>v!.GetValue<double>());int directions=protocol["Directions"]!.GetValue<int>();
         var data=new List<Dictionary<string,object?>>();var summary=new List<Dictionary<string,object?>>();var files=new List<object>();
         string[] welfare=["PlaintiffShortfall","NonliableDefendantBurden","LiableDefendantExcess","GrossError","LitigationCosts"],dispositions=["NotFiled","NotAnswered","Settlement","Abandonment","Default","Trial"];
@@ -76,8 +79,7 @@ public static class TrembleStage
             foreach(string folder in Directory.GetDirectories(shard).Order(StringComparer.Ordinal))
             {
                 string id=Path.GetFileName(folder);var original=profiles[id]!;string caseId=original["CaseId"]!.GetValue<string>(),risk=caseId.Split("__")[3],rule=caseId.Split("__")[2];
-                var baseline=Files.Object(Path.Combine(folder,"baseline.json"));var reference=primary[$"baseline__standard__american__{risk}__cost-1"]!["Welfare"]!;
-                string group=rule!="complete"?"American":baseline["Outcome"]!["Welfare"]![0]!.GetValue<double>()>reference["MeritoriousPlaintiffShortfall"]!.GetValue<double>()?"plaintiff reversal":baseline["Outcome"]!["Welfare"]![1]!.GetValue<double>()>reference["NonliableDefendantBurden"]!.GetValue<double>()?"defendant reversal":"other";
+                string group=rule!="complete"?"American":references[risk].Group(original["Welfare"]!["MeritoriousPlaintiffShortfall"]!.GetValue<double>(),original["Welfare"]!["NonliableDefendantBurden"]!.GetValue<double>());
                 var these=new List<Dictionary<string,object?>>();
                 foreach(string file in Directory.GetFiles(folder,"p*.json").Order(StringComparer.Ordinal))
                 {

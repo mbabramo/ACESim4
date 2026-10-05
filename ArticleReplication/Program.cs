@@ -28,6 +28,7 @@ public static class Program
                 case "run":await SimpleRun.Run(options);return 0;
                 case "test-shortcuts":ShortcutTests.Run(Get("output"));return 0;
                 case "test-reporting-comparison":ReportingComparison.Test(Get("output"));return 0;
+                case "test-approximate-comparisons":ApproximateAmericanBenchmark.Test(Get("output"));return 0;
                 case "test-manuscript-boundary":await ShortcutTests.ManuscriptBoundary(Get("output"));return 0;
                 case "index-collection":CollectionDocumentation.FromRun(Get("run"));return 0;
                 case "finish-reporting":await FinishReporting.Run(options);return 0;

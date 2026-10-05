@@ -48,17 +48,24 @@ public static class ManuscriptValues
         Number("ArticlePivotLimit",plan.Settings.ApproximatePivotLimit,"N0");
         Number("ArticleRoundingCutoff",plan.Settings.ApproximateRoundingCutoff,"G");
         var britishRa=rows.Where(r=>r!["Risk"]!.GetValue<string>()=="ra"&&r["Rule"]!.GetValue<string>()=="complete").ToArray();
-        var reference=Audit(ra)["Welfare"]!["Headline"]!;
-        bool Reversal(JsonNode r,string metric)=>r[metric]!.GetValue<double>()>reference[metric]!.GetValue<double>();
-        int pReversals=britishRa.Count(r=>Reversal(r!,"MeritoriousPlaintiffShortfall")),dReversals=britishRa.Count(r=>Reversal(r!,"NonliableDefendantBurden"));
-        int both=britishRa.Count(r=>Reversal(r!,"MeritoriousPlaintiffShortfall")&&Reversal(r!,"NonliableDefendantBurden"));
+        var reference=ApproximateAmericanBenchmark.From(selected.Select(r=>(r!["MeritoriousPlaintiffShortfall"]!.GetValue<double>(),r["NonliableDefendantBurden"]!.GetValue<double>())));
+        var reversals=britishRa.Select(r=>reference.Compare(r!["MeritoriousPlaintiffShortfall"]!.GetValue<double>(),r["NonliableDefendantBurden"]!.GetValue<double>())).ToArray();
+        int pReversals=reversals.Count(r=>r.Plaintiff),dReversals=reversals.Count(r=>r.Defendant);
+        int both=reversals.Count(r=>r.Plaintiff&&r.Defendant);
         values.Add("ArticleAcceptedBritishRa",britishRa.Length.ToString());values.Add("ArticlePlaintiffReversals",pReversals.ToString());values.Add("ArticleDefendantReversals",dReversals.ToString());
         values.Add("ArticleBothReversalsSentence",both==0?"None reversed both comparisons":$"{both} reversed both comparisons");
-        values.Add("ArticleUsualBritishRa",(britishRa.Length-pReversals-dReversals+both).ToString());
-        string sensitivity=Path.Combine(collection,"Results/Aggregated Data/Equilibrium sensitivity/validation-and-summary.json");
-        var groups=Files.Object(sensitivity)["Groups"]!.AsArray().Where(g=>g!["Risk"]!.GetValue<string>()=="ra"&&g["Rule"]!.GetValue<string>()=="complete").ToArray();
-        double Median(string group)=>groups.Single(g=>g!["Group"]!.GetValue<string>()==group)!["Statistics"]!["WorstAdditionalGainAt1Percent"]!["Median"]!.GetValue<double>();
-        Number("ArticlePlaintiffTrembleRatio",Median("plaintiff reversal")/Median("other"));Number("ArticleDefendantTrembleRatio",Median("defendant reversal")/Median("other"));
+        var sensitivity=Reports.ReadCsv(Path.Combine(collection,"Results/Aggregated Data/Equilibrium sensitivity/profiles.csv"))
+            .Where(r=>r["Risk"]=="ra"&&r["Rule"]=="complete"&&r["Kind"]=="approximate").ToArray();
+        var expectedGroups=britishRa.ToDictionary(r=>r!["Start"]!.GetValue<int>(),r=>reference.Group(r!["MeritoriousPlaintiffShortfall"]!.GetValue<double>(),r["NonliableDefendantBurden"]!.GetValue<double>()));
+        if(sensitivity.Length!=britishRa.Length||sensitivity.Select(r=>int.Parse(r["Start"])).Distinct().Count()!=britishRa.Length||sensitivity.Any(r=>!expectedGroups.TryGetValue(int.Parse(r["Start"]),out string? group)||group!=r["Group"]))
+            throw new InvalidDataException("Tremble groups do not match the American approximate outcome comparison.");
+        double Median(params string[] groups)
+        {
+            var x=sensitivity.Where(r=>groups.Contains(r["Group"])).Select(r=>double.Parse(r["WorstAdditionalGainAt1Percent"])).Order().ToArray();
+            if(x.Length==0)throw new InvalidDataException("No profiles for the stated tremble comparison.");
+            return x.Length%2==1?x[x.Length/2]:(x[x.Length/2-1]+x[x.Length/2])/2;
+        }
+        Number("ArticlePlaintiffTrembleRatio",Median("plaintiff reversal","both reversals")/Median("other"));Number("ArticleDefendantTrembleRatio",Median("defendant reversal","both reversals")/Median("other"));
         var strategyRows=Files.Object(Path.Combine(collection,"Tables/Sources/Table 2 - Strategy mechanisms.layout.json"))["Sections"]![0]![1]!.AsArray();
         foreach(var (name,decision) in new[]{("ArticleFilingBefore","P files"),("ArticleAnsweringBefore","D answers")})
             values.Add(name,strategyRows.Single(r=>r![0]!.GetValue<string>()==decision)![4]!.GetValue<string>().Split('>')[0].Trim());
