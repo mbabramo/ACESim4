@@ -1,18 +1,30 @@
 # Container replication and native installation
 
-Choose either [Docker](#run-the-published-container), which includes the required tools, or [running without Docker](#run-without-docker), which installs those tools on your own computer. Both regenerate the same research-output folders from the same saved solutions. The manuscript is maintained separately.
+Choose either [Docker](#run-the-published-container), which includes the required tools, or [running without Docker](#run-without-docker), which installs those tools on your own computer. Both regenerate the same research-output folders, either by verifying saved solutions or by computing equilibria and histories from scratch. The manuscript is maintained separately.
 
 ## Run the published container
 
 Install [Docker Desktop](https://docs.docker.com/desktop/) on Windows and select Linux containers, or install [Docker Engine](https://docs.docker.com/engine/install/) on Linux. Start Docker and ensure `docker version` shows a server. The release image is Linux x86-64; ARM emulation is not part of the tested platform. Allow four CPUs and sufficient memory for the full reporting run (the hosted validation runner has 16 GiB).
 
-Create a new folder called `replication`. Download [correlated-signals-saved-solutions.zip](https://github.com/mbabramo/correlated-signals-article/releases/download/replication-20261004/correlated-signals-saved-solutions.zip) and extract its contents into `replication/solutions`. The `solutions` folder must directly contain `Equilibria`, `Search` and `Histories`.
+Create a new folder called `replication`. **If using saved solutions**, download [correlated-signals-saved-solutions.zip](https://github.com/mbabramo/correlated-signals-article/releases/download/replication-20261004/correlated-signals-saved-solutions.zip) and extract its contents into `replication/solutions`. The `solutions` folder must directly contain `Equilibria`, `Search` and `Histories`.
 
-Open PowerShell on Windows, or a Linux terminal, in the `replication` folder. On Windows, right-click inside the folder and choose **Open in Terminal**, using a PowerShell tab. Paste this entire command; no paths need editing:
+To compute from scratch, skip the solutions download.
+
+Open PowerShell on Windows, or a Linux terminal, in the `replication` folder. On Windows, right-click inside the folder and choose **Open in Terminal**, using a PowerShell tab. Choose one of these commands; no paths need editing.
+
+**With saved solutions:**
 
 ```sh
 docker run --rm --network none --cpus 4 -v "${PWD}/solutions:/inputs:ro" -v "${PWD}/output:/output" ghcr.io/mbabramo/acesim-correlated-signals:2026-10-04.1 run --input /inputs --output /output/run --missing wait --workers 4
 ```
+
+**From scratch, without saved solutions:**
+
+```sh
+docker run --rm --network none --cpus 4 -v "${PWD}/output:/output" ghcr.io/mbabramo/acesim-correlated-signals:2026-10-04.1 run --output /output/run --missing compute --workers 4
+```
+
+This also calculates all equilibrium searches and solver histories and can take days or longer. It reads no saved inputs.
 
 `${PWD}` means the current folder in both PowerShell and a Linux shell. Docker downloads the software and creates the output folder automatically; no registry login is required. Internet access is needed for downloading Docker, the software and saved solutions, but replication itself runs with networking disabled.
 
@@ -45,14 +57,14 @@ sudo apt-get install texlive-luatex texlive-latex-extra texlive-pictures texlive
 
 Other distributions can install equivalent packages. These TeX/font packages are large; allow sufficient disk space. No Python installation is required.
 
-### 2. Download the code and saved solutions
+### 2. Download the code and, optionally, saved solutions
 
 Create a new folder named `replication`. Download and extract:
 
 - The [C# source ZIP for the correlated-signals branch](https://github.com/mbabramo/ACESim4/archive/refs/heads/correlated-signals.zip). Rename the extracted `ACESim4-correlated-signals` folder to **`code`** and put it inside `replication`. The `code` folder should directly contain `global.json` and `ArticleReplication`.
-- The [saved-solutions ZIP](https://github.com/mbabramo/correlated-signals-article/releases/download/replication-20261004/correlated-signals-saved-solutions.zip). Extract its contents into **`replication/solutions`**, which should directly contain `Equilibria`, `Search` and `Histories`.
+- **Only if using saved solutions:** the [saved-solutions ZIP](https://github.com/mbabramo/correlated-signals-article/releases/download/replication-20261004/correlated-signals-saved-solutions.zip). Extract its contents into **`replication/solutions`**, which should directly contain `Equilibria`, `Search` and `Histories`.
 
-The folders should look like this; do not create `output` yourself:
+With saved solutions, the folders should look like this. For a from-scratch run, omit `solutions`. Do not create `output` yourself:
 
 ```text
 replication/
@@ -68,13 +80,21 @@ replication/
 
 ### 3. Run one command
 
-Open PowerShell on Windows, or a terminal on Linux, **inside `replication/code`**. On Windows, right-click inside the `code` folder and choose **Open in Terminal**, using a PowerShell tab. Paste this entire line without changing any paths:
+Open PowerShell on Windows, or a terminal on Linux, **inside `replication/code`**. On Windows, right-click inside the `code` folder and choose **Open in Terminal**, using a PowerShell tab. Choose one of these commands without changing any paths:
+
+**With saved solutions:**
 
 ```sh
 dotnet run --project ArticleReplication -c Release -- rebuild --source . --output ../output --input ../solutions --missing wait --workers 4
 ```
 
-The command checks the installed tools, rebuilds the required C# projects, verifies the saved solutions, and regenerates all the analyses and exhibits. It downloads code dependencies during the build, so keep an internet connection available. With the complete saved-solutions archive, it starts no equilibrium searches or solver-history recreations. Missing inputs remain pending because of `--missing wait`.
+**From scratch, without saved solutions:**
+
+```sh
+dotnet run --project ArticleReplication -c Release -- rebuild --source . --output ../output --missing compute --workers 4
+```
+
+Both commands check the installed tools, rebuild the required C# projects, and regenerate all the analyses and exhibits. The first verifies saved solutions; the second calculates all equilibria and histories afresh. The build downloads code dependencies, so keep an internet connection available. With the complete saved-solutions archive, it starts no equilibrium searches or solver-history recreations. Missing inputs remain pending because of `--missing wait`.
 
 Leave the terminal open until it finishes, then open **`replication/output/run/article`** for Results, Tables, Figures and Supplemental materials. Four workers are used; reduce `--workers 4` if necessary. The output directory must be new and outside `code`. To repeat the exercise, use another new `replication` folder and keep the earlier results.
 

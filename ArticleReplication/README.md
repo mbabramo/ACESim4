@@ -2,24 +2,40 @@
 
 ## Journal replication
 
-No programming experience is required. Install and start Docker, then create a new folder called `replication`. Download the [saved-solutions ZIP](https://github.com/mbabramo/correlated-signals-article/releases/download/replication-20261004/correlated-signals-saved-solutions.zip) and extract its contents into `replication/solutions`. That folder should directly contain `Equilibria`, `Search` and `Histories`.
+No programming experience is required. Install and start Docker, then create a new folder called `replication`. If using saved solutions, download the [saved-solutions ZIP](https://github.com/mbabramo/correlated-signals-article/releases/download/replication-20261004/correlated-signals-saved-solutions.zip) and extract its contents into `replication/solutions`. That folder should directly contain `Equilibria`, `Search` and `Histories`. Skip the download to compute from scratch.
 
-Open PowerShell (Windows) or a terminal (Linux) in the `replication` folder. Copy and paste this entire command; no paths need editing:
+Open PowerShell (Windows) or a terminal (Linux) in the `replication` folder. Choose one command; no paths need editing.
+
+**With saved solutions:**
 
 ```sh
 docker run --rm --network none --cpus 4 -v "${PWD}/solutions:/inputs:ro" -v "${PWD}/output:/output" ghcr.io/mbabramo/acesim-correlated-signals:2026-10-04.1 run --input /inputs --output /output/run --missing wait --workers 4
 ```
 
+**From scratch, without saved solutions:** skip the solutions download and run this command in the same new `replication` folder. It calculates equilibria and solver histories as well, which can take days or longer.
+
+```sh
+docker run --rm --network none --cpus 4 -v "${PWD}/output:/output" ghcr.io/mbabramo/acesim-correlated-signals:2026-10-04.1 run --output /output/run --missing compute --workers 4
+```
+
 Docker downloads the software and creates the output folders automatically. Leave the terminal open until the command finishes; then open **`replication/output/run/article`**. No GitHub login, source checkout, .NET or TeX installation is required. Use a new folder to repeat the exercise: an existing run is never overwritten. See [INSTALL.md](INSTALL.md) for Docker installation links and platform requirements.
 
-The command regenerates **Results**, **Tables**, **Figures** and **Supplemental materials**. The author-maintained manuscript and bibliography remain separate. For a no-shortcut calculation, remove the input mount and `--input`, and change `--missing wait` to `--missing compute`.
+Both commands regenerate **Results**, **Tables**, **Figures** and **Supplemental materials**. The author-maintained manuscript and bibliography remain separate. The saved-solutions route verifies the equilibria and histories before recalculating analyses and exhibits.
 
 ### Alternative: rebuild and run natively
 
-Follow the [step-by-step instructions for running without Docker](INSTALL.md#run-without-docker): install .NET, TeX/fonts and PDF tools, extract the code into `replication/code`, and extract the saved solutions into `replication/solutions`. No Docker, Visual Studio or Git installation is needed. From `replication/code`, run:
+Follow the [step-by-step instructions for running without Docker](INSTALL.md#run-without-docker): install .NET, TeX/fonts and PDF tools, extract the code into `replication/code`, and, if using saved solutions, extract those into `replication/solutions`. No Docker, Visual Studio or Git installation is needed. From `replication/code`, choose one command:
+
+**With saved solutions:**
 
 ```sh
 dotnet run --project ArticleReplication -c Release -- rebuild --source . --output ../output --input ../solutions --missing wait --workers 4
+```
+
+**From scratch, without saved solutions:** skip the solutions download and run from `replication/code`.
+
+```sh
+dotnet run --project ArticleReplication -c Release -- rebuild --source . --output ../output --missing compute --workers 4
 ```
 
 The new directory `replication/output/run/article` contains **Results**, **Tables**, **Figures** and **Supplemental materials**. The separately maintained manuscript and bibliography are not part of this default command. The output directory must not already exist and must be outside the code checkout. With the complete supplied archive no equilibrium searches or history recreations are needed. For a calculation without shortcuts, omit `--input ../solutions` and change `--missing wait` to `--missing compute`; exact solves may take much longer. Commands work in PowerShell and a Linux shell after the prerequisites are installed.

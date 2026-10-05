@@ -6,7 +6,9 @@ The complete Windows rebuild and two independent complete Linux container runs p
 
 The [build/test/publication run](https://github.com/mbabramo/ACESim4/actions/runs/37233263723) passed before publication. A separate [public-download test](https://github.com/mbabramo/ACESim4/actions/runs/37239180680) downloaded the image without registry credentials and executed the exact beginner command from a directory containing spaces. It regenerated the entire research collection with networking disabled and four single-threaded workers. Generation took about 55 minutes; the whole public-download workflow took about 58 minutes. The public saved-solutions archive was downloaded independently.
 
-Both full Linux runs produced 4,405 research files and passed every default stage. Every generated file and directory has been accounted for. The published collection matches the second run byte for byte after synchronization; the author-maintained manuscript and Git metadata are excluded from that delivery check.
+Both full Linux runs produced 4,405 research files and passed every default stage. Every generated file and directory has been accounted for. Article commit `840eefd43b6f2028d1ad3a71ea88b12bc17f3111` matches the second run byte for byte after synchronization; the author-maintained manuscript and Git metadata are excluded from that delivery check.
+
+The article README was subsequently expanded to give four complete commands: Docker or native execution, each with saved solutions or from scratch. The current C# documentation generator reproduces that expanded README exactly. This changes instructions only; all other published research files are unchanged. The immutable `2026-10-04.1` image still generates the earlier, shorter README, which links to the current online instructions. All four documented commands use capabilities already present in that tested image; no new image or full scientific rerun is claimed for this documentation update.
 
 ## Scientific checks
 
