@@ -5,7 +5,7 @@ namespace ArticleReplication;
 
 public static class MainTables
 {
-    public const string Primitives="Table 1 - Model primitives",Summary="Table 5 - Overall results summary";
+    public const string Primitives="Table 1 - Model primitives",Summary="Table 4 - Overall results summary";
     public sealed record Section(string Subtitle,string[][] Rows);
     public static void Verify(string generated,string reference,string output)
     {

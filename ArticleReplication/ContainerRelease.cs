@@ -50,10 +50,10 @@ public static class ContainerRelease
             }
             else Fields(a,b,"Decision");
         }
-        var table=Files.Object(Path.Combine(collection,"Tables/Sources/Table 5 - Overall results summary.generated-data.json"));
-        var oldTable=Files.Object(Path.Combine(reference,"Tables/Sources/Table 5 - Overall results summary.generated-data.json"));
-        reporting.Compare(table["Comparisons"],oldTable["Comparisons"],"Every Table 5 comparison");
-        if(table["Comparisons"]!.AsArray().Any(c=>c!["Status"]!.GetValue<string>()!="audited"))throw new InvalidDataException("Pending Table 5 row.");
+        var table=Files.Object(Path.Combine(collection,"Tables/Sources",MainTables.Summary+".generated-data.json"));
+        var oldTable=Files.Object(Path.Combine(reference,"Tables/Sources",MainTables.Summary+".generated-data.json"));
+        reporting.Compare(table["Comparisons"],oldTable["Comparisons"],"Every outcome-summary comparison");
+        if(table["Comparisons"]!.AsArray().Any(c=>c!["Status"]!.GetValue<string>()!="audited"))throw new InvalidDataException("Pending outcome-summary row.");
         var inventory=Files.Object(Path.Combine(collection,"Results/Aggregated Data/reporting-inventory.json"))["Files"]!.AsArray().Select(n=>n!.GetValue<string>()).Append("Results/Aggregated Data/reporting-inventory.json").ToHashSet(StringComparer.Ordinal);
         var actual=Directory.GetFiles(collection,"*",SearchOption.AllDirectories).Select(f=>Path.GetRelativePath(collection,f).Replace('\\','/')).ToHashSet(StringComparer.Ordinal);
         if(!actual.SetEquals(inventory))throw new InvalidDataException("Collection inventory differs from generated files.");
@@ -62,7 +62,7 @@ public static class ContainerRelease
             ReportingAbsoluteTolerance=ReportingComparison.AbsoluteTolerance,ReportingDifferenceCount=reporting.Differences.Count,
             MaximumReportingDifference=reporting.Differences.Count==0?0:reporting.Differences.Max(d=>d.AbsoluteDifference),ReportingDifferences=reporting.Differences,
             ExplainedDisplayDifferences=reporting.DisplayDifferences,
-            ExpensiveSolvesStarted=0,ManuscriptGenerated=false,GeneratedFiles=actual.Count,Table5Comparisons=table["Comparisons"]!.AsArray().Count,AllDefaultStagesPassed=true,ReferenceUsedOnlyForReleaseRegression=true});
+            ExpensiveSolvesStarted=0,ManuscriptGenerated=false,GeneratedFiles=actual.Count,OutcomeSummaryComparisons=table["Comparisons"]!.AsArray().Count,AllDefaultStagesPassed=true,ReferenceUsedOnlyForReleaseRegression=true});
     }
 
     static void ComparePrimary(string collection,string reference,IEnumerable<ACESim.FinalArticleCase> cases,ReportingComparison reporting)
