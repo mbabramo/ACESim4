@@ -50,7 +50,7 @@ namespace ACESim
         public bool AllowSkipEveryPermutationInitialization { get; set; } = true;
         public bool SkipEveryPermutationInitialization =>
             AllowSkipEveryPermutationInitialization
-            && EvolutionSettings.Algorithm != GameApproximationAlgorithm.PureStrategyFinder && (EvolutionSettings.Algorithm is not (GameApproximationAlgorithm.SequenceForm or GameApproximationAlgorithm.GeneralizedVanilla) || EvolutionSettings.UseAcceleratedBestResponse);
+            && EvolutionSettings.Algorithm != GameApproximationAlgorithm.PureStrategyFinder && (EvolutionSettings.Algorithm is not (GameApproximationAlgorithm.SequenceForm or GameApproximationAlgorithm.GeneralizedVanilla or GameApproximationAlgorithm.PredictiveCFR) || EvolutionSettings.UseAcceleratedBestResponse);
 
         bool TemporarilyDisableFullReports;
 

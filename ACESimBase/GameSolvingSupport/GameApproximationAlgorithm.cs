@@ -17,5 +17,6 @@ namespace ACESim
         AverageStrategySampling,
         PlaybackOnly,
         EnumeratedPureStrategies,
+        PredictiveCFR,
     }
 }

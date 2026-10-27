@@ -34,6 +34,13 @@ namespace ACESimBase.GameSolvingSupport.Settings
         public int TotalProbingCFRIterations = 100000;
         public int TotalIterations = 100000;
         public GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.GeneralizedVanilla; // will be overridden by Launcher
+        public PredictiveCFRSettings PredictiveCFR = new PredictiveCFRSettings();
+        internal EvolutionSettings CopyForPredictiveCFR()
+        {
+            var copy = (EvolutionSettings)MemberwiseClone();
+            copy.PredictiveCFR = PredictiveCFR.DeepCopy();
+            return copy;
+        }
         public double BestResponseTarget => Algorithm switch
         {
             GameApproximationAlgorithm.FictitiousPlay => -1, // 0.00001,

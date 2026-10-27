@@ -214,6 +214,8 @@ namespace ACESimBase.GameSolvingSupport.Settings
             {
                 case GameApproximationAlgorithm.Vanilla:
                     return new VanillaCFR(existingStrategyState, evolutionSettings, gameDefinition);
+                case GameApproximationAlgorithm.PredictiveCFR:
+                    return new PredictiveCFR(existingStrategyState, evolutionSettings, gameDefinition);
                 case GameApproximationAlgorithm.GibsonProbing:
                     return new GibsonProbing(existingStrategyState, evolutionSettings, gameDefinition);
                 case GameApproximationAlgorithm.ModifiedGibsonProbing:
