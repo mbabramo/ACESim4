@@ -29,7 +29,8 @@ namespace ACESim
         private static readonly CultureInfo Invariant = CultureInfo.InvariantCulture;
         private static readonly JsonSerializerOptions Json = new() { WriteIndented = true, IncludeFields = true };
         private static readonly string[] AllMethods = { "legacy", "pcfr+", "dcfr+", "pdcfr+" };
-        private static readonly string[] AllCases = { "baseline", "fee", "damages", "risk" };
+        private static readonly string[] DefaultCases = { "baseline", "fee", "damages", "risk" };
+        private static readonly string[] AllCases = DefaultCases.Concat(new[] { "hard-indeterminacy" }).ToArray();
         private static readonly HashSet<string> OutcomeColumns = new(StringComparer.Ordinal)
         {
             "All", "DisputeArises", "Activity", "Accident", "WrongAttrib", "PrecPower", "PrecLevel", "BCRatio",
@@ -67,7 +68,7 @@ namespace ACESim
         {
             public string Output;
             public string[] Methods = AllMethods;
-            public string[] Cases = AllCases;
+            public string[] Cases = DefaultCases;
             public int Iterations = 1000;
             public int Checkpoint = 100;
             public string HistoricalCsv = HistoricalDefault;
@@ -116,7 +117,7 @@ namespace ACESim
             }
         }
 
-        public const string Usage = "--predictive-cfr-benchmark --output <new-or-empty-directory> [--methods legacy,pcfr+,dcfr+,pdcfr+] [--cases baseline,fee,damages,risk] [--iterations 1000] [--checkpoint 100] [--historical-csv <path>] [--legacy-flavor fast|regular] [--outcomes-from <existing-benchmark-directory>] [--dry-run] [--no-outcomes] [--no-gebr-crosscheck] | --self-test | --self-test-outcomes";
+        public const string Usage = "--predictive-cfr-benchmark --output <new-or-empty-directory> [--methods legacy,pcfr+,dcfr+,pdcfr+] [--cases baseline,fee,damages,risk,hard-indeterminacy (default: first four)] [--iterations 1000] [--checkpoint 100] [--historical-csv <path>] [--legacy-flavor fast|regular] [--outcomes-from <existing-benchmark-directory>] [--dry-run] [--no-outcomes] [--no-gebr-crosscheck] | --self-test | --self-test-outcomes";
 
         public static LitigGameOptions CreateCase(string caseId)
         {
@@ -129,6 +130,15 @@ namespace ACESim
             });
             options.PLiabilityNoiseStdev = options.DLiabilityNoiseStdev = options.CourtLiabilityNoiseStdev = 0.2;
             options = caseId == "risk" ? launcher.GetAndTransform_ModeratelyRiskAverse(options) : launcher.GetAndTransform_RiskNeutral(options);
+            if (caseId == "hard-indeterminacy")
+            {
+                options = launcher.GetAndTransform_CostsMultiplier(options, 4);
+                options = launcher.GetAndTransform_CourtNoise(options,
+                    new LitigGameEndogenousDisputesLauncher.CourtNoiseInfo(.2, true, .5, "High Indet"));
+                options = launcher.GetAndTransform_PrecautionCost(options, 1.2E-05);
+                options.Name = options.Name.Trim();
+                return options;
+            }
             options = launcher.GetAndTransform_CostsMultiplier(options, 1);
             options = launcher.GetAndTransform_FeeShiftingMultiplier(options, caseId == "fee" ? 1 : 0);
             options = launcher.GetAndTransform_DamagesMultiplier(options, caseId == "damages" ? 2 : 1);
@@ -648,6 +658,24 @@ namespace ACESim
             }
             var baseline = CreateCase("baseline");
             if (baseline.Name != "Risk Neutral CM 1 FSM 0 DM 1 LT 1 UPC 1E-05" || baseline.NumLiabilitySignals != 8 || baseline.PLiabilityNoiseStdev != .2 || baseline.PredeterminedAbandonAndDefaults) throw new Exception("Publication case reconstruction failed.");
+            var defaults = Arguments.Parse(new[] { "--output", "." });
+            if (!defaults.Cases.SequenceEqual(new[] { "baseline", "fee", "damages", "risk" })) throw new Exception("Default four-case selection changed.");
+            if (CreateCase("fee").Name != "Risk Neutral CM 1 FSM 1 DM 1 LT 1 UPC 1E-05"
+                || CreateCase("damages").Name != "Risk Neutral CM 1 FSM 0 DM 2 LT 1 UPC 1E-05"
+                || CreateCase("risk").Name != "MODRA CM 1 FSM 0 DM 1 LT 1 UPC 1E-05") throw new Exception("Existing publication case names changed.");
+            var hardArguments = Arguments.Parse(new[] { "--output", ".", "--cases", "hard-indeterminacy" });
+            var hard = CreateCase(hardArguments.Cases.Single());
+            var hardGenerator = (PrecautionNegligenceDisputeGenerator)hard.LitigGameDisputeGenerator;
+            if (hard.Name != "Risk Neutral CM 4 CN High Indet UPC 1.2E-05"
+                || hard.CostsMultiplier != 4 || hard.PTrialCosts != .1 || hard.DTrialCosts != .1 || hard.PFilingCost != .1 || hard.DAnswerCost != .1
+                || hardGenerator.UnitPrecautionCost != 1.2E-05 || hardGenerator.LiabilityThreshold != 1
+                || hard.LoserPays || hard.LoserPaysMultiple != 0 || hard.DamagesMultiplier != 1)
+                throw new Exception("Hard indeterminacy case name, costs, or seed defaults are incorrect.");
+            if (hard.CourtLiabilityNoiseStdev != .2 || hard.PLiabilityNoiseStdev != .2 || hard.DLiabilityNoiseStdev != .2
+                || hardGenerator.CourtDecisionRule != CourtDecisionRule.ProbitThreshold || hardGenerator.CourtProbitScale != .5
+                || hard.NumLiabilitySignals != 8 || hard.NumOffers != 8 || hardGenerator.PrecautionPowerLevels != 8
+                || hardGenerator.RelativePrecautionLevels != 8 || hard.PredeterminedAbandonAndDefaults || !hard.CollapseChanceDecisions)
+                throw new Exception("Hard case must increase court indeterminacy, preserve signal noise 0.2, and use the full publication grid.");
             var row = new Checkpoint("baseline", "legacy", 7, "average", new[] { .1, .2 }, new[] { .01, .02 }, new[] { 10.0, 10.0 }, .15, .015, .2, .02, 1, 2, 3, 4, 5, null);
             if (row.Csv().Split(',').Length != CsvHeader.Split(',').Length || JsonSerializer.Deserialize<Checkpoint>(JsonSerializer.Serialize(row, Json), Json).EHalfNormalized != row.EHalfNormalized) throw new Exception("Checkpoint schema failed.");
             if (HashText("reproducible") != HashText("reproducible") || HashText("a") == HashText("b")) throw new Exception("Provenance hashing failed.");

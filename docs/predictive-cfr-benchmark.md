@@ -39,7 +39,7 @@ Available flags:
 | --- | --- |
 | `--output <directory>` | Required, new or empty directory. |
 | `--methods <comma-separated>` | Default `legacy,pcfr+,dcfr+,pdcfr+`; also supports `cfr+`. |
-| `--cases <comma-separated>` | Default `baseline,fee,damages,risk`. |
+| `--cases <comma-separated>` | Default `baseline,fee,damages,risk`; optional `hard-indeterminacy` must be selected explicitly. |
 | `--iterations <positive integer>` | Default 1000; complete iterations, with no early convergence stopping. |
 | `--checkpoint <positive integer>` | Default 100; final iteration is always evaluated even when not a multiple. |
 | `--legacy-flavor fast\|regular` | Default `fast`, double precision. |
@@ -61,6 +61,13 @@ The four cases use full publication grids (8 signals, offers, precaution power l
 | fee | `Risk Neutral CM 1 FSM 1 DM 1 LT 1 UPC 1E-05` |
 | damages | `Risk Neutral CM 1 FSM 0 DM 2 LT 1 UPC 1E-05` |
 | risk | `MODRA CM 1 FSM 0 DM 1 LT 1 UPC 1E-05` |
+| hard-indeterminacy (optional) | `Risk Neutral CM 4 CN High Indet UPC 1.2E-05` |
+
+The optional `hard-indeterminacy` case retains the same publication grid and signal noise 0.2. It applies risk neutrality, costs multiplier 4, `CourtNoiseInfo(0.2, true, 0.5, "High Indet")`, and unit precaution cost `1.2E-05` to the seed, in that order. Court indeterminacy is the probit decision scale 0.5; court signal noise remains 0.2. Seed defaults retain damages multiplier 1, no fee shifting (`LoserPays=false`), and liability threshold 1. This case does not change the default four-case selection. Inspect its exact historical CSV/log match without solving:
+
+```powershell
+dotnet ACESimConsole/bin/Release/net9.0/ACESimConsole.dll --predictive-cfr-benchmark --output C:\benchmarks\hard-indeterminacy-configuration --cases hard-indeterminacy --methods legacy,cfr+,pcfr+,dcfr+,pdcfr+ --dry-run
+```
 
 These are reconstructed published parameters on the current game model, not a bitwise historical reproduction. All methods start at uniform policies with zero regret and strategy accumulators, with no solving warmup. The legacy method preserves modern `GeneralizedVanilla` simultaneous, reach-normalized updates, geometric 0.99 regret discounting, and perturbation 0.001 decaying to zero. Historical code also enabled opponent probability pruning below 1e-4, which modern legacy code disables; the benchmark uses full traversal. Canonical methods use standard counterfactual regret updates with alternating player updates. Thus a legacy comparison does not isolate prediction's effect. Compare `pcfr+` against optional `cfr+`, or `pdcfr+` against `dcfr+`, to examine more closely matched method families; their published averaging/discounting defaults still differ and are recorded in configuration.
 
