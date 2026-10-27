@@ -19,6 +19,7 @@ using ACESimBase.GameSolvingSupport.FastCFR;
 using ACESimBase.GameSolvingSupport.Settings;
 using ACESimBase.GameSolvingSupport.GameTree;
 using ACESimBase.Util.Debugging;
+using ACESimBase.Util.Mathematics;
 using Microsoft.VisualBasic.FileIO;
 
 namespace ACESim
@@ -28,9 +29,16 @@ namespace ACESim
     {
         private static readonly CultureInfo Invariant = CultureInfo.InvariantCulture;
         private static readonly JsonSerializerOptions Json = new() { WriteIndented = true, IncludeFields = true };
+        private static readonly JsonSerializerOptions CompactJson = new() { IncludeFields = true };
         private static readonly string[] AllMethods = { "legacy", "pcfr+", "dcfr+", "pdcfr+" };
         private static readonly string[] DefaultCases = { "baseline", "fee", "damages", "risk" };
-        private static readonly string[] AllCases = DefaultCases.Concat(new[] { "hard-indeterminacy" }).ToArray();
+        private static readonly Dictionary<string, (double stake, double cost)> SyntheticBettingCases = new(StringComparer.Ordinal)
+        {
+            ["bet-1-cost-1"] = (1, 1), ["bet-1-cost-4"] = (1, 4),
+            ["bet-5-cost-1"] = (5, 1), ["bet-5-cost-4"] = (5, 4)
+        };
+        private static readonly string[] AllCases = DefaultCases.Concat(new[] { "hard-indeterminacy" }).Concat(SyntheticBettingCases.Keys).ToArray();
+        private static readonly string[] ChallengeColumns = { "PChallenge", "DChallenge", "AnyChallenge", "BothChallenge" };
         private static readonly HashSet<string> OutcomeColumns = new(StringComparer.Ordinal)
         {
             "All", "DisputeArises", "Activity", "Accident", "WrongAttrib", "PrecPower", "PrecLevel", "BCRatio",
@@ -56,10 +64,19 @@ namespace ACESim
                 // Preserve the production report's exact filters, column evaluators,
                 // denominators, and latent-state expansion; omit unrelated report cells.
                 var definitions = base.GetSimpleReportDefinitions();
+                if (Options.LitigGamePretrialDecisionGeneratorGenerator is LitigGameSideBet)
+                {
+                    var columns = definitions.First().ColumnItems;
+                    columns.Add(new SimpleReportColumnFilter("PChallenge", gp => ((LitigGameProgress)gp).PretrialActions.PAction == 1, SimpleReportColumnFilterOptions.ProportionOfRow));
+                    columns.Add(new SimpleReportColumnFilter("DChallenge", gp => ((LitigGameProgress)gp).PretrialActions.DAction == 1, SimpleReportColumnFilterOptions.ProportionOfRow));
+                    columns.Add(new SimpleReportColumnFilter("AnyChallenge", gp => ((LitigGameProgress)gp).PretrialActions.PAction == 1 || ((LitigGameProgress)gp).PretrialActions.DAction == 1, SimpleReportColumnFilterOptions.ProportionOfRow));
+                    columns.Add(new SimpleReportColumnFilter("BothChallenge", gp => ((LitigGameProgress)gp).PretrialActions.PAction == 1 && ((LitigGameProgress)gp).PretrialActions.DAction == 1, SimpleReportColumnFilterOptions.ProportionOfRow));
+                }
                 if (FullReports) return definitions;
                 var report = definitions.First();
-                report.RowFilters = report.RowFilters.Where(x => x.Name is "All" or "DisputeArises").ToList();
-                report.ColumnItems = report.ColumnItems.Where(x => OutcomeColumns.Contains(x.Name)).ToList();
+                bool betting = Options.LitigGamePretrialDecisionGeneratorGenerator is LitigGameSideBet;
+                report.RowFilters = report.RowFilters.Where(x => x.Name is "All" or "DisputeArises" || betting && x.Name == "Tried").ToList();
+                report.ColumnItems = report.ColumnItems.Where(x => OutcomeColumns.Contains(x.Name) || betting && ChallengeColumns.Contains(x.Name)).ToList();
                 return new List<SimpleReportDefinition> { report };
             }
         }
@@ -117,11 +134,13 @@ namespace ACESim
             }
         }
 
-        public const string Usage = "--predictive-cfr-benchmark --output <new-or-empty-directory> [--methods legacy,pcfr+,dcfr+,pdcfr+] [--cases baseline,fee,damages,risk,hard-indeterminacy (default: first four)] [--iterations 1000] [--checkpoint 100] [--historical-csv <path>] [--legacy-flavor fast|regular] [--outcomes-from <existing-benchmark-directory>] [--dry-run] [--no-outcomes] [--no-gebr-crosscheck] | --self-test | --self-test-outcomes";
+        public const string Usage = "--predictive-cfr-benchmark --output <new-or-empty-directory> [--methods legacy,pcfr+,dcfr+,pdcfr+] [--cases baseline,fee,damages,risk,hard-indeterminacy,bet-1-cost-1,bet-1-cost-4,bet-5-cost-1,bet-5-cost-4 (default: first four)] [--iterations 1000] [--checkpoint 100] [--historical-csv <path>] [--legacy-flavor fast|regular] [--outcomes-from <existing-benchmark-directory>] [--dry-run] [--no-outcomes] [--no-gebr-crosscheck] | --self-test | --self-test-outcomes";
 
         public static LitigGameOptions CreateCase(string caseId)
         {
             if (!AllCases.Contains(caseId)) throw new ArgumentException("Unknown case " + caseId);
+            if (SyntheticBettingCases.TryGetValue(caseId, out var betting))
+                return CreateBettingCase(caseId, betting.stake, betting.cost);
             var launcher = new LitigGameEndogenousDisputesLauncher();
             var options = LitigGameOptionsGenerator.PrecautionNegligenceGame(new PrecautionNegligenceOptionsGeneratorSettings
             {
@@ -146,6 +165,52 @@ namespace ACESim
             options = launcher.GetAndTransform_PrecautionCost(options, 1E-05);
             options.Name = options.Name.Trim();
             return options;
+        }
+
+        private static LitigGameOptions CreateBettingCase(string caseId, double stake, double costs)
+        {
+            // One-round modern adaptation of the exogenous SideBet/SideLarge
+            // regimes in c28d03a5, not a historical publication reconstruction.
+            var options = LitigGameOptionsGenerator.SmallGame();
+            options.Name = "Synthetic exogenous " + caseId;
+            options.PInitialWealth = options.DInitialWealth = 10;
+            options.PUtilityCalculator = new RiskNeutralUtilityCalculator { InitialWealth = 10 };
+            options.DUtilityCalculator = new RiskNeutralUtilityCalculator { InitialWealth = 10 };
+            options.DamagesMin = 0; options.DamagesMax = options.DamagesMultiplier = 1;
+            options.PFilingCost = options.DAnswerCost = .05;
+            options.PTrialCosts = options.DTrialCosts = .15;
+            options.PerPartyCostsLeadingUpToBargainingRound = .1;
+            options.RoundSpecificBargainingCosts = null;
+            options.CostsMultiplier = costs;
+            options.LitigGameDisputeGenerator = new LitigGameExogenousDisputeGenerator
+            { ExogenousProbabilityTrulyLiable = .5, StdevNoiseToProduceLiabilityStrength = .5 };
+            options.PLiabilityNoiseStdev = options.DLiabilityNoiseStdev = options.CourtLiabilityNoiseStdev = .3;
+            options.NumLiabilitySignals = options.NumLiabilityStrengthPoints = 10;
+            options.NumOffers = 11;
+            options.IncludeEndpointsForOffers = true;
+            options.NumPotentialBargainingRounds = 1;
+            options.BargainingRoundsSimultaneous = options.SimultaneousOffersUltimatelyRevealed = true;
+            options.IncludeAgreementToBargainDecisions = options.AllowAbandonAndDefaults = true;
+            options.PredeterminedAbandonAndDefaults = options.SkipFileAndAnswerDecisions = false;
+            options.CollapseChanceDecisions = true;
+            options.CollapseAlternativeEndings = false; // Keep pretrial challenge decisions active.
+            options.LoserPays = false; options.LoserPaysMultiple = 0;
+            options.LoserPaysAfterAbandonment = options.LoserPaysAfterNonAnswer = false;
+            options.LitigGamePretrialDecisionGeneratorGenerator = new LitigGameSideBet
+            { DamagesMultipleForChallengedToPay = stake, DamagesMultipleForChallengerToPay = stake };
+            options.LitigGameRunningSideBets = null;
+            options.WarmStartOptions = LitigGameWarmStartOptions.NoWarmStart;
+            options.WarmStartThroughIteration = null;
+            return options;
+        }
+
+        private static string ExperimentKind(string caseId) => SyntheticBettingCases.ContainsKey(caseId)
+            ? "synthetic-counterfactual" : "historical-publication-reconstruction";
+
+        private static Dictionary<string, object> ReadSelectedHistorical(string path, Dictionary<string, string> names)
+        {
+            var required = names.Where(x => !SyntheticBettingCases.ContainsKey(x.Key)).ToDictionary(x => x.Key, x => x.Value);
+            return required.Count == 0 ? new Dictionary<string, object>() : ReadHistorical(path, required);
         }
 
         private static EvolutionSettings CreateSettings(Arguments args, string method)
@@ -201,26 +266,28 @@ namespace ACESim
                 throw new IOException("Refusing to overwrite nonempty output directory: " + args.Output);
             Directory.CreateDirectory(args.Output);
             var names = args.Cases.ToDictionary(x => x, x => CreateCase(x).Name);
-            var historical = ReadHistorical(args.HistoricalCsv, names);
+            var historicalNames = names.Where(x => !SyntheticBettingCases.ContainsKey(x.Key)).ToDictionary(x => x.Key, x => x.Value);
+            var historical = ReadSelectedHistorical(args.HistoricalCsv, names);
             var git = new { commit = Git("rev-parse HEAD"), status = Git("status --porcelain"), diffSha256 = HashText(Git("diff --binary HEAD")) };
             WriteJson(Path.Combine(args.Output, "provenance.json"), new
             {
-                schemaVersion = 2, startedUtc = DateTime.UtcNow, command = Environment.CommandLine, arguments = args,
+                schemaVersion = 3, startedUtc = DateTime.UtcNow, command = Environment.CommandLine, arguments = args,
                 git, runtime = System.Runtime.InteropServices.RuntimeInformation.FrameworkDescription,
                 os = System.Runtime.InteropServices.RuntimeInformation.OSDescription, processorCount = Environment.ProcessorCount,
-                assemblySha256 = HashFile(typeof(PredictiveCfrBenchmark).Assembly.Location), baseAssemblySha256 = HashFile(typeof(PredictiveCFR).Assembly.Location), historicalCsv = new { path = args.HistoricalCsv, sha256 = HashFile(args.HistoricalCsv), matchedRows = historical },
-                sourceFiles = new[] { "ACESimConsole/PredictiveCfrBenchmark.cs", "ACESimConsole/Program.cs", "ACESimBase/GameSolvingAlgorithms/PredictiveCFR.cs", "ACESimBase/GameSolvingAlgorithms/GeneralizedVanilla.Benchmark.cs", "ACESimBase/GameSolvingAlgorithms/StrategiesDeveloperBase.Benchmark.cs", "ACESimBase/GameSolvingSupport/Settings/PredictiveCFRSettings.cs", "ACESimBase/GameSolvingSupport/Settings/EvolutionSettings.cs", "ACESimBase/GameSolvingSupport/Settings/Launcher.cs", "ACESimBase/GameSolvingSupport/StrategiesDeveloperBase.cs" }.Where(File.Exists).Select(path => new { path, sha256 = HashFile(path) }).ToArray(),
-                historicalLogs = HistoricalLogs(args.HistoricalCsv, names),
-                gameReconstruction = "Published parameters reconstructed on current model: grid8, P/D/court liability noise0.2, predetermined abandon/defaults false. Not a bitwise historical reproduction.",
+                assemblySha256 = HashFile(typeof(PredictiveCfrBenchmark).Assembly.Location), baseAssemblySha256 = HashFile(typeof(PredictiveCFR).Assembly.Location), historicalCsv = new { required = historicalNames.Count > 0, path = historicalNames.Count > 0 ? args.HistoricalCsv : null, sha256 = historicalNames.Count > 0 ? HashFile(args.HistoricalCsv) : null, matchedRows = historical },
+                sourceFiles = new[] { "ACESimConsole/PredictiveCfrBenchmark.cs", "ACESimConsole/Program.cs", "ACESimBase/GameSolvingAlgorithms/PredictiveCFR.cs", "ACESimBase/GameSolvingAlgorithms/GeneralizedVanilla.Benchmark.cs", "ACESimBase/GameSolvingAlgorithms/StrategiesDeveloperBase.Benchmark.cs", "ACESimBase/GameSolvingSupport/Settings/PredictiveCFRSettings.cs", "ACESimBase/GameSolvingSupport/Settings/EvolutionSettings.cs", "ACESimBase/GameSolvingSupport/Settings/Launcher.cs", "ACESimBase/GameSolvingSupport/StrategiesDeveloperBase.cs", "ACESimBase/Games/LitigGame/PretrialDecisions/LitigGameSideBet.cs", "ACESimBase/Games/LitigGame/DisputeGeneration/LitigGameExogenousDisputeGenerator.cs", "ACESimBase/Games/LitigGame/Options/LitigGameOptionsGenerator.cs" }.Where(File.Exists).Select(path => new { path, sha256 = HashFile(path) }).ToArray(),
+                historicalLogs = HistoricalLogs(args.HistoricalCsv, historicalNames),
+                gameReconstruction = "Historical publication cases use grid8/noise0.2 on the current endogenous model. Synthetic betting cases use the ordinary exogenous model, grid10/11 offers/noise0.3, one bargaining round, and explicit side-bet stakes/costs. Inspect each case snapshot; these are not bitwise historical reproductions.",
+                bettingMechanismAnchor = new { commit = "c28d03a5", path = "ACESim4/Games/MyGame/MyGameRunner.cs", regimes = "SideBet: equal challenged/challenger damages multiples1; SideLarge: equal multiples5", adaptation = "Synthetic modern exogenous experiment: normalize historical damages to1 and wealth to10, use one perfect-recall bargaining round rather than three limited-recall rounds, and retain modern signal/court implementations. No historical CSV/log match is claimed for synthetic cases." },
                 comparisonCaveat = "Legacy uses simultaneous reach-normalized regret updates, geometric0.99 regret discounting, and perturbation0.001 decaying to0. Canonical solvers use alternating standard counterfactual regrets. Legacy comparisons do not isolate prediction.",
                 historicalPruningCaveat = "Historical source enabled opponent probability pruning below1e-4; modern legacy code disables that threshold. This harness traverses the full game without pruning.",
                 averagePolicyEvaluation = "The exact average policy is normalized cumulative strategy mass, including every nonzero probability. At checkpoints only, its probabilities temporarily replace cached average probabilities for exact BR evaluation, then original caches are restored before training resumes. This bypasses legacy cached-average thresholding below1e-5 without changing training.",
                 historicalOutcomeCaveat = "Historical logs report outcomes playing CurrentProbability while saved Exploitability is final average-policy E_half, which may differ from the best recorded historical checkpoint (fee best iteration600, risk best400). Those fields do not describe the same selected profile. New reports label final and best current and average separately.",
                 metrics = "Raw unilateral deviation and deviation/each-player terminal utility range. E_half=sum/2 (two players); also max. Exact unrounded profile. Best observed checkpoint is distinct from final.",
                 acceptance = new { maxIndividualNormalizedDeviation = 1E-5, secondaryEHalfNormalized = 5E-6 },
-                outcomeDenominators = "Filter=All is unconditional over the ex ante game. Dispute Arises and other filters are conditional on that event. Root deviations can be tiny because disputes are rare (~1e-4); compare economic outcomes as well.",
-                outcomeEvaluation = new { approach = "Exact native report path enumeration with all latent-state expansion; only the original All/DisputeArises row filters and selected original column evaluators are retained.", originalColumnNames = OutcomeColumns.OrderBy(x => x).ToArray(), reuseIdenticalBestAndFinal = true },
-                cases = args.Cases.Select(x => new { id = x, name = names[x], snapshot = Snapshot(CreateCase(x)), snapshotSha256 = HashText(JsonSerializer.Serialize(Snapshot(CreateCase(x)), Json)) }).ToArray(),
+                outcomeDenominators = "Filter=All is unconditional over the ex ante game. Dispute Arises and Tried condition on those events. Disputes are rare (~1e-4) in the precaution cases, while synthetic exogenous cases begin with a dispute. Challenge diagnostics condition on positive exact trial reach and are null when trial reach is zero.",
+                outcomeEvaluation = new { approach = "Exact native report path enumeration with all latent-state expansion; original All/DisputeArises row filters and selected original column evaluators. Betting cases also retain native Tried and add four harness-only pretrial challenge indicators; they do not use running-chip bet columns.", originalColumnNames = OutcomeColumns.OrderBy(x => x).ToArray(), bettingAdditionalColumnNames = ChallengeColumns, reuseIdenticalBestAndFinal = true },
+                cases = args.Cases.Select(x => new { id = x, name = names[x], experimentKind = ExperimentKind(x), historicalMatchRequired = !SyntheticBettingCases.ContainsKey(x), snapshot = Snapshot(CreateCase(x)), snapshotSha256 = HashText(JsonSerializer.Serialize(Snapshot(CreateCase(x)), Json)) }).ToArray(),
                 methods = args.Methods.Select(x => new { id = x, settings = Snapshot(CreateSettings(args, x)) }).ToArray()
             });
             if (args.DryRun) { Console.WriteLine("Benchmark configuration written to " + args.Output); return; }
@@ -253,10 +320,19 @@ namespace ACESim
                     setup.Stop();
                     string runDirectory = Path.Combine(args.Output, caseId + "-" + method.Replace("+", "plus"));
                     Directory.CreateDirectory(runDirectory);
+                    var challengeSets = developer.InformationSets.Where(x => x.DecisionByteCode is (byte)LitigGameDecisions.PPretrialAction or (byte)LitigGameDecisions.DPretrialAction).ToArray();
+                    bool bettingCase = options.LitigGamePretrialDecisionGeneratorGenerator is LitigGameSideBet;
+                    if (bettingCase && (options.CollapseAlternativeEndings
+                        || !challengeSets.Any(x => x.DecisionByteCode == (byte)LitigGameDecisions.PPretrialAction)
+                        || !challengeSets.Any(x => x.DecisionByteCode == (byte)LitigGameDecisions.DPretrialAction)))
+                        throw new InvalidOperationException("Betting experiment has no active P/D pretrial information sets or collapses them away.");
+                    if (bettingCase) WriteJson(Path.Combine(runDirectory, "challenge-information-sets.json"), challengeSets.Select((x, index) => new
+                    { index, player = x.PlayerIndex, decision = x.DecisionByteCode, node = x.InformationSetNodeNumber, information = x.InformationSetContents, actions = "1=challenge;2=no challenge" }).ToArray());
+                    using var challengeTrace = bettingCase ? new StreamWriter(new GZipStream(File.Create(Path.Combine(runDirectory, "challenge-policies.jsonl.gz")), CompressionLevel.Optimal), new UTF8Encoding(false)) : null;
                     var tree = developer.CountGameTreeNodes();
                     if (developer.Status.ScoreRange == null || developer.Status.ScoreRange.Any(x => !double.IsFinite(x) || x <= 0))
                         throw new InvalidOperationException("A finite positive terminal utility range is required for each player's normalized deviation.");
-                    WriteJson(Path.Combine(runDirectory, "configuration.json"), new { caseId, method, optionsName = options.Name, options = Snapshot(options), generator = Snapshot(options.LitigGameDisputeGenerator), settings = Snapshot(settings), tree = new { chance = tree.Chance, decision = tree.Decision, final = tree.Final, informationSets = developer.InformationSets.Count }, scoreRange = developer.Status.ScoreRange, setupSeconds = setup.Elapsed.TotalSeconds });
+                    WriteJson(Path.Combine(runDirectory, "configuration.json"), new { caseId, method, experimentKind = ExperimentKind(caseId), optionsName = options.Name, options = Snapshot(options), generator = Snapshot(options.LitigGameDisputeGenerator), settings = Snapshot(settings), tree = new { chance = tree.Chance, decision = tree.Decision, final = tree.Final, informationSets = developer.InformationSets.Count }, scoreRange = developer.Status.ScoreRange, setupSeconds = setup.Elapsed.TotalSeconds });
                     var solve = new Stopwatch();
                     double evaluationTotal = 0;
                     var checkpoints = new List<Checkpoint>();
@@ -286,6 +362,13 @@ namespace ACESim
                                 var br = developer.Status.BestResponseUtilities.ToArray();
                                 crosscheck = Enumerable.Range(0, developer.NumNonChancePlayers).Max(p => Math.Abs(developer.CalculateBestResponse((byte)p, current ? ActionStrategies.CurrentProbability : ActionStrategies.AverageStrategy) - br[p]));
                                 if (crosscheck > 1E-8) throw new InvalidOperationException("Accelerated/GEBR best-response mismatch: " + crosscheck);
+                            }
+                            if (challengeTrace != null)
+                            {
+                                var diagnostics = CaptureChallenges(developer, current);
+                                challengeTrace.WriteLine(JsonSerializer.Serialize(new { iteration, profile = current ? "current" : "average", diagnostics,
+                                    action1Probabilities = challengeSets.Select(x => current ? x.GetCurrentProbability(1, false) : x.GetAverageStrategiesAsArray()[0]).ToArray() }, CompactJson));
+                                challengeTrace.Flush();
                             }
                             evaluation.Stop();
                             evaluationTotal += evaluation.Elapsed.TotalSeconds;
@@ -335,7 +418,7 @@ namespace ACESim
                     {
                         epsilon, profile, metric = "max normalized individual deviation", firstObservedCheckpoint = checkpoints.FirstOrDefault(x => x.Profile == profile && x.MaxNormalized <= epsilon)
                     })).ToArray();
-                    var summary = new { caseId, method, optionsName = options.Name, final = finals, bestObserved = best.Values.ToArray(), thresholds, secondaryEHalf5eMinus6 = new[] { "current", "average" }.Select(profile => new { profile, firstObservedCheckpoint = checkpoints.FirstOrDefault(x => x.Profile == profile && x.EHalfNormalized <= 5E-6) }).ToArray(), setupSeconds = setup.Elapsed.TotalSeconds, solveSeconds = solve.Elapsed.TotalSeconds, evaluationSeconds = evaluationTotal, outcomeSeconds, wallSeconds = wall.Elapsed.TotalSeconds, outcomes = outcomeRows, historical = historical[caseId] };
+                    var summary = new { caseId, method, experimentKind = ExperimentKind(caseId), optionsName = options.Name, final = finals, bestObserved = best.Values.ToArray(), thresholds, secondaryEHalf5eMinus6 = new[] { "current", "average" }.Select(profile => new { profile, firstObservedCheckpoint = checkpoints.FirstOrDefault(x => x.Profile == profile && x.EHalfNormalized <= 5E-6) }).ToArray(), setupSeconds = setup.Elapsed.TotalSeconds, solveSeconds = solve.Elapsed.TotalSeconds, evaluationSeconds = evaluationTotal, outcomeSeconds, wallSeconds = wall.Elapsed.TotalSeconds, outcomes = outcomeRows, historical = historical.GetValueOrDefault(caseId) };
                     summaries.Add(summary);
                     WriteJson(Path.Combine(runDirectory, "summary.json"), summary);
                     WriteJson(Path.Combine(args.Output, "summary.json"), summaries);
@@ -484,7 +567,83 @@ namespace ACESim
                     developer.InformationSets[index].NodeInformation[InformationSetNode.averageStrategyProbabilityDimension, action] = original[index][action];
         }
 
-        private sealed record OutcomeResult(string selection, string profile, double[] rawDeviation, double[] normalizedDeviation, double[] evaluatedUtilities, double[] enumeratedUtilities, double utilityCrosscheckMaxError, List<Dictionary<string, string>> selectedReportRows);
+        private sealed record OutcomeResult(string selection, string profile, double[] rawDeviation, double[] normalizedDeviation, double[] evaluatedUtilities, double[] enumeratedUtilities, double utilityCrosscheckMaxError, List<Dictionary<string, string>> selectedReportRows, ChallengeDiagnostics challenges);
+
+        private sealed record ChallengeDiagnostics(double trialReach, double pChallengeMass, double dChallengeMass,
+            double anyChallengeMass, double bothChallengeMass, double? pChallengeGivenTrial, double? dChallengeGivenTrial,
+            double? anyChallengeGivenTrial, double? bothChallengeGivenTrial);
+
+        // Exact policy reach on the cached tree, stopping at D's challenge node.
+        // Pretrial choices occur after all settlement/quit decisions, so this reach
+        // equals trial reach. This avoids latent-state outcome replay at checkpoints.
+        private static ChallengeDiagnostics CaptureChallenges(StrategiesDeveloperBase developer, bool current)
+        {
+            double trial = 0, pMass = 0, dMass = 0, bothMass = 0;
+            void Walk(in HistoryPoint history, double reach, bool? pChallenge)
+            {
+                if (reach == 0) return;
+                var state = developer.GetGameState(in history);
+                if (state is FinalUtilitiesNode) return;
+                if (state is ChanceNode chance)
+                {
+                    for (byte action = 1; action <= chance.Decision.NumPossibleActions; action++)
+                    {
+                        var child = history.GetBranch(developer.Navigation, action, chance.Decision, chance.DecisionIndex);
+                        Walk(in child, reach * chance.GetActionProbability(action), pChallenge);
+                    }
+                    return;
+                }
+                var node = (InformationSetNode)state;
+                Span<double> probabilities = stackalloc double[node.NumPossibleActions];
+                if (current) node.GetCurrentProbabilities(probabilities, false);
+                else node.GetAverageStrategyProbabilities(probabilities);
+                if (node.DecisionByteCode == (byte)LitigGameDecisions.DPretrialAction)
+                {
+                    if (pChallenge == null) throw new InvalidOperationException("D challenge was reached before P challenge.");
+                    trial += reach;
+                    if (pChallenge.Value) pMass += reach;
+                    dMass += reach * probabilities[0];
+                    if (pChallenge.Value) bothMass += reach * probabilities[0];
+                    return;
+                }
+                for (byte action = 1; action <= node.NumPossibleActions; action++)
+                {
+                    var child = history.GetBranch(developer.Navigation, action, node.Decision, node.DecisionIndex);
+                    Walk(in child, reach * probabilities[action - 1], node.DecisionByteCode == (byte)LitigGameDecisions.PPretrialAction ? action == 1 : pChallenge);
+                }
+            }
+            var root = developer.GetStartOfGameHistoryPoint();
+            Walk(in root, 1, null);
+            double anyMass = pMass + dMass - bothMass;
+            return new ChallengeDiagnostics(trial, pMass, dMass, anyMass, bothMass,
+                trial > 0 ? pMass / trial : null, trial > 0 ? dMass / trial : null,
+                trial > 0 ? anyMass / trial : null, trial > 0 ? bothMass / trial : null);
+        }
+
+        private static void ValidateChallengeReports(ChallengeDiagnostics diagnostics, IEnumerable<Dictionary<string, string>> rows)
+        {
+            if (diagnostics == null) return;
+            var all = rows.Single(x => x.GetValueOrDefault("Filter") == "All");
+            void Check(Dictionary<string, string> row, string column, double expected)
+            {
+                if (!double.TryParse(row.GetValueOrDefault(column), NumberStyles.Float, Invariant, out double actual)
+                    || Math.Abs(actual - expected) > 2E-6)
+                    throw new InvalidOperationException($"Exact challenge reach disagrees with formatted native report {column}: expected {expected:G17}, reported {row.GetValueOrDefault(column)}.");
+            }
+            Check(all, "Trial", diagnostics.trialReach);
+            Check(all, "PChallenge", diagnostics.pChallengeMass);
+            Check(all, "DChallenge", diagnostics.dChallengeMass);
+            Check(all, "AnyChallenge", diagnostics.anyChallengeMass);
+            Check(all, "BothChallenge", diagnostics.bothChallengeMass);
+            if (diagnostics.trialReach > 0)
+            {
+                var tried = rows.Single(x => x.GetValueOrDefault("Filter") == "Tried");
+                Check(tried, "PChallenge", diagnostics.pChallengeGivenTrial.Value);
+                Check(tried, "DChallenge", diagnostics.dChallengeGivenTrial.Value);
+                Check(tried, "AnyChallenge", diagnostics.anyChallengeGivenTrial.Value);
+                Check(tried, "BothChallenge", diagnostics.bothChallengeGivenTrial.Value);
+            }
+        }
 
         private static async Task<OutcomeResult> WriteOutcomes(StrategiesDeveloperBase developer, EvolutionSettings settings, string directory, string selection, bool current)
         {
@@ -493,6 +652,8 @@ namespace ACESim
             SynchronizeAverageForEvaluation(developer);
             developer.CalculateBestResponse(false);
             double[] evaluatedUtilities = developer.Status.UtilitiesOverall.ToArray();
+            var challenges = developer.GameDefinition is LitigGameDefinition litigation && litigation.Options.LitigGamePretrialDecisionGeneratorGenerator is LitigGameSideBet
+                ? CaptureChallenges(developer, current) : null;
             var reports = await developer.GenerateBenchmarkReportsAsync();
             var selectedRows = new List<Dictionary<string, string>>();
             for (int report = 0; report < reports.csvReports.Count; report++)
@@ -507,15 +668,20 @@ namespace ACESim
                     var values = parser.ReadFields();
                     if (values.Length != header.Length) continue;
                     var row = header.Zip(values).GroupBy(x => x.First).ToDictionary(x => x.Key, x => x.Last().Second);
-                    if (row.TryGetValue("Filter", out string filter) && (filter is "All" or "Dispute Arises" or "DisputeArises")) selectedRows.Add(row);
+                    if (row.TryGetValue("Filter", out string filter) && (filter is "All" or "Dispute Arises" or "DisputeArises" or "Tried")) selectedRows.Add(row);
                 }
             }
             double[] enumeratedUtilities = developer.BenchmarkLastEnumeratedUtilities;
-            return new OutcomeResult(selection, current ? "current" : "average", developer.Status.BestResponseImprovement.ToArray(), developer.Status.BestResponseImprovementAdj.ToArray(), evaluatedUtilities, enumeratedUtilities, evaluatedUtilities.Zip(enumeratedUtilities, (a, b) => Math.Abs(a - b)).Max(), selectedRows);
+            ValidateChallengeReports(challenges, selectedRows);
+            if (challenges?.trialReach == 0)
+                foreach (var tried in selectedRows.Where(x => x.GetValueOrDefault("Filter") == "Tried"))
+                    foreach (string column in ChallengeColumns) tried[column] = "";
+            return new OutcomeResult(selection, current ? "current" : "average", developer.Status.BestResponseImprovement.ToArray(), developer.Status.BestResponseImprovementAdj.ToArray(), evaluatedUtilities, enumeratedUtilities, evaluatedUtilities.Zip(enumeratedUtilities, (a, b) => Math.Abs(a - b)).Max(), selectedRows, challenges);
         }
 
         private static object[] HistoricalLogs(string csvPath, Dictionary<string, string> names)
         {
+            if (names.Count == 0) return Array.Empty<object>();
             string root = Path.Combine(Path.GetDirectoryName(csvPath), "Individual Simulation Results");
             if (!Directory.Exists(root)) return Array.Empty<object>();
             var expected = names.Values.Select(x => "PREC010 " + x + " -log.txt").ToHashSet(StringComparer.Ordinal);
@@ -586,12 +752,14 @@ namespace ACESim
             double[][] expectedCurrent = null, expectedAverage = null;
             try
             {
+            foreach (string reportCase in new[] { "baseline", "bet-1-cost-1" })
+            {
             for (int test = 0; test < 2; test++)
             {
-                var options = CreateCase("baseline");
+                var options = CreateCase(reportCase);
                 options.NumLiabilitySignals = options.NumLiabilityStrengthPoints = options.NumOffers = 2;
-                var generator = (PrecautionNegligenceDisputeGenerator)options.LitigGameDisputeGenerator;
-                generator.PrecautionPowerLevels = generator.RelativePrecautionLevels = 2;
+                if (options.LitigGameDisputeGenerator is PrecautionNegligenceDisputeGenerator generator)
+                    generator.PrecautionPowerLevels = generator.RelativePrecautionLevels = 2;
                 var settings = CreateSettings(new Arguments { Iterations = 1 }, "pdcfr+");
                 var developer = (StrategiesDeveloperBase)await new BenchmarkLauncher(fullReports: test == 0).GetInitializedDevelper(options, options.Name, settings);
                 foreach (var node in developer.InformationSets)
@@ -631,17 +799,35 @@ namespace ACESim
                         var values = parser.ReadFields();
                         if (values.Length != header.Length) continue;
                         var row = header.Zip(values).GroupBy(x => x.First).ToDictionary(x => x.Key, x => x.Last().Second);
-                        if (row.TryGetValue("Filter", out string filter) && filter is "All" or "DisputeArises") results[test][(current ? "current/" : "average/") + filter] = row;
+                        if (row.TryGetValue("Filter", out string filter) && filter is "All" or "DisputeArises" or "Tried") results[test][(current ? "current/" : "average/") + filter] = row;
                     }
                 }
+                if (reportCase != "baseline")
+                {
+                    string prefix = current ? "current/" : "average/";
+                    ValidateChallengeReports(CaptureChallenges(developer, current), results[test].Where(x => x.Key.StartsWith(prefix, StringComparison.Ordinal)).Select(x => x.Value));
+                }
+                }
+                if (reportCase != "baseline")
+                {
+                    foreach (var filing in developer.InformationSets.Where(x => x.DecisionByteCode == (byte)LitigGameDecisions.PFile))
+                        filing.SetCurrentAndAverageProbabilities(new[] { 0.0, 1.0 });
+                    foreach (bool current in new[] { true, false })
+                    {
+                        var unreachable = CaptureChallenges(developer, current);
+                        if (unreachable.trialReach != 0 || unreachable.pChallengeGivenTrial != null || unreachable.dChallengeGivenTrial != null
+                            || unreachable.anyChallengeGivenTrial != null || unreachable.bothChallengeGivenTrial != null)
+                            throw new Exception("Challenge probabilities conditional on zero trial reach must be null.");
+                    }
                 }
             }
             foreach (string profile in new[] { "current/", "average/" })
-            foreach (string filter in new[] { "All", "DisputeArises" })
-                foreach (string column in OutcomeColumns)
+            foreach (string filter in reportCase == "baseline" ? new[] { "All", "DisputeArises" } : new[] { "All", "DisputeArises", "Tried" })
+                foreach (string column in OutcomeColumns.Concat(reportCase == "baseline" ? Array.Empty<string>() : ChallengeColumns).Where(x => results[0][profile + filter].ContainsKey(x)))
                     if (results[0][profile + filter][column] != results[1][profile + filter][column])
                         throw new Exception($"Restricted/full exact report mismatch: {profile}{filter}/{column}.");
             Console.WriteLine("Nonuniform saved current/average profile roundtrip, exact outcome utility invariant, and restricted/full report equivalence passed on a two-point game.");
+            }
             }
             finally { File.Delete(fixture); }
         }
@@ -676,6 +862,7 @@ namespace ACESim
                 || hard.NumLiabilitySignals != 8 || hard.NumOffers != 8 || hardGenerator.PrecautionPowerLevels != 8
                 || hardGenerator.RelativePrecautionLevels != 8 || hard.PredeterminedAbandonAndDefaults || !hard.CollapseChanceDecisions)
                 throw new Exception("Hard case must increase court indeterminacy, preserve signal noise 0.2, and use the full publication grid.");
+            SelfTestBettingCases();
             var row = new Checkpoint("baseline", "legacy", 7, "average", new[] { .1, .2 }, new[] { .01, .02 }, new[] { 10.0, 10.0 }, .15, .015, .2, .02, 1, 2, 3, 4, 5, null);
             if (row.Csv().Split(',').Length != CsvHeader.Split(',').Length || JsonSerializer.Deserialize<Checkpoint>(JsonSerializer.Serialize(row, Json), Json).EHalfNormalized != row.EHalfNormalized) throw new Exception("Checkpoint schema failed.");
             if (HashText("reproducible") != HashText("reproducible") || HashText("a") == HashText("b")) throw new Exception("Provenance hashing failed.");
@@ -684,6 +871,8 @@ namespace ACESim
             {
                 File.WriteAllText(fixture, "Filter,OptionSetName,Exploitability,Calculation Time,Quoted\nAll,Example,1.611E-07,132,\"exact, quoted\"\nDispute Arises,Example,99,99,x\n");
                 var matches = ReadHistorical(fixture, new Dictionary<string, string> { ["baseline"] = "Example" });
+                var mixed = ReadSelectedHistorical(fixture, new Dictionary<string, string> { ["baseline"] = "Example", ["bet-1-cost-1"] = "Synthetic exogenous bet-1-cost-1" });
+                if (mixed.Count != 1 || !mixed.ContainsKey("baseline")) throw new Exception("Mixed selection must match only historical cases.");
                 string preserved = JsonSerializer.Serialize(matches["baseline"], Json);
                 if (!preserved.Contains("exact, quoted") || !preserved.Contains("1.611E-07")) throw new Exception("Historical provenance lost exact source strings.");
                 File.AppendAllText(fixture, "All,Example,2E-07,133,x\n");
@@ -693,6 +882,57 @@ namespace ACESim
             }
             finally { File.Delete(fixture); }
             Console.WriteLine("Benchmark argument, publication-case, schema, and provenance self-tests passed.");
+        }
+
+        private static void SelfTestBettingCases()
+        {
+            var parsed = Arguments.Parse(new[] { "--output", ".", "--cases", string.Join(",", SyntheticBettingCases.Keys) });
+            if (parsed.Cases.Length != 4) throw new Exception("Synthetic betting case selection failed.");
+            var names = parsed.Cases.ToDictionary(x => x, x => CreateCase(x).Name);
+            string absentCsv = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".csv");
+            if (ReadSelectedHistorical(absentCsv, names).Count != 0 || HistoricalLogs(absentCsv, new Dictionary<string, string>()).Length != 0)
+                throw new Exception("Synthetic cases must not read or claim historical publication matches.");
+            foreach (var entry in SyntheticBettingCases)
+            {
+                var options = CreateCase(entry.Key);
+                var sideBet = options.LitigGamePretrialDecisionGeneratorGenerator as LitigGameSideBet;
+                if (options.LitigGameDisputeGenerator is not LitigGameExogenousDisputeGenerator generator
+                    || generator.ExogenousProbabilityTrulyLiable != .5 || generator.StdevNoiseToProduceLiabilityStrength != .5
+                    || options.NumLiabilitySignals != 10 || options.NumLiabilityStrengthPoints != 10 || options.NumOffers != 11 || !options.IncludeEndpointsForOffers
+                    || options.PLiabilityNoiseStdev != .3 || options.DLiabilityNoiseStdev != .3 || options.CourtLiabilityNoiseStdev != .3
+                    || options.CostsMultiplier != entry.Value.cost || options.PFilingCost != .05 || options.DAnswerCost != .05
+                    || options.PTrialCosts != .15 || options.DTrialCosts != .15 || options.PerPartyCostsLeadingUpToBargainingRound != .1
+                    || options.PInitialWealth != 10 || options.DInitialWealth != 10 || options.DamagesMax != 1 || options.DamagesMultiplier != 1
+                    || options.PUtilityCalculator is not RiskNeutralUtilityCalculator || options.DUtilityCalculator is not RiskNeutralUtilityCalculator
+                    || sideBet == null || sideBet.DamagesMultipleForChallengedToPay != entry.Value.stake || sideBet.DamagesMultipleForChallengerToPay != entry.Value.stake
+                    || options.LitigGameRunningSideBets != null || options.LoserPays || options.NumPotentialBargainingRounds != 1
+                    || !options.BargainingRoundsSimultaneous || !options.SimultaneousOffersUltimatelyRevealed || !options.IncludeAgreementToBargainDecisions
+                    || !options.AllowAbandonAndDefaults || options.PredeterminedAbandonAndDefaults || options.SkipFileAndAnswerDecisions
+                    || !options.CollapseChanceDecisions || options.CollapseAlternativeEndings || options.WarmStartOptions != LitigGameWarmStartOptions.NoWarmStart)
+                    throw new Exception("Synthetic exogenous betting parameters drifted: " + entry.Key);
+                var definition = new LitigGameDefinition();
+                definition.Setup(options);
+                var pDecision = definition.DecisionsExecutionOrder.Single(x => x.DecisionByteCode == (byte)LitigGameDecisions.PPretrialAction);
+                var dDecision = definition.DecisionsExecutionOrder.Single(x => x.DecisionByteCode == (byte)LitigGameDecisions.DPretrialAction);
+                if (pDecision.NumPossibleActions != 2 || dDecision.NumPossibleActions != 2
+                    || pDecision.PlayersToInform.Contains((byte)LitigGamePlayers.Defendant)
+                    || dDecision.PlayersToInform.Contains((byte)LitigGamePlayers.Plaintiff))
+                    throw new Exception("Pretrial challenge choices must be active, binary, and hidden from the opponent.");
+                foreach (byte p in new byte[] { 1, 2 }) foreach (byte d in new byte[] { 1, 2 }) foreach (bool pWins in new[] { false, true })
+                {
+                    var actions = new LitigGamePretrialActions { PAction = p, DAction = d };
+                    sideBet.GetEffectOnPlayerWelfare(definition, true, pWins, 1, actions, out double effectP, out double effectD);
+                    double expected = p == 1 || d == 1 ? entry.Value.stake * (pWins ? 1 : -1) : 0;
+                    if (effectP != expected || effectD != -expected) throw new Exception("Side-bet trial transfer failed.");
+                    sideBet.GetEffectOnPlayerWelfare(definition, false, pWins, 1, actions, out effectP, out effectD);
+                    if (effectP != 0 || effectD != 0) throw new Exception("Side-bet transfer must be zero without trial.");
+                }
+            }
+            var asymmetric = new LitigGameSideBet { DamagesMultipleForChallengedToPay = .75, DamagesMultipleForChallengerToPay = 1.25 };
+            asymmetric.GetEffectOnPlayerWelfare(null, true, true, 1, new LitigGamePretrialActions { PAction = 1, DAction = 2 }, out double challengedP, out _);
+            asymmetric.GetEffectOnPlayerWelfare(null, true, false, 1, new LitigGamePretrialActions { PAction = 1, DAction = 2 }, out double challengerP, out _);
+            if (challengedP != .75 || challengerP != -1.25) throw new Exception("Challenger/challenged stakes were interchanged.");
+            Console.WriteLine("Synthetic exogenous betting parameters, active/private challenge decisions, trial-only payoffs, and no-historical-match self-tests passed.");
         }
     }
 }

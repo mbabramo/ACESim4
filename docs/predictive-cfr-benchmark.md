@@ -11,7 +11,7 @@ dotnet ACESimConsole/bin/Release/net9.0/ACESimConsole.dll --predictive-cfr-bench
 
 The output directory must be new or empty. The command never calls the production launcher or its algorithm/report/cache save path. It does not open TeX or GUI tools, access the clipboard, write to cloud storage, or overwrite production reports/equilibrium caches. A failed run retains already flushed checkpoints; `completion.json` exists only after all selected runs finish. Start a new directory to rerun or resume selected case/method combinations.
 
-The historical CSV defaults to `C:\Users\Admin\source\repos\endogenous-disputes-article\ReportResults\PREC010 output.csv`. On another machine pass `--historical-csv <path>`. Exactly one `Filter=All` row must match each selected full option name. The harness preserves every matched cell as its exact source string, line number, file SHA256, and parsed E/runtime. It also hashes matching historical logs when the accompanying `Individual Simulation Results` folder exists.
+The historical CSV defaults to `C:\Users\Admin\source\repos\endogenous-disputes-article\ReportResults\PREC010 output.csv`. On another machine pass `--historical-csv <path>`. Exactly one `Filter=All` row must match each selected historical publication case's full option name. Synthetic betting cases require no historical CSV and claim no matching historical outcomes. Mixed selections match only the historical subset. The harness preserves every matched cell as its exact source string, line number, file SHA256, and parsed E/runtime. It also hashes matching historical logs when the accompanying `Individual Simulation Results` folder exists.
 
 For a short timing/evaluator smoke run:
 
@@ -39,7 +39,7 @@ Available flags:
 | --- | --- |
 | `--output <directory>` | Required, new or empty directory. |
 | `--methods <comma-separated>` | Default `legacy,pcfr+,dcfr+,pdcfr+`; also supports `cfr+`. |
-| `--cases <comma-separated>` | Default `baseline,fee,damages,risk`; optional `hard-indeterminacy` must be selected explicitly. |
+| `--cases <comma-separated>` | Default `baseline,fee,damages,risk`; optional `hard-indeterminacy` and the four synthetic betting cases below must be selected explicitly. |
 | `--iterations <positive integer>` | Default 1000; complete iterations, with no early convergence stopping. |
 | `--checkpoint <positive integer>` | Default 100; final iteration is always evaluated even when not a multiple. |
 | `--legacy-flavor fast\|regular` | Default `fast`, double precision. |
@@ -68,6 +68,24 @@ The optional `hard-indeterminacy` case retains the same publication grid and sig
 ```powershell
 dotnet ACESimConsole/bin/Release/net9.0/ACESimConsole.dll --predictive-cfr-benchmark --output C:\benchmarks\hard-indeterminacy-configuration --cases hard-indeterminacy --methods legacy,cfr+,pcfr+,dcfr+,pdcfr+ --dry-run
 ```
+
+## Synthetic betting challenges
+
+Select `bet-1-cost-1`, `bet-1-cost-4`, `bet-5-cost-1`, or `bet-5-cost-4`. The first number is the equal challenged/challenger damages multiple; the second is the litigation cost multiplier. These use `LitigGameSideBet` pretrial challenges, with action 1 meaning challenge and action 2 meaning no challenge. Each party chooses privately after bargaining and before court. If at least one challenges, the trial loser transfers the stake times damages to the winner in addition to normal damages; there is no extra transfer without a trial. Running chip side bets remain disabled.
+
+The mechanism and stakes are anchored to the `SideBet` (1/1) and `SideLarge` (5/5) regimes in commit `c28d03a5`, `ACESim4/Games/MyGame/MyGameRunner.cs`. This is a new experiment on the current ordinary exogenous dispute model, adapted to one perfect-recall bargaining round from the historical three limited-recall rounds. Modern signal and court implementations also differ; it is not a replay of that historical simulation or a publication-case match.
+
+Parameters are explicit: true-liability prior 0.5 and liability-strength noise 0.5; 10 strength points, 10 signals, and 11 endpoint-inclusive offers (0, 0.1, ..., 1); P/D/court signal noise 0.3; initial wealth 10 each, damages 1, risk-neutral utilities; filing/answer costs 0.05 each, trial costs 0.15 each, bargaining cost 0.10 per party, multiplied by 1 or 4. One simultaneous bargaining round reveals offers, includes agreement-to-bargain and quit decisions, and retains file/answer choices. Chance decisions are collapsed, alternative endings are not collapsed, and warm starts and fee shifting are disabled. Missing pretrial information sets cause a run to fail.
+
+```powershell
+dotnet ACESimConsole/bin/Release/net9.0/ACESimConsole.dll --predictive-cfr-benchmark --output C:\benchmarks\betting --cases bet-1-cost-1,bet-1-cost-4,bet-5-cost-1,bet-5-cost-4 --methods legacy,cfr+,pcfr+,dcfr+,pdcfr+ --iterations 1000 --checkpoint 10
+```
+
+Provenance schema 3 labels these `synthetic-counterfactual`, records the mechanism anchor and full parameters, and stores no historical match. Synthetic-only runs do not read the historical CSV. Original default selections remain unchanged.
+
+Betting outcome reports retain native `All`, `DisputeArises`, and `Tried` rows, adding harness-only `PChallenge`, `DChallenge`, `AnyChallenge`, and `BothChallenge` columns. These indicate pretrial challenges rather than running-chip bets. `All` challenge probabilities include trial reach; `Tried` conditions on reaching trial. The structured `challenges` object records exact trial reach and unconditional/conditional challenge probabilities using cached-tree reach, checked against formatted native report cells within `2e-6`. Conditional values are JSON null at zero trial reach; selected `Tried` challenge cells are then blank rather than meaningful zeros.
+
+Each betting run also writes `challenge-information-sets.json` (fixed ordered identities) and `challenge-policies.jsonl.gz` (one compact JSON line per checkpoint and current/average profile). Each line contains `iteration`, `profile`, exact aggregate `diagnostics`, and `action1Probabilities` in metadata order. This trace avoids Bayesian outcome replay at checkpoints. Per-information-set probabilities are unweighted and may describe unreachable states; a large swing alone does not establish on-path cycling. Compare current/average root deviation and trial-conditioned diagnostics too. Raw and normalized deviations both matter because stake and cost changes alter terminal utility ranges.
 
 These are reconstructed published parameters on the current game model, not a bitwise historical reproduction. All methods start at uniform policies with zero regret and strategy accumulators, with no solving warmup. The legacy method preserves modern `GeneralizedVanilla` simultaneous, reach-normalized updates, geometric 0.99 regret discounting, and perturbation 0.001 decaying to zero. Historical code also enabled opponent probability pruning below 1e-4, which modern legacy code disables; the benchmark uses full traversal. Canonical methods use standard counterfactual regret updates with alternating player updates. Thus a legacy comparison does not isolate prediction's effect. Compare `pcfr+` against optional `cfr+`, or `pdcfr+` against `dcfr+`, to examine more closely matched method families; their published averaging/discounting defaults still differ and are recorded in configuration.
 
