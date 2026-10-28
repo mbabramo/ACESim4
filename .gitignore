@@ -174,3 +174,7 @@ standardreport
 /Strategies/success.h5
 /Strategies/result - Copy.h5
 /Strategies/result - Copy.npy
+
+# Python experiment coordinators and their tests
+__pycache__/
+*.pyc

@@ -162,6 +162,67 @@ so total variation is reported alongside the actual incentive calculation.
 
 ## Interpretation and validation
 
+### Combining independent repetitions
+
+[`population_combined.py`](../ArticleReplication/Scripts/population_combined.py)
+coordinates independent runs, then constructs one result per case and selector:
+
+1. Run the selected article catalog with independent initial random banks and
+   the same frozen opponent probes. Each repetition performs its own response
+   expansion under both selectors.
+2. Pool every discovered player policy from every repetition and selector.
+   Remove exact behavioral duplicates, retain near copies, and order policies
+   deterministically. Game fingerprints, layouts, and probe banks must match.
+3. Recompute joint weights and unrestricted responses on the pooled population.
+   If either selector adds responses, pool the additions and repeat. Stop only
+   when both selectors pass the full-game checks on exactly the same population.
+4. Save both combined outcomes, product-marginal Nash audits, all individual
+   runs, and initialization ranges and fee-rule direction counts.
+
+Final weights are newly optimized. Neither the frequency with which a policy
+was discovered nor the average of the repetitions' weights determines them.
+Liu can be the principal presentation and Gini a selection-sensitivity comparison.
+The individual ranges describe initialization sensitivity, not confidence intervals.
+
+Build `ArticleReplication` first, then save a JSON configuration such as:
+
+```json
+{
+  "assembly": "/absolute/build/path/ArticleReplication.dll",
+  "input": "/absolute/path/to/saved-solutions",
+  "output": "/absolute/path/to/new-combined-results",
+  "cases": "all",
+  "repetitions": 10,
+  "workers": 4,
+  "iterations": 150,
+  "initial_seed": 1729,
+  "seed_stride": 989,
+  "pool_rounds": 10
+}
+```
+
+Run `python ArticleReplication/Scripts/population_combined.py --config batch.json`.
+Windows paths in JSON require doubled backslashes or forward slashes. The runner
+uses only the Python standard library and launches separate, single-threaded
+.NET workers. Leave that build unchanged during the batch. Four workers are the
+default; check available resources alongside other running experiments.
+
+`status.json` records active process IDs and logs. `completed.json` is written
+only after every combined result succeeds. `summary.json`, `comparisons.csv`,
+and `feecontrasts.csv` supply presentation data. Each case retains all pooling
+rounds, source-archive hashes, full joint weights, and independent oracle checks.
+An unsuccessful initial run still contributes its discovered policies, but its
+status is reported separately; the combined results require verification.
+
+Rerun the same command to resume after a failure or interruption. Settings,
+runner, and numerical assembly hashes must match. Completed attempts are reused;
+incomplete attempts are preserved and retried in new folders. A live process lock
+prevents duplicate coordinators. Remove a stale lock only after checking that its
+recorded process and workers have exited. Published article files are never used
+as output destinations.
+
+### Scientific scope
+
 JPSRO stops when there is no sufficiently profitable unrestricted response. It
 does not enumerate all equilibria or all behaviorally different policies.
 Even a fully certified CCE can depend on initialization, finite population,
