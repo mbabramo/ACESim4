@@ -21,4 +21,8 @@
     <ProjectReference Include="..\LitigCharts\LitigCharts.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Update="Fixtures\EquilibriumWorkflows\*.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
 </Project>

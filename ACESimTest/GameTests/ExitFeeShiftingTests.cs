@@ -12,23 +12,29 @@ namespace ACESimTest.GameTests;
 public class ExitFeeShiftingTests
 {
     [TestMethod]
-    public void ExtensionPlan_CrossesFiveCostsWithTwoPreferencesAndPreservesEntryAndExitChoices()
+    public void ExtensionPlan_CoversFocusedSpecificationsAndPreservesCoreCostRiskPairs()
     {
         var launcher = new LitigGameCorrelatedSignalsArticleLauncher(
             LitigGameCorrelatedSignalsArticleLauncher.ProductionRunPlan.ExitFeeShifting);
         var options = launcher.GetOptionsSets().Cast<LitigGameOptions>().ToList();
-        options.Should().HaveCount(10);
+        options.Should().HaveCount(LitigGameCorrelatedSignalsArticleLauncher.ExitFeeOptionSetCount);
         options.Select(option => option.Name).Should().OnlyHaveUniqueItems();
         options.Should().OnlyContain(option => option.LoserPaysMultiple == 1 &&
             option.LoserPaysAfterAbandonment && option.LoserPaysAfterNonAnswer &&
-            !option.SkipFileAndAnswerDecisions && option.AllowAbandonAndDefaults && option.NumOffers == 10);
+            !option.SkipFileAndAnswerDecisions && option.AllowAbandonAndDefaults);
+        // The published plan extends every focused specification, including the finer-offer checks.
+        // Retain the original five-cost/two-preference assertions for its ten core cases.
+        var core = options.Where(option => option.NumOffers == 10 &&
+            (option.Name.StartsWith("Specification-Baseline__", StringComparison.Ordinal) ||
+             option.Name.StartsWith("Specification-ModerateRiskAversion__", StringComparison.Ordinal))).ToList();
+        core.Should().HaveCount(10);
         foreach (double cost in new[] { 0.25, 0.5, 1.0, 2.0, 4.0 })
         {
-            var pair = options.Where(option => option.CostsMultiplier == cost).ToList();
+            var pair = core.Where(option => option.CostsMultiplier == cost).ToList();
             pair.Should().HaveCount(2);
             pair.Count(option => option.PUtilityCalculator is CARARiskAverseUtilityCalculator).Should().Be(1);
         }
-        launcher.GetUninitializedTaskList().NumIndividualTasks.Should().Be(10);
+        launcher.GetUninitializedTaskList().NumIndividualTasks.Should().Be(options.Count);
         var loadedOptions = ACESimBase.Games.LitigGame.ManualReports.ArticleWorkedPathExtraction.CreateOptions(options[0].Name);
         loadedOptions.LoserPaysAfterNonAnswer.Should().BeTrue("diagnostics must reconstruct the extension's actual payoffs");
         var first = options[0];
@@ -79,13 +85,17 @@ public class ExitFeeShiftingTests
             "Specification-Baseline__Cost-1__Fee-British__ExitFees-AllUnilateralExits");
         ACESimBase.Games.LitigGame.ManualReports.ArticlePressureAnalysis.ValidateMatchedOptions(source, target);
         var heading = LitigCharts.EquilibriumChangeTables.Heading(source.Name, target.Name);
-        heading.OriginalColumn.Should().Be("Trial only");
-        heading.TargetColumn.Should().Be("Trial + exit");
-        heading.Title.Should().StartWith("Fee liability:");
+        heading.OriginalColumn.Should().Be("Trial Fee-Shifting");
+        heading.TargetColumn.Should().Be("Complete Fee-Shifting");
+        heading.Title.Should().StartWith("Fee shifting:");
         var american = ACESimBase.Games.LitigGame.ManualReports.ArticleWorkedPathExtraction.CreateOptions(
             "Specification-Baseline__Cost-1__Fee-American");
-        Action compound = () => ACESimBase.Games.LitigGame.ManualReports.ArticlePressureAnalysis.ValidateMatchedOptions(american, target);
-        compound.Should().Throw<System.IO.InvalidDataException>("the trigger contrast must hold the fee multiplier fixed");
+        Action feeRule = () => ACESimBase.Games.LitigGame.ManualReports.ArticlePressureAnalysis.ValidateMatchedOptions(american, target);
+        feeRule.Should().NotThrow("a fee-rule intervention may change both its amount and trigger");
+        var americanRiskAverse = ACESimBase.Games.LitigGame.ManualReports.ArticleWorkedPathExtraction.CreateOptions(
+            "Specification-ModerateRiskAversion__Cost-1__Fee-American");
+        Action compound = () => ACESimBase.Games.LitigGame.ManualReports.ArticlePressureAnalysis.ValidateMatchedOptions(americanRiskAverse, target);
+        compound.Should().Throw<System.IO.InvalidDataException>("a fee-rule contrast must still hold risk preferences fixed");
     }
 
     [TestMethod]

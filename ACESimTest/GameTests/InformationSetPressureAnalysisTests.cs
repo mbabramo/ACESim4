@@ -209,6 +209,8 @@ public class InformationSetPressureAnalysisTests
         const string british = "Specification-Baseline__Cost-1__Fee-British";
         const string americanRa = "Specification-ModerateRiskAversion__Cost-1__Fee-American";
         const string britishRa = "Specification-ModerateRiskAversion__Cost-1__Fee-British";
+        // Historical option-set IDs retain "British"; the article now distinguishes
+        // Trial Fee-Shifting from Complete Fee-Shifting in displayed labels.
         var rnFees = LitigCharts.EquilibriumChangeTables.Heading(american, british);
         rnFees.Title.Should().Be("Fee shifting: American to Trial Fee-Shifting");
         rnFees.HeldFixed.Should().Be("Both players remain risk neutral");

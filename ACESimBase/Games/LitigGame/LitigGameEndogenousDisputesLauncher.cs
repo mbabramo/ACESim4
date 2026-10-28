@@ -99,6 +99,14 @@ namespace ACESim
 
         public UnderlyingGame GameToPlay => UnderlyingGame.PrecautionNegligenceGame;
 
+        // Article launchers must select their own model, independently of the console's global choice.
+        public override GameOptions GetDefaultSingleGameOptions() => GameToPlay switch
+        {
+            UnderlyingGame.PrecautionNegligenceGame => LitigGameOptionsGenerator.PrecautionNegligenceGame(),
+            UnderlyingGame.AppropriationGame => LitigGameOptionsGenerator.AppropriationGame(),
+            _ => throw new NotImplementedException("Unknown game to play: " + GameToPlay.ToString()),
+        };
+
         public string MasterReportNamePrefix => GameToPlay switch
         {
             UnderlyingGame.AppropriationGame => "APP",
@@ -116,7 +124,7 @@ namespace ACESim
             if (LaunchSingleOptionsSetOnly)
                 return new List<GameOptions>
                 {
-                    LitigGameOptionsGenerator.GetLitigGameOptions()
+                    GetDefaultSingleGameOptions()
                 };
 
             var optionSets = new List<GameOptions>();

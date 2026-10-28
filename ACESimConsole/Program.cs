@@ -27,6 +27,13 @@ namespace ACESim
         [STAThread]
         public static async Task Main(string[] args)
         {
+            if (args.Length > 0 && args[0] == "--predictive-cfr-benchmark")
+            {
+                GameProgressLogger.LoggingOn = false;
+                GameProgressLogger.DetailedLogging = false;
+                await PredictiveCfrBenchmark.RunAsync(args.Skip(1).ToArray());
+                return;
+            }
             if (args.Length > 0 && args[0] == "--enumerated-pure")
             {
                 GameProgressLogger.LoggingOn = false;

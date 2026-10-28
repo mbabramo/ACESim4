@@ -1,3 +1,8 @@
+using ACESimBase.GameSolvingSupport.Execution;
+using ACESimBase.GameSolvingSupport.Analysis;
+using ACESimBase.GameSolvingSupport.Evaluation;
+using ACESimBase.GameSolvingSupport.Policies;
+using ACESimBase.GameSolvingSupport.Reporting;
 using static ACESimBase.Util.Statistical.SummaryStatistics;
 using ACESimBase.Util;
 using System;
@@ -50,7 +55,7 @@ namespace ACESim
         public bool AllowSkipEveryPermutationInitialization { get; set; } = true;
         public bool SkipEveryPermutationInitialization =>
             AllowSkipEveryPermutationInitialization
-            && EvolutionSettings.Algorithm != GameApproximationAlgorithm.PureStrategyFinder && (EvolutionSettings.Algorithm is not (GameApproximationAlgorithm.SequenceForm or GameApproximationAlgorithm.GeneralizedVanilla) || EvolutionSettings.UseAcceleratedBestResponse);
+            && EvolutionSettings.Algorithm != GameApproximationAlgorithm.PureStrategyFinder && (EvolutionSettings.Algorithm is not (GameApproximationAlgorithm.SequenceForm or GameApproximationAlgorithm.GeneralizedVanilla or GameApproximationAlgorithm.PredictiveCFR) || EvolutionSettings.UseAcceleratedBestResponse);
 
         bool TemporarilyDisableFullReports;
 
@@ -125,240 +130,50 @@ namespace ACESim
 
         #endregion
 
-        #region Equilibrium files and reports
+        // Services own workflow behavior. These accessors retain the old serialized field names
+        // and types, including private fields, so existing developer checkpoints remain readable.
+        internal ScenarioCorrelationWorkflow ScenarioCorrelation => new(this);
+        internal PrincipalComponentWorkflow PrincipalComponents => new(this);
+        internal ModelSuccessTracker ModelSuccessTracking => new(this);
+        [NonSerialized] private CorrelatedValueCalculator correlatedValues;
+        internal CorrelatedValueCalculator CorrelatedValues => correlatedValues ??= new(this);
+        internal DateTime DevelopmentStartedAt { get => Started; set => Started = value; }
+        internal IncompabilityTracker ScenarioIncompatibilities { get => Incompabilities; set => Incompabilities = value; }
+        internal int TrackedModelCount { get => ModelSuccessEntriesSaved; set => ModelSuccessEntriesSaved = value; }
+        internal List<float[]> TrackedModels { get => ModelSuccessTracked; set => ModelSuccessTracked = value; }
+        internal int TrackedModelWidth { get => ModelSuccessTrackingDataPerIteration; set => ModelSuccessTrackingDataPerIteration = value; }
+        internal bool UsePrecompiledCorrelationCode => CorrelatedEquilibriumCodeIsPrecompiled;
 
-        // Note: Right now this is working only for sequence form. But this could be adapted to other algorithms, by loosely following the approach in SequenceForm.RunAlgorithm().
+        #region Equilibrium compatibility entrypoints
 
-        public bool EquilibriaFileAlreadyExists()
-        {
-            return File.Exists(GetEquilibriaFullPath());
-        }
-
-        public string CreateEquilibriaFile(List<double[]> equilibria)
-        {
-            StringBuilder s = new StringBuilder();
-            foreach (var equilibrium in equilibria)
-            {
-                s.AppendLine(String.Join(",", equilibrium));
-            }
-            string fullPath = GetEquilibriaFullPath();
-            TextFileManage.CreateTextFile(fullPath, s.ToString()); // TODO: Switch to azure/local
-            return fullPath;
-        }
-
-        public List<double[]> LoadEquilibriaFile()
-        {
-            string fullPath = GetEquilibriaFullPath();
-            string[] lines = TextFileManage.GetLinesOfFile(fullPath);
-            //List<Rational[]> numbersAsRationals = lines.Select(x => x.Split(",").Select(x => EFGFileReader.RationalStringToRational(x)).ToArray()).ToList();
-            List<double[]> numbers = lines.Select(x => x.Split(",").Select(x => EFGFileReader.RationalStringToDouble(x)).ToArray()).ToList(); // there may be doubles or rationals in the string
-            return numbers;
-        }
-
-        private string GetEquilibriaFullPath() => GetReportFullPath("-equ.csv");
-
+        // Existing callers and article tools keep their API; behavior is owned by the services below.
+        public bool EquilibriaFileAlreadyExists() => FlatEquilibriumFiles.Exists(FlatEquilibriumFiles.PathFor(this));
+        public string CreateEquilibriaFile(List<double[]> equilibria) => FlatEquilibriumFiles.Write(FlatEquilibriumFiles.PathFor(this), equilibria);
+        public List<double[]> LoadEquilibriaFile() => FlatEquilibriumFiles.Read(FlatEquilibriumFiles.PathFor(this));
+        public void SetInformationSetsToEquilibrium(double[] actionProbabilities) => FlatEquilibriumPolicies.ApplyCurrent(this, actionProbabilities);
+        public double[] GetEquilibriumFromInformationSets() => FlatEquilibriumPolicies.CaptureCurrent(this);
+        public static void SetToEquilibriumConstructingAverage(List<InformationSetNode> infoSets, double[] actionProbabilities, int eqNum, bool recordProbabilitiesAsPastValues) =>
+            FlatEquilibriumPolicies.InstallAndAccumulateReportAverage(infoSets, actionProbabilities, eqNum, recordProbabilitiesAsPastValues);
 
         [SupportedOSPlatform("windows")]
-        public async Task ProcessIdentifiedEquilibria(ReportCollection reportCollection, List<double[]> equilibria, bool multipleEquilibriaPossible)
-        {
-            if (EvolutionSettings.CreateEquilibriaFile)
-                CreateEquilibriaFile(equilibria);
-            await GenerateReportsFromEquilibria(equilibria, reportCollection, multipleEquilibriaPossible);
-            if (equilibria.Any())
-                SetInformationSetsToEquilibrium(equilibria.First());
-        }
-
+        public Task ProcessIdentifiedEquilibria(ReportCollection reportCollection, List<double[]> equilibria, bool multipleEquilibriaPossible) =>
+            new EquilibriumReportWriter(this).ProcessIdentifiedEquilibria(reportCollection, equilibria, multipleEquilibriaPossible);
         [SupportedOSPlatform("windows")]
-        public async Task GenerateReportsFromEquilibria(List<double[]> equilibria, ReportCollection reportCollection, bool multipleEquilibriaPossible)
-        {
-            bool includeAverageEquilibriumReport = multipleEquilibriaPossible;
-            bool includeCorrelatedEquilibriumReport = multipleEquilibriaPossible;
-            if (includeCorrelatedEquilibriumReport || EvolutionSettings.UseExistingEquilibriaIfAvailable || EvolutionSettings.GenerateManualReports)
-                SaveWeightedGameProgressesAfterEachReport = true;
-            bool includeReportForFirstEquilibrium = true;
-            bool includeReportForEachEquilibrium = true;
-            int numEquilibria = equilibria.Count();
-            var infoSets = InformationSets.OrderBy(x => x.PlayerIndex).ThenBy(x => x.InformationSetNodeNumber).ToList();
-            var infoSetNames = infoSets.Select(x => x.ToStringWithoutValues()).ToArray();
-            for (int eqNum = 0; eqNum < numEquilibria; eqNum++)
-            {
-                bool isFirst = eqNum == 0;
-                bool isLast = eqNum == numEquilibria - 1;
-                var actionProbabilities = equilibria[eqNum];
-                await ProcessEquilibrium(reportCollection, includeAverageEquilibriumReport, includeCorrelatedEquilibriumReport, includeReportForFirstEquilibrium, includeReportForEachEquilibrium, numEquilibria, infoSets, eqNum, isFirst, isLast, actionProbabilities);
-            }
-        }
-
-        public void SetInformationSetsToEquilibrium(double[] actionProbabilities)
-        {
-            var infoSets = InformationSets.OrderBy(x => x.PlayerIndex).ThenBy(x => x.InformationSetNodeNumber).ToList();
-            int totalNumbersProcessed = 0;
-            for (int i = 0; i < infoSets.Count(); i++)
-            {
-                double total = 0;
-                InformationSetNode infoSet = infoSets[i];
-                for (byte a = 1; a <= infoSet.Decision.NumPossibleActions; a++)
-                {
-                    double v = actionProbabilities[totalNumbersProcessed++];
-                    total += v;
-                    infoSet.SetCurrentStrategyValue(a, v, true);
-                }
-                if (total == 0)
-                {
-                    // This is a redundant check for ECTA.
-                    // This information set cannot be reached. Use even probabilities.
-                    double v = 1.0 / (double)infoSet.Decision.NumPossibleActions;
-                    for (byte a = 1; a <= infoSet.Decision.NumPossibleActions; a++)
-                    {
-                        infoSet.SetCurrentStrategyValue(a, v, true);
-                    }
-                }
-            }
-        }
-
-        public double[] GetEquilibriumFromInformationSets()
-        {
-            var infoSets = InformationSets.OrderBy(x => x.PlayerIndex).ThenBy(x => x.InformationSetNodeNumber).ToList();
-            double[] actionProbabilities = new double[infoSets.Sum(x => x.Decision.NumPossibleActions)];
-            int totalNumbersProcessed = 0;
-            for (int i = 0; i < infoSets.Count(); i++)
-            {
-                InformationSetNode infoSet = infoSets[i];
-                for (byte a = 1; a <= infoSet.Decision.NumPossibleActions; a++)
-                {
-                    actionProbabilities[totalNumbersProcessed++] = infoSet.GetAverageOrCurrentStrategy(a, false);
-                }
-            }
-            return actionProbabilities;
-        }
-
-        public static void SetToEquilibriumConstructingAverage(List<InformationSetNode> infoSets, double[] actionProbabilities, int eqNum, bool recordProbabilitiesAsPastValues)
-        {
-            int totalNumbersProcessed = 0;
-            double weightToGivePastValueInAverage = eqNum / (eqNum + 1.0);
-            double weightToGiveNewValueInAverage = 1.0 - weightToGivePastValueInAverage;
-            for (int i = 0; i < infoSets.Count(); i++)
-            {
-                double total = 0;
-                InformationSetNode infoSet = infoSets[i];
-                for (byte a = 1; a <= infoSet.Decision.NumPossibleActions; a++)
-                {
-                    double v = actionProbabilities[totalNumbersProcessed++];
-                    total += v;
-                    double weightedCurrentAverageValue = infoSet.GetAverageStrategiesAsArray()[a - 1] * weightToGivePastValueInAverage;
-                    double revisedAverage = weightedCurrentAverageValue + v * weightToGiveNewValueInAverage;
-                    infoSet.SetCurrentAndAverageStrategyValues(a, v, revisedAverage);
-                }
-                if (total == 0)
-                {
-                    // This is a redundant check for ECTA.
-                    // This information set cannot be reached. Use even probabilities.
-                    double v = 1.0 / (double)infoSet.Decision.NumPossibleActions;
-                    for (byte a = 1; a <= infoSet.Decision.NumPossibleActions; a++)
-                    {
-                        double weightedCurrentAverageValue = infoSet.GetAverageStrategiesAsArray()[a - 1] * weightToGivePastValueInAverage;
-                        double revisedAverage = weightedCurrentAverageValue + v * weightToGiveNewValueInAverage;
-                        infoSet.SetCurrentAndAverageStrategyValues(a, v, revisedAverage);
-                    }
-                }
-                if (recordProbabilitiesAsPastValues)
-                    infoSet.RecordProbabilitiesAsPastValues();
-            }
-        }
-
+        public Task GenerateReportsFromEquilibria(List<double[]> equilibria, ReportCollection reportCollection, bool multipleEquilibriaPossible) =>
+            new EquilibriumReportWriter(this).GenerateReportsFromEquilibria(equilibria, reportCollection, multipleEquilibriaPossible);
         [SupportedOSPlatform("windows")]
-        public async Task ProcessEquilibrium(ReportCollection reportCollection, bool includeAverageEquilibriumReport, bool includeCorrelatedEquilibriumReport, bool includeReportForFirstEquilibrium, bool includeReportForEachEquilibrium, int numEquilibria, List<InformationSetNode> infoSets, int eqNum, bool isFirst, bool isLast, double[] actionProbabilities)
-        {
-            SetToEquilibriumConstructingAverage(infoSets, actionProbabilities, eqNum, includeCorrelatedEquilibriumReport);
-
-            IdentifyPressureOnInformationSets();
-
-            //double[] utils = GetAverageUtilities(false);
-            //double[] maxPurifiedUtils = GetMaximumUtilitiesFromPurifiedStrategies();
-            //if (Enumerable.Range(0, NumNonChancePlayers).Any(p => maxPurifiedUtils[p] > utils[p] + 0.001))
-            //    TabbedText.WriteLine($"Maximum not achieved {String.Join(",", utils)} vs. {String.Join(",", maxPurifiedUtils)}"); 
-
-            if ((includeReportForFirstEquilibrium && isFirst) || includeReportForEachEquilibrium)
-            {
-                await AddReportForEquilibrium(reportCollection, numEquilibria, eqNum);
-            }
-            if (isLast)
-            {
-                if (includeCorrelatedEquilibriumReport)
-                {
-                    AddCorrelatedEquilibriumReport(reportCollection);
-                }
-                if (includeAverageEquilibriumReport)
-                {
-                    await AddAverageEquilibriumReport(reportCollection);
-                }
-            }
-        }
-
+        public Task ProcessEquilibrium(ReportCollection reportCollection, bool includeAverageEquilibriumReport, bool includeCorrelatedEquilibriumReport, bool includeReportForFirstEquilibrium,
+            bool includeReportForEachEquilibrium, int numEquilibria, List<InformationSetNode> infoSets, int eqNum, bool isFirst, bool isLast, double[] actionProbabilities) =>
+            new EquilibriumReportWriter(this).ProcessEquilibrium(reportCollection, includeAverageEquilibriumReport, includeCorrelatedEquilibriumReport, includeReportForFirstEquilibrium,
+                includeReportForEachEquilibrium, numEquilibria, infoSets, eqNum, isFirst, isLast, actionProbabilities);
         [SupportedOSPlatform("windows")]
-        public async Task AddReportForEquilibrium(ReportCollection reportCollection, int numEquilibria, int eqNum)
-        {
-            Stopwatch s = new Stopwatch();
-            s.Start();
-            EvolutionSettings.ActionStrategiesToUseInReporting = new List<ActionStrategies>() { ActionStrategies.CurrentProbability }; // will use latest equilibrium 
-            bool priorCurrent = EvolutionSettings.UseCurrentStrategyForBestResponse;
-            bool priorAccelerated = EvolutionSettings.UseAcceleratedBestResponse;
-            bool priorRefinement = EvolutionSettings.CalculatePerturbedBestResponseRefinement;
-            bool priorRounding = EvolutionSettings.RoundOffLowProbabilitiesBeforeAcceleratedBestResponse;
-            // Keep cumulative paths for the separate correlated-profile report, but
-            // an individual equilibrium's diagrams must see only its own paths.
-            var cumulativeProgresses = SavedWeightedGameProgresses;
-            SavedWeightedGameProgresses = new List<(GameProgress theProgress, double weight)>();
-            try
-            {
-                // A running average of different equilibria need not itself be an equilibrium.
-                // Its best-response diagnostic does not describe this individual profile.
-                EvolutionSettings.UseCurrentStrategyForBestResponse = true;
-                EvolutionSettings.UseAcceleratedBestResponse = true;
-                EvolutionSettings.CalculatePerturbedBestResponseRefinement = false;
-                EvolutionSettings.RoundOffLowProbabilitiesBeforeAcceleratedBestResponse = false;
-                var reportResult = await ConsiderGeneratingReports(EvolutionSettings.ReportEveryNIterations ?? 0,
-                    () =>
-                        $"{GameDefinition.OptionSetName}{(EvolutionSettings.SequenceFormNumPriorsToUseToGenerateEquilibria > 1 ? $"-Eq{eqNum + 1}" : "")}",
-                    reportSuffix: numEquilibria > 1 ? $"-Eq{eqNum + 1}" : "");
-                reportCollection.Add(reportResult, false, true);
-            }
-            finally
-            {
-                cumulativeProgresses.AddRange(SavedWeightedGameProgresses);
-                SavedWeightedGameProgresses = cumulativeProgresses;
-                EvolutionSettings.UseCurrentStrategyForBestResponse = priorCurrent;
-                EvolutionSettings.UseAcceleratedBestResponse = priorAccelerated;
-                EvolutionSettings.CalculatePerturbedBestResponseRefinement = priorRefinement;
-                EvolutionSettings.RoundOffLowProbabilitiesBeforeAcceleratedBestResponse = priorRounding;
-            }
-            TabbedText.WriteLine($"Elapsed milliseconds report for eq {eqNum + 1} of {numEquilibria}: {s.ElapsedMilliseconds}");
-        }
-
-        public void AddCorrelatedEquilibriumReport(ReportCollection reportCollection)
-        {
-            Stopwatch s = new Stopwatch();
-            s.Start();
-            var reportResult = GenerateReportFromSavedWeightedGameProgresses(false);
-            reportResult.AddReportSuffix($"-Corr");
-            PrintReportsToScreenIfNotSuppressed(reportResult);
-            reportCollection.Add(reportResult, false, true);
-            GenerateManualReports($"-Corr");
-            SavedWeightedGameProgresses = new List<(GameProgress theProgress, double weight)>();
-            TabbedText.WriteLine($"Elapsed milliseconds generating correlated equilibrium report: {s.ElapsedMilliseconds}");
-        }
-
+        public Task AddReportForEquilibrium(ReportCollection reportCollection, int numEquilibria, int eqNum) =>
+            new EquilibriumReportWriter(this).AddReportForEquilibrium(reportCollection, numEquilibria, eqNum);
+        public void AddCorrelatedEquilibriumReport(ReportCollection reportCollection) =>
+            new EquilibriumReportWriter(this).AddCorrelatedEquilibriumReport(reportCollection);
         [SupportedOSPlatform("windows")]
-        public async Task AddAverageEquilibriumReport(ReportCollection reportCollection)
-        {
-            Stopwatch s = new Stopwatch();
-            s.Start();
-            EvolutionSettings.ActionStrategiesToUseInReporting = new List<ActionStrategies>() { ActionStrategies.AverageStrategy };
-            var reportResult = await ConsiderGeneratingReports(EvolutionSettings.ReportEveryNIterations ?? 0,
-                () => $"{GameDefinition.OptionSetName}-Avg", reportSuffix: "-Avg", suppressPrintTree: true);
-            reportCollection.Add(reportResult, false, true);
-            TabbedText.WriteLine($"Elapsed milliseconds generating average equilibrium report: {s.ElapsedMilliseconds}");
-        }
+        public Task AddAverageEquilibriumReport(ReportCollection reportCollection) =>
+            new EquilibriumReportWriter(this).AddAverageEquilibriumReport(reportCollection);
 
         #endregion
 
@@ -371,410 +186,16 @@ namespace ACESim
         DateTime Started = DateTime.Now;
         long SecondsSoFar => (long)(DateTime.Now - Started).TotalSeconds;
 
-        public async Task<ReportCollection> DevelopStrategies(string optionSetName, int? restrictToScenarioIndex, string masterReportName)
-        {
-            Started = DateTime.Now;
-            MasterReportName = masterReportName;
-            if (EvolutionSettings.SkipAltogetherIfEquilibriaFileAlreadyExists && EquilibriaFileAlreadyExists())
-            {
-                TabbedText.WriteLine($"{optionSetName}: Equilibria file already exists. Skipping equilibria generation.");
-                return null;
-            }
-            ReportCollection reportCollection = new ReportCollection();
-            {
-                await Initialize();
-                bool constructCorrelatedEquilibrium = GameDefinition.NumScenarioPermutations > 1 && EvolutionSettings.ConstructCorrelatedEquilibrium;
-                bool anyScenarioOK = false;
-                if (restrictToScenarioIndex == -1)
-                {
-                    anyScenarioOK = true; // it doesn't matter what the scenario is, because we're just doing a single iteration to get initialization complete
-                    restrictToScenarioIndex = 0;
-                }
-                int startingScenarioIndex = 0;
-                int numScenarios = GameDefinition.NumScenarioPermutations;
-                if (restrictToScenarioIndex is int restriction)
-                {
-                    // We will be restricting to a particular scenario when using scenarios and developing individual scenarios each in their own distributed process. This can permit us to generate PCA data for particular scenarios.
-                    // If restrictToScenarioIndex is null, then we will run through all of the scenarios. Of course, if there is only 1 scenario, then this won't make a difference.
-                    startingScenarioIndex = restriction;
-                    numScenarios = 1;
-                }
-                for (OverallScenarioIndex = startingScenarioIndex; OverallScenarioIndex < startingScenarioIndex + numScenarios; OverallScenarioIndex++)
-                {
-                    string optionSetInfo = $@"Option set {optionSetName}";
-                    string scenarioFullName = optionSetInfo;
-                    if (GameDefinition.NumScenarioPermutations > 1)
-                    {
-                        ReinitializeForScenario(OverallScenarioIndex, GameDefinition.UseDifferentWarmup);
-                        scenarioFullName = GameDefinition.GetNameForScenario_WithOpponentWeight();
-                        if (anyScenarioOK)
-                            optionSetInfo += $" (scenario irrelevant -- loading only)";
-                        else
-                            optionSetInfo += $" (scenario index {OverallScenarioIndex} (total scenarios: {GameDefinition.NumScenarioPermutations}) = {scenarioFullName})";
-                    }
-                    Status.ScenarioIndex = OverallScenarioIndex;
-                    Status.ScenarioName = scenarioFullName;
-
-                    TabbedText.WriteLineEvenIfDisabled(optionSetInfo);
-                }
-
-                ReportCollection reportToAddToCollection = await RunAlgorithm(optionSetName);
-
-                if (EvolutionSettings.PCA_PerformPrincipalComponentAnalysis)
-                {
-                    if (!anyScenarioOK)
-                        await SavePCAModelData();
-                }
-                else if (constructCorrelatedEquilibrium)
-                { // if doing correlated eq & PCA, we just save PCA data.
-                    RememberScenarioForCorrelatedEquilibrium(OverallScenarioIndex);
-                    if ((OverallScenarioIndex + 1) % EvolutionSettings.ReduceCorrelatedEquilibriumEveryNScenariosIfCheckingAlongWay == 0 && EvolutionSettings.CheckCorrelatedEquilibriumIncompatibilitiesAlongWay)
-                        ReduceToCorrelatedEquilibrium_BasedOnPredeterminedIncompatibilities();
-                }
-                else
-                {
-                    reportCollection.Add(reportToAddToCollection, false, true); // if constructing correlated equilibrium, we ignore the interim reports
-                }
-                if (restrictToScenarioIndex == null)
-                    await RecoverSavedPCAModelDataAndPerformAnalysis(reportCollection, masterReportName); // i.e., we've gone through all scenarios all at once (if there are more than one) and so now we should perform PCA. If we are distributing the scenarios across processes, then we will execute this through a later task instead.
-                if (constructCorrelatedEquilibrium)
-                    reportCollection = await FinalizeCorrelatedEquilibrium();
-            }
-            DateTime finished = DateTime.Now;
-            TimeSpan timeSpan = finished - Started;
-            Status.OverallCalculationTime = (int)timeSpan.TotalSeconds;
-            return reportCollection;
-        }
+        public Task<ReportCollection> DevelopStrategies(string optionSetName, int? restrictToScenarioIndex, string masterReportName) => new StrategyDevelopmentWorkflow(this).DevelopStrategies(optionSetName, restrictToScenarioIndex, masterReportName);
 
         public List<DevelopmentStatus> RememberedStatuses = new List<DevelopmentStatus>();
-        private int GetRememberedStatusesIndex(int overallScenarioIndex) => RememberedStatuses.TakeWhile(x => x.ScenarioIndex != overallScenarioIndex).Count();
-        private DevelopmentStatus GetRememberedStatus(int overallScenarioIndex) => RememberedStatuses[GetRememberedStatusesIndex(overallScenarioIndex)];
         IncompabilityTracker Incompabilities = new IncompabilityTracker();
 
-        public void ReportRememberedScenarios()
-        {
-            foreach (var r in RememberedStatuses)
-                TabbedText.WriteLine(r.ToString());
-        }
-        public void ReportRememberedScenarios(IEnumerable<int> scenarioIndices)
-        {
-            foreach (int i in scenarioIndices)
-                TabbedText.WriteLine(GetRememberedStatus(i).ToString());
-        }
+        public void ReportRememberedScenarios() => ScenarioCorrelation.ReportRememberedScenarios();
 
-        private void RememberScenarioForCorrelatedEquilibrium(int overallScenarioIndex)
-        {
-            if (EvolutionSettings.RecordPastValues_AtEndOfScenarioOnly)
-            {
-                if (!EvolutionSettings.RecordPastValues)
-                    throw new Exception("Must set RecordPastValues");
-                foreach (var informationSet in InformationSets)
-                {
-                    informationSet.PastValuesCumulativeStrategyDiscounts.Add(0); // all 0's indicates that each is equal
-                    informationSet.RecordProbabilitiesAsPastValues();
-                }
-                RememberedStatuses.Add(Status.DeepCopy());
-                if (EvolutionSettings.CheckCorrelatedEquilibriumIncompatibilitiesAlongWay)
-                {
-                    int incompatibilityCount = 0;
-                    int mostRecentIndex = InformationSets.First().LastPastValueIndexRecorded;
-                    for (int i = 0; i < mostRecentIndex; i++) // each index before most recent
-                    {
-                        (bool someoneSwitchesToMostRecent, bool someoneSwitchesFromMostRecent) = CheckForCompatibilityInCorrelatedEquilibrium(i, mostRecentIndex);
-                        bool isIncompatible = someoneSwitchesFromMostRecent || someoneSwitchesToMostRecent;
-                        if (isIncompatible)
-                        {
-                            int earlierScenarioIndex = RememberedStatuses[i].ScenarioIndex;
-                            Incompabilities.AddIncompability(earlierScenarioIndex, overallScenarioIndex, iHatesJ: someoneSwitchesToMostRecent, jHatesI: someoneSwitchesFromMostRecent); // i.e., we're interpreting the hated one as the one switched to
-                            incompatibilityCount++;
-                        }
-                    }
-                    TabbedText.WriteLine($"Scenario index {overallScenarioIndex} incompabilities: {incompatibilityCount}");
-                }
-            }
-            if (EvolutionSettings.SerializeResults && !(this is PlaybackOnly))
-            {
-                SerializeScenario(overallScenarioIndex);
-            }
-        }
+        public void ReportRememberedScenarios(IEnumerable<int> scenarioIndices) => ScenarioCorrelation.ReportRememberedScenarios(scenarioIndices);
 
-        private bool IsCompatibleWithAllAlreadyInCorrelatedEquilibrium(int i, IEnumerable<int> js)
-        {
-            return js.All(j => AreCompatibleInCorrelatedEquilibrium(i, j));
-        }
-        private bool IsCompatibleWithAllAlreadyInCorrelatedEquilibrium_CachedIfPossible(int i, IEnumerable<int> js)
-        {
-            return js.All(j => AreCompatibleInCorrelatedEquilibrium_CachedIfPossible(i, j));
-        }
-
-        private bool AreCompatibleInCorrelatedEquilibrium_CachedIfPossible(int i, int j)
-        {
-            if (Incompabilities.Tracked(i, j))
-                return Incompabilities.IsKnownIncompatible(i, j);
-            var result = AreCompatibleInCorrelatedEquilibrium(i, j);
-            Incompabilities.AddIncompability(i, j, result, result); // disregard basis of incompatibility here
-            return result;
-        }
-
-        private bool AreCompatibleInCorrelatedEquilibrium(int i, int j)
-        {
-            (bool someoneSwitchesFromIToJ, bool someoneSwitchesFromJToI) = CheckForCompatibilityInCorrelatedEquilibrium(i, j);
-            return !someoneSwitchesFromIToJ && !someoneSwitchesFromJToI;
-        }
-
-        private (bool someoneSwitchesFromIToJ, bool someoneSwitchesFromJToI) CheckForCompatibilityInCorrelatedEquilibrium(int i, int j)
-        {
-            double[] p0PlayingJ_p1PlaysI = GetUtilitiesForPastValueCombination(j, i);
-            double[] p1PlayingJ_p0PlaysI = GetUtilitiesForPastValueCombination(i, j);
-            double p0InI = RememberedStatuses[i].UtilitiesOverall[0];
-            double p1InI = RememberedStatuses[i].UtilitiesOverall[1];
-            double p0InJ = RememberedStatuses[j].UtilitiesOverall[0];
-            double p1InJ = RememberedStatuses[j].UtilitiesOverall[1];
-            double p0IfSwitchingStrategyFromIToJ = p0PlayingJ_p1PlaysI[0];
-            double p1IfSwitchingStrategyFromIToJ = p1PlayingJ_p0PlaysI[1];
-            double p0IfSwitchingStrategyFromJToI = p1PlayingJ_p0PlaysI[0];
-            double p1IfSwitchingStrategyFromJToI = p0PlayingJ_p1PlaysI[1];
-            bool someoneSwitchesFromIToJ = p0IfSwitchingStrategyFromIToJ > p0InI || p1IfSwitchingStrategyFromIToJ > p1InI;
-            bool someoneSwitchesFromJToI = p0IfSwitchingStrategyFromJToI > p0InJ || p1IfSwitchingStrategyFromJToI > p1InJ;
-            return (someoneSwitchesFromIToJ, someoneSwitchesFromJToI);
-        }
-
-        private async Task<ReportCollection> FinalizeCorrelatedEquilibrium()
-        {
-            if (EvolutionSettings.PCA_PerformPrincipalComponentAnalysis)
-                return new ReportCollection(); // using a different approach to finding correlated equilibrium there
-            if (EvolutionSettings.CheckCorrelatedEquilibriumIncompatibilitiesAlongWay)
-                ReduceToCorrelatedEquilibrium_BasedOnPredeterminedIncompatibilities();
-            else
-                ReduceToCorrelatedEquilibrium_DeterminingIncompatibilitiesNow();
-            ReportCollection reportCollection = new ReportCollection();
-            await GenerateMainReports(() => "correq", "-Corr", reportCollection, new List<ActionStrategies>() { ActionStrategies.CorrelatedEquilibrium });
-            return reportCollection;
-        }
-
-        public void ReduceToCorrelatedEquilibrium_DeterminingIncompatibilitiesNow()
-        {
-            // Basic strategy is to take items one at a time, finding items that are furthest separated based on the utility scores. We can just start with the highest utility item or we can pick at random, and we can do it many times so that we can average results of different correlated equilibria.
-            // Could we still find some way to take out a strategy admitted to the equilibrium because there is a better one? If a new strategy comes along that is inconsistent only with one strategy, then we should perhaps keep them both (or all) so that we can figure out later which one to dump. But this would get very complicated quickly as we have multiple versions of each member of the equilibrium, and it's not clear that we get a much better equilibrium.
-            int numCandidates = RememberedStatuses.Count;
-            bool[] consideredItems = null;
-            Incompabilities = new IncompabilityTracker();
-            double p0AvgUtility = RememberedStatuses.Average(x => x.UtilitiesOverall[0]);
-            double p0Stdev = SummaryStatistics.Stdev(RememberedStatuses.Select(x => x.UtilitiesOverall[0]));
-            double p1AvgUtility = RememberedStatuses.Average(x => x.UtilitiesOverall[1]);
-            double p1Stdev = SummaryStatistics.Stdev(RememberedStatuses.Select(x => x.UtilitiesOverall[1]));
-            List<double> p0Z = RememberedStatuses.Select(x => (x.UtilitiesOverall[0] - p0AvgUtility) / p0Stdev).ToList();
-            List<double> p1Z = RememberedStatuses.Select(x => (x.UtilitiesOverall[1] - p1AvgUtility) / p1Stdev).ToList();
-            List<(double p0, double p1)> p0p1Z = p0Z.Zip(p1Z, (p0, p1) => (p0, p1)).ToList();
-            List<double> sumSqZ = p0p1Z.Select(x => x.p0 + x.p1).ToList();
-            List<int> includedItems = null, rejectedItems = null;
-            double GetSqDistance(int i, int j)
-            {
-                return ((p0Z[i] - p0Z[j]) * (p0Z[i] - p0Z[j]) + (p1Z[i] - p1Z[j]) * (p1Z[i] - p1Z[j]));
-            }
-            int GetItemToConsider()
-            {
-                double highestTotalSqDistance = 0;
-                int indexWithHighestTotalSqDistance = -1;
-                for (int i = 0; i < consideredItems.Length; i++)
-                {
-                    if (!consideredItems[i])
-                    {
-                        double totalSqDistance = 0;
-                        foreach (int includedItem in includedItems)
-                            totalSqDistance += GetSqDistance(i, includedItem);
-                        if (totalSqDistance > highestTotalSqDistance)
-                        {
-                            highestTotalSqDistance = totalSqDistance;
-                            indexWithHighestTotalSqDistance = i;
-                        }
-                    }
-                }
-                return indexWithHighestTotalSqDistance;
-            }
-
-            int highestUtilityItem = Enumerable.Range(0, numCandidates).Select((candidate, index) => (sumSqZ[candidate], index)).OrderByDescending(y => y.Item1).First().index; // item with highest sum of utilities, represented in z scores
-            int[] itemsToTryAsInitial = EvolutionSettings.ConstructCorrelatedEquilibriumMultipleTimesExPost ? Enumerable.Range(0, numCandidates).Take(EvolutionSettings.MaxNumCorrelatedEquilibriaToConstruct).ToArray() : new int[] { highestUtilityItem };
-            int mostItemsInAnyCorrelatedEquilibrium = 0;
-            List<int> biggestCorrelatedEquilibrium = null;
-            StatCollectorArray meta1 = new StatCollectorArray(), meta2 = new StatCollectorArray();
-            StatCollector meta3 = new StatCollector();
-            foreach (int initialItem in itemsToTryAsInitial)
-            {
-                TabbedText.WriteLine($"Building correlated equilibrium starting with {initialItem}");
-                includedItems = new List<int>();
-                includedItems.Add(initialItem);
-                consideredItems = new bool[numCandidates];
-                consideredItems[initialItem] = true;
-                while (consideredItems.Any(x => x == false))
-                {
-                    int itemToConsider = GetItemToConsider();
-                    if (IsCompatibleWithAllAlreadyInCorrelatedEquilibrium_CachedIfPossible(itemToConsider, includedItems))
-                        includedItems.Add(itemToConsider);
-                    consideredItems[itemToConsider] = true;
-                }
-                StatCollectorArray a = new StatCollectorArray();
-                foreach (var includedItem in includedItems.Select(x => RememberedStatuses[x].CustomResult.AsDoubleArray()))
-                    a.Add(includedItem);
-                TabbedText.WriteLine($"Average custom values among included: {String.Join(",", a.Average().Select(x => x.ToSignificantFigures(3)).ToArray())}");
-                meta1.Add(a.Average().ToArray());
-                a = new StatCollectorArray();
-                foreach (var includedItem in includedItems.Select(x => RememberedStatuses[x].UtilitiesOverall))
-                    a.Add(includedItem);
-                meta2.Add(a.Average().ToArray());
-                TabbedText.WriteLine($"Average utilities among included: {String.Join(",", a.Average().Select(x => x.ToSignificantFigures(3)).ToArray())}");
-                int numberItemsIncluded = includedItems.Count();
-                TabbedText.WriteLine($"Number of items {numberItemsIncluded}");
-                meta3.Add(numberItemsIncluded);
-                if (numberItemsIncluded > mostItemsInAnyCorrelatedEquilibrium)
-                {
-                    mostItemsInAnyCorrelatedEquilibrium = numberItemsIncluded;
-                    biggestCorrelatedEquilibrium = includedItems.ToList();
-                }
-            }
-            if (EvolutionSettings.ConstructCorrelatedEquilibriumMultipleTimesExPost)
-            {
-                TabbedText.WriteLine($"Average custom values overall: {String.Join(",", meta1.Average().Select(x => x.ToSignificantFigures(3)).ToArray())}");
-                TabbedText.WriteLine($"Average utilities overall: {String.Join(",", meta1.Average().Select(x => x.ToSignificantFigures(3)).ToArray())}");
-                TabbedText.WriteLine($"Stdev custom values overall: {String.Join(",", meta1.StandardDeviation().Select(x => x.ToSignificantFigures(3)).ToArray())}");
-                TabbedText.WriteLine($"Stdev utilities overall: {String.Join(",", meta1.StandardDeviation().Select(x => x.ToSignificantFigures(3)).ToArray())}");
-                TabbedText.WriteLine($"Number items included average {meta3.Average().ToSignificantFigures(3)} stdev {meta3.StandardDeviation().ToSignificantFigures(3)}");
-            }
-            includedItems = biggestCorrelatedEquilibrium.ToList();
-            TabbedText.WriteLine($"Chosen correlated equilibrium: {String.Join(",", includedItems.ToArray())}");
-
-            rejectedItems = Enumerable.Range(0, numCandidates).Where(x => !includedItems.Contains(x)).ToList();
-            var rejectedItemsScenarioIndices = rejectedItems.Select(x => RememberedStatuses[x].ScenarioIndex).ToArray();
-
-            //NOTE: The commented out code can be used to calculate compatibility of items with neighbors, and correlation of this with exploitability.
-            //int[] GetClosestItems(int i, int numClosestItems)
-            //{
-            //    return Enumerable.Range(0, consideredItems.Length).Where(j => j != i).OrderBy(j => GetSqDistance(i, j)).Take(numClosestItems).ToArray();
-            //}
-            //(int iWouldSwitchToNeighbor, int neighborWouldSwitchToI) CompatibilityWithNeighbors(int i, int numClosestItems)
-            //{
-            //    int[] neighbors = GetClosestItems(i, numClosestItems);
-            //    int iWouldSwitchToNeighbor = 0;
-            //    int neighborWouldSwitchToI = 0;
-            //    foreach (int neighbor in neighbors)
-            //    {
-            //        var result = CheckForCompatibilityInCorrelatedEquilibrium(i, neighbor);
-            //        if (result.someoneSwitchesFromIToJ)
-            //            iWouldSwitchToNeighbor++;
-            //        if (result.someoneSwitchesFromJToI)
-            //            neighborWouldSwitchToI++;
-            //    }
-            //    return (iWouldSwitchToNeighbor, neighborWouldSwitchToI);
-            //}
-            //double ComputeCoeff(double[] values1, double[] values2)
-            //{
-            //    var avg1 = values1.Average();
-            //    var avg2 = values2.Average();
-
-            //    var sum1 = values1.Zip(values2, (x1, y1) => (x1 - avg1) * (y1 - avg2)).Sum();
-
-            //    var sumSqr1 = values1.Sum(x => Math.Pow((x - avg1), 2.0));
-            //    var sumSqr2 = values2.Sum(y => Math.Pow((y - avg2), 2.0));
-
-            //    var result = sum1 / Math.Sqrt(sumSqr1 * sumSqr2);
-
-            //    return result;
-            //}
-            //void CheckNeighborCompatibility(int numNeighbors)
-            //{
-            //    TabbedText.WriteLine($"Checking compatibility with {numNeighbors} neighbors");
-            //    List<(double exploitability, int numSwitchesToNeighbor, int numSwitchesFromNeighbor)> results = new List<(double exploitability, int numSwitchesToNeighbor, int numSwitchesFromNeighbor)>();
-            //    for (int i = 0; i < consideredItems.Length; i++)
-            //    {
-            //        double exploitability = RememberedStatuses[i].BestResponseImprovementAdjAvg;
-            //        var compatibility = CompatibilityWithNeighbors(i, numNeighbors);
-            //        results.Add((exploitability, compatibility.iWouldSwitchToNeighbor, compatibility.neighborWouldSwitchToI));
-            //    }
-            //    results = results.OrderBy(x => x.exploitability).ToList();
-            //    int k = 0;
-            //    foreach (var result in results)
-            //        TabbedText.WriteLine($"{k++}: {result.exploitability} switch to neighbor: {result.numSwitchesToNeighbor} switch from neighbor: {result.numSwitchesFromNeighbor}");
-            //    double correlationToNeighbor = ComputeCoeff(results.Select(x => x.exploitability).ToArray(), results.Select(x => (double)x.numSwitchesToNeighbor).ToArray());
-            //    double correlationFromNeighbor = ComputeCoeff(results.Select(x => x.exploitability).ToArray(), results.Select(x => (double)x.numSwitchesFromNeighbor).ToArray());
-            //    double correlationSum = ComputeCoeff(results.Select(x => x.exploitability).ToArray(), results.Select(x => (double)x.numSwitchesToNeighbor + (double)x.numSwitchesFromNeighbor).ToArray());
-            //    double correlationDifference = ComputeCoeff(results.Select(x => x.exploitability).ToArray(), results.Select(x => (double)x.numSwitchesToNeighbor - (double)x.numSwitchesFromNeighbor).ToArray());
-            //    TabbedText.WriteLine($"Correlation between exploitability and switches to {numNeighbors} neighbors: {correlationToNeighbor} switches from neighbor {correlationFromNeighbor} sum {correlationSum} difference {correlationDifference}\r\n");
-            //}
-            //CheckNeighborCompatibility(1);
-            //CheckNeighborCompatibility(3);
-            //CheckNeighborCompatibility(7);
-            //CheckNeighborCompatibility(20);
-
-            ReportRememberedScenarios(includedItems);
-            foreach (var removingScenarioIndex in rejectedItemsScenarioIndices)
-            {
-                RemovePastValueRecordedIndex(removingScenarioIndex);
-            }
-        }
-
-        private void ReduceToCorrelatedEquilibrium_BasedOnPredeterminedIncompatibilities()
-        {
-            TabbedText.WriteLine($"Reducing correlated equilibrium...");
-            //int[] candidateScenarioIndices = Incompabilities.GetOrdered(GameDefinition.NumScenarioPermutations, mostIncompatibleFirst: false, includeHaters: true, includeHated: false); // consider last the scenarios that the most other scenarios will want to switch from; remember that haters are the strategies we are switching from and hated are strategies we are switching to
-            int[] candidateScenarioIndices = Incompabilities.GetOrdered(GameDefinition.NumScenarioPermutations, mostIncompatibleFirst: true, includeHaters: false, includeHated: true); // consider first the scenarios that the most other scenarios will want to switch to; remember that haters are the strategies we are switching from and hated are strategies we are switching to
-            List<int> addedScenarioIndices = new List<int>();
-            List<int> removedScenarioIndices = new List<int>();
-            foreach (int candidate in candidateScenarioIndices)
-            {
-                if (!Incompabilities.IsKnownIncompatibleWithAny(candidate, addedScenarioIndices))
-                    addedScenarioIndices.Add(candidate);
-                else
-                    removedScenarioIndices.Add(candidate);
-            }
-            removedScenarioIndices = removedScenarioIndices.OrderByDescending(x => x).ToList();
-            foreach (var removingScenarioIndex in removedScenarioIndices)
-            {
-                Incompabilities.Remove(removingScenarioIndex);
-                RemovePastValueRecordedIndex(removingScenarioIndex);
-            }
-            ReportRememberedScenarios();
-            TabbedText.WriteLine($"...Completed reducing correlated equilibrium");
-        }
-
-        private void RemovePastValueRecordedIndex(int overallScenarioIndexToRemove)
-        {
-            int correspondingRememberedIndex = GetRememberedStatusesIndex(overallScenarioIndexToRemove);
-            RememberedStatuses.RemoveAt(correspondingRememberedIndex);
-            InformationSets.ForEach(x =>
-            {
-                x.PastValues.RemoveAt(correspondingRememberedIndex);
-                x.PastValuesCumulativeStrategyDiscounts.RemoveAt(correspondingRememberedIndex);
-                x.LastPastValueIndexRecorded--;
-            });
-        }
-
-        private void SerializeScenario(int overallScenarioIndex)
-        {
-            try
-            {
-                string path, filename;
-                GetPathAndFilenameForScenario(overallScenarioIndex, out path, out filename);
-                if (EvolutionSettings.SerializeInformationSetDataOnly)
-                    StrategySerialization.SerializeInformationSets(InformationSets, path, filename, EvolutionSettings.SaveToAzureBlob);
-                else
-                    StrategySerialization.SerializeStrategies(Strategies.ToArray(), path, filename, EvolutionSettings.SaveToAzureBlob);
-            }
-            catch
-            {
-                // ignore failure to serialize strategies
-            }
-        }
-
-        private void GetPathAndFilenameForScenario(int overallScenarioIndex, out string path, out string filename)
-        {
-            path = FolderFinder.GetFolderToWriteTo("Strategies").FullName;
-            filename = GameDefinition.OptionSetName + "-" + EvolutionSettings.SerializeResultsPrefixPlus(overallScenarioIndex, GameDefinition.NumScenarioPermutations);
-        }
-        private void GetPathAndFilenameForOptionSet(string suffix, out string path, out string filename)
-        {
-            path = FolderFinder.GetFolderToWriteTo("Strategies").FullName;
-            filename = GameDefinition.OptionSetName + "-" + suffix;
-        }
+        public void ReduceToCorrelatedEquilibrium_DeterminingIncompatibilitiesNow() => ScenarioCorrelation.ReduceToCorrelatedEquilibrium_DeterminingIncompatibilitiesNow();
 
         public abstract IStrategiesDeveloper DeepCopy();
 
@@ -791,705 +212,68 @@ namespace ACESim
 
         #endregion
 
-        #region Model success tracking
+        #region Model success tracking compatibility hooks
 
-        // Turn on in EvolutionSettings
+        // Retained serialized fields; implementation lives in ModelSuccessTracker.
         int ModelSuccessEntriesSaved = 0;
         List<float[]> ModelSuccessTracked = null;
         int ModelSuccessTrackingDataPerIteration = -1;
-        public void ConsiderModelSuccessTrackingForIteration(int iteration)
-        {
-            if (EvolutionSettings.ModelSuccessTracking == false || iteration < EvolutionSettings.ModelSuccessTracking_StartingIteration)
-                return;
-            if (ModelSuccessTracked == null)
-            {
-                //if (EvolutionSettings.BestResponseEveryMIterations != 1)
-                //    throw new Exception("Must set best response every iteration for model success tracking"); // could be changed -- just need to figure out total number of iterations
-                int totalPlayerActions = InformationSets.Sum(x => x.NumPossibleActions);
-                const int utilityAndBestResponseDataPerPlayer = 3; // utility, utility after best response, improvement
-                ModelSuccessTrackingDataPerIteration = totalPlayerActions - InformationSets.Count() /* exclude last probability for each info set */ + 2 * utilityAndBestResponseDataPerPlayer + 1 /* avg adjusted best response improvement */;
-                // generate perfectly mixed strategies, which can be a starting point */
-                List<double> perfectlyMixed = new List<double>();
-                foreach (var informationSet in InformationSets)
-                {
-                    int numActions = informationSet.NumPossibleActions;
-                    double perfectlyMixedProbability = 1.0 / numActions;
-                    int numExcludingLast = numActions - 1;
-                    for (int a = 1; a <= numExcludingLast; a++)
-                    {
-                        perfectlyMixed.Add(perfectlyMixedProbability);
-                    }
-                }
-                string perfectlyMixedString = String.Join(",", perfectlyMixed.Select(x => x.ToString()).ToArray());
-                // continuing with setting up model success tracking
-                int numIterations = EvolutionSettings.TotalIterations;
-                int adjNumIterations = numIterations - EvolutionSettings.ModelSuccessTracking_StartingIteration;
-                //if (adjNumIterations <= 0)
-                //    throw new Exception();
-                //ModelSuccessTracked = new float[adjNumIterations, ModelSuccessTrackingDataPerIteration];
-                ModelSuccessTracked = new List<float[]>();
-                ModelSuccessEntriesSaved = 0;
-            }
-            AddModelSuccessTrackingDataForIteration();
-            //TabbedText.WriteLine(ModelSuccessEntriesSaved.ToString());
-            if (ModelSuccessEntriesSaved == EvolutionSettings.ModelSuccessTrackingSaveAfterNItems)
-            {
-                for (int i = 0; i < EvolutionSettings.ModelSuccessTrackingAdditionalToGenerate; i++)
-                    GenerateCrossoverForModelSuccessTracking(i, (int)EvolutionSettings.ModelSuccessTrackingSaveAfterNItems);
-                SaveModelSuccessTrackingData();
-            }
-        }
 
-        private void AddModelSuccessTrackingDataForIteration()
-        {
-            int colIndex = 0;
-            float[] dataForIteration = new float[ModelSuccessTrackingDataPerIteration];
-            foreach (var informationSet in InformationSets)
-            {
-                int numActions = informationSet.NumPossibleActions;
-                int numExcludingLast = numActions - 1;
-                for (int a = 1; a <= numExcludingLast; a++)
-                {
-                    double probability = Math.Round(informationSet.GetCurrentProbability((byte)a, false), 3); // TODO: Make sure all the probabilities add up to 1. Maybe only round at the extremes (<0.01, >0.99) and always balance it out, so that we round the same number high and low. 
-                    dataForIteration[colIndex++] = (float)probability;
-                }
-            }
-            dataForIteration[colIndex++] = (float)Status.UtilitiesOverall[0];
-            dataForIteration[colIndex++] = (float)Status.UtilitiesOverall[1];
-            dataForIteration[colIndex++] = (float)Status.BestResponseUtilities[0];
-            dataForIteration[colIndex++] = (float)Status.BestResponseUtilities[1];
-            dataForIteration[colIndex++] = (float)Status.BestResponseImprovementAdj[0];
-            dataForIteration[colIndex++] = (float)Status.BestResponseImprovementAdj[1];
-            dataForIteration[colIndex++] = (float)Status.BestResponseImprovementAdjAvg;
-            ModelSuccessTracked.Add(dataForIteration);
+        public void ConsiderModelSuccessTrackingForIteration(int iteration) => ModelSuccessTracking.ConsiderModelSuccessTrackingForIteration(iteration);
 
-            ModelSuccessEntriesSaved++;
-        }
+        public void GenerateCrossoverForModelSuccessTracking(int randomizationIndex, int numPotentialSources) => ModelSuccessTracking.GenerateCrossoverForModelSuccessTracking(randomizationIndex, numPotentialSources);
 
-        private void SetCurrentProbabilitiesManually(double[] probabilities)
-        {
-            int i = 0;
-            foreach (var informationSet in InformationSets)
-            {
-                double[] probabilitiesForInformationSet = probabilities.Skip(i).Take(informationSet.NumPossibleActions).Select(x => Math.Max(x, 0)).ToArray();
-                double initialSum = probabilitiesForInformationSet.Sum();
-                if (initialSum > 0)
-                {
-                    probabilitiesForInformationSet = probabilitiesForInformationSet.Select(x => x / initialSum).ToArray();
-                    i += informationSet.NumPossibleActions;
-                    informationSet.SetCurrentProbabilities(probabilitiesForInformationSet);
-                }
-            }
-        }
-
-        public void GenerateCrossoverForModelSuccessTracking(int randomizationIndex, int numPotentialSources)
-        {
-            // For each information set, we want to pick two random of our saved items and then determine how to weight them.
-            // We need to know the index
-            InformationSets.ForEach(x =>
-            {
-                x.CreateBackup();
-
-                long revisedRandomizationIndex = 9949L * x.InformationSetNodeNumber + randomizationIndex;
-                ConsistentRandomSequenceProducer r = new ConsistentRandomSequenceProducer(revisedRandomizationIndex);
-                int savedStrategyIndexFirst = r.NextInt(numPotentialSources);
-                int savedStrategyIndexSecond;
-                do
-                {
-                    savedStrategyIndexSecond = r.NextInt(numPotentialSources);
-                }
-                while (savedStrategyIndexFirst == savedStrategyIndexSecond);
-                double weightOnFirst = r.NextDouble();
-
-                int indexOfFirstAction = x.OverallIndexAmongActions - x.InformationSetNodeNumber; // subtract node number to account for not including last probability
-                for (byte a = 1; a <= x.NumPossibleActions - 1; a++)
-                {
-                    int actionIndex = indexOfFirstAction + a - 1;
-                    double probabilityFirst = ModelSuccessTracked[savedStrategyIndexFirst][actionIndex];
-                    double probabilitySecond = ModelSuccessTracked[savedStrategyIndexSecond][actionIndex];
-                    double probabilityWeighted = probabilityFirst * weightOnFirst + probabilitySecond * (1 - weightOnFirst);
-                    x.SetCurrentAndAverageStrategyValues(a, probabilityWeighted, probabilityWeighted);
-                }
-            });
-            ExecuteAcceleratedBestResponse(false);
-            var result = CompleteAcceleratedBestResponse();
-            AddModelSuccessTrackingDataForIteration();
-            InformationSets.ForEach(x =>
-            {
-                x.RestoreBackup();
-            });
-        }
-
-        public void SaveModelSuccessTrackingData()
-        {
-            TabbedText.WriteLine($"Writing model success data ({ModelSuccessTracked.Count} x {ModelSuccessTracked[0].Length})");
-            string path = FolderFinder.GetFolderToWriteTo("Strategies").FullName;
-            string fullPath = Path.Combine(path, "result.h5");
-            var matrix = ModelSuccessTracked.SelectMany((r, i) => r.Select((val, j) => new { i, j, val })).Aggregate(new float[ModelSuccessTracked.Count, ModelSuccessTracked[0].Length], (acc, x) => { acc[x.i, x.j] = x.val; return acc; });
-            HDF5Writer.WriteArrayToFile(matrix, fullPath);
-            string fullPathNpy = Path.Combine(path, "result.npy");
-            SaveAsNpy(matrix, fullPathNpy);
-        }
-
-        static void LoadH5Data()
-        {
-            // TODO -- not working
-            string path = FolderFinder.GetFolderToWriteTo("Strategies").FullName;
-            string fullPath = Path.Combine(path, "input.h5");
-            var result = HDF5Writer.ReadHDF5ToList(fullPath);
-        }
-
-        static void SaveAsNpy(float[,] matrix, string filePath)
-        {
-            using (var fs = new FileStream(filePath, FileMode.Create))
-            using (var writer = new BinaryWriter(fs))
-            {
-                // Write the magic string
-                writer.Write((byte)0x93);
-                writer.Write(Encoding.ASCII.GetBytes("NUMPY"));
-
-                // Write version
-                writer.Write((byte)1); // Major version
-                writer.Write((byte)0); // Minor version
-
-                // Construct the header
-                string header = $"{{'descr': '<f4', 'fortran_order': False, 'shape': ({matrix.GetLength(0)}, {matrix.GetLength(1)}), }}";
-                // Pad header to be multiple of 16
-                int paddingLength = 16 - ((10 + header.Length) % 16);
-                header += new string(' ', paddingLength);
-                writer.Write((ushort)header.Length);
-                writer.Write(Encoding.ASCII.GetBytes(header));
-
-                // Write matrix data
-                for (int i = 0; i < matrix.GetLength(0); i++)
-                {
-                    for (int j = 0; j < matrix.GetLength(1); j++)
-                    {
-                        writer.Write(matrix[i, j]);
-                    }
-                }
-            }
-        }
+        public void SaveModelSuccessTrackingData() => ModelSuccessTracking.SaveModelSuccessTrackingData();
 
         #endregion
 
-        #region Principal components analysis
+        #region Principal components analysis compatibility hooks
 
-        /// <summary>
-        /// Called after the first iteration, this provides an opportunity to perform any initialization so that data can be
-        /// saved by <see cref="GetCurrentModelVariablesForPCA"/>.
-        /// </summary>
         public virtual void InitializePreparationForPCA()
         {
             ModelDataSavedForPCA = new List<float[][]>();
         }
 
-        /// <summary>
-        /// Copies the model variables for each player into a separate float array for that player. 
-        /// </summary>
-        /// <returns></returns>
         public virtual float[][] GetCurrentModelVariablesForPCA()
         {
             return null;
         }
 
-        /// <summary>
-        /// Perform any processing needed after the PCA analysis, prior to the specification of weights to apply.
-        /// </summary>
-        /// <returns></returns>
         public virtual Task ProcessPrincipalComponentsResults()
         {
             return Task.CompletedTask;
         }
 
-        /// <summary>
-        /// Update the model to use the specified principal component weights. In general, this should effectively do
-        /// the reverse of <see cref="GetCurrentModelVariablesForPCA"/>, using the principal component results to
-        /// update the current model.
-        /// </summary>
-        /// <param name="principalComponentWeightsForEachPlayer"></param>
         public virtual Task SetModelToPrincipalComponentWeights(List<double>[] principalComponentWeightsForEachPlayer)
         {
             return Task.CompletedTask;
         }
 
-        /// <summary>
-        /// Depending on the iteration and settings, initialize preparation for PCA, save model data, or perform PCA.
-        /// </summary>
-        /// <param name="iteration"></param>
-        /// <returns></returns>
-        public async Task PostIterationWorkForPrincipalComponentsAnalysis(int iteration, ReportCollection reportCollection)
-        {
-            if (EvolutionSettings.PCA_PerformPrincipalComponentAnalysis)
-            {
-                if (iteration == 1)
-                {
-                    InitializePreparationForPCA();
-                }
-                if (iteration >= EvolutionSettings.PCA_FirstIterationToSaveAsPCAObservation && iteration % EvolutionSettings.PCA_SavePCAObservationEveryNIterationsAfterFirst == 0)
-                {
-                    float[][] perPlayerModels = GetCurrentModelVariablesForPCA();
-                    ModelDataSavedForPCA.Add(perPlayerModels);
-                }
-                if (iteration == EvolutionSettings.TotalIterations && GameDefinition.NumScenarioPermutations == 1) // if there are multiple scenarios, we wait for all to be complete
-                {
-                    TabbedText.HideConsoleProgressString();
-                    await PerformPrincipalComponentAnalysis(true);
-                    await BuildPCAModelsForSpecifiedScenarios(reportCollection, "report", new int[] { 0 });
-                    TabbedText.ShowConsoleProgressString();
-                }
-            }
-        }
+        public Task PostIterationWorkForPrincipalComponentsAnalysis(int iteration, ReportCollection reportCollection) => PrincipalComponents.PostIterationWorkForPrincipalComponentsAnalysis(iteration, reportCollection);
 
-        public Task SavePCAModelData()
-        {
-            int numModels, totalBytesNeeded;
-            GetPCAModelCount(out numModels, out totalBytesNeeded);
-            var buffer = new byte[totalBytesNeeded];
-            int numBytesCopied = 0;
-            for (int m = 0; m < numModels; m++)
-                for (int p = 0; p < NumNonChancePlayers; p++)
-                {
-                    float[] src = ModelDataSavedForPCA[m][p];
-                    int numBytesToCopy = src.Length * sizeof(float);
-                    Buffer.BlockCopy(src, 0, buffer, numBytesCopied, numBytesToCopy);
-                    numBytesCopied += numBytesToCopy;
-                }
-            TabbedText.WriteLine("Saving PCA data for scenario " + OverallScenarioIndex);
-            string path, filename;
-            GetPathAndFilenameForScenario(OverallScenarioIndex, out path, out filename);
-            AzureBlob.SaveByteArrayToFileOrAzure(buffer, path, "pcadata", filename + ".pcd", EvolutionSettings.SaveToAzureBlob);
-            ModelDataSavedForPCA = new List<float[][]>();
-            return Task.CompletedTask;
-        }
+        public Task SavePCAModelData() => PrincipalComponents.SavePCAModelData();
 
-        private void GetPCAModelCount(out int numModels, out int totalBytesNeeded)
-        {
-            var currentModel = GetCurrentModelVariablesForPCA();
-            numModels = ModelDataSavedForPCA.Count();
-            totalBytesNeeded = ModelDataSavedForPCA.Sum(m => m.Sum(p => p.Length)) * sizeof(float);
-        }
+        public Task RecoverSavedPCAModelData() => PrincipalComponents.RecoverSavedPCAModelData();
 
-        public Task RecoverSavedPCAModelData()
-        {
-            var currentModel = GetCurrentModelVariablesForPCA();
-            int[] numFloatElementsPerPlayer = currentModel.Select(x => x.Length).ToArray();
-            ModelDataSavedForPCA = new List<float[][]>();
-            for (int scenarioIndex = 0; scenarioIndex < GameDefinition.NumScenarioPermutations; scenarioIndex++)
-            {
-                string path, filename;
-                GetPathAndFilenameForScenario(scenarioIndex, out path, out filename);
-                byte[] bytes = AzureBlob.GetByteArrayFromFileOrAzure(path, "pcadata", filename + ".pcd", EvolutionSettings.SaveToAzureBlob);
-                int numBytesCopied = 0;
-                int modelIndex = 0;
-                while (numBytesCopied < bytes.Length)
-                {
-                    var particularModel = new float[NumNonChancePlayers][];
-                    for (int p = 0; p < NumNonChancePlayers; p++)
-                    {
-                        float[] modelDataForPlayer = new float[numFloatElementsPerPlayer[p]];
-                        int numBytesToCopy = modelDataForPlayer.Length * sizeof(float);
-                        Buffer.BlockCopy(bytes, numBytesCopied, modelDataForPlayer, 0, numBytesToCopy);
-                        numBytesCopied += numBytesToCopy;
-                        particularModel[p] = modelDataForPlayer;
-                    }
-                    ModelDataSavedForPCA.Add(particularModel);
-                    modelIndex++;
-                }
-            }
-            return Task.CompletedTask;
-        }
+        public Task RecoverSavedPCAModelDataAndPerformAnalysis(ReportCollection reportCollection, string masterReportName) => PrincipalComponents.RecoverSavedPCAModelDataAndPerformAnalysis(reportCollection, masterReportName);
 
-        public async Task RecoverSavedPCAModelDataAndPerformAnalysis(ReportCollection reportCollection, string masterReportName)
-        {
-            if (EvolutionSettings.PCA_PerformPrincipalComponentAnalysis)
-            {
-                await RecoverSavedPCAModelData();
-                await PerformPrincipalComponentAnalysis(true);
-                await BuildPCAModelsForSpecifiedScenarios(reportCollection, masterReportName, GameDefinition.PostWarmupScenarioIndices);
-            }
-        }
+        public PrincipalComponentsAnalysis PerformPrincipalComponentAnalysis(byte playerIndex) => PrincipalComponents.PerformPrincipalComponentAnalysis(playerIndex);
 
-        private async Task PerformPrincipalComponentAnalysis(bool saveResults)
-        {
-            Stopwatch s = new Stopwatch();
-            s.Start();
-            PCAResultsForEachPlayer = new PrincipalComponentsAnalysis[NumNonChancePlayers];
-            for (byte p = 0; p < NumNonChancePlayers; p++)
-                PCAResultsForEachPlayer[p] = PerformPrincipalComponentAnalysis(p);
-            if (saveResults)
-                await SavePCAResults();
-            //await LoadReducedFormStrategies();
-            await ProcessPrincipalComponentsResults();
-            TabbedText.WriteLine($"Total time performing PCA and creating compound strategy {s.ElapsedMilliseconds} ms");
-            // await BuildModelPredictingUtilitiesBasedOnPrincipalComponents(reportCollection);
-        }
+        public List<double>[] GetRandomPrincipalComponentWeightsForEachPlayer(int randomIndex, double multiplier) => PrincipalComponents.GetRandomPrincipalComponentWeightsForEachPlayer(randomIndex, multiplier);
 
-        private Task SavePCAResults()
-        {
-            for (byte p = 0; p < NumNonChancePlayers; p++)
-            {
-                string path, filename;
-                GetPathAndFilenameForOptionSet($"p{p}.pcr", out path, out filename);
-                AzureBlob.SerializeToFileOrAzure(PCAResultsForEachPlayer[p], path, "pcadata", filename, EvolutionSettings.SaveToAzureBlob);
-                PCAResultsForEachPlayer[p] = PerformPrincipalComponentAnalysis(p);
-            }
-            return Task.CompletedTask;
-        }
+        public List<double> GetRandomPrincipalComponentWeights(byte playerIndex, ConsistentRandomSequenceProducer randomizer, double multiplier) => PrincipalComponents.GetRandomPrincipalComponentWeights(playerIndex, randomizer, multiplier);
 
-        private async Task LoadPCAResults(ReportCollection reportCollection, string masterReportName)
-        {
-            PCAResultsForEachPlayer = new PrincipalComponentsAnalysis[NumNonChancePlayers];
-            TabbedText.WriteLine("Loading PCA results");
-            for (byte p = 0; p < NumNonChancePlayers; p++)
-            {
-                string path, filename;
-                GetPathAndFilenameForOptionSet($"p{p}.pcr", out path, out filename);
-                PCAResultsForEachPlayer[p] = (PrincipalComponentsAnalysis) AzureBlob.GetSerializedObjectFromFileOrAzure(path, "pcadata", filename, EvolutionSettings.SaveToAzureBlob);
-            }
-            TabbedText.WriteLine("Processing PCA results");
-            await ProcessPrincipalComponentsResults();
-            TabbedText.WriteLine($"Building model based on PCA results");
-            await BuildPCAModelsForSpecifiedScenarios(reportCollection, masterReportName, GameDefinition.PostWarmupScenarioIndices);
-        }
+        public List<double> GetRandomPrincipalComponentWeights(byte playerIndex, double[] randomizerValues, double multiplier) => PrincipalComponents.GetRandomPrincipalComponentWeights(playerIndex, randomizerValues, multiplier);
 
-        public PrincipalComponentsAnalysis PerformPrincipalComponentAnalysis(byte playerIndex)
-        {
-            int numVariablesInModel = ModelDataSavedForPCA.First()[playerIndex].Length;
+        public List<double>[] GetRandomPrincipalComponentWeights(byte playerIndex, double[][] randomizerValues, double multiplier) => PrincipalComponents.GetRandomPrincipalComponentWeights(playerIndex, randomizerValues, multiplier);
 
-            int numVersionsOfModel = ModelDataSavedForPCA.Count();
-            double[,] originalData = new double[numVersionsOfModel, numVariablesInModel];
-            for (int i = 0; i < numVersionsOfModel; i++)
-                for (int j = 0; j < numVariablesInModel; j++)
-                    originalData[i, j] = ModelDataSavedForPCA[i][playerIndex][j];
-            PrincipalComponentsAnalysis stats = new PrincipalComponentsAnalysis(originalData, EvolutionSettings.PCA_NumPrincipalComponents, EvolutionSettings.PCA_Precision);
-            return stats;
-        }
+        public virtual Task<(double[] compoundUtilities, double[] customStats)> PCA_UtilitiesAndCustomResultAverage(int randSeed, bool reportResults = false) => PrincipalComponents.PCA_UtilitiesAndCustomResultAverage(randSeed, reportResults);
 
-        public List<double>[] GetRandomPrincipalComponentWeightsForEachPlayer(int randomIndex, double multiplier)
-        {
-            return Enumerable.Range(0, NumNonChancePlayers).Select(x => GetRandomPrincipalComponentWeights((byte)x, new ConsistentRandomSequenceProducer(randomIndex, 1_000_000 * x), multiplier)).ToArray();
-        }
+        public Task UsePCAToEvaluateEquilibria(ReportCollection reportCollection, string masterReportName) => PrincipalComponents.UsePCAToEvaluateEquilibria(reportCollection, masterReportName);
 
-        public List<double> GetRandomPrincipalComponentWeights(byte playerIndex, ConsistentRandomSequenceProducer randomizer, double multiplier)
-        {
-            var stats = PCAResultsForEachPlayer[playerIndex];
-            int numPrincipalComponents = EvolutionSettings.PCA_NumPrincipalComponents;
-            var result = Enumerable.Range(0, numPrincipalComponents).Select(principalComponent => multiplier * InvNormal.Calculate(randomizer.GetDoubleAtIndex(principalComponent)) * stats.principalComponentStdevs[principalComponent]).ToList();
-            return result;
-        }
-        public List<double> GetRandomPrincipalComponentWeights(byte playerIndex, double[] randomizerValues, double multiplier)
-        {
-            var stats = PCAResultsForEachPlayer[playerIndex];
-            int numPrincipalComponents = EvolutionSettings.PCA_NumPrincipalComponents;
-            var result = Enumerable.Range(0, numPrincipalComponents).Select(principalComponent => multiplier * InvNormal.Calculate(randomizerValues[principalComponent]) * stats.principalComponentStdevs[principalComponent]).ToList();
-            return result;
-        }
+        public Task<(List<(int player0Strategy, int player1Strategy)> nashEquilibriaStrategies, List<List<double>[]> nashEquilibriaPrincipalComponents, double[, ] distanceFromNash)> UsePCAToEvaluateNashEquilibria(double[, ] player0Utilities, double[, ] player1Utilities, List<double>[] principalComponentsWeightsForPlayer0, List<double>[] principalComponentsWeightsForPlayer1, ReportCollection reportCollection, string masterReportName) => PrincipalComponents.UsePCAToEvaluateNashEquilibria(player0Utilities, player1Utilities, principalComponentsWeightsForPlayer0, principalComponentsWeightsForPlayer1, reportCollection, masterReportName);
 
-        public List<double>[] GetRandomPrincipalComponentWeights(byte playerIndex, double[][] randomizerValues, double multiplier)
-        {
-            int numToGet = randomizerValues.GetLength(0);
-            return Enumerable.Range(0, numToGet).Select(x => GetRandomPrincipalComponentWeights(playerIndex, randomizerValues[x], multiplier)).ToArray();
-        }
-
-        
-        private async Task BuildPCAModelsForSpecifiedScenarios(ReportCollection reportCollection, string masterReportName, int[] scenarioIndices)
-        {
-            if (EvolutionSettings.PCA_BuildModelToPredictUtilitiesBasedOnPrincipalComponents)
-            {
-                for (int s = 0; s < scenarioIndices.Length; s++)
-                {
-                    await BuildModelPredictingUtilitiesBasedOnPrincipalComponents(reportCollection, masterReportName, scenarioIndices, s);
-                }
-            }
-        }
-
-        private async Task BuildModelPredictingUtilitiesBasedOnPrincipalComponents(ReportCollection reportCollection, string masterReportName, int[] scenarioIndices, int s)
-        {
-            int numUtilitiesToCalculateToBuildModel = EvolutionSettings.PCA_NumUtilitiesToCalculateToBuildModel;
-            TabbedText.WriteLine("");
-            TabbedText.WriteLine($"Post-warmup option set {s + 1} of {GameDefinition.NumPostWarmupPossibilities}");
-            int scenarioIndex = scenarioIndices[s];
-            ReinitializeForScenario(scenarioIndex, false, true /* b/c if this is first, we might have set the scenario for just one iteration without actually calling ReinitializeForScenario */);
-            List<ModelPredictingUtilitiesDatum> data = await GetDataForModelPredictingUtilities(numUtilitiesToCalculateToBuildModel);
-            await CompleteUtilitiesModelBuild(data);
-            if (EvolutionSettings.PCA_AssessModelsToPredictUtilitiesFromPrincipalComponents)
-                await AssessModelsToPredictUtilitiesFromPrincipalComponents();
-            await UsePCAToEvaluateEquilibria(reportCollection, masterReportName);
-        }
-
-        private async Task CompleteUtilitiesModelBuild(List<ModelPredictingUtilitiesDatum> data)
-        {
-            Stopwatch stopwatch = new Stopwatch();
-            stopwatch.Start();
-            ModelsToPredictUtilitiesFromPrincipalComponents = new RegressionController[NumNonChancePlayers];
-            for (byte p = 0; p < NumNonChancePlayers; p++)
-            {
-                ModelsToPredictUtilitiesFromPrincipalComponents[p] = new RegressionController(EvolutionSettings.RegressionFactory());
-                var dataConverted = data.Select(x => x.Convert(p)).ToArray();
-                await ModelsToPredictUtilitiesFromPrincipalComponents[p].Regress(dataConverted);
-            }
-            stopwatch.Stop();
-            TabbedText.WriteLine($"Utilities model build in {stopwatch.ElapsedMilliseconds} ms");
-        }
-
-        private async Task<List<ModelPredictingUtilitiesDatum>> GetDataForModelPredictingUtilities(int numUtilitiesToCalculateToBuildModel)
-        {
-            Stopwatch outerStopwatch = new Stopwatch();
-            outerStopwatch.Start();
-            StatCollectorArray utilitiesStats = new StatCollectorArray();
-            StatCollectorArray customStatsStats = new StatCollectorArray();
-            StatCollector timeStats = new StatCollector();
-            List<ModelPredictingUtilitiesDatum> data = new List<ModelPredictingUtilitiesDatum>();
-            for (int utilIndex = 0; utilIndex < numUtilitiesToCalculateToBuildModel; utilIndex++)
-            {
-                Stopwatch innerStopwatch = new Stopwatch();
-                innerStopwatch.Start();
-                List<double>[] principalComponentWeightsForEachPlayer = GetRandomPrincipalComponentWeightsForEachPlayer(utilIndex * 737, 1.5);
-                string principalComponentWeightsString = String.Join("; ", Enumerable.Range(0, NumNonChancePlayers).Select(x => x.ToString() + ": " + principalComponentWeightsForEachPlayer[x].ToSignificantFigures(3)));
-                bool printAndTimeEachCalculation = false; 
-                await SetModelToPrincipalComponentWeights(principalComponentWeightsForEachPlayer);
-                (double[] compoundUtilities, double[] customStats) = await PCA_UtilitiesAndCustomResultAverage(utilIndex * numUtilitiesToCalculateToBuildModel, printAndTimeEachCalculation);
-                data.Add(new ModelPredictingUtilitiesDatum(principalComponentWeightsForEachPlayer, compoundUtilities));
-                innerStopwatch.Stop();
-                timeStats.Add(innerStopwatch.ElapsedMilliseconds);
-                utilitiesStats.Add(compoundUtilities);
-                customStatsStats.Add(customStats);
-                if (printAndTimeEachCalculation)
-                    TabbedText.WriteLine($"Data input {utilIndex}: {principalComponentWeightsString} utilities: {compoundUtilities.ToSignificantFigures(6)} customStats (same for each post-warmup scenario): {customStats.ToSignificantFigures(6)}"); // same for each post-warmup scenario because here we are using the same principal component weights to detemrine strategy; the only thing that's changing is utilities.
-            }
-            TabbedText.WriteLine($"Average ms per each of {numUtilitiesToCalculateToBuildModel} utilities to calculate: {timeStats.Average().ToSignificantFigures(3)} (total time: {outerStopwatch.ElapsedMilliseconds})");
-            TabbedText.WriteLine($"utilities {utilitiesStats.ToString()} custom stats {customStatsStats.ToString()}");
-            return data;
-        }
-
-        public virtual Task<(double[] compoundUtilities, double[] customStats)> PCA_UtilitiesAndCustomResultAverage(int randSeed, bool reportResults = false)
-        {
-            (double[] utilities, double[] customStats) ultimateResult = default;
-            if (reportResults)
-                TabbedText.Write($"Calculating utilities");
-            Stopwatch s = new Stopwatch();
-            s.Start();
-            bool useAcceleratedBestResponseForCalculation = true;
-            if (EvolutionSettings.UseAcceleratedBestResponse && useAcceleratedBestResponseForCalculation)
-            {
-                var abrResult = ExecuteAcceleratedBestResponse(false);
-                double[] utilities = abrResult.Select(x => x.utilityResult).ToArray();
-                double[] customStats = abrResult.First().customResult.AsDoubleArray();
-                ultimateResult = (utilities, customStats);
-            }
-            else
-            {
-                var calculator = new UtilitiesAndCustomResultTreeCalculation(false);
-                var treeWalkResult = TreeWalk_Tree(calculator, true);
-                ultimateResult = (treeWalkResult.utilities, treeWalkResult.customResult.AsDoubleArray());
-            }
-            if (reportResults)
-                TabbedText.WriteLine($"({ultimateResult.utilities.ToSignificantFigures(6)}; customResults: {ultimateResult.customStats.ToSignificantFigures(6)} time {s.ElapsedMilliseconds} ms");
-            return Task.FromResult(ultimateResult);
-        }
-
-        /// <summary>
-        /// Evaluates Nash and correlated equilibria. Adds reports ONLY if generating a separate report for
-        /// each equilibrium. Sets the model to a Nash equilibrium (or highest overall payout Nash) or
-        /// to the best approximate Nash equilibrium.
-        /// </summary>
-        /// <param name="reportCollection"></param>
-        /// <returns></returns>
-        public async Task UsePCAToEvaluateEquilibria(ReportCollection reportCollection, string masterReportName)
-        {
-            if (NumNonChancePlayers != 2)
-                throw new NotSupportedException();
-            TabbedText.WriteLine($"Search for equilibria with PCA");
-            int numStrategyChoicesPerPlayer = EvolutionSettings.PCA_NumStrategyChoicesPerPlayer;
-            double[,] player0Utilities, player1Utilities;
-            List<double>[] principalComponentsWeightsForPlayer0, principalComponentsWeightsForPlayer1;
-            GetEstimatedUtilitiesForStrategyChoices(numStrategyChoicesPerPlayer, out player0Utilities, out player1Utilities, out principalComponentsWeightsForPlayer0, out principalComponentsWeightsForPlayer1);
-            var nashResults = await UsePCAToEvaluateNashEquilibria(player0Utilities, player1Utilities, principalComponentsWeightsForPlayer0, principalComponentsWeightsForPlayer1, reportCollection, masterReportName);
-            await GenerateReportsAfterPCA(reportCollection, GameDefinition.OptionSetName + "-" + GameDefinition.GetNameForScenario(), "bestnash", masterReportName);
-            await UsePCAToEvaluateCorrelatedEquilibria(player0Utilities, player1Utilities, principalComponentsWeightsForPlayer0, principalComponentsWeightsForPlayer1, reportCollection, nashResults.distanceFromNash, 10_000, 100, masterReportName);
-
-        }
-
-        private async Task UsePCAToEvaluateCorrelatedEquilibria(double[,] player0Utilities, double[,] player1Utilities, List<double>[] principalComponentsWeightsForPlayer0, List<double>[] principalComponentsWeightsForPlayer1, ReportCollection reportCollection, double[,] distanceFromNash, int maxNumCandidatesToConsider, int numAttemptsToGetBiggerEquilibria, string masterReportName)
-        {
-            if (!EvolutionSettings.ConstructCorrelatedEquilibrium)
-                return;
-            TabbedText.WriteLine($"Correlated equilibria");
-            List<(int player0Strategy, int player1Strategy)> correlatedEquilibriumStrategies = PureStrategiesFinder.GetCorrelatedEquilibrium_OrderingByApproxNashValue(player0Utilities, player1Utilities, distanceFromNash);
-            List<List<double>[]> correlatedEquilibrium = correlatedEquilibriumStrategies
-                .Select(x => (new List<double>[2] { principalComponentsWeightsForPlayer0[x.player0Strategy], principalComponentsWeightsForPlayer1[x.player1Strategy] }))
-                .ToList();
-            ConsistentRandomSequenceProducer randomSequenceProducer = new ConsistentRandomSequenceProducer(6_012_345); // arbitrary sequence
-
-            for (int i = 0; i < numAttemptsToGetBiggerEquilibria; i++)
-            {
-                List<(int player0Strategy, int player1Strategy)> candidateEquilibriumStrategies = PureStrategiesFinder.GetCorrelatedEquilibrium_OrderingByFarthestDistanceFromAdmittees_StartingWithRandomStrategy(player0Utilities, player1Utilities, distanceFromNash, maxNumCandidatesToConsider, randomSequenceProducer);
-                List<List<double>[]> candidateEquilibrium = candidateEquilibriumStrategies
-                    .Select(x => (new List<double>[2] { principalComponentsWeightsForPlayer0[x.player0Strategy], principalComponentsWeightsForPlayer1[x.player1Strategy] }))
-                    .ToList();
-                int numOfEquilibriaWithinCorrelatedCandidate = candidateEquilibrium.Count();
-                if (numOfEquilibriaWithinCorrelatedCandidate > correlatedEquilibrium.Count())
-                {
-                    correlatedEquilibriumStrategies = candidateEquilibriumStrategies;
-                    correlatedEquilibrium = candidateEquilibrium;
-                }
-            }
-
-            WriteBasicEquilibriaInfo(correlatedEquilibriumStrategies, correlatedEquilibrium, distanceFromNash);
-
-            await PCA_SeparateReportsForEachEquilibrium(correlatedEquilibrium, "corr", masterReportName);
-            
-        }
-
-        public async Task<(List<(int player0Strategy, int player1Strategy)> nashEquilibriaStrategies, List<List<double>[]> nashEquilibriaPrincipalComponents, double[,] distanceFromNash)> UsePCAToEvaluateNashEquilibria(double[,] player0Utilities, double[,] player1Utilities, List<double>[] principalComponentsWeightsForPlayer0, List<double>[] principalComponentsWeightsForPlayer1, ReportCollection reportCollection, string masterReportName)
-        {
-            TabbedText.WriteLine($"Nash equilibria");
-            List<(int player0Strategy, int player1Strategy)> nashEquilibriaStrategies = PureStrategiesFinder.ComputeNashEquilibria(player0Utilities, player1Utilities, false);
-            List<List<double>[]> nashEquilibriaPrincipalComponents = nashEquilibriaStrategies
-                .Select(x => new List<double>[2] { principalComponentsWeightsForPlayer0[x.player0Strategy], principalComponentsWeightsForPlayer1[x.player1Strategy] })
-                .ToList();
-            var approximateNash = PureStrategiesFinder.GetApproximateNashEquilibrium(player0Utilities, player1Utilities, out double nashDistance);
-            if (!nashEquilibriaPrincipalComponents.Any())
-            {
-                TabbedText.WriteLine($"No Nash equilibrium found. Finding best approximate Nash equilibrium (distance from Nash: {nashDistance}).");
-                nashEquilibriaPrincipalComponents.Add(new List<double>[2] { principalComponentsWeightsForPlayer0[approximateNash.player0Strategy], principalComponentsWeightsForPlayer1[approximateNash.player1Strategy] });
-                nashEquilibriaStrategies.Add((approximateNash.player0Strategy, approximateNash.player1Strategy)); 
-            }
-            nashEquilibriaPrincipalComponents = nashEquilibriaPrincipalComponents.OrderByDescending(eq => GetSumOfPlayerUtilitiesInEquilibrium(eq)).ToList();
-            await PCA_SeparateReportsForEachEquilibrium(nashEquilibriaPrincipalComponents, "nash", masterReportName);
-            var nashEquilibriumToPick = nashEquilibriaPrincipalComponents.First();
-            await SetModelToPrincipalComponentWeights(nashEquilibriumToPick);
-            WriteBasicEquilibriaInfo(nashEquilibriaStrategies, nashEquilibriaPrincipalComponents, approximateNash.distanceFromNash);
-            return (nashEquilibriaStrategies, nashEquilibriaPrincipalComponents, approximateNash.distanceFromNash);
-        }
-
-        private async Task PCA_SeparateReportsForEachEquilibrium(List<List<double>[]> equilibria, string equilibriumType, string masterReportName)
-        {
-            if (EvolutionSettings.PCA_SeparateReportPerEquilibrium)
-            {
-                for (int e = 0; e < equilibria.Count; e++)
-                {
-                    List<double>[] eq = equilibria[e];
-                    await SetModelToPrincipalComponentWeights(eq);
-                    ReportCollection singleReport = new ReportCollection();
-                    string scenarioName = GameDefinition.OptionSetName + "-" + GameDefinition.GetNameForScenario();
-                    string scenarioEquilibriumName = equilibriumType + "-" + e.ToString();
-                    await GenerateReportsAfterPCA(singleReport, scenarioName, scenarioEquilibriumName, masterReportName);
-                }
-            }
-        }
-
-        private async Task GenerateReportsAfterPCA(ReportCollection reportCollection, string scenarioName, string scenarioEquilibriumName, string masterReportName)
-        {
-            GameDefinition.ScenarioEquilibriumName = scenarioEquilibriumName;
-            string reportSuffix = scenarioEquilibriumName == null ? $"-{scenarioName}" : $"-{scenarioName}-{scenarioEquilibriumName}";
-            Func<string> prefaceFn = () => $"{masterReportName}{reportSuffix}";
-            await GenerateBestResponseAndMainReports(prefaceFn, reportSuffix, reportCollection, EvolutionSettings.PCA_BestResponseAfterPCA, EvolutionSettings.PCA_ReportsAfterPCA);
-            AzureBlob.WriteTextToFileOrAzure("results", Launcher.ReportFolder(), prefaceFn() + ".csv", true, reportCollection.csvReports.First(), EvolutionSettings.SaveToAzureBlob);
-            GameDefinition.ScenarioEquilibriumName = null;
-            TabbedText.WriteLine($"Results from model used to generate report:"); // can be useful as a check to make sure report corresponds approximately to model
-            var resultAverage = await PCA_UtilitiesAndCustomResultAverage(0, true);
-        }
-
-        private void WriteBasicEquilibriaInfo(List<(int player0Strategy, int player1Strategy)> equilibriaStrategies, List<List<double>[]> equilibriaPrincipalComponents, double[,] distanceFromNash, bool removeRedundantEquilibria = true)
-        {
-            HashSet<string> redundantEquilibria = new HashSet<string>();
-            for (int i = 0; i < equilibriaPrincipalComponents.Count; i++)
-            {
-                List<double>[] equilibrium = (List<double>[])equilibriaPrincipalComponents[i];
-                (int player0Strategy, int player1Strategy) = equilibriaStrategies[i];
-                (double player0Utility, double player1Utility) = GetPredictedPlayerUtilitiesInEquilibrium(equilibrium);
-                double approximateNashDistance = distanceFromNash[player0Strategy, player1Strategy];
-                string principalComponentWeightsString = string.Join("; ", Enumerable.Range(0, NumNonChancePlayers).Select(x => x.ToString() + ": " + equilibrium[x].ToSignificantFigures(3)));
-                string hashToCheckRedundancy0 = $"{equilibrium[0].ToSignificantFigures(10)} {player0Utility.ToSignificantFigures(10)} {player1Utility.ToSignificantFigures(10)}";
-                string hashToCheckRedundancy1 = $"{equilibrium[1].ToSignificantFigures(10)} {player0Utility.ToSignificantFigures(10)} {player1Utility.ToSignificantFigures(10)}";
-                if (!redundantEquilibria.Contains(hashToCheckRedundancy0) && !redundantEquilibria.Contains(hashToCheckRedundancy1))
-                {
-                    TabbedText.WriteLine($"eq for principal components {principalComponentWeightsString}; utility {player0Utility.ToSignificantFigures(10)}, {player1Utility.ToSignificantFigures(10)} {(approximateNashDistance > 0 ? "Distance from Nash " + approximateNashDistance.ToSignificantFigures(4) : "")}");
-                    redundantEquilibria.Add(hashToCheckRedundancy0);
-                    redundantEquilibria.Add(hashToCheckRedundancy1);
-                }
-            }
-        }
-
-        private double GetSumOfPlayerUtilitiesInEquilibrium(List<double>[] equilibrium)
-        {
-            var utilities = GetPredictedPlayerUtilitiesInEquilibrium(equilibrium);
-            return utilities.player0Utility + utilities.player1Utility;
-        }
-
-        private (double player0Utility, double player1Utility) GetPredictedPlayerUtilitiesInEquilibrium(List<double>[] equilibrium)
-        {
-            var datum = new ModelPredictingUtilitiesDatum(equilibrium, null);
-            var model = ModelsToPredictUtilitiesFromPrincipalComponents[0];
-            double player0Utility = model.GetResult(datum.Convert().X, null);
-            model = ModelsToPredictUtilitiesFromPrincipalComponents[1];
-            double player1Utility = model.GetResult(datum.Convert().X, null);
-            return (player0Utility, player1Utility);
-        }
-
-        public void GetEstimatedUtilitiesForStrategyChoices(int numStrategyChoicesPerPlayer, out double[,] player0Utilities, out double[,] player1Utilities, out List<double>[] principalComponentsWeightsForPlayer0, out List<double>[] principalComponentsWeightsForPlayer1)
-        {
-            player0Utilities = new double[numStrategyChoicesPerPlayer, numStrategyChoicesPerPlayer];
-            player1Utilities = new double[numStrategyChoicesPerPlayer, numStrategyChoicesPerPlayer];
-            // Determine principal component weights for each strategy choice, making sure they are slightly spaced out. There is no deterministic algorithm for the "sphere packing problem" in n-dimensional space, but the SpacedOutPoints class should work in an approximate way.
-            principalComponentsWeightsForPlayer0 = new List<double>[numStrategyChoicesPerPlayer];
-            principalComponentsWeightsForPlayer1 = new List<double>[numStrategyChoicesPerPlayer];
-            principalComponentsWeightsForPlayer0 = GetRandomPrincipalComponentWeights(0, new SpacedOutPoints(numStrategyChoicesPerPlayer, numStrategyChoicesPerPlayer * 10, Enumerable.Range(0, EvolutionSettings.PCA_NumPrincipalComponents).Select(x => 1.0).ToArray(), new ConsistentRandomSequenceProducer(5_000_001)).CalculatePoints(), 1.0);
-            principalComponentsWeightsForPlayer1 = GetRandomPrincipalComponentWeights(1, new SpacedOutPoints(numStrategyChoicesPerPlayer, numStrategyChoicesPerPlayer * 10, Enumerable.Range(0, EvolutionSettings.PCA_NumPrincipalComponents).Select(x => 1.0).ToArray(), new ConsistentRandomSequenceProducer(5_000_002)).CalculatePoints(), 1.0);
-            for (int i = 0; i < numStrategyChoicesPerPlayer; i++)
-            {
-                for (int j = 0; j < numStrategyChoicesPerPlayer; j++)
-                {
-                    List<double>[] principalComponentWeightsForEachPlayer = new List<double>[2] { principalComponentsWeightsForPlayer0[i], principalComponentsWeightsForPlayer1[j] };
-                    var datum = new ModelPredictingUtilitiesDatum(principalComponentWeightsForEachPlayer, null);
-                    var model = ModelsToPredictUtilitiesFromPrincipalComponents[0];
-                    player0Utilities[i, j] = model.GetResult(datum.Convert().X, null);
-                    model = ModelsToPredictUtilitiesFromPrincipalComponents[1];
-                    player1Utilities[i, j] = model.GetResult(datum.Convert().X, null);
-                    //CompoundRegressionMachinesContainer.SpecifyWeightOnSupplementalMachines(principalComponentWeightsForEachPlayer, InverseNumStandardDeviationsForPrincipalComponentStrategy);
-                }
-            }
-        }
-
-        private async Task AssessModelsToPredictUtilitiesFromPrincipalComponents()
-        {
-            StatCollector s = new StatCollector();
-            const int numToCompare = 100;
-            double[][] actualArray = new double[NumNonChancePlayers][], predictedArray = new double[NumNonChancePlayers][];
-            for (int p = 0; p < NumNonChancePlayers; p++)
-            {
-                actualArray[p] = new double[numToCompare];
-                predictedArray[p] = new double[numToCompare];
-            }
-            await Parallelizer.GoAsync(EvolutionSettings.ParallelOptimization, 0, numToCompare, async j =>
-            {
-                List<double>[] principalComponentWeightsForEachPlayer = GetRandomPrincipalComponentWeightsForEachPlayer(((int)j) * 2011, 1.0);
-                string principalComponentWeightsString = string.Join("; ", Enumerable.Range(0, NumNonChancePlayers).Select(x => x.ToString() + ": " + principalComponentWeightsForEachPlayer[x].ToSignificantFigures(3)));
-                ModelPredictingUtilitiesDatum datum = new ModelPredictingUtilitiesDatum(principalComponentWeightsForEachPlayer, null);
-                await SetModelToPrincipalComponentWeights(principalComponentWeightsForEachPlayer);
-                (double[] actual, double[] customStats) = await PCA_UtilitiesAndCustomResultAverage((int) j, reportResults: false);
-                double[] predicted = new double[NumNonChancePlayers];
-                for (byte p = 0; p < NumNonChancePlayers; p++)
-                {
-                    var model = ModelsToPredictUtilitiesFromPrincipalComponents[p];
-                    predicted[p] = model.GetResult(datum.Convert().X, null);
-                    predictedArray[p][j] = predicted[p];
-                    actualArray[p][j] = actual[p];
-                }
-                double[] absoluteDifference = actual.Zip(predicted, (first, second) => Math.Abs(first - second)).ToArray();
-                double avgAbsoluteDifference = absoluteDifference.Average();
-                s.Add(avgAbsoluteDifference);
-                TabbedText.WriteLine($"Principal components {j}: {principalComponentWeightsString} ==> Prediction {predicted.ToSignificantFigures(6)} actual {actual.ToSignificantFigures(6)} avg_abs_diff {avgAbsoluteDifference.ToSignificantFigures(3)} ");
-            });
-            TabbedText.WriteLine($"Overall average absolute difference: " + s.Average().ToSignificantFigures(3));
-            for (int p = 0; p < NumNonChancePlayers; p++)
-            {
-                double coef = actualArray[p].CorrelationCoefficient(predictedArray[p]);
-                TabbedText.WriteLine($"Correlation coefficient player {p}: {coef}");
-            }
-        }
+        public void GetEstimatedUtilitiesForStrategyChoices(int numStrategyChoicesPerPlayer, out double[, ] player0Utilities, out double[, ] player1Utilities, out List<double>[] principalComponentsWeightsForPlayer0, out List<double>[] principalComponentsWeightsForPlayer1) => PrincipalComponents.GetEstimatedUtilitiesForStrategyChoices(numStrategyChoicesPerPlayer, out player0Utilities, out player1Utilities, out principalComponentsWeightsForPlayer0, out principalComponentsWeightsForPlayer1);
 
         #endregion
 
@@ -1615,7 +399,7 @@ namespace ACESim
             }
         }
 
-        public void Reinitialize()
+        public virtual void Reinitialize()
         {
             foreach (Strategy s in Strategies)
             {
@@ -2485,7 +1269,7 @@ namespace ACESim
             TabbedText.ShowConsoleProgressString();
         }
 
-        private async Task GenerateBestResponseAndMainReports(Func<string> prefaceFn, string reportSuffix, ReportCollection reportCollection, bool doBestResponse, bool doReports)
+        internal async Task GenerateBestResponseAndMainReports(Func<string> prefaceFn, string reportSuffix, ReportCollection reportCollection, bool doBestResponse, bool doReports)
         {
             TabbedText.WriteLine("");
             TabbedText.WriteLine(prefaceFn());
@@ -2524,7 +1308,7 @@ namespace ACESim
             }
         }
 
-        private async Task GenerateMainReports(Func<string> prefaceFn, string reportSuffix, ReportCollection reportCollection, List<ActionStrategies> actionStrategiesToUse)
+        internal async Task GenerateMainReports(Func<string> prefaceFn, string reportSuffix, ReportCollection reportCollection, List<ActionStrategies> actionStrategiesToUse)
         {
             ActionStrategies previous = ActionStrategy;
             if (EvolutionSettings.RoundOffLowProbabilitiesBeforeReporting)
@@ -2702,7 +1486,7 @@ namespace ACESim
 
         }
 
-        private (double bestResponseResult, double utilityResult, FloatSet customResult)[] ExecuteAcceleratedBestResponse(bool determineWhetherReachable)
+        internal (double bestResponseResult, double utilityResult, FloatSet customResult)[] ExecuteAcceleratedBestResponse(bool determineWhetherReachable)
         {
             // index through information sets by decision (note that i is not the same as the actual decision index). First, calculate reach probabilities going forward. Second, calculate best response values going backward.
             bool parallelize = EvolutionSettings.ParallelOptimization;
@@ -2824,7 +1608,7 @@ namespace ACESim
                 }
         }
 
-        private (double bestResponseResult, double utilityResult, FloatSet customResult)[] CompleteAcceleratedBestResponse()
+        internal (double bestResponseResult, double utilityResult, FloatSet customResult)[] CompleteAcceleratedBestResponse()
         {
             // Finally, we need to calculate the final values by looking at the first information sets for each player.
             if (Status.BestResponseUtilities == null || Status.BestResponseImprovement == null || Status.UtilitiesOverall == null)
@@ -3385,263 +2169,28 @@ namespace ACESim
 
         #endregion
 
-        #region Game value calculation
+        #region Game value calculation compatibility hooks
 
-        [NonSerialized]
-        Type CorrelatedEquilibriumCalculatorType = null;
+        // Retain the serialized flag; the compiled Type lives in the nonserialized calculator.
         bool CorrelatedEquilibriumCodeIsPrecompiled = false;
 
-        public void DoCorrelatedEquilibriumCalculations(int currentIterationNumber)
-        {
-            if (CorrelatedEquilibriumCalculatorType == null)
-            {
-                if (CorrelatedEquilibriumCodeIsPrecompiled)
-                {
-                    TabbedText.WriteLine($"Using precompiled code for correlated equilibrium.");
-                    CorrelatedEquilibriumCalculatorType = Type.GetType("CorrEqCalc.AutogeneratedCalculator");
-                }
-                else
-                    CorrelatedEquilibriumCalculations_GenerateCode();
-            }
-            CorrelatedEquilibriumCalculations_RunGeneratedCode(currentIterationNumber);
-        }
+        public void DoCorrelatedEquilibriumCalculations(int currentIterationNumber) => CorrelatedValues.DoCorrelatedEquilibriumCalculations(currentIterationNumber);
 
-        public void CorrelatedEquilibriumCalculations_GenerateCode()
-        {
-            StringBuilder codeGenerationBuilder = new StringBuilder();
-            codeGenerationBuilder.AppendLine($@"using System;
-    using System.Collections.Generic;
-    using ACESim;
+        public void CorrelatedEquilibriumCalculations_GenerateCode() => CorrelatedValues.CorrelatedEquilibriumCalculations_GenerateCode();
 
-    namespace CorrEqCalc
-    {{
-    public static class AutogeneratedCalculator
-    {{");
-            CorrelatedEquilibriumCalculation_SwitchOnByteFunctions(codeGenerationBuilder, 15);
-            // We want to calculate the following:
-            // both players' utilities for correlated equilibrium vs. correlated equilibrium
-            // plaintiff's utility for best response vs. correlated equilibrium
-            // defendant's utility for correlated equilibrium vs. best response
-            // We will prepare to do this by preparing a single very long expression for each of the four numbers that we want, and then we'll have a function that will return each of them.
-            codeGenerationBuilder.AppendLine("public static void DoCalc(int cei, List<FinalUtilitiesNode> f, List<ChanceNode> c, List<InformationSetNode> n, out double p0CvC, out double p1CvC, out double p0BRvC, out double p1CvBR)");
-            codeGenerationBuilder.AppendLine($"{{");
-            codeGenerationBuilder.Append("p0CvC = ");
-            CorrelatedEquilibriumCalculationString_Tree(codeGenerationBuilder, 0, ActionStrategies.CorrelatedEquilibrium);
-            codeGenerationBuilder.AppendLine(";");
-            codeGenerationBuilder.Append("p1CvC = ");
-            CorrelatedEquilibriumCalculationString_Tree(codeGenerationBuilder, 1, ActionStrategies.CorrelatedEquilibrium);
-            codeGenerationBuilder.AppendLine(";");
-            codeGenerationBuilder.Append("p0BRvC = ");
-            CorrelatedEquilibriumCalculationString_Tree(codeGenerationBuilder, 0, ActionStrategies.BestResponseVsCorrelatedEquilibrium);
-            codeGenerationBuilder.AppendLine(";");
-            codeGenerationBuilder.Append("p1CvBR = ");
-            CorrelatedEquilibriumCalculationString_Tree(codeGenerationBuilder, 1, ActionStrategies.CorrelatedEquilibriumVsBestResponse);
-            codeGenerationBuilder.AppendLine(";");
-            codeGenerationBuilder.AppendLine($"}}");
+        public void CorrelatedEquilibriumCalculations_RunGeneratedCode(int currentIterationNumber) => CorrelatedValues.CorrelatedEquilibriumCalculations_RunGeneratedCode(currentIterationNumber);
 
-            codeGenerationBuilder.AppendLine($@"}}
-}}");
-            string code = codeGenerationBuilder.ToString();
-            CorrelatedEquilibriumCalculatorType = StringToCode.LoadCode(code, "CorrEqCalc.AutogeneratedCalculator", new List<Type>() { typeof(CounterfactualRegretMinimization), typeof(System.Collections.ArrayList) });
+        public void CorrelatedEquilibriumCalculation_SwitchOnByteFunctions(StringBuilder codeGenerationBuilder, byte maxNumActionsUsed) => CorrelatedValues.CorrelatedEquilibriumCalculation_SwitchOnByteFunctions(codeGenerationBuilder, maxNumActionsUsed);
 
+        public void CorrelatedEquilibriumCalculation_SwitchOnByteFunction(StringBuilder codeGenerationBuilder, byte numActions) => CorrelatedValues.CorrelatedEquilibriumCalculation_SwitchOnByteFunction(codeGenerationBuilder, numActions);
 
-        }
+        public void CorrelatedEquilibriumCalculationString_Tree(StringBuilder codeGenerationBuilder, byte player, ActionStrategies actionStrategy) => CorrelatedValues.CorrelatedEquilibriumCalculationString_Tree(codeGenerationBuilder, player, actionStrategy);
 
-        public void CorrelatedEquilibriumCalculations_RunGeneratedCode(int currentIterationNumber)
-        {
-            int numPastValues = InformationSets.First().LastPastValueIndexRecorded + 1;
-            const int p0CvC_Index = 0;
-            const int p1CvC_Index = 1;
-            const int p0BRvC_Index = 2;
-            const int p1CvBR_Index = 3;
-            const int avgStratContribution_Index = 4;
-            double[,] correlatedEquilibriumResults = new double[numPastValues, 5];
-            double[,] correlatedEquilibriumResults_Cumulative = new double[numPastValues, 5];
-            double[,] correlatedEquilibriumResults_ReverseCumulative = new double[numPastValues, 5];
+        public void CorrelatedEquilibriumCalculation_Node(StringBuilder codeGenerationBuilder, in HistoryPoint historyPoint, byte player, ActionStrategies actionStrategy) => CorrelatedValues.CorrelatedEquilibriumCalculation_Node(codeGenerationBuilder, in historyPoint, player, actionStrategy);
 
-            for (int correlatedEquilibriumIterationIndex = 0; correlatedEquilibriumIterationIndex < numPastValues; correlatedEquilibriumIterationIndex++)
-            {
-                var method = CorrelatedEquilibriumCalculatorType.GetMethod("DoCalc");
-                object[] parameters = new object[] { correlatedEquilibriumIterationIndex, FinalUtilitiesNodes, ChanceNodes, InformationSets, null, null, null, null };
-                method.Invoke(null, parameters);
-                correlatedEquilibriumResults[correlatedEquilibriumIterationIndex, p0CvC_Index] = (double)parameters[4];
-                correlatedEquilibriumResults[correlatedEquilibriumIterationIndex, p1CvC_Index] = (double)parameters[5];
-                correlatedEquilibriumResults[correlatedEquilibriumIterationIndex, p0BRvC_Index] = (double)parameters[6];
-                correlatedEquilibriumResults[correlatedEquilibriumIterationIndex, p1CvBR_Index] = (double)parameters[7];
-                int correspondingIteration = (int)(((double)(correlatedEquilibriumIterationIndex + 1) / (double)numPastValues) * (double)(EvolutionSettings.TotalIterations));
-                double averageStrategyAdjustment = EvolutionSettings.Discounting_Gamma_ForIteration(correspondingIteration);
-                double averageStrategyAdjustmentAsPct = EvolutionSettings.Discounting_Gamma_AsPctOfMax(correspondingIteration);
-                correlatedEquilibriumResults[correlatedEquilibriumIterationIndex, avgStratContribution_Index] = averageStrategyAdjustment;
-            }
-            // calculate reverse cumulative -- this shows aggregates from here on. The point of this is to compare the correlated equilibrium strategy from some point forward to the best response. If the correlated equilibrium strategy performs well at this point but not later, this may indicate that there is a cycle and that as the number of iterations -> infinity, the correlated equilibrium strategy performs well.
-            for (int j = 0; j < 4; j++)
-            {
-                double cumWeight = 0;
-                double cumValueTimesWeight = 0;
-                for (int correlatedEquilibriumIterationIndex = numPastValues - 1; correlatedEquilibriumIterationIndex >= 0; correlatedEquilibriumIterationIndex--)
-                {
-                    double weightThisItem = correlatedEquilibriumResults[correlatedEquilibriumIterationIndex, avgStratContribution_Index];
-                    double valueThisItem = correlatedEquilibriumResults[correlatedEquilibriumIterationIndex, j];
-                    cumWeight += weightThisItem;
-                    cumValueTimesWeight += valueThisItem * weightThisItem;
-                    correlatedEquilibriumResults_ReverseCumulative[correlatedEquilibriumIterationIndex, avgStratContribution_Index] = weightThisItem;
-                    correlatedEquilibriumResults_ReverseCumulative[correlatedEquilibriumIterationIndex, j] = cumValueTimesWeight / cumWeight;
-                }
-                cumWeight = 0;
-                cumValueTimesWeight = 0;
-                for (int correlatedEquilibriumIterationIndex = 0; correlatedEquilibriumIterationIndex < numPastValues; correlatedEquilibriumIterationIndex++)
-                {
-                    double weightThisItem = correlatedEquilibriumResults[correlatedEquilibriumIterationIndex, avgStratContribution_Index];
-                    double valueThisItem = correlatedEquilibriumResults[correlatedEquilibriumIterationIndex, j];
-                    cumWeight += weightThisItem;
-                    cumValueTimesWeight += valueThisItem * weightThisItem;
-                    correlatedEquilibriumResults_Cumulative[correlatedEquilibriumIterationIndex, avgStratContribution_Index] = weightThisItem;
-                    correlatedEquilibriumResults_Cumulative[correlatedEquilibriumIterationIndex, j] = cumValueTimesWeight / cumWeight;
-                }
-            }
+        public void CorrelatedEquilibriumCalculation_ChanceNode(StringBuilder codeGenerationBuilder, in HistoryPoint historyPoint, byte player, ActionStrategies actionStrategy) => CorrelatedValues.CorrelatedEquilibriumCalculation_ChanceNode(codeGenerationBuilder, in historyPoint, player, actionStrategy);
 
-            string resultString(int correlatedEquilibriumIterationIndex, string iterString)
-            {
-                double p0CvC = correlatedEquilibriumResults[correlatedEquilibriumIterationIndex, p0CvC_Index];
-                double p1CvC = correlatedEquilibriumResults[correlatedEquilibriumIterationIndex, p1CvC_Index];
-                double p0BRvC = correlatedEquilibriumResults[correlatedEquilibriumIterationIndex, p0BRvC_Index];
-                double p1CvBR = correlatedEquilibriumResults[correlatedEquilibriumIterationIndex, p1CvBR_Index];
-
-                double p0CvC_ToHere = correlatedEquilibriumResults_Cumulative[correlatedEquilibriumIterationIndex, p0CvC_Index];
-                double p1CvC_ToHere = correlatedEquilibriumResults_Cumulative[correlatedEquilibriumIterationIndex, p1CvC_Index];
-                double p0BRvC_ToHere = correlatedEquilibriumResults_Cumulative[correlatedEquilibriumIterationIndex, p0BRvC_Index];
-                double p1CvBR_ToHere = correlatedEquilibriumResults_Cumulative[correlatedEquilibriumIterationIndex, p1CvBR_Index];
-
-                double p0CvC_FromHere = correlatedEquilibriumResults_ReverseCumulative[correlatedEquilibriumIterationIndex, p0CvC_Index];
-                double p1CvC_FromHere = correlatedEquilibriumResults_ReverseCumulative[correlatedEquilibriumIterationIndex, p1CvC_Index];
-                double p0BRvC_FromHere = correlatedEquilibriumResults_ReverseCumulative[correlatedEquilibriumIterationIndex, p0BRvC_Index];
-                double p1CvBR_FromHere = correlatedEquilibriumResults_ReverseCumulative[correlatedEquilibriumIterationIndex, p1CvBR_Index];
-
-                return $"Correlated eq. utilities ({iterString}): {p0CvC.ToSignificantFigures(6)} vs. {p1CvC.ToSignificantFigures(6)} p0BR: {p0BRvC.ToSignificantFigures(6)} p1BR: {p1CvBR.ToSignificantFigures(6)} p0BR improvement: {(p0BRvC - p0CvC).ToSignificantFigures(6)} p1BR improvement {(p1CvBR - p1CvC).ToSignificantFigures(6)} TO HERE: {p0CvC_ToHere.ToSignificantFigures(6)} vs. {p1CvC_ToHere.ToSignificantFigures(6)} p0BR: {p0BRvC_ToHere.ToSignificantFigures(6)} p1BR: {p1CvBR_ToHere.ToSignificantFigures(6)} p0BR improvement: {(p0BRvC_ToHere - p0CvC_ToHere).ToSignificantFigures(6)} p1BR improvement {(p1CvBR_ToHere - p1CvC_ToHere).ToSignificantFigures(6)} FROM HERE: {p0CvC_FromHere.ToSignificantFigures(6)} vs. {p1CvC_FromHere.ToSignificantFigures(6)} p0BR: {p0BRvC_FromHere.ToSignificantFigures(6)} p1BR: {p1CvBR_FromHere.ToSignificantFigures(6)} p0BR improvement: {(p0BRvC_FromHere - p0CvC_FromHere).ToSignificantFigures(6)} p1BR improvement {(p1CvBR_FromHere - p1CvC_FromHere).ToSignificantFigures(6)} ";
-            }
-
-            for (int correlatedEquilibriumIterationIndex = 0; correlatedEquilibriumIterationIndex < numPastValues; correlatedEquilibriumIterationIndex++)
-            {
-                int correspondingIteration = (int)(((double)(correlatedEquilibriumIterationIndex + 1) / (double)numPastValues) * (double)(currentIterationNumber));
-                string result = resultString(correlatedEquilibriumIterationIndex, correspondingIteration.ToString());
-                TabbedText.WriteLine(result);
-            }
-        }
-
-        public void CorrelatedEquilibriumCalculation_SwitchOnByteFunctions(
-            StringBuilder codeGenerationBuilder, byte maxNumActionsUsed)
-        {
-            for (byte b = (byte)1; b <= maxNumActionsUsed; b++)
-                CorrelatedEquilibriumCalculation_SwitchOnByteFunction(codeGenerationBuilder, b);
-        }
-
-        public void CorrelatedEquilibriumCalculation_SwitchOnByteFunction(StringBuilder codeGenerationBuilder, byte numActions)
-        {
-            codeGenerationBuilder.Append($"public static double SwitchOnByte{numActions}(byte b");
-            for (int i = 1; i <= numActions; i++)
-                codeGenerationBuilder.Append($", double c{i}");
-            codeGenerationBuilder.AppendLine(")");
-            codeGenerationBuilder.AppendLine("{");
-            for (int i = 1; i <= numActions; i++)
-                codeGenerationBuilder.AppendLine($"if (b == {i}) return c{i};");
-            codeGenerationBuilder.AppendLine("throw new NotSupportedException();");
-            codeGenerationBuilder.AppendLine("}");
-        }
-
-        public void CorrelatedEquilibriumCalculationString_Tree(StringBuilder codeGenerationBuilder, byte player, ActionStrategies actionStrategy)
-        {
-            HistoryPoint historyPoint = GetStartOfGameHistoryPoint();
-            CorrelatedEquilibriumCalculation_Node(codeGenerationBuilder, in historyPoint, player, actionStrategy);
-        }
-
-        public void CorrelatedEquilibriumCalculation_Node(StringBuilder codeGenerationBuilder, in HistoryPoint historyPoint, byte player, ActionStrategies actionStrategy)
-        {
-            IGameState gameStateForCurrentPlayer = GetGameState(in historyPoint);
-            GameStateTypeEnum gameStateType = gameStateForCurrentPlayer.GetGameStateType();
-            if (gameStateType == GameStateTypeEnum.FinalUtilities)
-            {
-                FinalUtilitiesNode finalUtilities = (FinalUtilitiesNode)gameStateForCurrentPlayer;
-                codeGenerationBuilder.Append($"f[{finalUtilities.FinalUtilitiesNodeNumber}].Utilities[{player}]");
-            }
-            else if (gameStateType == GameStateTypeEnum.Chance)
-            {
-                CorrelatedEquilibriumCalculation_ChanceNode(codeGenerationBuilder, in historyPoint, player, actionStrategy);
-            }
-            else
-                CorrelatedEquilibriumCalculation_DecisionNode(codeGenerationBuilder, in historyPoint, player, actionStrategy);
-        }
-
-        public void CorrelatedEquilibriumCalculation_ChanceNode(StringBuilder codeGenerationBuilder, in HistoryPoint historyPoint, byte player, ActionStrategies actionStrategy)
-        {
-            IGameState gameStateForCurrentPlayer = GetGameState(in historyPoint);
-            ChanceNode chanceNode = (ChanceNode)gameStateForCurrentPlayer;
-            byte numPossibleActions = NumPossibleActionsAtDecision(chanceNode.DecisionIndex);
-            byte numPossibleActionsToExplore = numPossibleActions;
-            for (byte action = 1; action <= numPossibleActionsToExplore; action++)
-            {
-                // if it is distributed, action probability is 1
-                
-                codeGenerationBuilder.Append($"c[{chanceNode.ChanceNodeNumber}].GetActionProbability({action}) * ");
-                codeGenerationBuilder.Append(" ( ");
-                HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, action, chanceNode.Decision, chanceNode.DecisionIndex);
-                CorrelatedEquilibriumCalculation_Node(codeGenerationBuilder, in nextHistoryPoint, player, actionStrategy);
-                codeGenerationBuilder.Append(" ) ");
-                if (action < numPossibleActionsToExplore)
-                    codeGenerationBuilder.Append(" + ");
-            }
-        }
-
-        public void CorrelatedEquilibriumCalculation_DecisionNode(StringBuilder codeGenerationBuilder, in HistoryPoint historyPoint, byte player, ActionStrategies actionStrategy)
-        {
-            IGameState gameStateForCurrentPlayer = GetGameState(in historyPoint);
-            InformationSetNode informationSetNode = (InformationSetNode)gameStateForCurrentPlayer;
-            byte numPossibleActions = NumPossibleActionsAtDecision(informationSetNode.DecisionIndex);
-            byte numPossibleActionsToExplore = numPossibleActions;
-            byte playerAtNode = informationSetNode.PlayerIndex; // note that player is the player whose utility we are seeking
-
-            bool isBestResponse = actionStrategy == ActionStrategies.BestResponse || (actionStrategy == ActionStrategies.BestResponseVsCorrelatedEquilibrium && playerAtNode == 0) || (actionStrategy == ActionStrategies.CorrelatedEquilibriumVsBestResponse && playerAtNode == 1);
-            bool isCorrelatedEquilibrium = actionStrategy == ActionStrategies.CorrelatedEquilibrium || (actionStrategy == ActionStrategies.BestResponseVsCorrelatedEquilibrium && playerAtNode == 1) || (actionStrategy == ActionStrategies.CorrelatedEquilibriumVsBestResponse && playerAtNode == 0);
-            if (NumNonChancePlayers > 2 || (!isBestResponse && !isCorrelatedEquilibrium))
-                throw new NotSupportedException(); // right now, using this just for correlated equilibrium & best response calculations after the game tree has already been defined
-
-            string nodeString = $"n[{informationSetNode.InformationSetNodeNumber}]";
-
-            if (numPossibleActionsToExplore == 1)
-            {
-                HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, 1, informationSetNode.Decision, informationSetNode.DecisionIndex);
-                codeGenerationBuilder.Append(" ( ");
-                CorrelatedEquilibriumCalculation_Node(codeGenerationBuilder, in nextHistoryPoint, player, actionStrategy);
-                codeGenerationBuilder.Append(" ) ");
-                return;
-            }
-
-            if (isBestResponse)
-            {
-                codeGenerationBuilder.Append($"SwitchOnByte{numPossibleActionsToExplore}({nodeString}.BackupBestResponseAction");
-                //codeGenerationBuilder.Append($"{nodeString}.BackupBestResponseAction switch {{ ");
-                for (byte action = 1; action <= numPossibleActionsToExplore; action++)
-                {
-                    codeGenerationBuilder.Append($", ( ");
-                    HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, action, informationSetNode.Decision, informationSetNode.DecisionIndex);
-                    CorrelatedEquilibriumCalculation_Node(codeGenerationBuilder, in nextHistoryPoint, player, actionStrategy);
-                    codeGenerationBuilder.Append(" ) ");
-                }
-
-                codeGenerationBuilder.Append($") ");
-            }
-            else
-            {
-                for (byte action = 1; action <= numPossibleActionsToExplore; action++)
-                {
-                    codeGenerationBuilder.Append($"({nodeString}.PVP(cei, {action}, () => (");
-                    HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, action, informationSetNode.Decision, informationSetNode.DecisionIndex);
-                    CorrelatedEquilibriumCalculation_Node(codeGenerationBuilder, in nextHistoryPoint, player, actionStrategy);
-                    codeGenerationBuilder.Append(")))"); // end function within PVP and PVP itself, plus surrounding parens
-                    if (action < numPossibleActionsToExplore)
-                        codeGenerationBuilder.Append(" + ");
-                }
-            }
-        }
+        public void CorrelatedEquilibriumCalculation_DecisionNode(StringBuilder codeGenerationBuilder, in HistoryPoint historyPoint, byte player, ActionStrategies actionStrategy) => CorrelatedValues.CorrelatedEquilibriumCalculation_DecisionNode(codeGenerationBuilder, in historyPoint, player, actionStrategy);
 
         #endregion
 

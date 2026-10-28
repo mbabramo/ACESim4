@@ -1,6 +1,13 @@
-# ACESim4 — correlated-signals article
+# ACESim4 — litigation simulations
 
-This `correlated-signals` branch contains the simulation code and the `ArticleReplication` C# coordinator for the correlated-signals paper. The [article and reported results](https://github.com/mbabramo/correlated-signals-article) are maintained in a separate repository.
+`master` contains the correlated-signals and endogenous-litigation article code, together with the optional predictive/discounted CFR solver family. The [correlated-signals article and reported results](https://github.com/mbabramo/correlated-signals-article) are maintained in a separate repository. The published `correlated-signals` branch and release tags remain available as reproduction baselines.
+
+## Article and solver entrypoints
+
+- **Correlated signals:** the [`ArticleReplication` coordinator](ArticleReplication/README.md) reconstructs the final case catalog and validates saved solutions before generating results. Instructions below retain the published container and native replication routes.
+- **Endogenous litigation:** [`LitigGameEndogenousDisputesLauncher`](ACESimBase/Games/LitigGame/LitigGameEndogenousDisputesLauncher.cs) constructs its own precaution-negligence model for single and multiple option sets. Its model settings are in [`PrecautionNegligenceOptionsGeneratorSettings`](ACESimBase/Games/LitigGame/Options/PrecautionNegligenceOptionsGeneratorSettings.cs). It does not depend on the console's global choice of game.
+- **Predictive/discounted CFR:** see [solver settings and implementation](docs/PredictiveCFR.md). These methods are optional; existing article defaults are retained.
+- **Shared execution and reporting:** see [policy/workflow boundaries](docs/PolicyWorkflows.md) and the [article integration validation](docs/ArticleIntegration.md).
 
 ## Replicate the research outputs
 

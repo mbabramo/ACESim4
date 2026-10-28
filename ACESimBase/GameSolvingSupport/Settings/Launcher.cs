@@ -1,4 +1,5 @@
-﻿using ACESim;
+using ACESimBase.GameSolvingSupport.Execution;
+using ACESim;
 using ACESimBase.Games.AdditiveEvidenceGame;
 using ACESimBase.Games.DMSReplicationGame;
 using ACESimBase.Games.EFGFileGame;
@@ -214,6 +215,8 @@ namespace ACESimBase.GameSolvingSupport.Settings
             {
                 case GameApproximationAlgorithm.Vanilla:
                     return new VanillaCFR(existingStrategyState, evolutionSettings, gameDefinition);
+                case GameApproximationAlgorithm.PredictiveCFR:
+                    return new PredictiveCFR(existingStrategyState, evolutionSettings, gameDefinition);
                 case GameApproximationAlgorithm.GibsonProbing:
                     return new GibsonProbing(existingStrategyState, evolutionSettings, gameDefinition);
                 case GameApproximationAlgorithm.ModifiedGibsonProbing:
@@ -876,62 +879,16 @@ namespace ACESimBase.GameSolvingSupport.Settings
 
         private async Task<ReportCollection> GetSingleRepetitionReport(string optionSetName, int i, bool addOptionSetColumns, IStrategiesDeveloper developer, int? restrictToScenarioIndex, Action<string> logAction = null)
         {
-            int retriesRemaining = 20;
-            int failuresSoFar = 0;
-            if (logAction == null)
-                logAction = s => Debug.WriteLine(s);
-            developer.EvolutionSettings.GameNumber = StartGameNumber + i;
-            string reportIteration = i.ToString();
-            if (i > 0)
-                developer.Reinitialize();
-            ReportCollection reportCollection = new ReportCollection();
-        retry:
-            try
-            {
-                reportCollection = await developer.DevelopStrategies(optionSetName, restrictToScenarioIndex, MasterReportNameForDistributedProcessing);
-                if (reportCollection == null)
-                    return reportCollection;
-            }
-            catch (UnrollingException)
-            {
-                throw; // don't try again
-            }
-            catch (Exception) when (developer is SequenceForm)
-            {
-                // DevelopStrategies initializes the game tree. Re-entering it on this
-                // partially initialized instance loses its terminal/information-set lists.
-                // Exact fallback is handled inside SequenceForm; other failures must be
-                // recorded by the coordinator and retried in a fresh worker via recover.
-                throw;
-            }
-            catch (Exception e)
-            {
-                logAction(e.Message + e.StackTrace);
-                TabbedText.WriteLine($"Error: {e}");
-                TabbedText.WriteLine(e.StackTrace);
-                retriesRemaining--;
-                failuresSoFar++;
-                if (retriesRemaining >= 0)
-                {
-                    int delay = StrategyRetryDelayMilliseconds(failuresSoFar, Random.Shared.NextDouble());
-                    logAction($"Delaying {delay} milliseconds");
-                    TabbedText.WriteLine($"Delaying {delay} milliseconds");
-                    await Task.Delay(delay);
-                    goto retry;
-                }
-                throw new Exception("Repeated failures", e);
-            }
-            string singleRepetitionReport = addOptionSetColumns ? SimpleReportMerging.AddCSVReportInformationColumns(reportCollection.csvReports.FirstOrDefault(), optionSetName, reportIteration, i == 0) : reportCollection.csvReports.FirstOrDefault();
+            var reportCollection = await RepetitionRunner.RunAsync(developer,
+                new(optionSetName, i, StartGameNumber, restrictToScenarioIndex, MasterReportNameForDistributedProcessing), logAction);
+            if (reportCollection == null) return null;
+            // Preserve the existing report-column call and naming behavior.
+            string singleRepetitionReport = addOptionSetColumns ? SimpleReportMerging.AddCSVReportInformationColumns(reportCollection.csvReports.FirstOrDefault(), optionSetName, i.ToString(), i == 0) : reportCollection.csvReports.FirstOrDefault();
             return reportCollection;
         }
 
-        internal static int StrategyRetryDelayMilliseconds(int failures, double jitter)
-        {
-            if (failures < 1 || jitter < 0 || jitter >= 1 || double.IsNaN(jitter))
-                throw new ArgumentOutOfRangeException();
-            double backoff = Math.Min(60_000, Math.Pow(1.3, failures));
-            return (int)Math.Min(100_000, backoff + (failures > 1 ? 10_000 * jitter : 0));
-        }
+        internal static int StrategyRetryDelayMilliseconds(int failures, double jitter) =>
+            RepetitionRunner.RetryDelayMilliseconds(failures, jitter);
 
         #endregion
 
