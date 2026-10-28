@@ -1,0 +1,160 @@
+{
+  "Passed": true,
+  "ArticleCases": 74,
+  "VerifiedCceRuns": 148,
+  "TargetNormalizedGain": 1e-05,
+  "MaximumNormalizedGain": 9.911597740992324e-06,
+  "MaximumIndependentOracleDifference": 0,
+  "OriginalArticleFingerprintMatches": 74,
+  "MaximumBaselineOutcomeDifference": 1.5916157281026244e-12,
+  "ProductMarginalsAlsoApproximateNash": 29,
+  "MainProductMarginalsAlsoApproximateNash": 3,
+  "MainRuns": 40,
+  "SecondSeedRuns": 8,
+  "SecondSeedMaximumRateDifference": 0.20925671144070768,
+  "FocusedTests": 229,
+  "TestReceiptSha256": "5907ee3754062b8f3da03785a63b772ed30dabc565cd4c9d4d2f2ad6c1029712",
+  "SampledNashRangeComparisons": 40,
+  "OutsideSampledNashRange": 6,
+  "Interpretation": "Qualitative agreement is partial. These are CCE results; 119 product marginals are not approximate Nash at the same tolerance. Population, initialization and affinity settings matter.",
+  "SourceBaseline": "3847c95830c8d62e61a0cfec786879c4086dd938",
+  "AdditionalCertifiedSensitivityRuns": 10,
+  "NearCopyFixedPoolChecks": [
+    {
+      "CaseId": "baseline__standard__american__ra__cost-1",
+      "Selector": "gini",
+      "FixedPoolStatus": "IterationLimit",
+      "NormalizedCceGain": 0.0016334375604609816,
+      "MaximumRateDifference": 0.06880909591589779,
+      "RateDifferences": {
+        "Filing": 0.06880909591589779,
+        "AnsweringUnconditional": 0.06879872820563593,
+        "Trial": -0.012384549901571784,
+        "Settlement": 0.04503403744376239
+      }
+    },
+    {
+      "CaseId": "baseline__standard__american__ra__cost-1",
+      "Selector": "liu",
+      "FixedPoolStatus": "FullGameCceVerified",
+      "NormalizedCceGain": 1.76507003726817e-08,
+      "MaximumRateDifference": 0.00018351312387968055,
+      "RateDifferences": {
+        "Filing": -1.9363969178010088e-05,
+        "AnsweringUnconditional": -1.9363979416708865e-05,
+        "Trial": -0.00018351312387968055,
+        "Settlement": 8.186286826583622e-05
+      }
+    },
+    {
+      "CaseId": "baseline__standard__american__rn__cost-1",
+      "Selector": "gini",
+      "FixedPoolStatus": "IterationLimit",
+      "NormalizedCceGain": 9.61697395666935e-05,
+      "MaximumRateDifference": 0.021996933583937617,
+      "RateDifferences": {
+        "Filing": 0.012007120406102634,
+        "AnsweringUnconditional": 0.021996933583937617,
+        "Trial": 0.006442329604324282,
+        "Settlement": 0.012920032222952668
+      }
+    },
+    {
+      "CaseId": "baseline__standard__american__rn__cost-1",
+      "Selector": "liu",
+      "FixedPoolStatus": "IterationLimit",
+      "NormalizedCceGain": 3.0168896450290275e-05,
+      "MaximumRateDifference": 0.020981894693149372,
+      "RateDifferences": {
+        "Filing": 0.01228803326715977,
+        "AnsweringUnconditional": 0.020981894693149372,
+        "Trial": 0.001863400047769026,
+        "Settlement": 0.004769278479977546
+      }
+    },
+    {
+      "CaseId": "baseline__standard__complete__ra__cost-1",
+      "Selector": "gini",
+      "FixedPoolStatus": "IterationLimit",
+      "NormalizedCceGain": 0.0017497406365967218,
+      "MaximumRateDifference": 0.09621935055740627,
+      "RateDifferences": {
+        "Filing": 0.08052580221898042,
+        "AnsweringUnconditional": 0.08114742466414238,
+        "Trial": 0.0016466684460488198,
+        "Settlement": 0.09621935055740627
+      }
+    },
+    {
+      "CaseId": "baseline__standard__complete__ra__cost-1",
+      "Selector": "liu",
+      "FixedPoolStatus": "FullGameCceVerified",
+      "NormalizedCceGain": 9.99485797321724e-09,
+      "MaximumRateDifference": 3.4995458028874715e-05,
+      "RateDifferences": {
+        "Filing": 1.5165566137120834e-05,
+        "AnsweringUnconditional": 1.5166036187119758e-05,
+        "Trial": 8.642034902715812e-06,
+        "Settlement": -3.4995458028874715e-05
+      }
+    },
+    {
+      "CaseId": "baseline__standard__complete__rn__cost-1",
+      "Selector": "gini",
+      "FixedPoolStatus": "IterationLimit",
+      "NormalizedCceGain": 0.00014544114566637965,
+      "MaximumRateDifference": 0.009555194816095569,
+      "RateDifferences": {
+        "Filing": 0.009555194816095569,
+        "AnsweringUnconditional": 0.0064456450333934545,
+        "Trial": 0.0027899734466707016,
+        "Settlement": 0.0034716203746088872
+      }
+    },
+    {
+      "CaseId": "baseline__standard__complete__rn__cost-1",
+      "Selector": "liu",
+      "FixedPoolStatus": "IterationLimit",
+      "NormalizedCceGain": 0.00011020492042636757,
+      "MaximumRateDifference": 0.0112844130110486,
+      "RateDifferences": {
+        "Filing": 0.009504721420808271,
+        "AnsweringUnconditional": 0.0112844130110486,
+        "Trial": 0.005776756333379374,
+        "Settlement": 0.0036403629958593545
+      }
+    }
+  ],
+  "KeyFinding": "The three headline fee-shifting directions agree for risk-neutral costs 0.25 through 2. At cost 4 the nonliable-defendant burden sign reverses under both selectors; risk-averse results are more sensitive.",
+  "Scope": "74 same article games; JPSRO(CCE), not general approximate Nash. No changes to article defaults. Liu economic metric and positive-support floor are adaptations.",
+  "Receipts": [
+    {
+      "File": "summary.json",
+      "Sha256": "d969cffb0e4ab2a548171cbdd413e4bb0e996d44b633da93450cc8cb016164ff"
+    },
+    {
+      "File": "article-compatibility.json",
+      "Sha256": "91e5132894848eee7f795cf184e6022b1692b259f61612a0db6cdd6207afea6e"
+    },
+    {
+      "File": "comparison.csv",
+      "Sha256": "37fdd12b6912049edbefa89bc3bfd3745062c16a54b3db1fbae556bac47737d4"
+    },
+    {
+      "File": "fee-comparisons.csv",
+      "Sha256": "cd5daee920d3c69936410304baffe1971c425f40ca44209ec3941afac2274312"
+    },
+    {
+      "File": "audit-main-v2.json",
+      "Sha256": "239d1a02ed4b37dbe9798c7f7d5e5657573e3fb43fac87f1074b85e0045ea037"
+    },
+    {
+      "File": "audit-extensions.json",
+      "Sha256": "7288179045ad67eaccb8af3c501ca1f6d76d463ac38f6071b5f31e7bdac9a82e"
+    },
+    {
+      "File": "sampled-nash-ranges.csv",
+      "Sha256": "e0ef3db90d328fa3bcd97fac9bb0bbcabd8d5ee3d9a78dda042b9ccee2c5da69"
+    }
+  ]
+}

@@ -2,7 +2,8 @@
 
 The shared workflow code now has an explicit home under `ACESimBase/GameSolvingSupport`.
 The existing article entrypoints forward to these services, so callers can migrate without
-changing solver behavior or saved article files. No JPSRO or Liu selector is implemented.
+changing solver behavior or saved article files. The subsequent optional JPSRO and
+Liu economic-affinity layer is described in [PopulationMethods.md](PopulationMethods.md).
 
 | Responsibility | API | Existing callers |
 | --- | --- | --- |
@@ -146,9 +147,8 @@ call after setup. Correlation heuristics retain their current selection rules. T
 does not repair or reinterpret either behavior. Any change to those algorithms should be
 separate from relocating their implementation and should have its own numerical validation.
 
-Future JPSRO work can build separate player populations from these immutable policies and
-evaluate cross-pairs with the common evaluator. It will still require a correctly hidden
-opponent-policy mixture response oracle, population expansion, incentive checks, and explicit
-joint weights. A Liu selector and economic-similarity definitions belong above those services,
-outside policy objects and solver training state. No placeholder implementations of those
-algorithms or changes to article selection rules are included here.
+The optional [population layer](PopulationMethods.md) builds separate player populations
+from these immutable policies. Its detached tree supplies cross-pair evaluation and hidden
+opponent-mixture response checks; its coordinator owns expansion and explicit joint weights.
+Liu selection and economic similarity remain outside policy objects and solver training state.
+The existing article selection rules remain unchanged.
