@@ -1,6 +1,7 @@
 using ACESim;
 using ACESimBase.Games.EFGFileGame;
 using ACESimBase.GameSolvingSupport.GameTree;
+using ACESimBase.GameSolvingSupport.Policies;
 using ACESimBase.GameSolvingSupport.Settings;
 using System;
 using System.Collections.Generic;
@@ -45,9 +46,7 @@ public static class InformationSetPressureAnalysis
     public sealed record Reference(string Name, string OptionSet, double[] Utilities,
         double TerminalProbability, InformationSet[] InformationSets);
 
-    public static string Key(InformationSetNode node, GameDefinition game) =>
-        node.PlayerIndex + "/" + node.DecisionByteCode + "/" + string.Join(";",
-            node.LabeledInformationSet.Select(x => game.DecisionsExecutionOrder[x.decisionIndex].DecisionByteCode + ":" + x.information));
+    public static string Key(InformationSetNode node, GameDefinition game) => PolicyAccess.Key(node, game);
 
     public static string Component(byte decision) => (LitigGameDecisions)decision switch
     {
@@ -63,7 +62,7 @@ public static class InformationSetPressureAnalysis
         var strategies = developer.InformationSets.ToDictionary(n => Key(n, developer.GameDefinition), n =>
             new Strategy(Key(n, developer.GameDefinition), n.PlayerIndex, n.DecisionByteCode,
                 n.InformationSetWithLabels(developer.GameDefinition),
-                Enumerable.Range(1, n.NumPossibleActions).Select(a => developer.GameDefinition.GetActionString((byte)a, n.DecisionByteCode)).ToArray(),
+                PolicyAccess.ActionLabels(n, developer.GameDefinition),
                 n.GetCurrentProbabilitiesAsArray(), reaches?.GetValueOrDefault(n.InformationSetNodeNumber) ?? 0,
                 fallbacks?.Contains(n.InformationSetNodeNumber) ?? false, name));
         return new(name, developer.GameDefinition.OptionSetName, strategies);
@@ -71,31 +70,14 @@ public static class InformationSetPressureAnalysis
 
     public static void Apply(StrategiesDeveloperBase developer, Profile profile)
     {
-        var nodes = developer.InformationSets;
-        if (profile.Strategies.Count != nodes.Count)
-            throw new InvalidDataException("Profile has a different information-set count.");
-        // Validate the entire mapping before mutating anything.
-        foreach (var node in nodes)
-        {
-            if (!profile.Strategies.TryGetValue(Key(node, developer.GameDefinition), out var strategy) ||
-                strategy.Player != node.PlayerIndex || strategy.Decision != node.DecisionByteCode ||
-                strategy.Probabilities.Length != node.NumPossibleActions ||
-                !strategy.ActionLabels.SequenceEqual(Enumerable.Range(1, node.NumPossibleActions)
-                    .Select(a => developer.GameDefinition.GetActionString((byte)a, node.DecisionByteCode))))
-                throw new InvalidDataException("Incomplete or inconsistent semantic profile mapping.");
-            if (strategy.Probabilities.Any(p => !double.IsFinite(p) || p < 0 || p > 1) ||
-                Math.Abs(strategy.Probabilities.Sum() - 1) > 1e-10)
-                throw new InvalidDataException("Invalid behavioral strategy at " + strategy.Key);
-        }
-        foreach (var node in nodes)
-        {
-            var probabilities = profile.Strategies[Key(node, developer.GameDefinition)].Probabilities;
-            node.SetCurrentProbabilities(probabilities);
-            // GEBR requests opponent-facing current probabilities, not just display values.
-            for (int a = 0; a < probabilities.Length; a++)
-                node.NodeInformation[InformationSetNode.currentProbabilityForOpponentDimension, a] = probabilities[a];
-        }
+        PolicyAccess.ApplyCurrent(developer, ToBehavioralProfile(profile));
     }
+
+    // Article reach/completion metadata and its saved schema stay in this adapter.
+    // The shared policy service owns generic mapping, validation and installation.
+    public static BehavioralProfile ToBehavioralProfile(Profile profile) => new(profile.Name, profile.OptionSet,
+        profile.Strategies.Select(entry => new InformationSetPolicy(entry.Key, entry.Value.Player,
+            entry.Value.Decision, entry.Value.ActionLabels, entry.Value.Probabilities)));
 
     public static Profile Hybrid(Profile baseline, Profile donor, byte opponent, string component, string name)
     {

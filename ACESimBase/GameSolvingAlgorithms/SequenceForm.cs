@@ -1,4 +1,6 @@
-﻿using ACESim;
+using ACESimBase.GameSolvingSupport.Execution;
+using ACESimBase.GameSolvingSupport.Reporting;
+using ACESim;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -80,19 +82,20 @@ namespace ACESimBase.GameSolvingAlgorithms
 
             if (Approach == SequenceFormApproach.ECTA)
             {
-                var equilibria = CollectEquilibriumRecoveries(
+                var search = SequenceFormPriorSearch.Collect(
                     EvolutionSettings.SequenceFormNumPriorsToUseToGenerateEquilibria,
                     EvolutionSettings.ParallelOptimization,
                     EvolutionSettings.TryInexactArithmeticForAdditionalEquilibria,
                     DetermineEquilibria<ExactValue>, DetermineEquilibria<InexactValue>,
-                    out int exactSolverAttempts, out int inexactSolverAttempts);
+                    message => TabbedText.WriteLine(message));
+                var equilibria = search.ToLegacyProfiles();
 
                 List<double[]> equilibriumStrategies = equilibria
                     .Select(item => item.equilibrium)
                     .ToList();
                 bool multipleEquilibriaRequested =
                     EvolutionSettings.SequenceFormNumPriorsToUseToGenerateEquilibria > 1;
-                await ProcessIdentifiedEquilibria(
+                await new EquilibriumReportWriter(this).ProcessIdentifiedEquilibria(
                     reportCollection,
                     equilibriumStrategies,
                     multipleEquilibriaRequested);
@@ -100,12 +103,7 @@ namespace ACESimBase.GameSolvingAlgorithms
                 {
                     reportCollection.Add(
                         string.Empty,
-                        BuildEquilibriumRecoveryCsv(
-                            optionSetName,
-                            equilibria,
-                            EvolutionSettings.SequenceFormNumPriorsToUseToGenerateEquilibria,
-                            exactSolverAttempts,
-                            inexactSolverAttempts),
+                        EquilibriumRecoveryReport.Build(optionSetName, search),
                         integrateCSVReportsIfPossible: false,
                         ifNotIntegratingAlwaysMakeSeparateReport: true);
                     reportCollection.AddReportSuffix(EquilibriumRecoveryReportSuffix);
@@ -139,105 +137,23 @@ namespace ACESimBase.GameSolvingAlgorithms
             return reportCollection;
         }
 
+        // Compatibility shims for existing tests/tools; new callers use the execution/report services.
         internal static List<(double[] equilibrium, int frequency)> CollectEquilibriumRecoveries(
             int requested, bool parallel, bool tryInexact,
             Func<int, List<(double[] equilibrium, int frequency)>> exact,
             Func<int, List<(double[] equilibrium, int frequency)>> inexact,
             out int exactAttempts, out int inexactAttempts)
         {
-            if (requested < 1) throw new ArgumentOutOfRangeException(nameof(requested));
-            var equilibria = new List<(double[] equilibrium, int frequency)>();
-            exactAttempts = inexactAttempts = 0;
-            if (!parallel)
-            {
-                TabbedText.WriteLine("Using exact arithmetic for initial prior");
-                exactAttempts++;
-                var initial = exact(1);
-                if (initial.Count == 0)
-                    throw new InvalidOperationException("The initial exact prior returned no verified equilibrium.");
-                equilibria.Add(initial.First());
-            }
-            int remaining = requested - equilibria.Sum(x => x.frequency);
-            if (tryInexact && remaining > 0)
-            {
-                TabbedText.WriteLine($"Trying inexact arithmetic for up to {remaining} random priors");
-                inexactAttempts += remaining;
-                AddAdditionalEquilibria(equilibria, inexact(remaining));
-            }
-            remaining = requested - equilibria.Sum(x => x.frequency);
-            if (remaining > 0)
-            {
-                TabbedText.WriteLine($"Using exact arithmetic for {remaining} remaining random priors");
-                exactAttempts += remaining;
-                AddAdditionalEquilibria(equilibria, exact(remaining));
-            }
-            if (equilibria.Count == 0)
-                throw new InvalidOperationException("No verified equilibrium was recovered after exact fallback.");
-            // Failed exact attempts remain failures in the recovery report, not invented recoveries.
-            TabbedText.WriteLine($"Verified recoveries: {equilibria.Sum(x => x.frequency)}; requested: {requested}; distinct profiles: {equilibria.Count}.");
-            return equilibria;
+            var result = SequenceFormPriorSearch.Collect(requested, parallel, tryInexact, exact, inexact, message => TabbedText.WriteLine(message));
+            exactAttempts = result.ExactAttempts;
+            inexactAttempts = result.InexactAttempts;
+            return result.ToLegacyProfiles();
         }
 
-        internal static string BuildEquilibriumRecoveryCsv(
-            string optionSetName,
-            IReadOnlyList<(double[] equilibrium, int frequency)> equilibria,
-            int requestedPriors,
-            int exactSolverAttempts,
-            int inexactSolverAttempts)
-        {
-            int attemptedSolves = exactSolverAttempts + inexactSolverAttempts;
-            int verifiedRecoveries = equilibria.Sum(item => item.frequency);
-            var output = new StringBuilder();
-            output.AppendLine(
-                "OptionSetName,Requested Priors,Attempted Solves,Inexact Attempts,Exact Attempts," +
-                "Verified Recoveries,Distinct Reported Strategy Profiles,Equilibrium Number," +
-                "Recovery Count,Recovery Share of Verified Recoveries,Verification Status,Distinctness Criterion");
-            for (int index = 0; index < equilibria.Count; index++)
-            {
-                (double[] _, int frequency) = equilibria[index];
-                string recoveryShare = verifiedRecoveries == 0
-                    ? string.Empty
-                    : ((double)frequency / verifiedRecoveries).ToString("G17", System.Globalization.CultureInfo.InvariantCulture);
-                output.AppendLine(string.Join(",", new[]
-                {
-                    CsvField(optionSetName),
-                    requestedPriors.ToString(System.Globalization.CultureInfo.InvariantCulture),
-                    attemptedSolves.ToString(System.Globalization.CultureInfo.InvariantCulture),
-                    inexactSolverAttempts.ToString(System.Globalization.CultureInfo.InvariantCulture),
-                    exactSolverAttempts.ToString(System.Globalization.CultureInfo.InvariantCulture),
-                    verifiedRecoveries.ToString(System.Globalization.CultureInfo.InvariantCulture),
-                    equilibria.Count.ToString(System.Globalization.CultureInfo.InvariantCulture),
-                    (index + 1).ToString(System.Globalization.CultureInfo.InvariantCulture),
-                    frequency.ToString(System.Globalization.CultureInfo.InvariantCulture),
-                    recoveryShare,
-                    CsvField("Retained after configured equilibrium checks"),
-                    CsvField("Exact equality of normalized action-probability vectors"),
-                }));
-            }
-            return output.ToString();
-        }
-
-        private static string CsvField(string value) =>
-            $"\"{(value ?? string.Empty).Replace("\"", "\"\"")}\"";
-
-        private static void AddAdditionalEquilibria(List<(double[] equilibrium, int frequency)> equilibria, List<(double[] equilibrium, int frequency)> additionalEquilibria)
-        {
-            foreach (var additionalEquilibrium in additionalEquilibria)
-            {
-                bool matchFound = false;
-                for (int i = 0; i < equilibria.Count; i++)
-                {
-                    if (equilibria[i].equilibrium.SequenceEqual(additionalEquilibrium.equilibrium))
-                    {
-                        equilibria[i] = (equilibria[i].equilibrium, additionalEquilibrium.frequency + equilibria[i].frequency);
-                        matchFound = true;
-                        break;
-                    }
-                }
-                if (!matchFound)
-                    equilibria.Add(additionalEquilibrium);
-            }
-        }
+        internal static string BuildEquilibriumRecoveryCsv(string optionSetName,
+            IReadOnlyList<(double[] equilibrium, int frequency)> equilibria, int requestedPriors,
+            int exactSolverAttempts, int inexactSolverAttempts) =>
+            EquilibriumRecoveryReport.Build(optionSetName, equilibria, requestedPriors, exactSolverAttempts, inexactSolverAttempts);
 
         #region ECTA
 

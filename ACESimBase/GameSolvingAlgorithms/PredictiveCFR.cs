@@ -264,6 +264,10 @@ namespace ACESim
             return copy;
         }
 
+        /// <summary>A fresh repetition resets the predictive clock as well as node learning state.
+        /// RestoreState remains the explicit resume operation.</summary>
+        public override void Reinitialize() => ResetLearningState();
+
         public void ResetLearningState()
         {
             ReinitializeInformationSets();

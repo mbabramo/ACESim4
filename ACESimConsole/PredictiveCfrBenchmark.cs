@@ -1,3 +1,5 @@
+using ACESimBase.GameSolvingSupport.Policies;
+using ACESimBase.GameSolvingSupport.Reporting;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -441,12 +443,8 @@ namespace ACESim
             Console.WriteLine("Benchmark complete: " + args.Output);
         }
 
-        private static void SaveProfile(StrategiesDeveloperBase developer, string path, object selection)
-        {
-            using var stream = File.Create(path);
-            using var zip = new GZipStream(stream, CompressionLevel.Optimal);
-            JsonSerializer.Serialize(zip, new { schemaVersion = 1, optionsName = developer.GameDefinition.OptionSetName, selection, informationSets = developer.InformationSets.Select(node => new { node.PlayerIndex, node.DecisionIndex, node.DecisionByteCode, identity = node.InformationSetWithAlphabeticalLabels(developer.GameDefinition), current = node.GetCurrentProbabilitiesAsArray(), average = node.GetAverageStrategiesAsArray() }).ToArray() }, Json);
-        }
+        private static void SaveProfile(StrategiesDeveloperBase developer, string path, object selection) =>
+            BenchmarkProfileArchive.Write(developer, path, selection, Json);
 
         private static async Task RunOutcomesFromAsync(Arguments args)
         {
@@ -512,30 +510,8 @@ namespace ACESim
             return HashText(profile.RootElement.GetProperty("informationSets").GetRawText());
         }
 
-        private static void LoadProfile(StrategiesDeveloperBase developer, string path)
-        {
-            using var stream = File.OpenRead(path);
-            using var zip = new GZipStream(stream, CompressionMode.Decompress);
-            using var document = JsonDocument.Parse(zip);
-            var sets = document.RootElement.GetProperty("informationSets").EnumerateArray().ToArray();
-            if (sets.Length != developer.InformationSets.Count) throw new InvalidDataException("Saved profile has different information set count.");
-            for (int index = 0; index < sets.Length; index++)
-            {
-                var node = developer.InformationSets[index];
-                var saved = sets[index];
-                if (saved.GetProperty("identity").GetString() != node.InformationSetWithAlphabeticalLabels(developer.GameDefinition))
-                    throw new InvalidDataException("Saved profile information set identity differs.");
-                var current = saved.GetProperty("current").EnumerateArray().Select(x => x.GetDouble()).ToArray();
-                var average = saved.GetProperty("average").EnumerateArray().Select(x => x.GetDouble()).ToArray();
-                for (int action = 0; action < node.NumPossibleActions; action++)
-                {
-                    node.NodeInformation[InformationSetNode.currentProbabilityDimension, action] = current[action];
-                    node.NodeInformation[InformationSetNode.currentProbabilityForOpponentDimension, action] = current[action];
-                    node.NodeInformation[InformationSetNode.averageStrategyProbabilityDimension, action] = average[action];
-                    node.NodeInformation[InformationSetNode.cumulativeStrategyDimension, action] = average[action];
-                }
-            }
-        }
+        private static void LoadProfile(StrategiesDeveloperBase developer, string path) =>
+            BenchmarkProfileArchive.LoadForReplay(developer, path);
 
         private static void ValidatePolicies(StrategiesDeveloperBase developer)
         {
@@ -654,7 +630,8 @@ namespace ACESim
             double[] evaluatedUtilities = developer.Status.UtilitiesOverall.ToArray();
             var challenges = developer.GameDefinition is LitigGameDefinition litigation && litigation.Options.LitigGamePretrialDecisionGeneratorGenerator is LitigGameSideBet
                 ? CaptureChallenges(developer, current) : null;
-            var reports = await developer.GenerateBenchmarkReportsAsync();
+            var outcomeReports = await NativeOutcomeReportWriter.GenerateAsync(developer, evaluatedUtilities);
+            var reports = outcomeReports.Reports;
             var selectedRows = new List<Dictionary<string, string>>();
             for (int report = 0; report < reports.csvReports.Count; report++)
             {
@@ -671,7 +648,7 @@ namespace ACESim
                     if (row.TryGetValue("Filter", out string filter) && (filter is "All" or "Dispute Arises" or "DisputeArises" or "Tried")) selectedRows.Add(row);
                 }
             }
-            double[] enumeratedUtilities = developer.BenchmarkLastEnumeratedUtilities;
+            double[] enumeratedUtilities = outcomeReports.Utilities;
             ValidateChallengeReports(challenges, selectedRows);
             if (challenges?.trialReach == 0)
                 foreach (var tried in selectedRows.Where(x => x.GetValueOrDefault("Filter") == "Tried"))

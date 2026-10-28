@@ -196,6 +196,24 @@ t """" 4 """" { -1 }
         }
 
         [TestMethod]
+        [DataRow(PredictiveCFRVariant.CFRPlus)]
+        [DataRow(PredictiveCFRVariant.PCFRPlus)]
+        [DataRow(PredictiveCFRVariant.DCFRPlus)]
+        [DataRow(PredictiveCFRVariant.PDCFRPlus)]
+        public async Task GenericReinitializeStartsFreshIncludingPredictionClock(PredictiveCFRVariant variant)
+        {
+            var repeated = await Create(variant: variant);
+            var fresh = await Create(variant: variant);
+            for (int i = 0; i < 7; i++) repeated.RunIteration();
+            ((IStrategiesDeveloper)repeated).Reinitialize();
+            Assert.AreEqual(0, repeated.CompletedIterations);
+            for (int i = 0; i < 4; i++) { repeated.RunIteration(); fresh.RunIteration(); }
+            Assert.AreEqual(4, repeated.Status.IterationNum);
+            for (int i = 0; i < fresh.InformationSets.Count; i++)
+                CollectionAssert.AreEqual(fresh.InformationSets[i].NodeInformation, repeated.InformationSets[i].NodeInformation);
+        }
+
+        [TestMethod]
         public async Task RunAlgorithmReportsExactAverageWithoutRewindingLearningAndCanResume()
         {
             var reported = await Create();
