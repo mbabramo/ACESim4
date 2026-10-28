@@ -27,26 +27,52 @@ public static class CoarseCorrelatedSelector
         reference ??= Enumerable.Repeat(1.0 / n, n).ToArray();
         if (reference.Length != n || reference.Any(x => !double.IsFinite(x) || x <= 0) || Math.Abs(reference.Sum() - 1) > 1e-10)
             throw new ArgumentException("Relative entropy requires an explicitly positive reference distribution.");
-        var constraints = new double[m][];
-        for (int d = 0; d < m; d++)
-        {
-            constraints[d] = new double[n];
-            for (int i = 0; i < rows; i++) for (int j = 0; j < columns; j++)
-                constraints[d][i * columns + j] = d < rows
-                    ? (utilities[0][d * columns + j] - utilities[0][i * columns + j]) / scales[0]
-                    : (utilities[1][i * columns + d - rows] - utilities[1][i * columns + j]) / scales[1];
-        }
         if (objective == JointSelectionObjective.MaximumGini && n <= 2048)
+        {
+            var constraints = new double[m][];
+            for (int d = 0; d < m; d++)
+            {
+                constraints[d] = new double[n];
+                for (int i = 0; i < rows; i++) for (int j = 0; j < columns; j++)
+                    constraints[d][i * columns + j] = d < rows
+                        ? (utilities[0][d * columns + j] - utilities[0][i * columns + j]) / scales[0]
+                        : (utilities[1][i * columns + d - rows] - utilities[1][i * columns + j]) / scales[1];
+            }
             return Quadratic(constraints, n, settings);
+        }
+        // A CCE deviation replaces one player's complete policy. Its matrix products
+        // factor through marginals, so neither A nor its (rows+columns)*rows*columns
+        // entries are needed by the dual. All products below take O(rows*columns).
+        // Center first to avoid subtracting large wealth/utility offsets repeatedly.
+        var payoffs = utilities.Select((u, p) => { double minimum = u.Min(); return u.Select(x => (x - minimum) / scales[p]).ToArray(); }).ToArray();
+        double[] Gains(double[] q)
+        {
+            var rowMass = new double[rows]; var columnMass = new double[columns];
+            double expected0 = 0, expected1 = 0;
+            for (int i = 0, k = 0; i < rows; i++) for (int j = 0; j < columns; j++, k++)
+            {
+                rowMass[i] += q[k]; columnMass[j] += q[k];
+                expected0 += q[k] * payoffs[0][k]; expected1 += q[k] * payoffs[1][k];
+            }
+            var result = new double[m];
+            for (int i = 0, k = 0; i < rows; i++) for (int j = 0; j < columns; j++, k++)
+            { result[i] += columnMass[j] * payoffs[0][k]; result[rows + j] += rowMass[i] * payoffs[1][k]; }
+            for (int d = 0; d < m; d++) result[d] -= d < rows ? expected0 : expected1;
+            return result;
+        }
         var logReference = reference.Select(x => Math.Log(x)).ToArray();
         double[] Probability(double[] lambda, out double normalizer)
         {
+            var columnPenalty = new double[columns]; var rowPenalty = new double[rows];
+            double sum0 = 0, sum1 = 0;
+            for (int i = 0; i < rows; i++) sum0 += lambda[i];
+            for (int j = 0; j < columns; j++) sum1 += lambda[rows + j];
+            for (int i = 0, k = 0; i < rows; i++) for (int j = 0; j < columns; j++, k++)
+            { columnPenalty[j] += lambda[i] * payoffs[0][k]; rowPenalty[i] += lambda[rows + j] * payoffs[1][k]; }
             var logits = new double[n];
-            for (int k = 0; k < n; k++)
-            {
-                logits[k] = objective == JointSelectionObjective.RelativeEntropy ? logReference[k] : 0;
-                for (int d = 0; d < m; d++) logits[k] -= lambda[d] * constraints[d][k];
-            }
+            for (int i = 0, k = 0; i < rows; i++) for (int j = 0; j < columns; j++, k++)
+                logits[k] = (objective == JointSelectionObjective.RelativeEntropy ? logReference[k] : 0)
+                    + (sum0 * payoffs[0][k] - columnPenalty[j]) + (sum1 * payoffs[1][k] - rowPenalty[i]);
             if (objective == JointSelectionObjective.MaximumGini) { normalizer = 0; return SimplexProjection(logits); }
             double max = logits.Max(), sum = 0;
             for (int k = 0; k < n; k++) { logits[k] = Math.Exp(logits[k] - max); sum += logits[k]; }
@@ -56,11 +82,11 @@ public static class CoarseCorrelatedSelector
         void Function(double[] lambda, ref double value, double[] gradient, object context)
         {
             var q = Probability(lambda, out double logZ);
+            var gains = Gains(q);
             value = objective == JointSelectionObjective.RelativeEntropy ? logZ : -.5 * q.Sum(x => x * x);
             for (int d = 0; d < m; d++)
             {
-                double gain = 0; for (int k = 0; k < n; k++) gain += constraints[d][k] * q[k];
-                gradient[d] = settings.IncentiveTolerance - gain;
+                gradient[d] = settings.IncentiveTolerance - gains[d];
                 value += lambda[d] * (objective == JointSelectionObjective.RelativeEntropy ? settings.IncentiveTolerance : gradient[d]);
             }
         }
@@ -70,14 +96,14 @@ public static class CoarseCorrelatedSelector
         alglib.minbleicoptimize(state, Function, null, null);
         alglib.minbleicresults(state, out var multipliers, out var report);
         var weights = Probability(multipliers, out _);
-        var gains = constraints.Select(a => a.Zip(weights, (x, y) => x * y).Sum()).ToArray();
+        var gains = Gains(weights);
         double gap = gains.Select((g, d) => multipliers[d] * (settings.IncentiveTolerance - g)).Sum();
         double projected = gains.Select((g, d) => multipliers[d] > 0 ? Math.Abs(settings.IncentiveTolerance - g) : Math.Max(0, g - settings.IncentiveTolerance)).Max();
         double primal = objective == JointSelectionObjective.MaximumGini ? .5 * weights.Sum(x => x * x)
             : weights.Select((q, k) => q == 0 ? 0 : q * (Math.Log(q) - logReference[k])).Sum();
         if (weights.Any(x => !double.IsFinite(x) || x < 0) || Math.Abs(weights.Sum() - 1) > 1e-10)
             throw new ArithmeticException("Selector produced invalid weights.");
-        return new(weights, gains, primal, gap, projected, report.terminationtype, report.iterationscount, "bounded-convex-dual");
+        return new(weights, gains, primal, gap, projected, report.terminationtype, report.iterationscount, "factored-bounded-convex-dual");
     }
 
     private static JointSelectionResult Quadratic(double[][] constraints, int n, JointSelectionSettings settings)

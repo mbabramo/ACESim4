@@ -117,6 +117,37 @@ public class PopulationSolverTests
         Assert.IsTrue(cloned.RestrictedGains.Max() < 2e-7);
     }
 
+    [DataTestMethod]
+    [DataRow(JointSelectionObjective.MaximumGini)]
+    [DataRow(JointSelectionObjective.RelativeEntropy)]
+    public void LargeRestrictedGameMatchesIndependentDenseIncentives(JointSelectionObjective objective)
+    {
+        // More than 2,048 profiles exercises the large-game Gini dual as well as KL.
+        // Uneven copies of R/P/S require active constraints; uniform joint weights fail.
+        int columns = 701;
+        int Type(int j) => j < 600 ? 0 : j < 700 ? 1 : 2;
+        double Payoff(int i, int j) => i == Type(j) ? 0 : (i - Type(j) + 3) % 3 == 1 ? 1 : -1;
+        var values = new[] { new double[3 * columns], new double[3 * columns] };
+        for (int i = 0; i < 3; i++) for (int j = 0; j < columns; j++)
+        { values[0][i * columns + j] = 1000 + Payoff(i, j); values[1][i * columns + j] = -700 - Payoff(i, j); }
+        var result = CoarseCorrelatedSelector.Select(values, 3, columns, [2, 2], objective);
+        Assert.IsTrue(result.Algorithm.StartsWith("factored-"));
+        for (int d = 0; d < 3 + columns; d++)
+        {
+            double gain = 0;
+            for (int i = 0; i < 3; i++) for (int j = 0; j < columns; j++)
+                gain += result.Weights[i * columns + j] * (d < 3
+                    ? values[0][d * columns + j] - values[0][i * columns + j]
+                    : values[1][i * columns + d - 3] - values[1][i * columns + j]) / 2;
+            Assert.AreEqual(gain, result.RestrictedGains[d], 1e-12);
+            Assert.IsTrue(gain < 2e-7);
+        }
+        for (int i = 0; i < 3; i++)
+            Assert.AreEqual(1.0 / 3, result.Weights.Skip(i * columns).Take(columns).Sum(), 2e-6);
+        for (int type = 0; type < 3; type++)
+            Assert.AreEqual(1.0 / 3, result.Weights.Where((_, k) => Type(k % columns) == type).Sum(), 2e-6);
+    }
+
     [TestMethod]
     public void AffinityDoesNotCountExactCloneMultiplicityInBlockKernel()
     {

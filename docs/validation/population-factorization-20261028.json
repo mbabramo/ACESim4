@@ -1,0 +1,29 @@
+{
+  "Passed": true,
+  "SourceBaseline": "ab1f7706f181dcfaf9fcd7c7ef27c8e1f3aa6ba1",
+  "Scope": "Equivalent factored CCE matrix products; same objectives, incentives, and full-game tolerance. Original article solver defaults are unchanged.",
+  "SolverTestsPassed": 16,
+  "PoolingTestsPassed": 7,
+  "LargeGameRegression": "Both dual objectives on 2103 joint profiles with uneven RPS duplication; independent dense deviation checks and known Nash marginals.",
+  "Benchmark": {
+    "Case": "asymmetric-risk__d-only-ra__complete__d-only-ra__cost-1",
+    "PlayerPolicyCounts": [169, 178],
+    "PopulationIterationsPerSelector": 1,
+    "WallSecondsIncludingEvaluationAndIndependentChecks": 70.3677046,
+    "MaximumExpectedValueDifferenceFromOriginalFirstIteration": {
+      "gini": 1.6539125624603912e-10,
+      "liu": 1.73070982989465e-7
+    },
+    "Qualification": "A one-iteration numerical comparison, not a convergence certificate. Full-game profitable responses remain at this initial population."
+  },
+  "RecoveredRepetition": {
+    "Case": "grid__signals-8-offers-8__complete__rn__cost-1",
+    "InitialSeed": 10630,
+    "OriginalLiuStatus": "MetaSolverLimit",
+    "RerunGiniStatus": "FullGameCceVerified",
+    "RerunLiuStatus": "FullGameCceVerified",
+    "RerunLiuMaximumNormalizedGainApproximate": 1.1058e-8,
+    "OriginalResultsPreserved": true
+  },
+  "CombinedArticleBatchComplete": false
+}

@@ -60,6 +60,45 @@ class PoolTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.merge([a])
 
+    def test_import_requires_same_seed_and_numerical_settings(self):
+        batch = module.Batch.__new__(module.Batch)
+        batch.config = {"input": str(Path.cwd()), "selectors": ["gini", "liu"], "epsilon": 1e-5, "bandwidth": .1, "floor": 1e-6}
+        plan = {"InitialSeed": 1729, "SeedMode": "independent", "Selectors": ["gini", "liu"], "InputDirectory": str(Path.cwd()),
+                "ReportOutcomes": True, "Settings": {"MaximumNormalizedGain": 1e-5, "Affinity": {"Bandwidth": .1, "ReferenceFloorMass": 1e-6}}}
+        batch.validate_import_plan(plan, 1729)
+        with self.assertRaises(ValueError):
+            batch.validate_import_plan(plan, 2718)
+        plan["Settings"]["Affinity"]["Bandwidth"] = .2
+        with self.assertRaises(ValueError):
+            batch.validate_import_plan(plan, 1729)
+
+    def test_ranges_exclude_unverified_results_and_record_verified_replacement(self):
+        def result(selector, value, status="FullGameCceVerified"):
+            outcomes = {"Filing": value, "AnsweringUnconditional": value, "Trial": value, "Settlement": value,
+                        "NativeUtilities": [value, value], "Welfare": {"Cost": value}}
+            return {"CaseId": "case", "Selector": selector, "Status": status, "Outcomes": outcomes, "Baseline": outcomes, "NormalizedGains": [0, 0]}
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            repetitions = [root / "first", root / "second"]
+            module.save(repetitions[0] / "completed.json", {"Results": [result("gini", 1), result("liu", 1)]})
+            module.save(repetitions[1] / "completed.json", {"Results": [result("gini", 2), result("liu", 999, "MetaSolverLimit")]})
+            audit = root / "audit.json"
+            module.save(audit, {"Rows": [{"Selector": s, "ProductIsApproximateNashAt1eMinus5": True, "NormalizedProductNashGains": [0, 0]} for s in ("gini", "liu")]})
+            combined = [{"Case": {"Id": "case", "Family": "baseline", "FeeRule": "trial-only"}, "Audit": str(audit),
+                         "CommonPopulationCounts": [2, 2], "MaximumNormalizedGain": 0, "Results": [result(s, 1.5) for s in ("gini", "liu")]}]
+            summary = module.summarize(combined, repetitions)
+            row = next(r for r in summary["Comparisons"] if r["Selector"] == "liu")
+            self.assertEqual(1, row["IndividualMaximum"])
+            self.assertEqual(1, row["IndividualVerifiedRuns"])
+            repair = root / "repair"
+            module.save(repair / "completed.json", {"Results": [result(s, 2) for s in ("gini", "liu")]})
+            summary = module.summarize(combined, repetitions, {(1, "case"): repair})
+            row = next(r for r in summary["Comparisons"] if r["Selector"] == "liu")
+            self.assertEqual(2, row["IndividualMaximum"])
+            self.assertEqual(2, row["IndividualVerifiedRuns"])
+            self.assertEqual(1, summary["OriginalIndividualStatusCounts"]["MetaSolverLimit"])
+            self.assertEqual({"FullGameCceVerified": 4}, summary["IndividualStatusCounts"])
+
 
 if __name__ == "__main__":
     unittest.main()

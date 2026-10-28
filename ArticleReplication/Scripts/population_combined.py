@@ -105,13 +105,33 @@ class Batch:
     def __init__(self, config):
         defaults = {"cases": "all", "repetitions": 10, "workers": 4, "iterations": 150,
                     "initial_seed": 1729, "seed_stride": 989, "pool_rounds": 10,
-                    "selectors": ["gini", "liu"], "epsilon": 1e-5, "bandwidth": .1, "floor": 1e-6}
+                    "selectors": ["gini", "liu"], "epsilon": 1e-5, "bandwidth": .1, "floor": 1e-6,
+                    "repetitions_from": None, "replacement_runs": []}
         unknown = set(config) - set(defaults) - {"assembly", "input", "output"}
         if unknown:
             raise ValueError("Unknown batch settings: " + str(sorted(unknown)))
         self.config = defaults | config
         for key in ("assembly", "input", "output"):
             self.config[key] = str(Path(self.config[key]).resolve())
+        if self.config["repetitions_from"]:
+            self.config["repetitions_from"] = str(Path(self.config["repetitions_from"]).resolve())
+        self.replacements = {}
+        for item in self.config["replacement_runs"]:
+            if set(item) != {"repetition", "run"} or not 1 <= item["repetition"] <= self.config["repetitions"]:
+                raise ValueError("Replacement requires a one-based repetition number and completed run.")
+            item["run"] = str(Path(item["run"]).resolve())
+            replacement = Path(item["run"])
+            plan = read(replacement / "plan.json")
+            expected_seed = self.config["initial_seed"] + (item["repetition"] - 1) * self.config["seed_stride"]
+            self.validate_import_plan(plan, expected_seed)
+            result = read(replacement / "completed.json")
+            if not result["Passed"] or any(r["Status"] != "FullGameCceVerified" for r in result["Results"]):
+                raise ValueError("A replacement run must have verified results.")
+            for case in plan["Cases"]:
+                key = (item["repetition"] - 1, case["Id"])
+                if key in self.replacements:
+                    raise ValueError("Duplicate replacement for a repetition/case.")
+                self.replacements[key] = replacement
         self.root = Path(self.config["output"])
         source = Path(self.config["input"])
         if self.root == source or source in self.root.parents or self.root in source.parents:
@@ -132,7 +152,19 @@ class Batch:
         self.runtime_hashes = {p.name: digest(p) for p in (assembly, assembly.parent / "ACESimBase.dll", assembly.parent / "LitigCharts.dll")}
         self.root.mkdir(parents=True, exist_ok=True)
         identity = {"Schema": "pooled-population-batch-v1", "Settings": self.config, "RuntimeSha256": self.runtime_hashes,
-                    "RunnerSha256": digest(Path(__file__))}
+                    "RunnerSha256": digest(Path(__file__)),
+                    "ReplacementReceipts": [{"Run": str(p), "CompletedSha256": digest(p / "completed.json"), "PlanSha256": digest(p / "plan.json")}
+                                            for p in sorted(set(self.replacements.values()))]}
+        if self.config["repetitions_from"]:
+            previous = Path(self.config["repetitions_from"])
+            if self.root == previous or self.root in previous.parents or previous in self.root.parents:
+                raise ValueError("A new pooling run must be separate from its repetition source.")
+            source_settings = read(previous / "batch-plan.json")["Settings"]
+            for key in ("input", "cases", "repetitions", "initial_seed", "seed_stride", "selectors", "epsilon", "bandwidth", "floor"):
+                if source_settings[key] != self.config[key]:
+                    raise ValueError("Imported repetition settings differ: " + key)
+            identity["ImportedRepetitions"] = {"BatchPlanSha256": digest(previous / "batch-plan.json"),
+                                                "ManifestSha256": digest(previous / "repetitions.json")}
         plan_path = self.root / "batch-plan.json"
         if plan_path.exists() and read(plan_path) != identity:
             raise ValueError("Resume requires identical settings, runner, and runtime.")
@@ -144,6 +176,17 @@ class Batch:
                       "RepetitionsComplete": 0, "RepetitionsRequested": self.config["repetitions"],
                       "CombinedCasesComplete": 0, "Active": {}, "Failures": []}
         self.env = dict(os.environ, DOTNET_PROCESSOR_COUNT="1", OMP_NUM_THREADS="1", MKL_NUM_THREADS="1", OPENBLAS_NUM_THREADS="1")
+
+    def validate_import_plan(self, plan, expected_seed):
+        c = self.config
+        if plan["InitialSeed"] != expected_seed or plan["SeedMode"] != "independent" or plan["Selectors"] != c["selectors"]:
+            raise ValueError("Imported initial seed, mode, or selectors differ.")
+        if Path(plan["InputDirectory"]).resolve() != Path(c["input"]):
+            raise ValueError("Imported saved-solution input differs.")
+        settings = plan["Settings"]
+        if (settings["MaximumNormalizedGain"] != c["epsilon"] or settings["Affinity"]["Bandwidth"] != c["bandwidth"]
+                or settings["Affinity"]["ReferenceFloorMass"] != c["floor"] or not plan["ReportOutcomes"]):
+            raise ValueError("Imported tolerances, affinity settings, or reporting differ.")
 
     @staticmethod
     def utc():
@@ -220,6 +263,13 @@ class Batch:
                 raise ValueError("Invalid combined receipt.")
         else:
             sources = [path / case_id / "union-population.json" for path in repetitions]
+            # Preserve policies from an unsuccessful attempt as well as its verified rerun.
+            sources += [path / case_id / "union-population.json" for (index, replaced_case), path in self.replacements.items() if replaced_case == case_id]
+            if self.config["repetitions_from"]:
+                prior = Path(self.config["repetitions_from"]) / "combined" / case_id
+                # Completed selector archives can be reused even when their sibling or
+                # common-population round was interrupted. These are policies, not weights.
+                sources += sorted(prior.glob(f"round-*/solve/attempt-*/{case_id}/*/population.json"))
             history = []
             for round_index in range(self.config["pool_rounds"]):
                 pool, provenance = merge_archives(sources)
@@ -287,15 +337,34 @@ class Batch:
 
     def run(self):
         self.update(Status="Repetitions")
-        repetitions = [path for _, path in sorted(self.parallel(range(self.config["repetitions"]), self.repetition))]
+        if self.config["repetitions_from"]:
+            source = Path(self.config["repetitions_from"])
+            repetitions = [Path(p) for p in read(source / "repetitions.json")["Runs"]]
+            if len(repetitions) != self.config["repetitions"]:
+                raise ValueError("Incomplete imported repetitions.")
+            for index, path in enumerate(repetitions):
+                self.validate_import_plan(read(path / "plan.json"), self.config["initial_seed"] + index * self.config["seed_stride"])
+                completed = read(path / "completed.json")
+                if not completed["Passed"] or completed["Runs"] != 2 * completed["Cases"]:
+                    raise ValueError("Incomplete imported experiment.")
+            save(self.root / "imported-repetitions.json", [{"Run": str(p), "CompletedSha256": digest(p / "completed.json"), "PlanSha256": digest(p / "plan.json")} for p in repetitions])
+            self.update(RepetitionsComplete=len(repetitions))
+            self.event(f"Reused all {len(repetitions)} completed repetitions; original files remain immutable.")
+        else:
+            repetitions = [path for _, path in sorted(self.parallel(range(self.config["repetitions"]), self.repetition))]
         cases = read(repetitions[0] / "plan.json")["Cases"]
         for path in repetitions:
             if read(path / "plan.json")["Cases"] != cases:
                 raise ValueError("Repetition case catalogs differ.")
-        save(self.root / "repetitions.json", {"Runs": [str(p) for p in repetitions], "Cases": cases})
+        by_case = {case["Id"]: case for case in cases}
+        for path in set(self.replacements.values()):
+            for case in read(path / "plan.json")["Cases"]:
+                if case != by_case.get(case["Id"]):
+                    raise ValueError("Replacement game differs from the repetition catalog.")
+        save(self.root / "repetitions.json", {"Runs": [str(p) for p in repetitions], "Cases": cases, "Replacements": self.config["replacement_runs"]})
         self.update(Status="Pooling", ArticleCases=len(cases))
         combined = sorted(self.parallel(cases, lambda case: self.combine(case, repetitions)), key=lambda r: r["Case"]["Id"])
-        summary = summarize(combined, repetitions)
+        summary = summarize(combined, repetitions, self.replacements)
         save(self.root / "summary.json", summary)
         for name in ("Comparisons", "FeeContrasts"):
             records = summary[name]
@@ -317,12 +386,23 @@ def measures(outcomes):
         "PlaintiffUtility": outcomes["NativeUtilities"][0], "DefendantUtility": outcomes["NativeUtilities"][1]}
 
 
-def summarize(combined, repetitions):
+def summarize(combined, repetitions, replacements=None):
     individual = {}
-    statuses = {}
+    statuses, original_statuses, accepted = {}, {}, {}
+    replacements = replacements or {}
     for index, path in enumerate(repetitions):
-        for r in read(path / "completed.json")["Results"]:
+        originals = read(path / "completed.json")["Results"]
+        records = {(r["CaseId"], r["Selector"]): r for r in originals}
+        for r in originals:
+            original_statuses[r["Status"]] = original_statuses.get(r["Status"], 0) + 1
+        for (repetition, case_id), replacement in replacements.items():
+            if index == repetition:
+                for r in read(replacement / "completed.json")["Results"]:
+                    if r["CaseId"] == case_id:
+                        records[(case_id, r["Selector"])] = r
+        for r in records.values():
             individual[(index, r["CaseId"], r["Selector"])] = measures(r["Outcomes"])
+            accepted[(index, r["CaseId"], r["Selector"])] = r["Status"] == "FullGameCceVerified"
             statuses[r["Status"]] = statuses.get(r["Status"], 0) + 1
     rows, contrasts = [], []
     lookup = {}
@@ -337,10 +417,11 @@ def summarize(combined, repetitions):
             audit = audits[r["Selector"]]
             nash_count += audit["ProductIsApproximateNashAt1eMinus5"]
             for metric, value in current.items():
-                values = [individual[(i, *key)][metric] for i in range(len(repetitions))]
+                values = [individual[(i, *key)][metric] for i in range(len(repetitions)) if accepted[(i, *key)]]
                 rows.append({"CaseId": case["Id"], "Family": case["Family"], "Selector": r["Selector"], "Measure": metric,
                              "Combined": value, "Article": baseline[metric], "Difference": value - baseline[metric],
-                             "IndividualMinimum": min(values), "IndividualMaximum": max(values), "FirstRepetition": values[0],
+                             "IndividualMinimum": min(values) if values else None, "IndividualMaximum": max(values) if values else None,
+                             "FirstRepetition": individual[(0, *key)][metric] if accepted[(0, *key)] else None, "IndividualVerifiedRuns": len(values),
                              "Player0Policies": item["CommonPopulationCounts"][0], "Player1Policies": item["CommonPopulationCounts"][1],
                              "NormalizedCceGain": max(r["NormalizedGains"]), "ProductNashGain": max(audit["NormalizedProductNashGains"])})
     sign = lambda x: 0 if abs(x) < 1e-6 else (1 if x > 0 else -1)
@@ -354,14 +435,16 @@ def summarize(combined, repetitions):
         for metric, value in current.items():
             original = target[2][metric] - baseline[metric]
             pooled = target[1][metric] - value
-            values = [individual[(i, complete_id, selector)][metric] - individual[(i, case_id, selector)][metric] for i in range(len(repetitions))]
+            values = [individual[(i, complete_id, selector)][metric] - individual[(i, case_id, selector)][metric]
+                      for i in range(len(repetitions)) if accepted[(i, complete_id, selector)] and accepted[(i, case_id, selector)]]
             contrasts.append({"AmericanCase": case_id, "CompleteCase": complete_id, "Family": case["Family"], "Selector": selector,
                               "CostMultiplier": case["CostMultiplier"], "AlphaP": case["AlphaP"], "AlphaD": case["AlphaD"], "Measure": metric,
                               "ArticleCompleteMinusAmerican": original, "CombinedCompleteMinusAmerican": pooled,
-                              "CombinedDirectionMatches": sign(original) == sign(pooled), "IndividualMinimum": min(values),
-                              "IndividualMaximum": max(values), "IndividualDirectionMatches": sum(sign(x) == sign(original) for x in values),
+                              "CombinedDirectionMatches": sign(original) == sign(pooled), "IndividualMinimum": min(values) if values else None,
+                              "IndividualMaximum": max(values) if values else None, "IndividualDirectionMatches": sum(sign(x) == sign(original) for x in values),
                               "IndividualRuns": len(values)})
     return {"Passed": True, "ArticleCases": len(combined), "Repetitions": len(repetitions), "IndividualStatusCounts": statuses,
+            "OriginalIndividualStatusCounts": original_statuses, "ReplacedRepetitionCases": len(replacements),
             "CombinedVerifiedCces": 2 * len(combined), "ProductsAlsoApproximateNashAt1eMinus5": nash_count,
             "MaximumNormalizedGain": max(x["MaximumNormalizedGain"] for x in combined), "Comparisons": rows, "FeeContrasts": contrasts,
             "Interpretation": "One result per case and selector, reselected on a common union population and expanded until both pass full-game CCE checks. Individual ranges describe initialization sensitivity, not confidence intervals. Repetition frequency never sets final weights."}

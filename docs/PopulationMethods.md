@@ -70,6 +70,14 @@ profiles, otherwise a bounded convex dual. Relative entropy uses the bounded
 dual. Optimization termination codes and residuals accompany the weights.
 The primal QP API does not expose multipliers, so its duality gap is null.
 
+The dual uses factored CCE matrix products. If there are `r` player-zero policies
+and `c` player-one policies, deviation gains are obtained from the two marginals
+and the joint expected utilities. Multiplier penalties similarly separate into
+one term per row and column. Each matrix product therefore takes `O(r*c)` work
+and storage, instead of materializing `(r+c)*r*c` deviation entries. Payoffs are
+centered before scaling to reduce cancellation from large utility offsets. The
+selection objectives, incentive constraints, and full-game tolerance are unchanged.
+
 ## Economic similarity
 
 The article adapter uses five equally weighted features:
@@ -221,6 +229,22 @@ prevents duplicate coordinators. Remove a stale lock only after checking that it
 recorded process and workers have exited. Published article files are never used
 as output destinations.
 
+To reuse completed repetitions with a new numerical build, use a new output
+directory and add `"repetitions_from": "/absolute/path/to/previous-batch"`.
+The catalog, initial seeds, selectors, saved inputs, and numerical settings must
+match. Both runtime identities and source receipt hashes are retained. Completed
+policy archives from prior pooling rounds are also imported. Stop the previous
+coordinator and its workers first so those archives remain fixed during import.
+
+If one repetition needs a verified same-seed rerun, `replacement_runs` accepts
+entries such as `{"repetition": 10, "run": "/absolute/path/to/rerun"}`. The
+rerun must use the same game, seed, selectors, inputs, and tolerances and must
+pass the full-game checks. Original results remain intact; both original and
+replacement policies enter the pool. Initialization summaries record original
+status counts and use the verified replacement outcomes. Any still-unverified
+individual outcomes are excluded from ranges and direction counts, with the
+number of accepted runs shown explicitly.
+
 ### Scientific scope
 
 JPSRO stops when there is no sufficiently profitable unrestricted response. It
@@ -251,3 +275,9 @@ approximate-Nash threshold (3 of the 40 main runs). These comparisons therefore
 change both selection and the solution concept; they do not establish a
 contradiction within the article's Nash results. Initialization and near-copy
 checks also show that the selected population result is not unique.
+
+The subsequent [large-population factorization check](validation/population-factorization-20261028.json)
+records 16 passing solver tests, seven pooling tests, a same-population comparison
+against the original dense dual, and recovery of the one numerical failure in the
+ten-repetition batch. The combined article results are a separate experiment;
+these validation checks do not claim that the full pooled batch is complete.
