@@ -876,7 +876,7 @@ namespace ACESimBase.GameSolvingSupport.Settings
 
         private async Task<ReportCollection> GetSingleRepetitionReport(string optionSetName, int i, bool addOptionSetColumns, IStrategiesDeveloper developer, int? restrictToScenarioIndex, Action<string> logAction = null)
         {
-            var reportCollection = await LegacyRepetitionRunner.RunAsync(developer,
+            var reportCollection = await RepetitionRunner.RunAsync(developer,
                 new(optionSetName, i, StartGameNumber, restrictToScenarioIndex, MasterReportNameForDistributedProcessing), logAction);
             if (reportCollection == null) return null;
             // Preserve the existing report-column call and naming behavior.
@@ -885,7 +885,7 @@ namespace ACESimBase.GameSolvingSupport.Settings
         }
 
         internal static int StrategyRetryDelayMilliseconds(int failures, double jitter) =>
-            LegacyRepetitionRunner.RetryDelayMilliseconds(failures, jitter);
+            RepetitionRunner.RetryDelayMilliseconds(failures, jitter);
 
         #endregion
 

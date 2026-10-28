@@ -11,7 +11,7 @@ namespace ACESimBase.GameSolvingSupport.Execution;
 /// <summary>The launcher's historical repetition protocol. GameNumber is a run identifier;
 /// its meaning as an initialization or seed is solver-specific. Sequence-form priors are a
 /// separate batched search. This does not define a population or selection weights.</summary>
-public static class LegacyRepetitionRunner
+public static class RepetitionRunner
 {
     public sealed record Request(string OptionSetName, int Repetition, int StartGameNumber,
         int? RestrictToScenarioIndex, string MasterReportName);

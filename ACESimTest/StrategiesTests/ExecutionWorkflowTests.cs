@@ -26,7 +26,7 @@ public class ExecutionWorkflowTests
         var report = new ReportCollection();
         var delays = new List<int>();
         developer.Operation = () => developer.Calls < 3 ? throw new InvalidOperationException("retry") : Task.FromResult(report);
-        var result = await LegacyRepetitionRunner.RunAsync(developer, new("case", 2, 7, 4, "article"),
+        var result = await RepetitionRunner.RunAsync(developer, new("case", 2, 7, 4, "article"),
             _ => { }, delay => { delays.Add(delay); return Task.CompletedTask; }, () => .5);
         Assert.AreSame(report, result);
         Assert.AreEqual(9, developer.EvolutionSettings.GameNumber);
@@ -40,12 +40,12 @@ public class ExecutionWorkflowTests
     public async Task FirstRepetitionCanSkipWithoutResetAndRetryBudgetIsPreserved()
     {
         var developer = new StubDeveloper { Operation = () => Task.FromResult<ReportCollection>(null) };
-        Assert.IsNull(await LegacyRepetitionRunner.RunAsync(developer, new("case", 0, 7, null, "article")));
+        Assert.IsNull(await RepetitionRunner.RunAsync(developer, new("case", 0, 7, null, "article")));
         Assert.AreEqual(0, developer.Resets);
         int delays = 0;
         developer.Calls = 0;
         developer.Operation = () => throw new InvalidOperationException("unavailable");
-        var error = await Assert.ThrowsExceptionAsync<Exception>(() => LegacyRepetitionRunner.RunAsync(developer,
+        var error = await Assert.ThrowsExceptionAsync<Exception>(() => RepetitionRunner.RunAsync(developer,
             new("case", 0, 7, null, "article"), _ => { }, _ => { delays++; return Task.CompletedTask; }, () => 0));
         Assert.AreEqual("Repeated failures", error.Message);
         Assert.AreEqual(21, developer.Calls);
@@ -57,12 +57,12 @@ public class ExecutionWorkflowTests
     {
         var unrolling = new UnrollingException(new Exception("cache"));
         var developer = new StubDeveloper { Operation = () => throw unrolling };
-        var error = await Assert.ThrowsExceptionAsync<UnrollingException>(() => LegacyRepetitionRunner.RunAsync(developer,
+        var error = await Assert.ThrowsExceptionAsync<UnrollingException>(() => RepetitionRunner.RunAsync(developer,
             new("case", 0, 0, null, "article"), _ => { }, _ => throw new Exception("Must not delay"), () => 0));
         Assert.AreSame(unrolling, error);
         Assert.AreEqual(1, developer.Calls);
         var sequence = new FailingSequenceForm();
-        await Assert.ThrowsExceptionAsync<InvalidOperationException>(() => LegacyRepetitionRunner.RunAsync(sequence,
+        await Assert.ThrowsExceptionAsync<InvalidOperationException>(() => RepetitionRunner.RunAsync(sequence,
             new("case", 0, 0, null, "article"), _ => { }, _ => throw new Exception("Must not delay"), () => 0));
         Assert.AreEqual(1, sequence.Calls);
     }
@@ -87,7 +87,7 @@ public class ExecutionWorkflowTests
     }
 
     [TestMethod]
-    public async Task LegacyEquilibriumFilesKeepRationalInputOrderingAndZeroCompletion()
+    public async Task FlatEquilibriumFilesKeepRationalInputOrderingAndZeroCompletion()
     {
         string path = Path.GetTempFileName();
         var oldCulture = CultureInfo.CurrentCulture;
@@ -95,15 +95,15 @@ public class ExecutionWorkflowTests
         {
             CultureInfo.CurrentCulture = CultureInfo.InvariantCulture;
             File.WriteAllText(path, "1/4,3/4,0,0" + Environment.NewLine);
-            var profiles = LegacyEquilibriumFiles.Read(path);
+            var profiles = FlatEquilibriumFiles.Read(path);
             var solver = await BehavioralPolicyTests.Create();
-            LegacyEquilibriumPolicies.ApplyCurrent(solver, profiles.Single());
-            CollectionAssert.AreEqual(new[] { .25, .75, .5, .5 }, LegacyEquilibriumPolicies.CaptureCurrent(solver));
-            LegacyEquilibriumFiles.Write(path, profiles);
+            FlatEquilibriumPolicies.ApplyCurrent(solver, profiles.Single());
+            CollectionAssert.AreEqual(new[] { .25, .75, .5, .5 }, FlatEquilibriumPolicies.CaptureCurrent(solver));
+            FlatEquilibriumFiles.Write(path, profiles);
             Assert.AreEqual("0.25,0.75,0,0" + Environment.NewLine, File.ReadAllText(path));
             solver.MasterReportName = "paper";
             solver.GameDefinition.OptionSetName = "";
-            Assert.AreEqual("paper  -equ.csv", Path.GetFileName(LegacyEquilibriumFiles.PathFor(solver)));
+            Assert.AreEqual("paper  -equ.csv", Path.GetFileName(FlatEquilibriumFiles.PathFor(solver)));
         }
         finally { CultureInfo.CurrentCulture = oldCulture; File.Delete(path); }
     }

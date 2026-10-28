@@ -11,7 +11,7 @@ namespace ACESimBase.GameSolvingSupport.Policies;
 
 /// <summary>Adapter for historical flat equilibrium vectors. Preserves player/node ordering,
 /// zero-vector uniform completion and the old report-average calculation. It is not a population selector.</summary>
-public static class LegacyEquilibriumPolicies
+public static class FlatEquilibriumPolicies
 {
     public static void ApplyCurrent(StrategiesDeveloperBase developer, double[] actionProbabilities)
     {

@@ -12,7 +12,7 @@ namespace ACESimBase.GameSolvingSupport.Policies;
 
 /// <summary>Existing -equ.csv adapter, including rational-number input and historical formatting.
 /// The file contains flat profiles only; it is not a training checkpoint or a population weight file.</summary>
-public static class LegacyEquilibriumFiles
+public static class FlatEquilibriumFiles
 {
     public static string PathFor(StrategiesDeveloperBase developer) => Path.Combine(Launcher.ReportFolder(),
         developer.MasterReportName + " " + developer.GameDefinition.OptionSetName + Launcher.ManipulateSuffix("-equ.csv"));

@@ -18,3 +18,11 @@ convergence for every production parameter configuration.
 
 Do not regenerate these files merely to make a refactoring test pass. A deliberate
 change to the article's behavior requires an explained baseline update.
+
+The follow-up extraction also captured `generated-correlation.json` and
+`serialized-base-fields.json` from commit `0e5d8427`, before moving the larger
+workflow blocks. The first records generated expressions for both players and
+three correlation/best-response modes on a small coordination game. The second
+records every serialized field declared on `StrategiesDeveloperBase`, including
+its name, type, and visibility. The workflow extraction tests compare these
+unchanged fixtures; fields used only for nonserialized service caches are excluded.

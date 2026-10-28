@@ -8,14 +8,33 @@ changing solver behavior or saved article files. No JPSRO or Liu selector is imp
 | --- | --- | --- |
 | Detached behavioral choices | `Policies.BehavioralProfile`, `PlayerPolicy`, `InformationSetPolicy` | Shared core for article diagnostics and benchmark archive reads |
 | Capture, validate, install | `Policies.PolicyAccess` | Article pressure diagnostics delegate semantic mapping and installation here |
-| Flat equilibrium files and completion | `Policies.LegacyEquilibriumFiles`, `LegacyEquilibriumPolicies` | Existing developer equilibrium-file methods remain compatibility entrypoints |
+| Flat equilibrium files and completion | `Policies.FlatEquilibriumFiles`, `FlatEquilibriumPolicies` | Existing developer equilibrium-file methods remain compatibility entrypoints |
 | Benchmark archive | `Policies.BenchmarkProfileArchive` | Console benchmark saves and replays its existing version-1 gzip/JSON files |
 | Evaluate a supplied profile | `Evaluation.PolicyEvaluator` | New shared utility evaluator, including cross-pairs of player policies |
-| Repetition identity, reset, retries | `Execution.LegacyRepetitionRunner` | Launcher local and distributed repetition paths |
+| Repetition identity, reset, retries | `Execution.RepetitionRunner` | Launcher local and distributed repetition paths |
 | Batched prior search and fallback | `Execution.SequenceFormPriorSearch` | SequenceForm delegates its historical exact/inexact protocol |
 | Recovery provenance | `Execution.EquilibriumSearchResult` | Immutable retained vectors and discovery counts, separate from reporting |
 | Article equilibrium reports | `Reporting.EquilibriumReportWriter`, `EquilibriumRecoveryReport` | SequenceForm and the old developer report entrypoints |
 | Native outcome enumeration | `Reporting.NativeOutcomeReportWriter` | Benchmark receives reports, utilities and path mass together |
+| Initialization, scenario setup, solve and postprocessing | `Execution.StrategyDevelopmentWorkflow` | `DevelopStrategies` delegates the full workflow |
+| Recorded-scenario correlation and pruning | `Execution.ScenarioCorrelationWorkflow` | Existing scenario-recording and compatibility paths |
+| PCA persistence, utility models and candidate exploration | `Analysis.PrincipalComponentWorkflow` | Base compatibility methods and solver-specific virtual hooks |
+| Model-quality observations and crossovers | `Analysis.ModelSuccessTracker` | Iteration tracking hooks |
+| Generated correlation calculations | `Evaluation.CorrelatedValueCalculator` | Calculations over recorded iteration policies |
+| Scenario/PCA artifact paths | `Execution.WorkflowFiles` | Shared naming for execution and analysis |
+
+These are supported workflows, not deprecated features. Names describe responsibilities;
+disabled-by-default settings do not imply that a feature should be removed. The first pass
+extracted the smaller policy/repetition/reporting operations. The follow-up moves 62 additional
+methods out of `StrategiesDeveloperBase` into the components above, removing roughly 1,250
+lines from the base file (3,526 to 2,277; originally 3,728 before either pass). This is
+composition into separate classes, not a partial-class split.
+
+The base retains public forwarding methods, solver-specific virtual hooks, and existing
+serialized fields. Internal accessors let the components use those fields without changing
+their serialized names, types, or visibility. The generated calculator's compiled type is
+cached inside a nonserialized component. Moving serialized storage itself would require a
+checkpoint migration; it is not necessary to relocate the workflow implementation.
 
 ## Policies are data, not solver state
 
@@ -50,7 +69,7 @@ for generic policy operations; article-specific interpretation stays in the arti
 
 ## Existing execution and reporting semantics
 
-`LegacyRepetitionRunner.Request` makes the existing run identity explicit. It preserves
+`RepetitionRunner.Request` makes the existing run identity explicit. It preserves
 `StartGameNumber + Repetition`, reset before later repetitions, twenty retries, backoff,
 and immediate propagation of unrolling and sequence-form failures. It does not redefine
 `GameNumber` as a universal random seed or promise independent initializations for every solver.
@@ -105,7 +124,7 @@ and existing article diagnostics. The stale heading test now uses the article's 
 The console outcome self-test verifies saved current/average profile replay, exact utility
 agreement, and restricted/full native-report agreement.
 
-Validation on 2026-10-28: Release console build succeeded without warnings; all 98 selected
+Initial validation on 2026-10-28: Release console build succeeded without warnings; all 98 selected
 tests passed (none skipped), and `--predictive-cfr-benchmark --self-test-outcomes` passed.
 The selected test classes are `BehavioralPolicyTests`, `ExecutionWorkflowTests`,
 `PredictiveCFRTests`, `SequenceFormRecoveryTests`, `EquilibriumWorkflowCompatibilityTests`,
@@ -114,10 +133,18 @@ The selected test classes are `BehavioralPolicyTests`, `ExecutionWorkflowTests`,
 `ArticleWorkedPathExtractionTests`, `EquilibriumMixingSearchTests`, and `InformationSetPressureAnalysisTests`.
 This is targeted validation, not a full repository test run.
 
-This refactor establishes the services used by the current article and benchmark workflows.
-Older scenario/PCA compatibility heuristics and generated correlation calculations still
-exist in the base solver for compatibility; they have not been re-enabled or reinterpreted.
-They are not the extension surface for future population methods.
+The follow-up adds `WorkflowExtractionTests` for scenario/restriction ordering, PCA observation
+scheduling and override dispatch, model-quality observation layout, paired historical policies,
+generated-expression equality, and the serialized base-field schema. A syntax-token comparison
+of all 62 extracted method bodies found no executable changes beyond references to the new
+host/components (ignoring source line endings). All 107 selected tests pass, as do the Release
+console build and benchmark outcome self-test. Full production article runs and an end-to-end
+PCA surrogate search are not part of these checks.
+
+Scenario setup retains its existing ordering, including the current placement of the solver
+call after setup. Correlation heuristics retain their current selection rules. This extraction
+does not repair or reinterpret either behavior. Any change to those algorithms should be
+separate from relocating their implementation and should have its own numerical validation.
 
 Future JPSRO work can build separate player populations from these immutable policies and
 evaluate cross-pairs with the common evaluator. It will still require a correctly hidden

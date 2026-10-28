@@ -23,10 +23,10 @@ public sealed class EquilibriumReportWriter
     public async Task ProcessIdentifiedEquilibria(ReportCollection reportCollection, List<double[]> equilibria, bool multipleEquilibriaPossible)
     {
         if (developer.EvolutionSettings.CreateEquilibriaFile)
-            LegacyEquilibriumFiles.Write(LegacyEquilibriumFiles.PathFor(developer), equilibria);
+            FlatEquilibriumFiles.Write(FlatEquilibriumFiles.PathFor(developer), equilibria);
         await GenerateReportsFromEquilibria(equilibria, reportCollection, multipleEquilibriaPossible);
         if (equilibria.Any())
-            LegacyEquilibriumPolicies.ApplyCurrent(developer, equilibria.First());
+            FlatEquilibriumPolicies.ApplyCurrent(developer, equilibria.First());
     }
 
     [SupportedOSPlatform("windows")]
@@ -53,7 +53,7 @@ public sealed class EquilibriumReportWriter
     [SupportedOSPlatform("windows")]
     public async Task ProcessEquilibrium(ReportCollection reportCollection, bool includeAverageEquilibriumReport, bool includeCorrelatedEquilibriumReport, bool includeReportForFirstEquilibrium, bool includeReportForEachEquilibrium, int numEquilibria, List<InformationSetNode> infoSets, int eqNum, bool isFirst, bool isLast, double[] actionProbabilities)
     {
-        LegacyEquilibriumPolicies.InstallAndAccumulateReportAverage(infoSets, actionProbabilities, eqNum, includeCorrelatedEquilibriumReport);
+        FlatEquilibriumPolicies.InstallAndAccumulateReportAverage(infoSets, actionProbabilities, eqNum, includeCorrelatedEquilibriumReport);
 
         developer.IdentifyPressureOnInformationSets();
 
