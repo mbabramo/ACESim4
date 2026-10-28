@@ -189,7 +189,8 @@ coordinates independent runs, then constructs one result per case and selector:
 
 Final weights are newly optimized. Neither the frequency with which a policy
 was discovered nor the average of the repetitions' weights determines them.
-Liu can be the principal presentation and Gini a selection-sensitivity comparison.
+For a CCE robustness section, Liu can be the principal specification when economic
+similarity is the intended selection rule, with Gini as a selection comparison.
 The individual ranges describe initialization sensitivity, not confidence intervals.
 
 Build `ArticleReplication` first, then save a JSON configuration such as:
@@ -262,8 +263,9 @@ article/CFR/workflow regression selection is also run. Numerical experiment
 results and their scope are recorded in the
 [28 October 2026 validation receipt](validation/population-methods-20261028.json).
 
-Both selectors reached the full-game CCE target in all 74 article games (148
-runs), with independently checked response values. The 229-test regression
+In the initial single-bank experiment, both selectors reached the full-game CCE
+target in all 74 article games (148 runs), with independently checked response
+values. The 229-test regression
 selection passed. The original game fingerprints match, and replaying the
 original profiles changes outcomes by at most `1.6e-12`.
 
@@ -279,5 +281,55 @@ checks also show that the selected population result is not unique.
 The subsequent [large-population factorization check](validation/population-factorization-20261028.json)
 records 16 passing solver tests, seven pooling tests, a same-population comparison
 against the original dense dual, and recovery of the one numerical failure in the
-ten-repetition batch. The combined article results are a separate experiment;
-these validation checks do not claim that the full pooled batch is complete.
+ten-repetition batch. That receipt predates completion of the pooled experiment.
+
+### Completed ten-repetition experiment
+
+The [combined-experiment receipt](validation/population-combined-20261028.json)
+records 1,480 accepted individual results and 148 combined CCEs across all 74
+article games. One original selection failed its numerical check; a recorded
+same-seed rerun supplies the replacement. Original results and policies remain
+available. Both selectors pass on the same final population for every game,
+with 49 to 271 policies per player (median 183).
+
+The maximum normalized full-game deviation gain is `9.9496712e-6`, below the
+`1e-5` target. Independent response engines agree, all 74 game fingerprints
+match the article, and original-profile outcomes differ from the validated
+article data by at most `1.6e-12`. Only one of the 148 product-marginal profiles
+passes the approximate-Nash check; none of the 40 main-game profiles does.
+Reported economic outcomes therefore remain joint-distribution CCE outcomes.
+
+Pooling preserves the three headline risk-neutral fee-shifting directions for
+cost multipliers 0.25 through 2 under both selectors. At multiplier 4, the
+complete-minus-American change in nonliable-defendant burden is `-0.1482` in
+the article, `-0.0091` under combined Gini, and `+0.0784` under combined Liu.
+Thus the initial Gini reversal does not survive pooling, while Liu's does.
+Risk-averse settlement at multiplier 1 changes from 95.9% to 6.0% in the
+article, from 43.3% to 46.2% under Gini, and from 58.9% to 71.3% under Liu.
+
+Initialization sensitivity remains substantial: the largest event-rate range
+across ten individual runs is 87.3 percentage points. Of 1,628 combined metric
+values, 360 lie outside the corresponding individual-run range. Pooling changes
+the population, reoptimizes weights, and adds responses; the combined result is
+neither an average nor a vote. No second independent ten-run pool was tested.
+The complete experiment took approximately 113 minutes including the numerical
+repair; optimized pooling took approximately 71 minutes.
+
+Generate the validated comparison report and standalone PNG/SVG/PDF figures with
+[`population_report.py`](../ArticleReplication/Scripts/population_report.py):
+
+```powershell
+python ArticleReplication/Scripts/population_report.py `
+  --run COMPLETED_COMBINED_RESULTS `
+  --article-primary VALIDATED_ARTICLE_PRIMARY_REPORTS `
+  --output NEW_REPORT_DIRECTORY
+```
+
+The script requires Python and Matplotlib, the complete 74-game/ten-repetition
+experiment, and the article integration's `ReportResults/Primary` references.
+Run without Python optimization flags so validation assertions remain enabled.
+It checks the original game/profile identities, independent response certificates,
+same-population selection, ten accepted repetitions, numerical summary values,
+and paired fee-rule direction/range calculations before generating the report.
+It reads simulation evidence without modifying it and requires a new output
+directory. The report receipt hashes the generator and its output files.

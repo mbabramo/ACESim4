@@ -1,0 +1,287 @@
+{
+  "Passed": true,
+  "ArticleCases": 74,
+  "VerifiedCombinedCces": 148,
+  "AcceptedIndividualRuns": 1480,
+  "OriginalFailedSelections": 1,
+  "ReplacedSelectorResults": 2,
+  "SamePopulationComparisons": 74,
+  "GameFingerprintMatches": 74,
+  "MaximumNormalizedCceGain": 9.949671117644436e-06,
+  "MaximumIndependentOracleDifference": 0,
+  "MaximumBaselineOutcomeDifference": 1.5916157281026244e-12,
+  "ProductsAlsoApproximateNash": 1,
+  "MainProductsAlsoApproximateNash": 0,
+  "PolicyCountMinimum": 49,
+  "PolicyCountMedian": 183.0,
+  "PolicyCountMaximum": 271,
+  "MaximumPoolingRounds": 4,
+  "SummarySha256": "67fa45c880f727578247bc10ffcf39e8ce6b1608b4811c632fa21084aefde673",
+  "CompletedUtc": "2026-10-28T22:08:24Z",
+  "TotalWallMinutesIncludingRepair": 112.81666666666666,
+  "PoolingWallMinutes": 70.95577067931494,
+  "SourceBaseline": "daa3981fa4f25313265b86dd089552704b74c9e5",
+  "CombinedArticleBatchComplete": true,
+  "Scope": "Ten independent initializations per game and selector, common-population reselection and response expansion, and article outcome comparison.",
+  "FullGameNormalizedGainTarget": 1e-05,
+  "InitializationSensitivity": {
+    "MaximumInitializationRateRanges": [
+      {
+        "CaseId": "merits-distribution__polarized__american__ra__cost-1",
+        "Selector": "liu",
+        "Measure": "Settlement",
+        "RangePercentagePoints": 87.25894347629112
+      },
+      {
+        "CaseId": "merits-distribution__polarized__american__ra__cost-1",
+        "Selector": "liu",
+        "Measure": "AnsweringUnconditional",
+        "RangePercentagePoints": 84.9055961722662
+      },
+      {
+        "CaseId": "cost-multiplier__standard__complete__ra__cost-4",
+        "Selector": "liu",
+        "Measure": "Filing",
+        "RangePercentagePoints": 80.55193952155773
+      },
+      {
+        "CaseId": "court-noise__sigma-0p4__american__rn__cost-1",
+        "Selector": "liu",
+        "Measure": "Settlement",
+        "RangePercentagePoints": 76.92122082776157
+      },
+      {
+        "CaseId": "court-noise__sigma-0p4__american__rn__cost-1",
+        "Selector": "liu",
+        "Measure": "Trial",
+        "RangePercentagePoints": 71.20995329551553
+      },
+      {
+        "CaseId": "baseline__standard__american__ra__cost-1",
+        "Selector": "gini",
+        "Measure": "Settlement",
+        "RangePercentagePoints": 68.72946961934765
+      },
+      {
+        "CaseId": "cost-multiplier__standard__american__rn__cost-4",
+        "Selector": "liu",
+        "Measure": "Filing",
+        "RangePercentagePoints": 67.24870624006121
+      },
+      {
+        "CaseId": "court-noise__sigma-0p1__american__ra__cost-1",
+        "Selector": "liu",
+        "Measure": "AnsweringUnconditional",
+        "RangePercentagePoints": 64.23872025474444
+      },
+      {
+        "CaseId": "baseline__standard__complete__ra__cost-1",
+        "Selector": "liu",
+        "Measure": "Settlement",
+        "RangePercentagePoints": 63.591589176575646
+      },
+      {
+        "CaseId": "cost-multiplier__standard__complete__ra__cost-2",
+        "Selector": "liu",
+        "Measure": "AnsweringUnconditional",
+        "RangePercentagePoints": 61.49743700403967
+      }
+    ],
+    "CombinedMetricsOutsideIndividualRange": 360,
+    "ComparedMetrics": 1628
+  },
+  "HighCostRiskNeutralNonliableBurden": [
+    {
+      "AmericanCase": "cost-multiplier__standard__american__rn__cost-4",
+      "CompleteCase": "cost-multiplier__standard__complete__rn__cost-4",
+      "Family": "cost-multiplier",
+      "Selector": "gini",
+      "CostMultiplier": 4,
+      "AlphaP": 0,
+      "AlphaD": 0,
+      "Measure": "NonliableDefendantBurden",
+      "ArticleCompleteMinusAmerican": -0.1482148718486246,
+      "CombinedCompleteMinusAmerican": -0.00907661174446922,
+      "CombinedDirectionMatches": true,
+      "IndividualMinimum": -0.2654096703687434,
+      "IndividualMaximum": 0.08797808250554767,
+      "IndividualDirectionMatches": 4,
+      "IndividualRuns": 10
+    },
+    {
+      "AmericanCase": "cost-multiplier__standard__american__rn__cost-4",
+      "CompleteCase": "cost-multiplier__standard__complete__rn__cost-4",
+      "Family": "cost-multiplier",
+      "Selector": "liu",
+      "CostMultiplier": 4,
+      "AlphaP": 0,
+      "AlphaD": 0,
+      "Measure": "NonliableDefendantBurden",
+      "ArticleCompleteMinusAmerican": -0.1482148718486246,
+      "CombinedCompleteMinusAmerican": 0.07844761552587526,
+      "CombinedDirectionMatches": false,
+      "IndividualMinimum": -0.2946732005178768,
+      "IndividualMaximum": 0.09872526715858518,
+      "IndividualDirectionMatches": 6,
+      "IndividualRuns": 10
+    }
+  ],
+  "BaselineSettlement": [
+    {
+      "CaseId": "baseline__standard__american__ra__cost-1",
+      "Family": "baseline",
+      "Selector": "gini",
+      "Measure": "Settlement",
+      "Combined": 0.43336138381142836,
+      "Article": 0.9589946146,
+      "Difference": -0.5256332307885716,
+      "IndividualMinimum": 0.16907460048885048,
+      "IndividualMaximum": 0.8563692966823271,
+      "FirstRepetition": 0.48658031591895046,
+      "IndividualVerifiedRuns": 10,
+      "Player0Policies": 195,
+      "Player1Policies": 187,
+      "NormalizedCceGain": 1.0120133698332803e-08,
+      "ProductNashGain": 0.014844063652254061
+    },
+    {
+      "CaseId": "baseline__standard__american__ra__cost-1",
+      "Family": "baseline",
+      "Selector": "liu",
+      "Measure": "Settlement",
+      "Combined": 0.5893223743390875,
+      "Article": 0.9589946146,
+      "Difference": -0.3696722402609125,
+      "IndividualMinimum": 0.465442439485378,
+      "IndividualMaximum": 0.8799214091174647,
+      "FirstRepetition": 0.6182548710818406,
+      "IndividualVerifiedRuns": 10,
+      "Player0Policies": 195,
+      "Player1Policies": 187,
+      "NormalizedCceGain": 1.523751805011043e-08,
+      "ProductNashGain": 0.048158762427608526
+    },
+    {
+      "CaseId": "baseline__standard__american__rn__cost-1",
+      "Family": "baseline",
+      "Selector": "gini",
+      "Measure": "Settlement",
+      "Combined": 0.06986158015699201,
+      "Article": 0.08344080577459174,
+      "Difference": -0.013579225617599736,
+      "IndividualMinimum": 0.063800753099518,
+      "IndividualMaximum": 0.1504132342681548,
+      "FirstRepetition": 0.06820518747315046,
+      "IndividualVerifiedRuns": 10,
+      "Player0Policies": 171,
+      "Player1Policies": 158,
+      "NormalizedCceGain": 1.323693558816094e-08,
+      "ProductNashGain": 0.0021305599384207024
+    },
+    {
+      "CaseId": "baseline__standard__american__rn__cost-1",
+      "Family": "baseline",
+      "Selector": "liu",
+      "Measure": "Settlement",
+      "Combined": 0.15424141305807307,
+      "Article": 0.08344080577459174,
+      "Difference": 0.07080060728348132,
+      "IndividualMinimum": 1.0113266437103207e-06,
+      "IndividualMaximum": 0.10234208496864454,
+      "FirstRepetition": 0.09153220613647747,
+      "IndividualVerifiedRuns": 10,
+      "Player0Policies": 171,
+      "Player1Policies": 158,
+      "NormalizedCceGain": 1.2477424636838263e-08,
+      "ProductNashGain": 0.0156705147238716
+    },
+    {
+      "CaseId": "baseline__standard__complete__ra__cost-1",
+      "Family": "baseline",
+      "Selector": "gini",
+      "Measure": "Settlement",
+      "Combined": 0.4616124505195764,
+      "Article": 0.059911679999999995,
+      "Difference": 0.4017007705195764,
+      "IndividualMinimum": 0.2924953841553227,
+      "IndividualMaximum": 0.6998253687754228,
+      "FirstRepetition": 0.5490334905342813,
+      "IndividualVerifiedRuns": 10,
+      "Player0Policies": 193,
+      "Player1Policies": 208,
+      "NormalizedCceGain": 1.0076548724321204e-08,
+      "ProductNashGain": 0.014470529680445026
+    },
+    {
+      "CaseId": "baseline__standard__complete__ra__cost-1",
+      "Family": "baseline",
+      "Selector": "liu",
+      "Measure": "Settlement",
+      "Combined": 0.7130554929236806,
+      "Article": 0.059911679999999995,
+      "Difference": 0.6531438129236806,
+      "IndividualMinimum": 0.2933243320766703,
+      "IndividualMaximum": 0.9292402238424268,
+      "FirstRepetition": 0.879394548247721,
+      "IndividualVerifiedRuns": 10,
+      "Player0Policies": 193,
+      "Player1Policies": 208,
+      "NormalizedCceGain": 1.045542943656294e-08,
+      "ProductNashGain": 0.027140187202067702
+    },
+    {
+      "CaseId": "baseline__standard__complete__rn__cost-1",
+      "Family": "baseline",
+      "Selector": "gini",
+      "Measure": "Settlement",
+      "Combined": 0.039094452339511705,
+      "Article": 0,
+      "Difference": 0.039094452339511705,
+      "IndividualMinimum": 0.01923691241870008,
+      "IndividualMaximum": 0.07474111618190799,
+      "FirstRepetition": 0.03304935064437107,
+      "IndividualVerifiedRuns": 10,
+      "Player0Policies": 177,
+      "Player1Policies": 216,
+      "NormalizedCceGain": 3.419111853298942e-06,
+      "ProductNashGain": 0.0012899271557132684
+    },
+    {
+      "CaseId": "baseline__standard__complete__rn__cost-1",
+      "Family": "baseline",
+      "Selector": "liu",
+      "Measure": "Settlement",
+      "Combined": 0.08678880653562591,
+      "Article": 0,
+      "Difference": 0.08678880653562591,
+      "IndividualMinimum": 0.02354963096730918,
+      "IndividualMaximum": 0.05963851320386847,
+      "FirstRepetition": 0.03664217297125005,
+      "IndividualVerifiedRuns": 10,
+      "Player0Policies": 177,
+      "Player1Policies": 216,
+      "NormalizedCceGain": 1.9276414975204543e-08,
+      "ProductNashGain": 0.007719358043759882
+    }
+  ],
+  "ArticleBranchesPreserved": {
+    "correlated-signals": "ab48c8f4baa895dfa3d23f030f49d7062c778512",
+    "endogenous-disputes": "c80aa2123eac440235ef33405c0d2b27b4c1586e"
+  },
+  "Qualifications": [
+    "These are full-game approximate normal-form CCEs over complete policies, not recommendation-conditional CE or Liu logit-limit Nash equilibria.",
+    "Independent-run ranges are initialization sensitivity, not confidence intervals.",
+    "No second independent ten-repetition pool was tested.",
+    "The article Nash solution concept and CCE selection both differ, so differences are not a contradiction within the article Nash results.",
+    "One original failed selection was repaired by a recorded same-seed rerun of both selectors; all original artifacts and policies were retained."
+  ],
+  "EvidenceSha256": {
+    "outputs/population-combined-fast/batch-plan.json": "7871825c8e2a1353f7a865a293bef68643d6b82f40e103c5a6a6d04394493a7b",
+    "outputs/population-combined-fast/repetitions.json": "ef94230af8425e29fd5cb91a4eecb6c618eda6444efaaf6d1ceb1282ad0a03fd",
+    "outputs/population-combined-fast/completed.json": "0644b90b9060c31274d6681afd17dd440468767477fa8ee90b7b887bf9d8c239",
+    "outputs/population-combined-fast/summary.json": "67fa45c880f727578247bc10ffcf39e8ce6b1608b4811c632fa21084aefde673",
+    "outputs/population-combined-assessment/validation.json": "d4f7e949669923f81ec5e3406bf9ee88729c2197bde7f26cb6de24d3c0898e90",
+    "outputs/population-combined-assessment/findings.json": "e21ed5a7fe2690e45f9fb6ad30fba2f5d932a543a0376d7646ec148a1e1712a1",
+    "outputs/population-combined-assessment/report-receipt.json": "163a93a199ef57add790261a27bcc31e9c7234337f9b12d97d3f6a244e1d88ff"
+  }
+}
