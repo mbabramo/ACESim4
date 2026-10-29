@@ -12,7 +12,7 @@ public static class Program
             if(args.Length==0||args[0] is "help" or "--help")
             {
                 Console.WriteLine("ArticleReplication run --output NEW_DIR [--input SAVED_SOLVES] [--steps Primary,MultipleStarts,Welfare,TruthSensitivity,Strategic,Trembles,Histories,StandardReports,Exhibits,Manuscript] [--workers N]. C# defaults or CLI settings; missing solves are computed unless --missing wait. rebuild additionally requires --source DIR and rebuilds all projects. doctor and container-build check/build installed dependencies. export-shortcuts and export-history-shortcuts migrate previous results. Legacy reproduce/pack commands remain for regression only.");
-                Console.WriteLine("Optional population experiment: population --input SAVED_SOLVES --output NEW_DIR [--cases baseline|main|all] [--selectors gini,liu] [--iterations 150]. Audit product-marginal Nash incentives: population-audit --run POPULATION_RESULTS --output NEW_JSON. See docs/PopulationMethods.md for initialization, affinity, and archive options.");
+                Console.WriteLine("Optional population experiment: population --input SAVED_SOLVES --output NEW_DIR [--cases baseline|main|all] [--selectors gini,liu] [--iterations 150]. Audit product-marginal Nash incentives: population-audit --run POPULATION_RESULTS --output NEW_JSON.");
                 return 0;
             }
             if(args[0]=="worker-truth")return await LitigCharts.TruthMappingReplayCommand.RunAsync(args.Skip(1).ToArray());

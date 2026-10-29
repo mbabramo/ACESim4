@@ -2,7 +2,7 @@
 
 This is process orchestration over the existing population commands. It never
 averages equilibrium weights or turns repetition frequencies into prior weights.
-Only the Python standard library is required. See docs/PopulationMethods.md.
+Only the Python standard library is required.
 """
 from __future__ import annotations
 

@@ -6,9 +6,6 @@
 
 - **Correlated signals:** the [`ArticleReplication` coordinator](ArticleReplication/README.md) reconstructs the final case catalog and validates saved solutions before generating results. Instructions below retain the published container and native replication routes.
 - **Endogenous litigation:** [`LitigGameEndogenousDisputesLauncher`](ACESimBase/Games/LitigGame/LitigGameEndogenousDisputesLauncher.cs) constructs its own precaution-negligence model for single and multiple option sets. Its model settings are in [`PrecautionNegligenceOptionsGeneratorSettings`](ACESimBase/Games/LitigGame/Options/PrecautionNegligenceOptionsGeneratorSettings.cs). It does not depend on the console's global choice of game.
-- **Predictive/discounted CFR:** see [solver settings and implementation](docs/PredictiveCFR.md). These methods are optional; existing article defaults are retained.
-- **Population solving:** [JPSRO(CCE) and Liu economic-affinity selection](docs/PopulationMethods.md) provide an opt-in workflow with separate populations, joint weights, full-game response checks, and article comparisons.
-- **Shared execution and reporting:** see [policy/workflow boundaries](docs/PolicyWorkflows.md) and the [article integration validation](docs/ArticleIntegration.md).
 
 ## Replicate the research outputs
 
