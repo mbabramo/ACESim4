@@ -39,11 +39,21 @@ public static class EndogenousPopulationExperiment
     public static LitigGameOptions OptionsFor(Case spec)
     {
         optionSets ??= new ArticleLauncher().GetOptionsSets().Cast<LitigGameOptions>().ToDictionary(x => x.Name.Replace(',', '-'));
-        return optionSets.TryGetValue(spec.OptionSetName, out var options) ? options : throw new InvalidDataException("Unknown endogenous article case: " + spec.OptionSetName);
+        if (!optionSets.TryGetValue(spec.OptionSetName, out var options))
+        {
+            options = new ArticleLauncher().GetOptionsSets().Cast<LitigGameOptions>()
+                .SingleOrDefault(x => x.Name.Replace(',', '-') == spec.OptionSetName)
+                ?? throw new InvalidDataException("Unknown endogenous article case: " + spec.OptionSetName);
+            optionSets.Add(spec.OptionSetName, options);
+        }
+        return options;
     }
     public static async Task<StrategiesDeveloperBase> Initialize(Case spec)
     {
         var options = OptionsFor(spec);
+        // Initialization links the dispute generator to the game and its caches.
+        // Keep only unused options here so completed games can be collected.
+        optionSets!.Remove(spec.OptionSetName);
         var settings = new EvolutionSettings
         {
             Algorithm = GameApproximationAlgorithm.GeneralizedVanilla, ParallelOptimization = false,
