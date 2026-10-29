@@ -112,6 +112,11 @@ def policy_set(archive):
     return {policy_key(p) for p in archive["Policies"]}
 
 
+def attempt_directories(base):
+    # Supervisor logs share the attempt prefix; they are not resumable runs.
+    return sorted(p for p in Path(base).glob("attempt-*") if p.is_dir())
+
+
 class Batch:
     def __init__(self, config):
         defaults = {"cases": "all", "repetitions": 10, "workers": 4, "iterations": 150,
@@ -272,7 +277,7 @@ class Batch:
     def population(self, label, base, cases, seed, archive=None):
         base.mkdir(parents=True, exist_ok=True)
         # Interrupted attempts stay intact. Resume adopts a complete immutable attempt.
-        attempts = sorted(base.glob("attempt-*"))
+        attempts = attempt_directories(base)
         for attempt in reversed(attempts):
             if (attempt / "completed.json").exists():
                 return attempt
@@ -288,7 +293,7 @@ class Batch:
             args += ["--archive-store", self.root / "policy-store"]
             reuse = attempts[-1] if attempts else None
             if reuse is None and c["resume_cases_from"] and label.startswith("repetition-"):
-                prior_attempts = sorted((Path(c["resume_cases_from"]) / "repetitions" / base.name).glob("attempt-*"))
+                prior_attempts = attempt_directories(Path(c["resume_cases_from"]) / "repetitions" / base.name)
                 reuse = prior_attempts[-1] if prior_attempts else None
             if reuse is not None:
                 args += ["--reuse-cases-from", reuse]

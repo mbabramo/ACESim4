@@ -13,6 +13,15 @@ spec.loader.exec_module(module)
 
 
 class PoolTests(unittest.TestCase):
+    def test_attempt_discovery_ignores_supervisor_logs(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            attempt = root / "attempt-001"
+            attempt.mkdir()
+            (root / "attempt-001.log").write_text("log")
+            (root / "attempt-002.log").write_text("another log")
+            self.assertEqual([attempt], module.attempt_directories(root))
+
     def test_atomic_status_replace_retries_transient_windows_locks(self):
         with tempfile.TemporaryDirectory() as folder:
             path = Path(folder) / "status.json"
