@@ -31,6 +31,7 @@ public static class Program
                 case "truth-figure":await TruthSensitivityFigure.FromRun(Get("run"),Get("output"));return 0;
                 case "run":await SimpleRun.Run(options);return 0;
                 case "population":await PopulationExperiment.Run(options);return 0;
+                case "endogenous-population":await EndogenousPopulationExperiment.Run(options);return 0;
                 case "population-audit":await PopulationAudit.Run(options);return 0;
                 case "test-shortcuts":ShortcutTests.Run(Get("output"));return 0;
                 case "test-reporting-comparison":ReportingComparison.Test(Get("output"));return 0;

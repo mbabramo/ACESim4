@@ -70,10 +70,62 @@ public class PopulationSolverTests
     }
 
     [TestMethod]
+    public void ChanceBoundaryRoundoffIsCorrectedButInvalidProbabilitiesAreRejected()
+    {
+        var game = new PolicyGameTree(N.Chance([-2.220446049250313e-16, 1.0000000000000002],
+            N.Terminal(999, 999), N.Terminal(2, 3)), []);
+        Assert.AreEqual(2, game.ChanceBoundaryCorrections);
+        CollectionAssert.AreEqual(new[] { 2.0, 3.0 }, game.Evaluate(game.Uniform(0), game.Uniform(1)));
+        Assert.ThrowsException<System.IO.InvalidDataException>(() => new PolicyGameTree(
+            N.Chance([-1e-6, 1.000001], N.Terminal(0, 0), N.Terminal(1, 1)), []));
+    }
+
+    [TestMethod]
+    public void SparseEvaluationPreservesRareMassAndDoesNotReuseUnreachableValues()
+    {
+        var game = new PolicyGameTree(N.Chance([0, 1], N.Terminal(999, 999),
+            N.Decision(0, N.Decision(1, N.Terminal(3, 2), N.Terminal(7, 5)),
+                N.Decision(1, N.Terminal(11, 13), N.Terminal(17, 19)))), [Info(0, 0), Info(1, 1)]);
+        foreach (double p in new[] { 0.0, 1.0, .25, 0.0, 1e-200, 1.0 })
+        foreach (double d in new[] { 1.0, 0.0, .75, 1e-200 })
+        {
+            var plaintiff = game.MakePolicy(0, _ => [p, 1 - p]);
+            var defendant = game.MakePolicy(1, _ => [d, 1 - d]);
+            double expected = p * (d * 3 + (1 - d) * 7) + (1 - p) * (d * 11 + (1 - d) * 17);
+            Assert.AreEqual(expected, game.Evaluate(plaintiff, defendant)[0], 1e-12);
+            double replay = 0, rare = 0;
+            game.VisitJointTerminals([plaintiff], [defendant], [1], (actions, mass) =>
+            {
+                Assert.AreEqual((byte)2, actions[0]);
+                replay += mass * (actions[1] == 1 ? actions[2] == 1 ? 3 : 7 : actions[2] == 1 ? 11 : 17);
+                if (actions[1] == 1) rare += mass;
+            });
+            Assert.AreEqual(expected, replay, 1e-12);
+            if (p == 1e-200) Assert.AreEqual(p, rare, 1e-212);
+        }
+    }
+
+    [TestMethod]
     public void ImperfectRecallIsRejectedInsteadOfSilentlyCertifying()
     {
         Assert.ThrowsException<NotSupportedException>(() => new PolicyGameTree(N.Decision(0,
             N.Decision(1, N.Terminal(0, 0), N.Terminal(1, 0)), N.Decision(1, N.Terminal(2, 0), N.Terminal(3, 0))), [Info(0, 0), Info(1, 0)]));
+    }
+
+    [DataTestMethod]
+    [DataRow(1e-5)]
+    [DataRow(1e-7)]
+    public void ScaledQuadraticConstraintsPreserveRareEventIncentives(double amplitude)
+    {
+        var utility = new[] { new[] { 3.0, 0.0, 0.0, 1.0 }, new[] { 2.0, 0.0, 0.0, 4.0 } }
+            .Select(u => u.Select(x => amplitude * x).ToArray()).ToArray();
+        double tolerance = amplitude * 1e-4;
+        var rare = CoarseCorrelatedSelector.Select(utility, 2, 2, [1, 1], JointSelectionObjective.MaximumGini,
+            settings: new(IncentiveTolerance: tolerance, ScaleQuadraticIncentives: true));
+        var ordinary = CoarseCorrelatedSelector.Select(utility.Select(u => u.Select(x => x / amplitude).ToArray()).ToArray(),
+            2, 2, [1, 1], JointSelectionObjective.MaximumGini, settings: new(IncentiveTolerance: tolerance / amplitude));
+        Assert.IsTrue(rare.RestrictedGains.Max() <= tolerance * 1.01);
+        for (int i = 0; i < 4; i++) Assert.AreEqual(ordinary.Weights[i], rare.Weights[i], 1e-6);
     }
 
     [DataTestMethod]

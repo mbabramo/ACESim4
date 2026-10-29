@@ -69,67 +69,90 @@ public static class PopulationExperiment
             if (baselineGains.Any(g => Math.Abs(g) > 1e-7)) throw new ArithmeticException("Published primary fails the new unrestricted response oracle.");
             var baselineOutcomes = reportOutcomes ? PopulationOutcomes.Evaluate(developer, tree, options, [primary.ForPlayer(0)], [primary.ForPlayer(1)], [1], baselineValues) : null;
             Files.Save(Path.Combine(caseOutput, "baseline.json"), new { Values = baselineValues, Gains = baselineGains, Outcomes = baselineOutcomes, UtilityMinimum = tree.UtilityMinimum, UtilityScale = tree.UtilityScale });
-            var seeds = new[] { new List<PopulationEntry>(), new List<PopulationEntry>() };
-            var probes = new PlayerPolicy[2][];
-            for (byte p = 0; p < 2; p++)
-            {
-                seeds[p].Add(new("published-primary", primary.ForPlayer(p)));
-                seeds[p].Add(new("uniform", tree.Uniform(p)));
-                var fixedBank = new List<PlayerPolicy>(seeds[p].Select(x => x.Policy));
-                PlayerPolicy RandomPolicy(int seed)
-                {
-                    var random = new Random(seed);
-                    return tree.MakePolicy(p, i => { var v = Enumerable.Range(0, tree.Layout[i].Probabilities.Count).Select(_ => -Math.Log(Math.Max(1e-15, random.NextDouble()))).ToArray(); double sum = v.Sum(); return v.Select(x => x / sum).ToArray(); });
-                }
-                for (int k = 0; k < 2; k++)
-                {
-                    var policy = RandomPolicy(initialSeed + k + 100 * p);
-                    seeds[p].Add(new("random-" + k, policy));
-                    fixedBank.Add(initialSeed == 1729 ? policy : RandomPolicy(1729 + k + 100 * p));
-                }
-                probes[p] = fixedBank.ToArray();
-                if (seedMode == "independent") seeds[p].RemoveAt(0);
-            }
-            if (arguments.TryGetValue("seed-archive", out var archivePath))
-            {
-                var archive = Files.Read<Archive>(archivePath);
-                if (archive.Schema != "population-policy-archive-v1" || archive.GameHash != fingerprint.CompleteSha256 || !archive.Keys.SequenceEqual(tree.Layout.Select(x => x.Key))) throw new InvalidDataException("Population archive belongs to a different game/layout.");
-                for (byte p = 0; p < 2; p++)
-                {
-                    seeds[p] = archive.Policies.Where(x => x.Player == p).Select(x => new PopulationEntry(x.Name, Restore(tree, x))).ToList();
-                    probes[p] = archive.Probes.Where(x => x.Player == p).Select(x => Restore(tree, x)).ToArray();
-                }
-            }
-            double[] Features(double[] v) => [(v[0] - tree.UtilityMinimum[0]) / tree.UtilityScale[0], (v[1] - tree.UtilityMinimum[1]) / tree.UtilityScale[1], v[2], v[3], v[4]];
-            var finalPopulations = new List<PopulationEntry>[2] { new(), new() };
-            foreach (string selector in selectors)
-            {
-                string directory = Path.Combine(caseOutput, selector); Directory.CreateDirectory(directory);
-                var coordinator = new JpsroCoordinator(tree, seeds[0], seeds[1], probes, Features);
-                var result = coordinator.Run(selector == "gini" ? JointSelectionObjective.MaximumGini : JointSelectionObjective.RelativeEntropy, settings, step =>
-                {
-                    File.AppendAllText(Path.Combine(directory, "iterations.jsonl"), JsonSerializer.Serialize(step) + Environment.NewLine);
-                    if (step.Iteration % 10 == 0 || step.NormalizedGains.Max() <= settings.MaximumNormalizedGain)
-                        Console.WriteLine($"{spec.Id} {selector} iteration {step.Iteration}: {step.PlaintiffPolicies}x{step.DefendantPolicies}, gain {step.NormalizedGains.Max():G5}");
-                });
-                var archive = SaveArchive(tree, fingerprint.CompleteSha256, result.Plaintiffs.Concat(result.Defendants), probes);
-                Files.Save(Path.Combine(directory, "population.json"), archive);
-                var oracleCheck = CheckArticleOracle(developer, tree, result);
-                Files.Save(Path.Combine(directory, "independent-oracle-check.json"), oracleCheck);
-                var outcomes = reportOutcomes ? PopulationOutcomes.Evaluate(developer, tree, options, result.Plaintiffs.Select(x => x.Policy).ToArray(), result.Defendants.Select(x => x.Policy).ToArray(), result.JointWeights, result.ExpectedValues) : null;
-                var record = new { CaseId = spec.Id, Selector = selector, result.SolutionConcept, result.Status, PlaintiffPolicies = result.Plaintiffs.Length, DefendantPolicies = result.Defendants.Length,
-                    result.JointWeights, result.ExpectedValues, result.RawGains, result.NormalizedGains, result.References, result.Selection, Outcomes = outcomes,
-                    Baseline = baselineOutcomes, BaselineValues = baselineValues, Iterations = result.History.Length, Settings = settings };
-                Files.Save(Path.Combine(directory, "result.json"), record); results.Add(record);
-                finalPopulations[0].AddRange(result.Plaintiffs); finalPopulations[1].AddRange(result.Defendants);
-                Console.WriteLine($"Completed {spec.Id} {selector}: {result.Status}");
-            }
-            // Archive the union for controlled re-selection / further expansion with the same probes.
-            Files.Save(Path.Combine(caseOutput, "union-population.json"), SaveArchive(tree, fingerprint.CompleteSha256,
-                finalPopulations.SelectMany(x => x).DistinctBy(x => string.Join("|", x.Policy.InformationSets.Values.SelectMany(s => s.Probabilities).Select(BitConverter.DoubleToInt64Bits)) + "/" + x.Policy.Player), probes));
+            results.AddRange(RunPrepared(spec.Id, caseOutput, developer, tree, fingerprint.CompleteSha256, primary,
+                baselineValues, baselineOutcomes, seedMode, initialSeed, selectors, settings, arguments.GetValueOrDefault("seed-archive"),
+                reportOutcomes ? (p, d, q, v) => PopulationOutcomes.Evaluate(developer, tree, options, p, d, q, v) : null));
         }
         Files.Save(Path.Combine(output, "completed.json"), new { Passed = true, Cases = cases.Length, Runs = results.Count,
             Note = "Run completion does not imply equilibrium: inspect each Status and full-game gains.", Results = results });
+    }
+    internal static List<object> RunPrepared(string caseId, string caseOutput, StrategiesDeveloperBase developer,
+        PolicyGameTree tree, string gameHash, BehavioralProfile primary, double[] baselineValues, object? baselineOutcomes,
+        string seedMode, int initialSeed, string[] selectors, JpsroSettings settings, string? archivePath,
+        Func<PlayerPolicy[], PlayerPolicy[], double[], double[], object>? evaluateOutcomes, string? archiveStore = null)
+    {
+        var results = new List<object>();
+        var seeds = new[] { new List<PopulationEntry>(), new List<PopulationEntry>() };
+        var probes = new PlayerPolicy[2][];
+        for (byte p = 0; p < 2; p++)
+        {
+            seeds[p].Add(new("published-primary", primary.ForPlayer(p)));
+            seeds[p].Add(new("uniform", tree.Uniform(p)));
+            var fixedBank = new List<PlayerPolicy>(seeds[p].Select(x => x.Policy));
+            PlayerPolicy RandomPolicy(int seed)
+            {
+                var random = new Random(seed);
+                return tree.MakePolicy(p, i => { var v = Enumerable.Range(0, tree.Layout[i].Probabilities.Count).Select(_ => -Math.Log(Math.Max(1e-15, random.NextDouble()))).ToArray(); double sum = v.Sum(); return v.Select(x => x / sum).ToArray(); });
+            }
+            for (int k = 0; k < 2; k++)
+            {
+                var policy = RandomPolicy(initialSeed + k + 100 * p);
+                seeds[p].Add(new("random-" + k, policy));
+                fixedBank.Add(initialSeed == 1729 ? policy : RandomPolicy(1729 + k + 100 * p));
+            }
+            probes[p] = fixedBank.ToArray();
+            if (seedMode == "independent") seeds[p].RemoveAt(0);
+        }
+        if (archivePath != null)
+        {
+            var archive = PopulationArchiveIO.Read(archivePath);
+            if (archive.Schema != "population-policy-archive-v1" || archive.GameHash != gameHash || !archive.Keys.SequenceEqual(tree.Layout.Select(x => x.Key))) throw new InvalidDataException("Population archive belongs to a different game/layout.");
+            for (byte p = 0; p < 2; p++)
+            {
+                seeds[p] = archive.Policies.Where(x => x.Player == p).Select(x => new PopulationEntry(x.Name, Restore(tree, x))).ToList();
+                probes[p] = archive.Probes.Where(x => x.Player == p).Select(x => Restore(tree, x)).ToArray();
+            }
+        }
+        double[] Features(double[] v) => [(v[0] - tree.UtilityMinimum[0]) / tree.UtilityScale[0], (v[1] - tree.UtilityMinimum[1]) / tree.UtilityScale[1], v[2], v[3], v[4]];
+        var finalPopulations = new List<PopulationEntry>[2] { new(), new() };
+        foreach (string selector in selectors)
+        {
+            string directory = Path.Combine(caseOutput, selector); Directory.CreateDirectory(directory);
+            var coordinator = new JpsroCoordinator(tree, seeds[0], seeds[1], probes, Features);
+            var result = coordinator.Run(selector == "gini" ? JointSelectionObjective.MaximumGini : JointSelectionObjective.RelativeEntropy, settings, step =>
+            {
+                File.AppendAllText(Path.Combine(directory, "iterations.jsonl"), JsonSerializer.Serialize(step) + Environment.NewLine);
+                if (step.Iteration % 10 == 0 || step.NormalizedGains.Max() <= settings.MaximumNormalizedGain)
+                    Console.WriteLine($"{caseId} {selector} iteration {step.Iteration}: {step.PlaintiffPolicies}x{step.DefendantPolicies}, gain {step.NormalizedGains.Max():G5}");
+            });
+            var archive = SaveArchive(tree, gameHash, result.Plaintiffs.Concat(result.Defendants), probes);
+            PopulationArchiveIO.Save(Path.Combine(directory, "population.json"), archive, archiveStore);
+            var oracleCheck = CheckArticleOracle(developer, tree, result);
+            Files.Save(Path.Combine(directory, "independent-oracle-check.json"), oracleCheck);
+            var outcomes = evaluateOutcomes?.Invoke(result.Plaintiffs.Select(x => x.Policy).ToArray(), result.Defendants.Select(x => x.Policy).ToArray(), result.JointWeights, result.ExpectedValues);
+            var record = new { CaseId = caseId, Selector = selector, result.SolutionConcept, result.Status, PlaintiffPolicies = result.Plaintiffs.Length, DefendantPolicies = result.Defendants.Length,
+                result.JointWeights, result.ExpectedValues, result.RawGains, result.NormalizedGains, result.References, result.Selection, Outcomes = outcomes,
+                Baseline = baselineOutcomes, BaselineValues = baselineValues, Iterations = result.History.Length, Settings = settings };
+            string resultPath = Path.Combine(directory, "result.json");
+            if (archiveStore == null) { Files.Save(resultPath, record); results.Add(record); }
+            else
+            {
+                // Keep large joint weights and affinity matrices once. Completion
+                // manifests carry the economic result plus a hash-checked reference.
+                Files.SaveCompressed(resultPath, record);
+                var compact = JsonSerializer.SerializeToNode(record, Files.Json)!.AsObject();
+                foreach (string key in new[] { "JointWeights", "References", "Selection" }) compact.Remove(key);
+                compact["DetailsFile"] = caseId + "/" + selector + "/result.json.gz";
+                compact["DetailsSha256"] = Files.Sha(resultPath + ".gz");
+                results.Add(compact);
+            }
+            finalPopulations[0].AddRange(result.Plaintiffs); finalPopulations[1].AddRange(result.Defendants);
+            Console.WriteLine($"Completed {caseId} {selector}: {result.Status}");
+        }
+        // Archive the union for controlled re-selection / further expansion with the same probes.
+        PopulationArchiveIO.Save(Path.Combine(caseOutput, "union-population.json"), SaveArchive(tree, gameHash,
+            finalPopulations.SelectMany(x => x).DistinctBy(x => string.Join("|", x.Policy.InformationSets.Values.SelectMany(s => s.Probabilities).Select(BitConverter.DoubleToInt64Bits)) + "/" + x.Policy.Player), probes), archiveStore);
+        return results;
     }
     private static SavedPolicy Save(PolicyGameTree tree, string name, PlayerPolicy policy) => new(name, policy.Player,
         tree.Layout.Where(s => s.Player == policy.Player).Select(s => policy.InformationSets[s.Key].Probabilities.ToArray()).ToArray());

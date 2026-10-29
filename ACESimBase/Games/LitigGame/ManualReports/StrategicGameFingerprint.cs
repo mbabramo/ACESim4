@@ -37,7 +37,7 @@ namespace ACESimBase.Games.LitigGame.ManualReports
             return result;
         }
 
-        public static Snapshot Capture(StrategiesDeveloperBase developer)
+        public static Snapshot Capture(StrategiesDeveloperBase developer, bool roundChanceProbabilities = true)
         {
             if (developer.GameDefinition is not LitigGameDefinition definition)
                 throw new ArgumentException("Expected an initialized litigation game.");
@@ -66,11 +66,11 @@ namespace ACESimBase.Games.LitigGame.ManualReports
             string coordinateHash = HashObject(coordinates);
             using var buffer = new MemoryStream();
             using var writer = new BinaryWriter(buffer, Encoding.UTF8, leaveOpen: true);
-            var processor = new TreeWriter(writer, !settings.SequenceFormCutOffProbabilityZeroNodes);
+            var processor = new TreeWriter(writer, !settings.SequenceFormCutOffProbabilityZeroNodes, roundChanceProbabilities);
             developer.TreeWalk_Tree(processor);
             writer.Flush();
             string tree = Hash(buffer.ToArray());
-            return new("strategic-tree-v1", HashObject(new { tree, coordinates = coordinateHash, parameters }),
+            return new(roundChanceProbabilities ? "strategic-tree-v1" : "strategic-tree-v1-raw-chance", HashObject(new { tree, coordinates = coordinateHash, parameters }),
                 tree, coordinateHash, parameters, processor.Nodes, processor.Terminals,
                 developer.InformationSets.Count, developer.InformationSets.Sum(n => n.NumPossibleActions));
         }
@@ -79,9 +79,10 @@ namespace ACESimBase.Games.LitigGame.ManualReports
         {
             private readonly BinaryWriter writer;
             private readonly bool positiveChance;
+            private readonly bool roundChanceProbabilities;
             public int Nodes { get; private set; }
             public int Terminals { get; private set; }
-            public TreeWriter(BinaryWriter writer, bool positiveChance) { this.writer = writer; this.positiveChance = positiveChance; }
+            public TreeWriter(BinaryWriter writer, bool positiveChance, bool roundChanceProbabilities) { this.writer = writer; this.positiveChance = positiveChance; this.roundChanceProbabilities = roundChanceProbabilities; }
             private void Header(char kind, byte action) { writer.Write(kind); writer.Write(action); Nodes++; }
             private void Decision(Decision decision)
             {
@@ -90,6 +91,13 @@ namespace ACESimBase.Games.LitigGame.ManualReports
             public int ChanceNode_Forward(ChanceNode node, IGameState predecessor, byte action, int state)
             {
                 Header('C', action); Decision(node.Decision);
+                if (!roundChanceProbabilities)
+                {
+                    var raw = node.GetActionProbabilities().ToArray();
+                    writer.Write(raw.Length);
+                    foreach (double probability in raw) writer.Write(BitConverter.DoubleToInt64Bits(probability));
+                    return state;
+                }
                 // Conversion occurs on a detached node because the legacy conversion
                 // also updates its double probabilities. Fingerprinting must be read-only.
                 var probabilities = node.DeepCopy().GetProbabilitiesAsRationals(positiveChance, EvolutionSettings.MaxIntegralUtility);

@@ -6,7 +6,7 @@ namespace ACESimBase.GameSolvingSupport.Population;
 
 public enum JointSelectionObjective { MaximumGini, RelativeEntropy }
 public sealed record JointSelectionSettings(double IncentiveTolerance = 1e-8, double GradientTolerance = 1e-10,
-    int MaximumIterations = 20000);
+    int MaximumIterations = 20000, bool ScaleQuadraticIncentives = false);
 public sealed record JointSelectionResult(double[] Weights, double[] RestrictedGains, double Objective,
     double? DualityGap, double? ProjectedGradient, int Termination, int Iterations, string Algorithm);
 
@@ -119,8 +119,12 @@ public static class CoarseCorrelatedSelector
         for (int k = 0; k <= n; k++) matrix[0, k] = 1;
         for (int d = 0; d < constraints.Length; d++)
         {
-            for (int k = 0; k < n; k++) matrix[d + 1, k] = constraints[d][k];
-            matrix[d + 1, n] = settings.IncentiveTolerance; types[d + 1] = -1;
+            // Preserve each inequality exactly while avoiding almost-zero rows in
+            // rare-event games. Report residuals in the original utility units.
+            double scale = settings.ScaleQuadraticIncentives ? Math.Max(settings.IncentiveTolerance, constraints[d].Max(Math.Abs)) : 1;
+            if (scale == 0) scale = 1;
+            for (int k = 0; k < n; k++) matrix[d + 1, k] = constraints[d][k] / scale;
+            matrix[d + 1, n] = settings.IncentiveTolerance / scale; types[d + 1] = -1;
         }
         alglib.minqpsetlc(state, matrix, types);
         alglib.minqpsetalgobleic(state, settings.GradientTolerance, 0, 1e-12, settings.MaximumIterations);
@@ -131,7 +135,8 @@ public static class CoarseCorrelatedSelector
         for (int k = 0; k < n; k++) weights[k] /= mass;
         var gains = constraints.Select(a => a.Zip(weights, (x, y) => x * y).Sum()).ToArray();
         // This API does not expose QP multipliers. Do not invent a duality certificate.
-        return new(weights, gains, .5 * weights.Sum(x => x * x), null, null, report.terminationtype, report.inneriterationscount, "primal-quadratic");
+        return new(weights, gains, .5 * weights.Sum(x => x * x), null, null, report.terminationtype, report.inneriterationscount,
+            settings.ScaleQuadraticIncentives ? "scaled-primal-quadratic" : "primal-quadratic");
     }
 
     public static double[] SimplexProjection(double[] values)

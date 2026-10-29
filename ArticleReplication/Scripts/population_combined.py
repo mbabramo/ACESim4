@@ -18,14 +18,18 @@ import subprocess
 import threading
 import time
 import traceback
+import sys
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import population_archives
 
 
 def read(path):
-    return json.loads(Path(path).read_text(encoding="utf-8-sig"))
+    return population_archives.read(path)
 
 
 def digest(path):
-    return hashlib.sha256(Path(path).read_bytes()).hexdigest()
+    return hashlib.sha256(population_archives.physical_path(path).read_bytes()).hexdigest()
 
 
 def canonical(value):
@@ -86,7 +90,7 @@ def merge_archives(paths):
             entries[key] = {"Player": key[0], "Probabilities": [list(row) for row in key[1]]}
         if min(counts) == 0:
             raise ValueError("Both player populations must be nonempty.")
-        sources.append({"Path": str(path.resolve()), "Sha256": digest(path), "PolicyCounts": counts})
+        sources.append({"Path": str(population_archives.physical_path(path).resolve()), "Sha256": digest(path), "PolicyCounts": counts})
     policies = []
     for key in sorted(entries):
         policy = entries[key]
@@ -106,11 +110,13 @@ class Batch:
         defaults = {"cases": "all", "repetitions": 10, "workers": 4, "iterations": 150,
                     "initial_seed": 1729, "seed_stride": 989, "pool_rounds": 10,
                     "selectors": ["gini", "liu"], "epsilon": 1e-5, "bandwidth": .1, "floor": 1e-6,
-                    "repetitions_from": None, "replacement_runs": []}
+                    "repetitions_from": None, "replacement_runs": [], "model": "correlated-signals"}
         unknown = set(config) - set(defaults) - {"assembly", "input", "output"}
         if unknown:
             raise ValueError("Unknown batch settings: " + str(sorted(unknown)))
         self.config = defaults | config
+        if self.config["model"] not in ("correlated-signals", "endogenous"):
+            raise ValueError("Unknown population model.")
         for key in ("assembly", "input", "output"):
             self.config[key] = str(Path(self.config[key]).resolve())
         if self.config["repetitions_from"]:
@@ -152,7 +158,8 @@ class Batch:
         self.runtime_hashes = {p.name: digest(p) for p in (assembly, assembly.parent / "ACESimBase.dll", assembly.parent / "LitigCharts.dll")}
         self.root.mkdir(parents=True, exist_ok=True)
         identity = {"Schema": "pooled-population-batch-v1", "Settings": self.config, "RuntimeSha256": self.runtime_hashes,
-                    "RunnerSha256": digest(Path(__file__)),
+                    "RunnerSha256": digest(Path(__file__)), "ArchiveHelperSha256": digest(Path(population_archives.__file__)),
+                    "InputCatalogSha256": digest(source / "catalog.json") if self.config["model"] == "endogenous" else None,
                     "ReplacementReceipts": [{"Run": str(p), "CompletedSha256": digest(p / "completed.json"), "PlanSha256": digest(p / "plan.json")}
                                             for p in sorted(set(self.replacements.values()))]}
         if self.config["repetitions_from"]:
@@ -179,6 +186,8 @@ class Batch:
 
     def validate_import_plan(self, plan, expected_seed):
         c = self.config
+        if plan.get("Model", "correlated-signals") != c.get("model", "correlated-signals"):
+            raise ValueError("Imported population model differs.")
         if plan["InitialSeed"] != expected_seed or plan["SeedMode"] != "independent" or plan["Selectors"] != c["selectors"]:
             raise ValueError("Imported initial seed, mode, or selectors differ.")
         if Path(plan["InputDirectory"]).resolve() != Path(c["input"]):
@@ -216,7 +225,17 @@ class Batch:
             with self.lock:
                 self.state["Active"][label] = {"Pid": process.pid, "Log": str(log), "StartedUtc": self.utc()}
             self.update()
-            code = process.wait()
+            while True:
+                try:
+                    code = process.wait(timeout=20)
+                    break
+                except subprocess.TimeoutExpired:
+                    if "--output" in args:
+                        progress = Path(args[args.index("--output") + 1]) / "progress.json"
+                        if progress.exists():
+                            with self.lock:
+                                self.state["Active"][label]["Progress"] = read(progress)
+                    self.update()
             with self.lock:
                 self.state["Active"].pop(label, None)
             self.update()
@@ -232,11 +251,16 @@ class Batch:
                 return attempt
         attempt = base / f"attempt-{len(attempts) + 1:03d}"
         c = self.config
-        args = ["population", "--input", c["input"], "--output", attempt, "--cases", cases,
+        command = "endogenous-population" if c["model"] == "endogenous" else "population"
+        args = [command, "--input", c["input"], "--output", attempt, "--cases", cases,
                 "--selectors", ",".join(c["selectors"]), "--iterations", c["iterations"], "--initial-seed", seed,
                 "--epsilon", c["epsilon"], "--bandwidth", c["bandwidth"], "--floor", c["floor"]]
         if archive is not None:
             args += ["--seed-archive", archive]
+        if c["model"] == "endogenous":
+            args += ["--archive-store", self.root / "policy-store"]
+            if attempts:
+                args += ["--reuse-cases-from", attempts[-1]]
         self.command(label, args, base / f"{attempt.name}.log")
         completed = read(attempt / "completed.json")
         if not completed["Passed"] or completed["Runs"] != 2 * completed["Cases"]:
@@ -269,16 +293,20 @@ class Batch:
                 prior = Path(self.config["repetitions_from"]) / "combined" / case_id
                 # Completed selector archives can be reused even when their sibling or
                 # common-population round was interrupted. These are policies, not weights.
-                sources += sorted(prior.glob(f"round-*/solve/attempt-*/{case_id}/*/population.json"))
+                sources += sorted(prior.glob(f"round-*/solve/attempt-*/{case_id}/*/population.json*"))
             history = []
             for round_index in range(self.config["pool_rounds"]):
                 pool, provenance = merge_archives(sources)
                 round_folder = folder / f"round-{round_index:02d}"
                 archive_path = round_folder / "seed-population.json"
-                if archive_path.exists() and read(archive_path) != pool:
+                archive_exists = population_archives.physical_path(archive_path).exists()
+                if archive_exists and read(archive_path) != pool:
                     raise ValueError("Changed pooled input during resume.")
-                if not archive_path.exists():
-                    save(archive_path, pool)
+                if not archive_exists:
+                    if self.config["model"] == "endogenous":
+                        population_archives.save_archive(archive_path, pool, self.root / "policy-store")
+                    else:
+                        save(archive_path, pool)
                     save(round_folder / "sources.json", provenance)
                 run = self.population(f"pool-{case_id}-round-{round_index}", round_folder / "solve", case_id, self.config["initial_seed"], archive_path)
                 results = read(run / "completed.json")["Results"]
@@ -382,7 +410,7 @@ class Batch:
 
 
 def measures(outcomes):
-    return {k: outcomes[k] for k in ("Filing", "AnsweringUnconditional", "Trial", "Settlement")} | outcomes["Welfare"] | {
+    return {k: outcomes[k] for k in ("Filing", "AnsweringUnconditional", "Trial", "Settlement")} | outcomes.get("Measures", outcomes.get("Welfare", {})) | {
         "PlaintiffUtility": outcomes["NativeUtilities"][0], "DefendantUtility": outcomes["NativeUtilities"][1]}
 
 
@@ -426,7 +454,7 @@ def summarize(combined, repetitions, replacements=None):
                              "NormalizedCceGain": max(r["NormalizedGains"]), "ProductNashGain": max(audit["NormalizedProductNashGains"])})
     sign = lambda x: 0 if abs(x) < 1e-6 else (1 if x > 0 else -1)
     for (case_id, selector), (case, current, baseline) in lookup.items():
-        if case["FeeRule"] != "american":
+        if case.get("FeeRule") != "american":
             continue
         complete_id = case_id.replace("__american__", "__complete__")
         target = lookup.get((complete_id, selector))

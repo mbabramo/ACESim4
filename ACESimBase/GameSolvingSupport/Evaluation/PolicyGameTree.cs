@@ -19,6 +19,7 @@ public sealed class PolicyGameTree
     public sealed class Node
     {
         internal int Index;
+        internal int SubtreeEnd;
         internal int InformationSet;
         internal double[] ChanceProbabilities;
         internal double[] Values;
@@ -41,6 +42,8 @@ public sealed class PolicyGameTree
     public int ValueCount { get; }
     public double[] UtilityMinimum { get; }
     public double[] UtilityScale { get; }
+    public int ChanceBoundaryCorrections { get; private set; }
+    public double MaximumChanceBoundaryCorrection { get; private set; }
 
     public PolicyGameTree(Node root, IEnumerable<InformationSetPolicy> informationSets)
     {
@@ -61,14 +64,29 @@ public sealed class PolicyGameTree
             {
                 if (n.Values.Length < 2 || n.Values.Any(x => !double.IsFinite(x))) throw new InvalidDataException("Invalid terminal values.");
                 n.Actions = actions.ToArray();
+                n.SubtreeEnd = all.Count;
                 return;
             }
             if (n.Children.Length == 0) throw new InvalidDataException("Empty decision.");
             if (n.InformationSet == -1)
             {
-                ValidateDistribution(n.ChanceProbabilities, n.Children.Length);
+                // Some historical Bayesian complements are a few ulps outside [0,1].
+                // Correct only boundary roundoff, preserving every positive rare event.
+                for (int a = 0; a < n.ChanceProbabilities.Length; a++)
+                {
+                    double value = n.ChanceProbabilities[a];
+                    if (value < 0 && value >= -1e-14 || value > 1 && value <= 1 + 1e-14)
+                    {
+                        n.ChanceProbabilities[a] = Math.Clamp(value, 0, 1);
+                        ChanceBoundaryCorrections++;
+                        MaximumChanceBoundaryCorrection = Math.Max(MaximumChanceBoundaryCorrection, Math.Abs(value - n.ChanceProbabilities[a]));
+                    }
+                }
+                try { ValidateDistribution(n.ChanceProbabilities, n.Children.Length); }
+                catch (ArgumentException error) { throw new InvalidDataException("Invalid chance probabilities at path " + string.Join(",", actions) + ": " + string.Join(",", n.ChanceProbabilities.Select(x => x.ToString("R"))), error); }
                 for (int a = 0; a < n.Children.Length; a++)
                 { actions.Add(checked((byte)(a + 1))); Visit(n.Children[a], histories); actions.RemoveAt(actions.Count - 1); }
+                n.SubtreeEnd = all.Count;
                 return;
             }
             int info = n.InformationSet;
@@ -85,6 +103,7 @@ public sealed class PolicyGameTree
                 histories[player].Add((info, a)); actions.Add(checked((byte)(a + 1)));
                 Visit(n.Children[a], histories); histories[player].RemoveAt(histories[player].Count - 1); actions.RemoveAt(actions.Count - 1);
             }
+            n.SubtreeEnd = all.Count;
         }
         Visit(root, [new(), new()]);
         nodes = all.ToArray();
@@ -153,8 +172,11 @@ public sealed class PolicyGameTree
         reach[root.Index] = 1;
         try
         {
-            foreach (var n in nodes)
+            for (int index = 0; index < nodes.Length; index++)
             {
+                var n = nodes[index];
+                // Skip only exactly unreachable subtrees; never prune small positive mass.
+                if (reach[n.Index] == 0) { index = n.SubtreeEnd - 1; continue; }
                 if (n.InformationSet == -2)
                 { for (int v = 0; v < result.Length; v++) result[v] += reach[n.Index] * n.Values[v]; }
                 else
@@ -181,8 +203,10 @@ public sealed class PolicyGameTree
         {
             double weight = weights[i * d.Length + j]; if (weight == 0) continue;
             reach[root.Index] = weight;
-            foreach (var n in nodes)
+            for (int index = 0; index < nodes.Length; index++)
             {
+                var n = nodes[index];
+                if (reach[n.Index] == 0) { index = n.SubtreeEnd - 1; continue; }
                 if (n.InformationSet == -2) terminalMass[n.Index] += reach[n.Index];
                 else
                 {

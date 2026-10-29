@@ -2,6 +2,7 @@ using System.Security.Cryptography;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
+using System.IO.Compression;
 
 namespace ArticleReplication;
 
@@ -15,6 +16,18 @@ public static class Files
         Converters={new JsonStringEnumConverter()}};
     public static T Read<T>(string path)=>JsonSerializer.Deserialize<T>(File.ReadAllText(path),Json)??throw new InvalidDataException(path);
     public static JsonObject Object(string path)=>JsonNode.Parse(File.ReadAllText(path))!.AsObject();
+    public static JsonObject ObjectOrCompressed(string path)
+    {
+        if(File.Exists(path))return Object(path);
+        using var input=File.OpenRead(path+".gz");using var gzip=new GZipStream(input,CompressionMode.Decompress);
+        return JsonNode.Parse(gzip)!.AsObject();
+    }
+    public static void SaveCompressed(string path,object value)
+    {
+        Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(path))!);
+        using var output=new FileStream(path+".gz",FileMode.CreateNew);using var gzip=new GZipStream(output,CompressionLevel.Fastest);
+        JsonSerializer.Serialize(gzip,value,Json);
+    }
     public static string Sha(string path){using var s=File.OpenRead(path);return Convert.ToHexString(SHA256.HashData(s)).ToLowerInvariant();}
     public static string Digest<T>(T value)=>Convert.ToHexString(SHA256.HashData(JsonSerializer.SerializeToUtf8Bytes(value,Json))).ToLowerInvariant();
     public static void Save(string path,object value,bool replace=false)
