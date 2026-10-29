@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 import tempfile
 import unittest
+from unittest.mock import patch
 
 spec = importlib.util.spec_from_file_location("population_combined", Path(__file__).parents[1] / "Scripts/population_combined.py")
 module = importlib.util.module_from_spec(spec)
@@ -12,6 +13,49 @@ spec.loader.exec_module(module)
 
 
 class PoolTests(unittest.TestCase):
+    def test_atomic_status_replace_retries_transient_windows_locks(self):
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / "status.json"
+            module.save(path, {"state": "old"})
+            replace = module.os.replace
+            calls = []
+            def locked_twice(source, target):
+                calls.append(target)
+                if len(calls) < 3:
+                    raise PermissionError("sharing violation")
+                replace(source, target)
+            with patch.object(module.os, "replace", side_effect=locked_twice), patch.object(module.time, "sleep"):
+                module.save(path, {"state": "new"})
+            self.assertEqual(3, len(calls))
+            self.assertEqual({"state": "new"}, module.read(path))
+            with patch.object(module.os, "replace", side_effect=PermissionError("locked")), patch.object(module.time, "sleep"):
+                with self.assertRaises(PermissionError):
+                    module.save(path, {"state": "pending"})
+            self.assertEqual({"state": "new"}, module.read(path))
+            self.assertEqual({"state": "pending"}, module.read(path.with_suffix(".json.tmp")))
+
+    def test_case_continuation_requires_identical_science_and_reviewed_harness(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            source = root / "inputs"
+            module.save(source / "catalog.json", {})
+            first, second = root / "runtime1", root / "runtime2"
+            for runtime in (first, second):
+                runtime.mkdir()
+                for name in ("ArticleReplication.dll", "ACESimBase.dll", "LitigCharts.dll"):
+                    (runtime / name).write_bytes(name.encode())
+            config = {"model": "endogenous", "assembly": str(first / "ArticleReplication.dll"), "input": str(source), "output": str(root / "original")}
+            original = module.Batch(config)
+            (second / "ArticleReplication.dll").write_bytes(b"IO-only harness update")
+            continued = config | {"assembly": str(second / "ArticleReplication.dll"), "output": str(root / "continued"), "resume_cases_from": str(original.root)}
+            with self.assertRaisesRegex(ValueError, "prior harness"):
+                module.Batch(continued)
+            continued["compatible_harness_sha256"] = original.runtime_hashes["ArticleReplication.dll"]
+            module.Batch(continued)
+            (second / "ACESimBase.dll").write_bytes(b"changed numerical code")
+            with self.assertRaisesRegex(ValueError, "numerical/model"):
+                module.Batch(continued | {"output": str(root / "invalid")})
+
     def archive(self):
         policies = [{"Name": "uniform", "Player": p, "Probabilities": [[.5, .5]]} for p in (0, 1)]
         return {"Schema": "population-policy-archive-v1", "GameHash": "game", "Keys": ["p", "d"], "Policies": policies, "Probes": copy.deepcopy(policies)}

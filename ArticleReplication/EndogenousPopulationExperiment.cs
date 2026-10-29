@@ -63,7 +63,7 @@ public static class EndogenousPopulationExperiment
 
     public static async Task Run(Dictionary<string, string> args)
     {
-        string[] allowed = ["input", "output", "cases", "selectors", "iterations", "epsilon", "bandwidth", "floor", "seed-mode", "initial-seed", "seed-archive", "report-outcomes", "validate-only", "archive-store", "reuse-cases-from"];
+        string[] allowed = ["input", "output", "cases", "selectors", "iterations", "epsilon", "bandwidth", "floor", "seed-mode", "initial-seed", "seed-archive", "report-outcomes", "validate-only", "archive-store", "reuse-cases-from", "compatible-harness-sha256"];
         if (args.Keys.Except(allowed, StringComparer.OrdinalIgnoreCase).Any()) throw new ArgumentException("Unknown endogenous population option.");
         string input = Path.GetFullPath(args["input"]), output = Path.GetFullPath(args["output"]);
         if (Directory.Exists(output) || Files.Nested(output, input) || Files.Nested(input, output)) throw new IOException("Use a fresh separate output directory.");
@@ -95,6 +95,7 @@ public static class EndogenousPopulationExperiment
             Settings = settings, Selectors = selectors, SeedMode = seedMode, InitialSeed = initialSeed, InputDirectory = input, ReportOutcomes = true,
             CatalogSha256 = Files.Sha(Path.Combine(input, "catalog.json")), AssemblySha256 = Files.Sha(typeof(JpsroCoordinator).Assembly.Location),
             HarnessSha256 = Files.Sha(typeof(EndogenousPopulationExperiment).Assembly.Location),
+            CompatibleHarnessSha256 = args.GetValueOrDefault("compatible-harness-sha256"),
             SeedArchiveSha256 = args.TryGetValue("seed-archive", out var seedArchive) ? Files.Sha(PopulationArchiveIO.PhysicalPath(seedArchive)) : null,
             ProbeSeeds = new[] { 1729, 1730 }, Features = new[] { "normalized plaintiff utility", "normalized defendant utility", "filing", "unconditional answering", "trial" },
             ProbeRule = "Fixed article current policy, uniform, and two random policies per player. Article policy is a probe, not an independent-start population member.",
@@ -107,8 +108,11 @@ public static class EndogenousPopulationExperiment
         {
             var prior = Files.Object(Path.Combine(reuse, "plan.json"));
             var current = Files.Object(Path.Combine(output, "plan.json"));
-            foreach (string key in new[] { "Model", "Cases", "Settings", "Selectors", "SeedMode", "InitialSeed", "CatalogSha256", "AssemblySha256", "HarnessSha256", "SeedArchiveSha256", "ValidationOnly" })
+            foreach (string key in new[] { "Model", "Cases", "Settings", "Selectors", "SeedMode", "InitialSeed", "CatalogSha256", "AssemblySha256", "SeedArchiveSha256", "ValidationOnly" })
                 if (!JsonNode.DeepEquals(prior[key], current[key])) throw new InvalidDataException("Changed reused case settings: " + key);
+            if (!JsonNode.DeepEquals(prior["HarnessSha256"], current["HarnessSha256"]) &&
+                prior["HarnessSha256"]!.GetValue<string>() != args.GetValueOrDefault("compatible-harness-sha256"))
+                throw new InvalidDataException("Changed reused harness requires its explicitly reviewed SHA256; solver assembly and settings must still match.");
         }
         else reuse = null;
         int casesComplete = 0;
@@ -133,6 +137,8 @@ public static class EndogenousPopulationExperiment
                     else Files.CopyVerified(source, destination);
                 }
                 results.AddRange(prior["Results"]!.AsArray().Select(x => (object)x!.DeepClone()));
+                File.AppendAllText(Path.Combine(output, "reused-cases.jsonl"), System.Text.Json.JsonSerializer.Serialize(new
+                    { CaseId = spec.Id, Source = previous, SourceCompletionSha256 = Files.Sha(Path.Combine(previous, "case-completed.json")) }) + Environment.NewLine);
                 casesComplete++; WriteProgress(output, casesComplete, cases.Length, null);
                 Console.WriteLine("Reused completed case " + spec.Id); continue;
             }
@@ -172,7 +178,7 @@ public static class EndogenousPopulationExperiment
     {
         string file = Path.Combine(output, "progress.json"), temporary = file + ".tmp";
         Files.Save(temporary, new { CasesComplete = completed, CasesTotal = total, CurrentCase = current, UpdatedUtc = DateTime.UtcNow }, replace: true);
-        File.Move(temporary, file, overwrite: true);
+        Files.ReplaceWithRetry(temporary, file);
     }
 
     public static Outcomes Evaluate(StrategiesDeveloperBase developer, PolicyGameTree tree, LitigGameOptions options,

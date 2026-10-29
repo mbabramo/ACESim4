@@ -28,6 +28,16 @@ public static class Files
         using var output=new FileStream(path+".gz",FileMode.CreateNew);using var gzip=new GZipStream(output,CompressionLevel.Fastest);
         JsonSerializer.Serialize(gzip,value,Json);
     }
+    public static void ReplaceWithRetry(string source,string target,int attempts=40,int delayMilliseconds=50)
+    {
+        if(attempts<1||delayMilliseconds<0)throw new ArgumentOutOfRangeException(nameof(attempts));
+        for(int attempt=0;;attempt++)
+        {
+            try { File.Move(source,target,overwrite:true);return; }
+            catch(Exception error) when(attempt+1<attempts&&(error is IOException||error is UnauthorizedAccessException))
+            { Thread.Sleep(delayMilliseconds); }
+        }
+    }
     public static string Sha(string path){using var s=File.OpenRead(path);return Convert.ToHexString(SHA256.HashData(s)).ToLowerInvariant();}
     public static string Digest<T>(T value)=>Convert.ToHexString(SHA256.HashData(JsonSerializer.SerializeToUtf8Bytes(value,Json))).ToLowerInvariant();
     public static void Save(string path,object value,bool replace=false)

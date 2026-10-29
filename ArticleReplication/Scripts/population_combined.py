@@ -41,7 +41,14 @@ def save(path, value):
     path.parent.mkdir(parents=True, exist_ok=True)
     temporary = path.with_suffix(path.suffix + ".tmp")
     temporary.write_text(json.dumps(value, indent=2, allow_nan=False) + "\n", encoding="utf-8")
-    os.replace(temporary, path)
+    for attempt in range(40):
+        try:
+            os.replace(temporary, path)
+            break
+        except PermissionError:
+            if attempt == 39:
+                raise
+            time.sleep(.05)
 
 
 def policy_key(policy):
@@ -110,7 +117,8 @@ class Batch:
         defaults = {"cases": "all", "repetitions": 10, "workers": 4, "iterations": 150,
                     "initial_seed": 1729, "seed_stride": 989, "pool_rounds": 10,
                     "selectors": ["gini", "liu"], "epsilon": 1e-5, "bandwidth": .1, "floor": 1e-6,
-                    "repetitions_from": None, "replacement_runs": [], "model": "correlated-signals"}
+                    "repetitions_from": None, "replacement_runs": [], "model": "correlated-signals",
+                    "resume_cases_from": None, "compatible_harness_sha256": None}
         unknown = set(config) - set(defaults) - {"assembly", "input", "output"}
         if unknown:
             raise ValueError("Unknown batch settings: " + str(sorted(unknown)))
@@ -121,6 +129,8 @@ class Batch:
             self.config[key] = str(Path(self.config[key]).resolve())
         if self.config["repetitions_from"]:
             self.config["repetitions_from"] = str(Path(self.config["repetitions_from"]).resolve())
+        if self.config["resume_cases_from"]:
+            self.config["resume_cases_from"] = str(Path(self.config["resume_cases_from"]).resolve())
         self.replacements = {}
         for item in self.config["replacement_runs"]:
             if set(item) != {"repetition", "run"} or not 1 <= item["repetition"] <= self.config["repetitions"]:
@@ -162,6 +172,23 @@ class Batch:
                     "InputCatalogSha256": digest(source / "catalog.json") if self.config["model"] == "endogenous" else None,
                     "ReplacementReceipts": [{"Run": str(p), "CompletedSha256": digest(p / "completed.json"), "PlanSha256": digest(p / "plan.json")}
                                             for p in sorted(set(self.replacements.values()))]}
+        if self.config["resume_cases_from"]:
+            previous = Path(self.config["resume_cases_from"])
+            if self.config["model"] != "endogenous" or self.config["repetitions_from"]:
+                raise ValueError("Case continuation is for endogenous repetition runs.")
+            if self.root == previous or self.root in previous.parents or previous in self.root.parents:
+                raise ValueError("Continue cases into a separate output directory.")
+            original = read(previous / "batch-plan.json")
+            for key in ("input", "cases", "repetitions", "initial_seed", "seed_stride", "selectors", "epsilon", "bandwidth", "floor", "iterations", "model"):
+                if original["Settings"][key] != self.config[key]:
+                    raise ValueError("Continued case settings differ: " + key)
+            for name in ("ACESimBase.dll", "LitigCharts.dll"):
+                if original["RuntimeSha256"][name] != self.runtime_hashes[name]:
+                    raise ValueError("Continuation changed the numerical/model assembly: " + name)
+            previous_harness = original["RuntimeSha256"]["ArticleReplication.dll"]
+            if previous_harness != self.runtime_hashes["ArticleReplication.dll"] and previous_harness != self.config["compatible_harness_sha256"]:
+                raise ValueError("Explicitly identify the reviewed prior harness hash.")
+            identity["ContinuedCases"] = {"BatchPlanSha256": digest(previous / "batch-plan.json"), "PreviousHarnessSha256": previous_harness}
         if self.config["repetitions_from"]:
             previous = Path(self.config["repetitions_from"])
             if self.root == previous or self.root in previous.parents or previous in self.root.parents:
@@ -259,8 +286,14 @@ class Batch:
             args += ["--seed-archive", archive]
         if c["model"] == "endogenous":
             args += ["--archive-store", self.root / "policy-store"]
-            if attempts:
-                args += ["--reuse-cases-from", attempts[-1]]
+            reuse = attempts[-1] if attempts else None
+            if reuse is None and c["resume_cases_from"] and label.startswith("repetition-"):
+                prior_attempts = sorted((Path(c["resume_cases_from"]) / "repetitions" / base.name).glob("attempt-*"))
+                reuse = prior_attempts[-1] if prior_attempts else None
+            if reuse is not None:
+                args += ["--reuse-cases-from", reuse]
+                if c["compatible_harness_sha256"]:
+                    args += ["--compatible-harness-sha256", c["compatible_harness_sha256"]]
         self.command(label, args, base / f"{attempt.name}.log")
         completed = read(attempt / "completed.json")
         if not completed["Passed"] or completed["Runs"] != 2 * completed["Cases"]:
