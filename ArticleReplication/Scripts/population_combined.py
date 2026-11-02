@@ -265,8 +265,18 @@ class Batch:
                     if "--output" in args:
                         progress = Path(args[args.index("--output") + 1]) / "progress.json"
                         if progress.exists():
-                            with self.lock:
-                                self.state["Active"][label]["Progress"] = read(progress)
+                            # Progress is optional telemetry. A Windows sharing lock
+                            # must not detach supervision from a healthy worker.
+                            try:
+                                latest = read(progress)
+                            except (PermissionError, FileNotFoundError) as error:
+                                with self.lock:
+                                    self.state["Active"][label]["ProgressReadError"] = str(error)
+                            else:
+                                with self.lock:
+                                    active = self.state["Active"][label]
+                                    active["Progress"] = latest
+                                    active.pop("ProgressReadError", None)
                     self.update()
             with self.lock:
                 self.state["Active"].pop(label, None)

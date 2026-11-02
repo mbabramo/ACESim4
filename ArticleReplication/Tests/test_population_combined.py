@@ -2,10 +2,13 @@
 import copy
 import importlib.util
 import json
+import os
 from pathlib import Path
+import subprocess
 import tempfile
+import threading
 import unittest
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 spec = importlib.util.spec_from_file_location("population_combined", Path(__file__).parents[1] / "Scripts/population_combined.py")
 module = importlib.util.module_from_spec(spec)
@@ -13,6 +16,90 @@ spec.loader.exec_module(module)
 
 
 class PoolTests(unittest.TestCase):
+    def monitor_batch(self):
+        batch = module.Batch.__new__(module.Batch)
+        batch.config = {"assembly": "unused.dll"}
+        batch.runtime_hashes = {}
+        batch.env = {}
+        batch.lock = threading.Lock()
+        batch.state = {"Active": {}}
+        snapshots = []
+        batch.update = lambda: snapshots.append(copy.deepcopy(batch.state))
+        return batch, snapshots
+
+    def test_locked_or_replaced_progress_does_not_detach_worker(self):
+        for error in (PermissionError("sharing violation"), FileNotFoundError("replaced")):
+            with self.subTest(error=type(error).__name__), tempfile.TemporaryDirectory() as folder:
+                root = Path(folder)
+                (root / "progress.json").write_text('{"CasesComplete": 1}')
+                batch, snapshots = self.monitor_batch()
+                process = Mock(pid=123)
+                process.wait.side_effect = [subprocess.TimeoutExpired("worker", 20),
+                                           subprocess.TimeoutExpired("worker", 20), 0]
+                with patch.object(module.subprocess, "Popen", return_value=process), patch.object(
+                        module, "read", side_effect=[error, {"CasesComplete": 2}]):
+                    batch.command("worker", ["--output", str(root)], root / "worker.log")
+                self.assertEqual(3, process.wait.call_count)
+                self.assertIn("ProgressReadError", snapshots[1]["Active"]["worker"])
+                self.assertEqual({"CasesComplete": 2}, snapshots[2]["Active"]["worker"]["Progress"])
+                self.assertNotIn("ProgressReadError", snapshots[2]["Active"]["worker"])
+                self.assertEqual({}, snapshots[-1]["Active"])
+                process.terminate.assert_not_called()
+                process.kill.assert_not_called()
+
+    def test_worker_exit_failure_is_preserved_after_locked_progress(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            (root / "progress.json").write_text("{}")
+            batch, _ = self.monitor_batch()
+            process = Mock(pid=123)
+            process.wait.side_effect = [subprocess.TimeoutExpired("worker", 20), 7]
+            with patch.object(module.subprocess, "Popen", return_value=process), patch.object(
+                    module, "read", side_effect=PermissionError("locked")):
+                with self.assertRaisesRegex(RuntimeError, "exited 7"):
+                    batch.command("worker", ["--output", str(root)], root / "worker.log")
+            self.assertEqual({}, batch.state["Active"])
+
+    @unittest.skipUnless(os.name == "nt", "Windows file-sharing semantics")
+    def test_real_windows_read_lock_does_not_detach_worker(self):
+        import ctypes
+        from ctypes import wintypes
+        kernel = ctypes.WinDLL("kernel32", use_last_error=True)
+        kernel.CreateFileW.argtypes = [wintypes.LPCWSTR, wintypes.DWORD, wintypes.DWORD,
+                                      wintypes.LPVOID, wintypes.DWORD, wintypes.DWORD, wintypes.HANDLE]
+        kernel.CreateFileW.restype = wintypes.HANDLE
+        kernel.CloseHandle.argtypes = [wintypes.HANDLE]
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            progress = root / "progress.json"
+            progress.write_text('{"CasesComplete": 3}')
+            handle = kernel.CreateFileW(str(progress), 0x80000000, 0, None, 3, 0x80, None)
+            self.assertNotEqual(ctypes.c_void_p(-1).value, handle)
+            try:
+                with self.assertRaises(PermissionError):
+                    module.read(progress)
+                batch, snapshots = self.monitor_batch()
+                process = Mock(pid=123)
+                calls = []
+                def wait(timeout):
+                    nonlocal handle
+                    calls.append(timeout)
+                    if len(calls) == 2:
+                        kernel.CloseHandle(handle)
+                        handle = None
+                    if len(calls) < 3:
+                        raise subprocess.TimeoutExpired("worker", timeout)
+                    return 0
+                process.wait.side_effect = wait
+                with patch.object(module.subprocess, "Popen", return_value=process):
+                    batch.command("worker", ["--output", str(root)], root / "worker.log")
+                self.assertIn("ProgressReadError", snapshots[1]["Active"]["worker"])
+                self.assertEqual({"CasesComplete": 3}, snapshots[2]["Active"]["worker"]["Progress"])
+                self.assertEqual({}, snapshots[-1]["Active"])
+            finally:
+                if handle is not None:
+                    kernel.CloseHandle(handle)
+
     def test_attempt_discovery_ignores_supervisor_logs(self):
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)
