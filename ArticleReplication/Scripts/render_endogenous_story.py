@@ -19,6 +19,7 @@ import numpy as np
 from endogenous_story_report import MEASURES, METHODS, method_values, quantile
 from endogenous_report_language import OUTCOMES, outcome_name, parameter_name, setting_name
 from endogenous_report_pages import render_pages
+from endogenous_policy_transitions import transition_tables, SCRIPT as TRANSITION_SCRIPT
 
 LABELS={'published':'Original draft','gini':'Gini','liu':'Liu-affinity'}
 COLORS={'published':'#30383b','gini':'#007f86','liu':'#c46825'}
@@ -214,7 +215,7 @@ SCRIPT='function csv(rows){if(!rows.length)return \'\';const cols=Object.keys(ro
 
 def html_reports(data,summary,out,inventory,findings,economic_review=None):
     (out/'report.css').write_text(STYLE,encoding='utf-8')
-    (out/'report.js').write_text(SCRIPT,encoding='utf-8')
+    (out/'report.js').write_text(SCRIPT+TRANSITION_SCRIPT,encoding='utf-8')
     render_pages(data,summary,out,findings,economic_review,(esc,fmt,table,image,page,CORE,SLUGS,LABELS))
     explorer=[];case_rows=[];numerical=[]
     for c in data['Cases']:
@@ -233,7 +234,9 @@ def html_reports(data,summary,out,inventory,findings,economic_review=None):
                 'SourceStatus':r['Status'],'ResultSha256':r['ResultSha256']})
     explorer_data=json.dumps(explorer,separators=(',',':'),allow_nan=False).encode()
     (out/'explorer.json.gz').write_bytes(gzip.compress(explorer_data,compresslevel=6,mtime=0))
-    table_data=json.dumps({'case-outcomes':case_rows,'matched-summary':[dict(r,ParameterLabel=parameter_name(r['Parameter']),OutcomeLabel=outcome_name(r['Metric'])) for r in summary['MatchedSummary']],'numerical-checks':numerical,'outcome-guide':[{'Code':k,'Name':v[0],'Meaning':v[1],'Units':v[2]} for k,v in OUTCOMES.items()]},separators=(',',':'),allow_nan=False).encode()
+    transitions,policy_pairs=transition_tables(data)
+    (out/'policy-transitions.json').write_text(json.dumps(transitions,separators=(',',':'),allow_nan=False),encoding='utf-8')
+    table_data=json.dumps({'policy-transitions':transitions,'policy-comparisons':policy_pairs,'case-outcomes':case_rows,'matched-summary':[dict(r,ParameterLabel=parameter_name(r['Parameter']),OutcomeLabel=outcome_name(r['Metric'])) for r in summary['MatchedSummary']],'numerical-checks':numerical,'outcome-guide':[{'Code':k,'Name':v[0],'Meaning':v[1],'Units':v[2]} for k,v in OUTCOMES.items()]},separators=(',',':'),allow_nan=False).encode()
     (out/'tables.json.gz').write_bytes(gzip.compress(table_data,compresslevel=6,mtime=0))
     script=(out/'report.js').read_text(encoding='utf-8')
     script=script.replace("const data=await(await fetch('tables.json')).json();", "const response=await fetch('tables.json.gz');const data=await new Response(response.body.pipeThrough(new DecompressionStream('gzip'))).json();")
