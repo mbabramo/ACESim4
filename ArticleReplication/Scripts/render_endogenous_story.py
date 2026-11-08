@@ -25,6 +25,7 @@ from endogenous_report_pages import render_pages
 from endogenous_paired_comparisons import (build_pairwise, export_rows, seed_provenance,
     scoped_transition_summaries, transition_export_rows)
 from endogenous_report_language import PARAMETERS
+from endogenous_initial_economic_summary import load_review
 
 LABELS={'published':'Original draft','gini':'Gini','liu':'Liu-affinity'}
 COLORS={'published':'#30383b','gini':'#007f86','liu':'#c46825'}
@@ -64,7 +65,7 @@ def finish_figure(fig,title,path,pdf):
     pdf.savefig(fig,bbox_inches='tight');plt.close(fig)
 
 
-def atlas_guide(pdf):
+def atlas_guide(pdf,initial_review=None):
     pages=[('Start here: what is being studied?',[
         ('The question','How do litigation rules affect useful activity, care, accidents, lawsuits and total social cost? The draft argues that adjustments in behavior often offset one another: a rule can change who sues or how much care people take without greatly changing the total cost.'),
         ('The model in five steps','A potential injurer decides whether to undertake an activity and how much care to take. An accident, or an injury wrongly attributed to that person, may create a dispute. The potential victim decides whether to sue; the defendant decides whether to contest. They make simultaneous settlement offers. If offers do not meet, they can exit; otherwise the case can proceed to trial.'),
@@ -81,7 +82,7 @@ def atlas_guide(pdf):
         ('A small ratio can hide a large incentive','The calculation divides a party’s available payoff improvement by the full utility range. Under risk aversion, costly possible outcomes can make that range enormous. A very small resulting ratio does not always mean a small economic gain from changing behavior.'),
         ('What the new review found','In nine high-cost, moderately risk-averse settings with double fee reimbursement and double damages, the 18 Gini/Liu defendant improvements are worth about 35–123% of the activity benefit. This converts utility improvements into changes in a guaranteed amount of money with the same utility effect: certainty-equivalent gains.'),
         ('What follows—and what does not','The deviations need not concern participation alone. We have not proved activity suppression is an artifact, but those participation rates are not yet established equilibrium predictions. Agreement across methods or starts does not remove a shared scaling limitation. Some risk, welfare and variability conclusions need reassessment.'),
-        ('The limitation is uneven','The reviewed risk-neutral pooled defendant incentive gains are below 0.1% of the activity benefit. The money-equivalent gain is not a bound on error in social cost. Initial searches need their own economic-accuracy review. Cost-misperception variants measure incentives using perceived wealth.'),
+        ('The limitation is uneven','The reviewed risk-neutral pooled defendant incentive gains are below 0.1% of the activity benefit. The money-equivalent gain is not a bound on error in social cost. Initial-search accuracy must also be assessed in economic units. Cost-misperception variants measure incentives using perceived wealth.'),
         ('Records and further checks','Original data and formal classifications remain unchanged. One Liu output misses the original normalized tolerance of 0.0000001 but passes 0.000001; it remains flagged. Accounting reconciles across all 4,536 outputs. Full final certification and exact optimization of the selection objectives remain separate questions. Definitions and evidence are in the report’s How to read & downloads page.')])]
     pages.append(('Specific comparisons and paired searches',[
         ('What each comparison holds fixed','Each row in a paired-agreement chart compares two values of one rule. All other recorded model parameters are identical within that pair. The three panels separately set litigation expense to one-quarter, baseline and four-times costs. They do not average different environments.'),
@@ -94,7 +95,15 @@ def atlas_guide(pdf):
         ('Average the ten-search percentages','For each matched background, count the ten same-seed searches in which the second value B has lower social cost. Divide by ten, then average across the available backgrounds, giving each equal weight. For example, 8/10, 6/10 and 10/10 produce an average of 80%. The online table reports how many backgrounds contribute to each transition.'),
         ('Direction and agreement answer different questions','B cheaper is the average share favoring B. Agreement within backgrounds takes the larger of the A-cheaper and B-cheaper counts in each background, divides by ten, then averages. Strong agreement within backgrounds can coexist with different preferred rules across backgrounds.'),
         ('Ties, coverage and numerical limits','Exact cost ties remain in the denominator and do not favor either direction. A 5-5 split gives 50% directional agreement; ten exact ties give 0% directional agreement and 100% ties. Tiny differences may be numerical error. The grid is incomplete and does not describe real-world frequencies. Only available matched backgrounds are included, with no missing permutations filled in.'),
-        ('How the charts differ','Charts labeled fixed risk-neutral settings show one default background at each litigation expense. Charts labeled background averages instead use baseline litigation costs and all available risk attitudes, varying the other represented assumptions. Each row states its A-to-B transition and background count. Risk-averse results and initial searches still need their economic-accuracy review.')]))
+        ('How the charts differ','Charts labeled fixed risk-neutral settings show one default background at each litigation expense. Charts labeled background averages instead use baseline litigation costs and all available risk attitudes, varying the other represented assumptions. Each row states its A-to-B transition and background count. Some risk-averse results still allow substantial economic improvements.')]))
+    if initial_review:
+        r=initial_review
+        pages.append(('The ten initial searches also need caution',[
+            ('A separate screen now covers every initial result',f"All {r['Selections']:,} accepted initial selections were reviewed using their saved raw incentive gains, expected utilities and original seeds, including same-seed repairs. This was a read-only calculation in money-equivalent units; it did not rerun the game or change formal pass labels."),
+            ('The same risk-averse limitation appears before pooling',f"In the nine high-cost, moderately risk-averse baseline settings with double fees and double damages, the ten searches give {r['FocusSelections']} Gini/Liu results. Their defendant incentives are worth {100*r['FocusMinimumDefendantGainOverBenefit']:.0f}-{100*r['FocusMaximumDefendantGainOverBenefit']:.0f}% of the activity benefit. In {r['FocusAboveFullBenefit']} results the gain exceeds the entire benefit."),
+            ('Why this matters for the agreement percentages','The background-average tables count the signs of observed social-cost differences. Those signs remain correctly counted, but agreement among inadequately accurate searches cannot establish equilibrium robustness. The screen does not prove a particular cost ranking is wrong or bound its social-cost error.'),
+            ('The problem is uneven',f"Across {r['RiskNeutralSelections']:,} risk-neutral initial results, the largest defendant gain is {100*r['RiskNeutralMaximumDefendantGainOverBenefit']:.3f}% of the activity benefit. This is much smaller than the problematic risk-averse examples. It still does not prove a social-cost ranking or exact selector-objective optimality."),
+            ('What remains to do','Further numerical work should use economically meaningful incentive scales and separately assess selector-objective quality. The existing normalized classifications and saved outputs remain intact. Source-bound audit summaries and selection-level diagnostic rows are available from the online report.')]))
     for title,paragraphs in pages:
         fig=plt.figure(figsize=(8.27,11.69),facecolor='white')
         fig.text(.09,.93,title,fontsize=19,weight='bold',color='#17484f')
@@ -109,7 +118,7 @@ def atlas_guide(pdf):
         pdf.savefig(fig);plt.close(fig)
 
 
-def figures(data,summary,out,paired):
+def figures(data,summary,out,paired,initial_review=None):
     target=out/'figures';target.mkdir(exist_ok=True)
     plt.rcParams.update({'font.family':'DejaVu Sans','font.size':9,'axes.spines.top':False,'axes.spines.right':False,
         'axes.grid':True,'grid.alpha':.18,'axes.axisbelow':True,'svg.fonttype':'none'})
@@ -117,7 +126,7 @@ def figures(data,summary,out,paired):
     def keep(fig,title,name,pdf):
         finish_figure(fig,title,target/name,pdf);inventory.append({'Name':name,'Title':title})
     with PdfPages(out/'scientific-figure-atlas.pdf') as pdf:
-        atlas_guide(pdf)
+        atlas_guide(pdf,initial_review)
         for parameter in CORE:
             slug=SLUGS[parameter]
             for risk,risk_slug in [('Risk Neutral','rn'),('Moderately Risk Averse','mra')]:
@@ -221,6 +230,8 @@ def page(title,body,active,economic_review=None):
     navigation=[('index.html','Start here'),('published.html','Original draft'),('gini.html','Gini approach'),('liu.html','Liu approach'),('variability.html','Consistency'),('methods.html','How to read & downloads')]
     nav=''.join(f'<a href="{url}"'+(' aria-current="page"' if url==active else '')+'>'+label+'</a>' for url,label in navigation)
     notice='<strong>Results are provisional.</strong> Some calculations involving aversion to financial risk still allow economically meaningful improvements in behavior. Those results need greater accuracy before we draw firm conclusions. <a href="methods.html#economic-accuracy">What this means</a>.' if economic_review else '<strong>Results are provisional.</strong> Read the methods and limitations before interpreting the figures.'
+    if economic_review and economic_review.get('InitialSearchReview'):
+        notice=notice.replace('Those results need greater accuracy','This also affects some initial searches used in the agreement percentages. Those results need greater accuracy')
     return f'<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>{esc(title)} | Litigation rules and behavior</title><meta name="description" content="A plain-English guide to how litigation rules affect care, accidents, lawsuits and social costs, comparing the original draft with Gini and Liu calculations."><link rel="stylesheet" href="report.css"></head><body><a class="skip" href="#main">Skip to the explanation</a><header><div class="eyebrow">Litigation rules, behavior and social costs</div><h1>{esc(title)}</h1><div class="status">{notice}</div><nav class="nav" aria-label="Report pages">{nav}</nav></header><main id="main">{body}</main><footer>These are model calculations, not estimates from observed lawsuits. The original published values are kept separate from later replay calculations. Ranges describe ten numerical searches; they are not confidence intervals. <a href="methods.html#glossary">Definitions</a> · Private research report.</footer><script src="report.js" defer></script></body></html>'
 
 
@@ -275,7 +286,7 @@ def html_reports(data,summary,out,inventory,findings,economic_review,paired):
 
 def main():
     parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--data',required=True);parser.add_argument('--statistics',required=True)
-    parser.add_argument('--output',required=True);parser.add_argument('--findings',required=True);parser.add_argument('--html-only',action='store_true');parser.add_argument('--economic-review');parser.add_argument('--initial-manifest',required=True)
+    parser.add_argument('--output',required=True);parser.add_argument('--findings',required=True);parser.add_argument('--html-only',action='store_true');parser.add_argument('--economic-review');parser.add_argument('--initial-manifest',required=True);parser.add_argument('--initial-economic-review')
     args=parser.parse_args();data=json.loads(Path(args.data).read_text(encoding='utf-8'));summary=json.loads(Path(args.statistics).read_text(encoding='utf-8'));out=Path(args.output);out.mkdir(exist_ok=True,parents=True)
     provenance=seed_provenance(args.initial_manifest,data['Repetitions'])
     paired=build_pairwise(data,[r['Seed'] for r in provenance['Repetitions']],BASE)
@@ -283,13 +294,20 @@ def main():
     paired['TransitionSummaries']=scoped_transition_summaries(paired)
     paired['SummaryWeighting']='Each available exact matched background has equal weight within the chosen rule transition and filters. Exact search ties remain in the denominator. No missing combinations are imputed.'
     paired['AssumptionLabels']={k:parameter_name(k) for k in data['Cases'][0]['Parameters']}
-    if args.html_only:inventory=json.loads((out/'figure-inventory.json').read_text())
-    else:
-        inventory=figures(data,summary,out,paired);(out/'figure-inventory.json').write_text(json.dumps(inventory,indent=2))
     economic_review=json.loads(Path(args.economic_review).read_text(encoding='utf-8')) if args.economic_review else None
     if economic_review:
         assert economic_review['Cases']==len(data['Cases']) and not economic_review['Errors']
         (out/'economic-accuracy-review.json.gz').write_bytes(gzip.compress(Path(args.economic_review).read_bytes(),compresslevel=6,mtime=0))
+    initial_review=None
+    if args.initial_economic_review:
+        assert economic_review, 'The initial-search review supplements the pooled review'
+        initial_review=load_review(args.initial_economic_review,data,hashlib.sha256(Path(args.data).read_bytes()).hexdigest())
+        economic_review['InitialSearchReview']=initial_review
+        (out/'initial-economic-accuracy-review.json.gz').write_bytes(gzip.compress(Path(args.initial_economic_review).read_bytes(),compresslevel=6,mtime=0))
+        shutil.copyfile(Path(args.initial_economic_review).with_name('selection-rows.jsonl.gz'),out/'initial-economic-selection-rows.jsonl.gz')
+    if args.html_only:inventory=json.loads((out/'figure-inventory.json').read_text())
+    else:
+        inventory=figures(data,summary,out,paired,initial_review);(out/'figure-inventory.json').write_text(json.dumps(inventory,indent=2))
     html_reports(data,summary,out,inventory,json.loads(Path(args.findings).read_text(encoding='utf-8')),economic_review,paired)
     for source,name in [(args.data,'report-data.json.gz'),(args.statistics,'comparison-statistics.json.gz')]:
         (out/name).write_bytes(gzip.compress(Path(source).read_bytes(),compresslevel=6,mtime=0))
