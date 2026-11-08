@@ -57,13 +57,13 @@ class PairedComparisons(unittest.TestCase):
     def test_background_average_and_agreement_are_different(self):
         groups=[]
         for i,(lower,higher,ties) in enumerate([(8,2,0),(6,4,0),(10,0,0)]):
-            counts=dict(Pairs=10,BLower=lower,ALower=higher,ExactTies=ties)
+            counts=paired_outcomes([100.]*10,[99.]*lower+[101.]*higher+[100.]*ties)
             groups.append(dict(Id=str(i),Parameter='Fee Shifting Multiplier',
                 Pairs=[dict(From='0',To='1',gini=counts,liu=counts)]))
         row=transition_summary(groups)[0]
         self.assertAlmostEqual(row['gini']['MeanBLowerFraction'],.8)
         self.assertAlmostEqual(row['gini']['MeanDirectionalAgreement'],.8)
-        groups[1]['Pairs'][0]['gini']=dict(Pairs=10,BLower=1,ALower=9,ExactTies=0)
+        groups[1]['Pairs'][0]['gini']=paired_outcomes([100.]*10,[99.]+[101.]*9)
         row=transition_summary(groups)[0]
         self.assertAlmostEqual(row['gini']['MeanBLowerFraction'],19/30)
         self.assertAlmostEqual(row['gini']['MeanDirectionalAgreement'],.9)
@@ -78,7 +78,7 @@ class PairedComparisons(unittest.TestCase):
         self.assertEqual({(r['From'],r['To']):r['Backgrounds'] for r in selected},{('0','1'):1,('0','2'):2,('1','2'):1})
         cost4=[r for r in summaries if r['Parameter']=='Fee Shifting Multiplier' and r['RiskScope']=='*' and r['CostScope']=='4']
         self.assertEqual([(r['From'],r['To'],r['Backgrounds']) for r in cost4],[('0','2',1)])
-        group=dict(Id='tie',Parameter='rule',Pairs=[dict(From='0',To='1',**{m:dict(Pairs=10,BLower=0,ALower=0,ExactTies=10) for m in ('gini','liu')})])
+        group=dict(Id='tie',Parameter='rule',Pairs=[dict(From='0',To='1',**{m:paired_outcomes([100.]*10,[100.]*10) for m in ('gini','liu')})])
         row=transition_summary([group])[0]
         self.assertEqual(row['gini']['MeanDirectionalAgreement'],0)
         self.assertEqual(row['gini']['MeanExactTieFraction'],1)

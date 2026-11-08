@@ -11,6 +11,12 @@ async function pairedComparisons(){
   const percent=x=>x==null?'—':(x>0?'+':'')+number(x*100)+'%';
   const tableRow=(body,values)=>{const tr=document.createElement('tr');for(const value of values){const td=document.createElement('td');td.textContent=value;tr.append(td)}body.append(tr);return tr};
   let currentGroup,currentPair;
+  let distributionRequest=0;
+  async function pairDistributions(){
+    if(!currentPair||!document.querySelector('#individual-comparisons').open)return;
+    const request=++distributionRequest,ids=[currentPair.A,currentPair.B],metric=document.querySelector('#pair-distribution-metric').value;
+    try{await settingDistributions(metric);if(request!==distributionRequest)return;await renderSearchDistributions(ids,metric,'pair-distribution-chart','pair-distribution-stats','pair-distribution-note')}catch(error){document.querySelector('#pair-distribution-note').textContent='The observations could not be loaded. Please reload.';console.error(error)}
+  }
   function inspect(pair){
     currentPair=pair;const g=currentGroup;
     document.querySelector('#pair-detail').hidden=false;
@@ -18,6 +24,10 @@ async function pairedComparisons(){
     document.querySelector('#pair-case-ids').textContent='Setting A: '+pair.A+'; setting B: '+pair.B+'.';
     const summary=document.querySelector('#pair-summary tbody');summary.replaceChildren();
     for(const m of ['gini','liu']){const s=pair[m];tableRow(summary,[m==='gini'?'Gini':'Liu-affinity',`${s.BLower}/${s.Pairs} (${100*s.BLowerFraction}%)`,`${s.ALower}/${s.Pairs} (${100*s.ALowerFraction}%)`,String(s.ExactTies),delta(s.MeanDelta),delta(s.MedianDelta),delta(s.MinimumDelta)+' to '+delta(s.MaximumDelta)])}
+    const magnitudes=document.querySelector('#pair-magnitude tbody');magnitudes.replaceChildren();
+    for(const m of ['gini','liu']){const s=pair[m],d=s.RelativeChangeDistribution;tableRow(magnitudes,[m==='gini'?'Gini':'Liu-affinity',percent(s.MeanRelativeChange),magnitudeFraction(s.MeanAbsoluteRelativeChange),percent(d.Median),percent(d.P10)+' to '+percent(d.P90),magnitudeFraction(s.BeforeDistribution.PairwiseGapFractionOfMean),magnitudeFraction(s.AfterDistribution.PairwiseGapFractionOfMean)])}
+    observedDotPlot(document.querySelector('#pair-effect-chart'),['gini','liu'].map(m=>({CaseId:pair.A,Method:m,Label:m==='gini'?'Gini':'Liu',Values:pair[m].RelativeChanges})),data.Seeds,{name:'Ten same-seed percentage effects of moving from A to B',scale:100,units:'Total-cost change from A to B (%); negative means B is cheaper'});
+    pairDistributions();
     const comparisons=document.querySelector('#pair-levels tbody');comparisons.replaceChildren();
     tableRow(comparisons,['Original draft',units(pair.Published.Before),units(pair.Published.After),delta(pair.Published.Delta)]);
     for(const m of ['gini','liu']){const s=pair[m],name=m==='gini'?'Gini':'Liu-affinity';tableRow(comparisons,[name+': mean across ten searches',units(s.BeforeMean),units(s.AfterMean),delta(s.MeanDelta)]);tableRow(comparisons,[name+': final pooled result',units(s.Pooled.Before),units(s.Pooled.After),delta(s.Pooled.Delta)])}
@@ -48,8 +58,10 @@ async function pairedComparisons(){
     if(groups.some(g=>g.Id===old))background.value=old;
     background.disabled=!groups.length;draw();
   }
-  const summaryRule=document.querySelector('#summary-rule'),summaryRisk=document.querySelector('#summary-risk'),summaryCost=document.querySelector('#summary-cost');
-  const fraction=x=>(100*x).toLocaleString(undefined,{minimumFractionDigits:1,maximumFractionDigits:1})+'%';
+  const summaryRule=document.querySelector('#summary-rule'),summaryRisk=document.querySelector('#summary-risk'),summaryCost=document.querySelector('#summary-cost'),summaryMeasure=document.querySelector('#summary-measure');
+  const fraction=x=>x==null?'—':(100*x).toLocaleString(undefined,{minimumFractionDigits:1,maximumFractionDigits:1})+'%';
+  const magnitudeFraction=x=>x==null?'—':magnitudeNumber(100*x)+'%';
+  const signedFraction=x=>x==null?'—':(x>0?'+':'')+magnitudeFraction(x);
   let currentTransition;
   const scopeLabel=control=>control.options[control.selectedIndex].text;
   function showBackgroundPair(g,p){
@@ -65,7 +77,7 @@ async function pairedComparisons(){
     const body=document.querySelector('#transition-backgrounds tbody');body.replaceChildren();
     for(const id of row.GroupIds){const g=data.Groups.find(g=>g.Id===id),p=g.Pairs.find(p=>p.From===row.From&&p.To===row.To);
       const label=(Array.from(risk.options).find(o=>o.value===g.Background['Risk Aversion'])?.text||g.Background['Risk Aversion'])+'; '+(Array.from(cost.options).find(o=>o.value===g.Background['Costs Multiplier'])?.text||g.Background['Costs Multiplier'])+'; '+g.Label;
-      const tr=tableRow(body,[label,...['gini','liu'].map(m=>{const s=p[m];return `B cheaper: ${s.BLower}/10; A cheaper: ${s.ALower}/10; exact ties: ${s.ExactTies}/10.`})]);
+      const tr=tableRow(body,[label,...['gini','liu'].map(m=>{const s=p[m];return summaryMeasure.value==='magnitude'?`Signed effect: ${signedFraction(s.MeanRelativeChange)}; absolute effect: ${magnitudeFraction(s.MeanAbsoluteRelativeChange)}. Spread A: ${magnitudeFraction(s.BeforeDistribution.PairwiseGapFractionOfMean)}; B: ${magnitudeFraction(s.AfterDistribution.PairwiseGapFractionOfMean)}.`:`B cheaper: ${s.BLower}/10; A cheaper: ${s.ALower}/10; exact ties: ${s.ExactTies}/10.`})]);
       const td=document.createElement('td'),button=document.createElement('button');button.textContent='See ten searches';button.onclick=()=>showBackgroundPair(g,p);td.append(button);tr.append(td);
     }
   }
@@ -74,13 +86,15 @@ async function pairedComparisons(){
     const body=document.querySelector('#transition-summaries tbody');body.replaceChildren();document.querySelector('#transition-detail').hidden=true;
     document.querySelector('#transition-scope').textContent=rows.length?`${scopeLabel(summaryCost)}; ${scopeLabel(summaryRisk)}. Each row averages the ten-search percentages across every available matched background for that exact transition. Background coverage can differ between rows.`:'No matched backgrounds contain both rule values for this scope. Missing combinations remain missing.';
     for(const r of rows){const tr=tableRow(body,[endpoint(r.Parameter,r.From),endpoint(r.Parameter,r.To),String(r.Backgrounds)]);
-      for(const m of ['gini','liu']){const s=r[m],td=document.createElement('td'),b=document.createElement('strong'),agreement=document.createElement('strong'),small=document.createElement('span');b.textContent='B cheaper: '+fraction(s.MeanBLowerFraction);agreement.textContent='Agreement within backgrounds: '+fraction(s.MeanDirectionalAgreement);small.className='note';small.textContent='A cheaper: '+fraction(s.MeanALowerFraction)+'; exact ties: '+fraction(s.MeanExactTieFraction)+'.';td.append(b,document.createElement('br'),agreement,document.createElement('br'),small);tr.append(td)}
+      for(const m of ['gini','liu']){const s=r[m],td=document.createElement('td'),b=document.createElement('strong'),agreement=document.createElement('strong'),small=document.createElement('span');if(summaryMeasure.value==='magnitude'){b.textContent='Signed effect: '+signedFraction(s.MeanSignedRelativeEffect);agreement.textContent='Absolute effect: '+magnitudeFraction(s.MeanAbsoluteRelativeEffect);small.textContent='Spread under A: '+magnitudeFraction(s.MeanWithinSettingSpreadA)+'; under B: '+magnitudeFraction(s.MeanWithinSettingSpreadB)+'.';}else{b.textContent='B cheaper: '+fraction(s.MeanBLowerFraction);agreement.textContent='Agreement within backgrounds: '+fraction(s.MeanDirectionalAgreement);small.textContent='A cheaper: '+fraction(s.MeanALowerFraction)+'; exact ties: '+fraction(s.MeanExactTieFraction)+'.';}small.className='note';td.append(b,document.createElement('br'),agreement,document.createElement('br'),small);tr.append(td)}
       const td=document.createElement('td'),button=document.createElement('button');button.textContent='Inspect backgrounds '+r.From+' → '+r.To;button.onclick=()=>{inspectTransition(r);document.querySelector('#transition-detail').scrollIntoView({behavior:'smooth',block:'start'})};td.append(button);tr.append(td);body.append(tr);
     }
-    document.querySelector('#transition-qualification').textContent='Every included background receives equal weight. The grid is not a complete factorial design or a representative sample of legal environments. Numerical accuracy qualifications apply to these descriptive counts.'+(summaryRisk.value!=='Risk Neutral'?' This scope includes risk-averse results, some of which still allow economically meaningful improvements. The separate economic review also finds substantial remaining incentives in some initial risk-averse searches.':' The ten initial searches still need their own economic-accuracy review.');
+    document.querySelector('#transition-qualification').textContent='Every included background receives equal weight. The grid is not a complete factorial design or a representative sample of legal environments. Numerical accuracy qualifications apply to these descriptive counts.'+(summaryRisk.value!=='Risk Neutral'?' This scope includes risk-averse results, some of which still allow economically meaningful improvements. The separate economic review also finds substantial remaining incentives in some initial risk-averse searches.':' The initial risk-neutral incentive residuals were much smaller; that does not bound social-cost error.');
     if(currentTransition){const previous=rows.find(r=>r.From===currentTransition.From&&r.To===currentTransition.To&&r.Parameter===currentTransition.Parameter);if(previous)inspectTransition(previous);else currentTransition=null;}
   }
-  summaryRule.onchange=summaryRisk.onchange=summaryCost.onchange=drawTransitionSummary;
+  summaryRule.onchange=summaryRisk.onchange=summaryCost.onchange=summaryMeasure.onchange=drawTransitionSummary;
+  document.querySelector('#pair-distribution-metric').onchange=pairDistributions;
+  document.querySelector('#individual-comparisons').addEventListener('toggle',pairDistributions);
   rule.onchange=risk.onchange=cost.onchange=chooseBackground;background.onchange=draw;
   document.querySelector('#download-selected-pair').onclick=()=>{if(!currentPair)return;const rows=[];for(const m of ['gini','liu'])for(let i=0;i<data.Repetitions;i++)rows.push({Parameter:currentGroup.Parameter,From:currentPair.From,To:currentPair.To,CaseA:currentPair.A,CaseB:currentPair.B,...currentGroup.Background,Method:m,Repetition:i+1,Seed:data.Seeds[i],CostA:currentPair[m].Before[i],CostB:currentPair[m].After[i],DeltaBMinusA:currentPair[m].Deltas[i],RelativeChange:currentPair[m].RelativeChanges[i],ARepaired:currentPair.RepairedA.includes(i+1),BRepaired:currentPair.RepairedB.includes(i+1)});download('selected-paired-searches.csv',csv(rows),'text/csv;charset=utf-8')};
   document.querySelector('#pair-coverage').textContent=`Coverage: ${data.PairCount.toLocaleString()} distinct rule comparisons across ${data.GroupCount.toLocaleString()} fixed backgrounds (counted separately for each rule). Each has ${data.Repetitions} same-seed pairs per method.`;

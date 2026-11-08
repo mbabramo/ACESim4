@@ -26,6 +26,7 @@ from endogenous_paired_comparisons import (build_pairwise, export_rows, seed_pro
     scoped_transition_summaries, transition_export_rows)
 from endogenous_report_language import PARAMETERS
 from endogenous_initial_economic_summary import load_review
+from endogenous_magnitude import build_distributions, distribution_export_rows
 
 LABELS={'published':'Original draft','gini':'Gini','liu':'Liu-affinity'}
 COLORS={'published':'#30383b','gini':'#007f86','liu':'#c46825'}
@@ -104,6 +105,12 @@ def atlas_guide(pdf,initial_review=None):
             ('Why this matters for the agreement percentages','The background-average tables count the signs of observed social-cost differences. Those signs remain correctly counted, but agreement among inadequately accurate searches cannot establish equilibrium robustness. The screen does not prove a particular cost ranking is wrong or bound its social-cost error.'),
             ('The problem is uneven',f"Across {r['RiskNeutralSelections']:,} risk-neutral initial results, the largest defendant gain is {100*r['RiskNeutralMaximumDefendantGainOverBenefit']:.3f}% of the activity benefit. This is much smaller than the problematic risk-averse examples. It still does not prove a social-cost ranking or exact selector-objective optimality."),
             ('What remains to do','Further numerical work should use economically meaningful incentive scales and separately assess selector-objective quality. The existing normalized classifications and saved outputs remain intact. Source-bound audit summaries and selection-level diagnostic rows are available from the online report.')]))
+    pages.append(('Magnitude, distributions and policy effects',[
+        ('Within a setting','A dot represents one of the ten original-seed searches with every model parameter fixed. The mean, median and full observed range describe those searches. Ten available observations give 45 distinct unordered pairs. Average their absolute differences, then divide by the same setting mean to express pairwise dispersion as a percentage.'),
+        ('Effects of one rule change','For each exact A-to-B comparison, calculate (B minus A) divided by A for each corresponding search. Average these ten percentages within the background. The signed average shows direction; the average absolute percentage shows size without cancellation. For example, +10% and -10% average to 0% signed and 10% absolute.'),
+        ('Average within backgrounds first','Average the within-background means across the backgrounds selected by the filters, giving each background equal weight. Never combine different starting and ending rule values. Average pairwise dispersion separately under A and under B; that spread is a different quantity from the cost effect of changing the rule.'),
+        ('Which distributions are shown?','The fixed-background charts display both cost distributions and the paired-seed links. Online, dots and summary tables can also show care, harm, litigation spending, participation and event rates. Conditional undefined values remain missing, with availability stated. The paired-effect dots show the ten percentage changes for the selected cost comparison.'),
+        ('Units and interpretation','A percentage change with zero starting cost is undefined; a complete percentage average then remains unavailable. A setting with ten identical zero outcomes has zero pairwise dispersion. Relative gaps can look large for near-zero outcomes, so raw-unit gaps are retained. These are descriptive numerical distributions, not confidence intervals or a population of every equilibrium. Economic-accuracy qualifications still apply.')]))
     for title,paragraphs in pages:
         fig=plt.figure(figsize=(8.27,11.69),facecolor='white')
         fig.text(.09,.93,title,fontsize=19,weight='bold',color='#17484f')
@@ -203,6 +210,30 @@ def figures(data,summary,out,paired,initial_review=None):
                 ax.set_xlim(-2,102);ax.set_xticks(range(0,101,20));ax.set_xlabel('Equal-weight average of background percentages (%)')
                 ax.set_ylabel('Rule value A → B; n = matched backgrounds');ax.set_title(title);ax.legend(fontsize=8)
             keep(fig,f'{parameter_name(parameter)}: background averages\nBaseline litigation costs; all available risk attitudes',SLUGS[parameter]+'-background-averages',pdf)
+        for parameter in CORE:
+            rows=[r for r in paired['TransitionSummaries'] if r['Parameter']==parameter and r['RiskScope']=='*' and r['CostScope']=='1']
+            fig,axes=plt.subplots(1,2,figsize=(12,7));positions=np.arange(len(rows))
+            for ax,key,title in zip(axes,['MeanSignedRelativeEffect','MeanAbsoluteRelativeEffect'],['Mean signed percentage effect','Mean absolute percentage effect']):
+                for method,offset in [('gini',-.12),('liu',.12)]:
+                    ax.scatter([100*r[method][key] for r in rows],positions+offset,color=COLORS[method],label=LABELS[method],s=30)
+                ax.set_yticks(positions,[r['From']+' → '+r['To']+f" (n={r['Backgrounds']})" for r in rows]);ax.invert_yaxis()
+                ax.axvline(0,color='#697778',lw=.8);ax.set_xlabel('Percentage change, averaged within backgrounds first (%)')
+                ax.set_ylabel('Rule value A → B; n = matched backgrounds');ax.set_title(title);ax.legend(fontsize=8)
+            keep(fig,f'{parameter_name(parameter)}: size of cost effects\nBaseline litigation costs; all available risk attitudes',SLUGS[parameter]+'-effect-magnitudes',pdf)
+        for parameter,start,end in [(CORE[0],'0','1'),(CORE[1],'0.5','2'),(CORE[2],'0','1')]:
+            group=next(g for g in paired['Groups'] if g['Parameter']==parameter and g['Default'] and g['Background']['Risk Aversion']=='Risk Neutral' and g['Background']['Costs Multiplier']=='1')
+            pair=next(p for p in group['Pairs'] if p['From']==start and p['To']==end)
+            fig,axes=plt.subplots(1,2,figsize=(12,4.8),sharex=True,sharey=True)
+            values=[v*10000 for m in ('gini','liu') for key in ('Before','After') for v in pair[m][key]]
+            for ax,method in zip(axes,('gini','liu')):
+                before=np.array(pair[method]['Before'])*10000;after=np.array(pair[method]['After'])*10000;jitter=np.array([(i%5-2)*.028 for i in range(10)])
+                for i in range(10):ax.plot([before[i],after[i]],[jitter[i],1+jitter[i]],color=COLORS[method],alpha=.2,lw=1)
+                for i,v in enumerate((before,after)):
+                    ax.scatter(v,i+jitter,color=COLORS[method],s=28,label='Searches' if i==0 else None,zorder=3)
+                    ax.plot([statistics.mean(v)]*2,[i-.2,i+.2],color='#162e33',lw=2,label='Mean' if i==0 else None)
+                    ax.scatter([statistics.median(v)],[i],facecolors='white',edgecolors=COLORS[method],marker='D',s=58,label='Median' if i==0 else None,zorder=4)
+                ax.set_yticks([0,1],[f'A: {start}',f'B: {end}']);ax.set_ylim(1.45,-.45);ax.set_title(LABELS[method]);ax.set_xlabel('Total social cost per 10,000 opportunities');ax.legend(loc='best',fontsize=7)
+            keep(fig,f'{parameter_name(parameter)} {start} → {end}: ten observed searches\nDefault risk-neutral setting; baseline litigation costs',SLUGS[parameter]+'-search-distributions',pdf)
     return inventory
 
 
@@ -217,6 +248,7 @@ STYLE += '''\n.three{display:grid;grid-template-columns:repeat(3,1fr);gap:22px}.
 
 STYLE += '\n.wide-control{display:flex;max-width:100%;margin-top:16px}#policy-background{width:100%;text-overflow:ellipsis}#paired-comparisons td{min-width:110px}#paired-comparisons td:nth-child(3),#paired-comparisons td:nth-child(4){min-width:180px}#pair-detail{scroll-margin-top:20px}#pair-repetitions td{white-space:nowrap}\n'
 STYLE += '\n#transition-summaries td{min-width:100px}#transition-summaries td:nth-child(4),#transition-summaries td:nth-child(5){min-width:180px}#transition-backgrounds td:first-child{min-width:250px;max-width:430px}#transition-detail{scroll-margin-top:20px}\n'
+STYLE += '\n.distribution-chart{max-width:100%;overflow:auto;background:white;border:1px solid #dbe1df;border-radius:5px;margin:18px 0}.distribution-chart svg{display:block;width:100%;min-width:660px;height:auto}#pair-magnitude td,#pair-distribution-stats td,#setting-distribution-stats td{white-space:nowrap}#setting-distributions{scroll-margin-top:20px}\n'
 
 
 def table(headers,rows):
@@ -238,10 +270,13 @@ def page(title,body,active,economic_review=None):
 SCRIPT='function csv(rows){if(!rows.length)return \'\';const cols=Object.keys(rows[0]);const q=x=>x==null?\'\':(\'"\'+String(x).replaceAll(\'"\',\'""\')+\'"\');return cols.map(q).join(\',\')+\'\\r\\n\'+rows.map(r=>cols.map(c=>q(r[c])).join(\',\')).join(\'\\r\\n\')}\nfunction download(name,content,type){const a=document.createElement(\'a\');a.href=URL.createObjectURL(new Blob([content],{type}));a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),5000)}\ndocument.querySelectorAll(\'[data-export]\').forEach(b=>b.onclick=async()=>{const data=await(await fetch(\'tables.json\')).json();download(b.dataset.export+\'.csv\',csv(data[b.dataset.export]),\'text/csv;charset=utf-8\')});\nasync function explorer(){const node=document.querySelector(\'#explorer\');if(!node)return;const rows=await(await fetch(\'explorer.json\')).json();const metric=document.querySelector(\'#metric\'),search=document.querySelector(\'#search\'),sort=document.querySelector(\'#sort\');\nconst probability=m=>![\'SocialWelfareLoss\',\'OpportunityCost\',\'HarmCost\',\'LitigationExpenditures\',\'PrecautionLevel\'].includes(m);\nfunction format(x,m){if(x==null)return \'—\';if(probability(m))return (100*x).toLocaleString(undefined,{maximumFractionDigits:6})+\'%\';if(x===0)return \'0\';return Math.abs(x)<1e-9?x.toExponential(3):x.toLocaleString(undefined,{maximumFractionDigits:10})}\nfunction draw(){const m=metric.value,s=search.value.toLowerCase();let a=rows.filter(r=>(r.Name+\' \'+r.OriginalName+\' \'+r.Family).toLowerCase().includes(s));const width=r=>Math.max(r.gini.Ranges[m].Width??0,r.liu.Ranges[m].Width??0);if(sort.value===\'width\')a.sort((x,y)=>width(y)-width(x));else a.sort((x,y)=>x.Name.localeCompare(y.Name));document.querySelector(\'#count\').textContent=a.length+\' matching scenarios; showing first \'+Math.min(80,a.length)+\'.\';document.querySelector(\'#metric-help\').textContent=probability(m)?\'Rates are percentages. Among-dispute rates use all disputes, including those never filed.\':m===\'PrecautionLevel\'?\'Average care on the 0–7 scale, including zero for nonparticipation.\':\'Costs are model units per opportunity, not dollars. One physical accident causes one unit of harm.\';const body=document.querySelector(\'#explorer tbody\');body.replaceChildren();for(const r of a.slice(0,80)){const tr=document.createElement(\'tr\');const values=[r.Name+(r.Candidate?\' [Liu misses the original numerical target]\':\'\'),format(r.published[m],m),format(r.gini.Pooled[m],m),format(r.liu.Pooled[m],m),format(r.gini.Ranges[m].Minimum,m)+\' – \'+format(r.gini.Ranges[m].Maximum,m),format(r.liu.Ranges[m].Minimum,m)+\' – \'+format(r.liu.Ranges[m].Maximum,m)];for(const value of values){const td=document.createElement(\'td\');td.textContent=value;tr.append(td)}body.append(tr)}}metric.onchange=search.oninput=sort.onchange=draw;draw()}explorer();'
 
 
-def html_reports(data,summary,out,inventory,findings,economic_review,paired):
+def html_reports(data,summary,out,inventory,findings,economic_review,paired,distributions):
     (out/'report.css').write_text(STYLE,encoding='utf-8')
     paired_script=Path(__file__).with_name('endogenous_paired_comparisons.js').read_text(encoding='utf-8')
-    (out/'report.js').write_text(SCRIPT+paired_script,encoding='utf-8')
+    magnitude_script=Path(__file__).with_name('endogenous_magnitude_views.js').read_text(encoding='utf-8')
+    script=SCRIPT.replace('body.append(tr)}}metric.onchange','addSettingDistributionButton(tr,r,m);body.append(tr)}}metric.onchange')
+    script=script.replace('metric.onchange=search.oninput=sort.onchange=draw;','metric.onchange=()=>{draw();refreshSettingDistribution(metric.value)};search.oninput=sort.onchange=draw;')
+    (out/'report.js').write_text(script+magnitude_script+paired_script,encoding='utf-8')
     render_pages(data,summary,out,findings,economic_review,(esc,fmt,table,image,page,CORE,SLUGS,LABELS))
     explorer=[];case_rows=[];numerical=[]
     for c in data['Cases']:
@@ -261,9 +296,15 @@ def html_reports(data,summary,out,inventory,findings,economic_review,paired):
     explorer_data=json.dumps(explorer,separators=(',',':'),allow_nan=False).encode()
     (out/'explorer.json.gz').write_bytes(gzip.compress(explorer_data,compresslevel=6,mtime=0))
     (out/'paired-comparisons.json.gz').write_bytes(gzip.compress(json.dumps(paired,separators=(',',':'),allow_nan=False).encode(),compresslevel=6,mtime=0))
+    (out/'setting-distributions.json.gz').write_bytes(gzip.compress(json.dumps(distributions,separators=(',',':'),allow_nan=False).encode(),compresslevel=6,mtime=0))
+    for metric in distributions['Outcomes']:
+        chunk=dict(Schema=distributions['Schema'],Seeds=distributions['Seeds'],Outcomes={metric:distributions['Outcomes'][metric]},
+            Cases={cid:dict(Name=c['Name'],Methods={m:{metric:c['Methods'][m][metric]} for m in ('gini','liu')}) for cid,c in distributions['Cases'].items()})
+        (out/('setting-distributions-'+metric+'.json.gz')).write_bytes(gzip.compress(json.dumps(chunk,separators=(',',':'),allow_nan=False).encode(),compresslevel=6,mtime=0))
     for rows,name in [(export_rows(paired,False),'paired-comparison-summary'),
                       (export_rows(paired,True),'paired-search-differences'),
-                      (transition_export_rows(paired),'transition-background-summary')]:
+                      (transition_export_rows(paired),'transition-background-summary'),
+                      (distribution_export_rows(distributions),'setting-distribution-summary')]:
         buffer=io.StringIO(newline='')
         fields=list(dict.fromkeys(k for row in rows for k in row))
         writer=csv.DictWriter(buffer,fieldnames=fields);writer.writeheader();writer.writerows(rows)
@@ -276,6 +317,9 @@ def html_reports(data,summary,out,inventory,findings,economic_review,paired):
     revision=hashlib.sha256((out/'paired-comparisons.json.gz').read_bytes()).hexdigest()[:16]
     script=script.replace("fetch('paired-comparisons.json.gz')",f"fetch('paired-comparisons.json.gz?v={revision}')")
     script=script.replace("fetch(name+'.csv.gz')",f"fetch(name+'.csv.gz?v={revision}')")
+    revision=hashlib.sha256((out/'setting-distributions.json.gz').read_bytes()).hexdigest()[:16]
+    script=script.replace("fetch('setting-distributions.json.gz')",f"fetch('setting-distributions.json.gz?v={revision}')")
+    script=script.replace("fetch('setting-distributions-'+metric+'.json.gz')",f"fetch('setting-distributions-'+metric+'.json.gz?v={revision}')")
     (out/'report.js').write_text(script,encoding='utf-8')
     for name in ('report.js','report.css','scientific-figure-atlas.pdf'):
         revision=hashlib.sha256((out/name).read_bytes()).hexdigest()[:16]
@@ -294,6 +338,8 @@ def main():
     paired['TransitionSummaries']=scoped_transition_summaries(paired)
     paired['SummaryWeighting']='Each available exact matched background has equal weight within the chosen rule transition and filters. Exact search ties remain in the denominator. No missing combinations are imputed.'
     paired['AssumptionLabels']={k:parameter_name(k) for k in data['Cases'][0]['Parameters']}
+    distributions=build_distributions(data,[r['Seed'] for r in provenance['Repetitions']],OUTCOMES)
+    for case in data['Cases']:distributions['Cases'][case['Id']]['Name']=setting_name(case,BASE)
     economic_review=json.loads(Path(args.economic_review).read_text(encoding='utf-8')) if args.economic_review else None
     if economic_review:
         assert economic_review['Cases']==len(data['Cases']) and not economic_review['Errors']
@@ -308,7 +354,7 @@ def main():
     if args.html_only:inventory=json.loads((out/'figure-inventory.json').read_text())
     else:
         inventory=figures(data,summary,out,paired,initial_review);(out/'figure-inventory.json').write_text(json.dumps(inventory,indent=2))
-    html_reports(data,summary,out,inventory,json.loads(Path(args.findings).read_text(encoding='utf-8')),economic_review,paired)
+    html_reports(data,summary,out,inventory,json.loads(Path(args.findings).read_text(encoding='utf-8')),economic_review,paired,distributions)
     for source,name in [(args.data,'report-data.json.gz'),(args.statistics,'comparison-statistics.json.gz')]:
         (out/name).write_bytes(gzip.compress(Path(source).read_bytes(),compresslevel=6,mtime=0))
     print(json.dumps({'Pages':6,'Figures':len(inventory),'FixedBackgrounds':paired['GroupCount'],'Pairs':paired['PairCount'],'Output':str(out.resolve())}))

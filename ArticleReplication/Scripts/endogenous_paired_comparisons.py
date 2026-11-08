@@ -9,6 +9,7 @@ import statistics
 
 from endogenous_story_report import safe_ratio
 from endogenous_report_language import parameter_name
+from endogenous_magnitude import distribution
 
 LEGAL_PARAMETERS = ('Fee Shifting Multiplier', 'Damages Multiplier', 'Liability Threshold')
 METRIC = 'SocialWelfareLoss'
@@ -26,6 +27,7 @@ def paired_outcomes(before, after):
     deltas = [b-a for a,b in zip(before,after)]
     relative = [safe_ratio(d,abs(a)) for a,d in zip(before,deltas)]
     lower, higher = sum(d<0 for d in deltas),sum(d>0 for d in deltas)
+    valid_relative=[v for v in relative if v is not None]
     return dict(Before=before,After=after,Deltas=deltas,RelativeChanges=relative,
         BLower=lower,ALower=higher,ExactTies=len(deltas)-lower-higher,Pairs=len(deltas),
         BLowerFraction=lower/len(deltas),ALowerFraction=higher/len(deltas),
@@ -33,6 +35,12 @@ def paired_outcomes(before, after):
         BeforeMedian=statistics.median(before),AfterMedian=statistics.median(after),
         MeanDelta=statistics.mean(deltas),MedianDelta=statistics.median(deltas),
         MinimumDelta=min(deltas),MaximumDelta=max(deltas),
+        MeanAbsoluteDelta=statistics.mean(abs(d) for d in deltas),
+        RelativeChangeCount=len(valid_relative),
+        MeanRelativeChange=statistics.mean(valid_relative) if len(valid_relative)==len(deltas) else None,
+        MeanAbsoluteRelativeChange=statistics.mean(abs(v) for v in valid_relative) if len(valid_relative)==len(deltas) else None,
+        RelativeChangeDistribution=distribution(relative),
+        BeforeDistribution=distribution(before),AfterDistribution=distribution(after),
         SeparatedRanges='B lower' if max(after)<min(before) else 'A lower' if max(before)<min(after) else 'Overlap or touch')
 
 
@@ -118,7 +126,13 @@ def export_rows(payload, repetitions=False):
                                      MeanCostA=s['BeforeMean'],MeanCostB=s['AfterMean'],MedianCostA=s['BeforeMedian'],MedianCostB=s['AfterMedian'],
                                      MeanDelta=s['MeanDelta'],MedianDelta=s['MedianDelta'],MinimumDelta=s['MinimumDelta'],MaximumDelta=s['MaximumDelta'],
                                      SeparatedRanges=s['SeparatedRanges'],PooledCostA=s['Pooled']['Before'],PooledCostB=s['Pooled']['After'],
-                                     PublishedCostA=p['Published']['Before'],PublishedCostB=p['Published']['After']))
+                                     PublishedCostA=p['Published']['Before'],PublishedCostB=p['Published']['After'],
+                                     MeanRelativeChange=s['MeanRelativeChange'],MeanAbsoluteRelativeChange=s['MeanAbsoluteRelativeChange'],
+                                     MeanAbsoluteDelta=s['MeanAbsoluteDelta'],RelativeChangeCount=s['RelativeChangeCount'],
+                                     MeanAbsolutePairwiseGapA=s['BeforeDistribution']['MeanAbsolutePairwiseGap'],
+                                     MeanAbsolutePairwiseGapB=s['AfterDistribution']['MeanAbsolutePairwiseGap'],
+                                     PairwiseGapFractionOfMeanA=s['BeforeDistribution']['PairwiseGapFractionOfMean'],
+                                     PairwiseGapFractionOfMeanB=s['AfterDistribution']['PairwiseGapFractionOfMean']))
     return rows
 
 
@@ -154,6 +168,16 @@ def transition_summary(groups):
                 AMoreOftenBackgrounds=sum(s['ALower']>s['BLower'] for s in values),
                 TiedDirectionBackgrounds=sum(s['ALower']==s['BLower'] for s in values),
                 SearchPairs=sum(s['Pairs'] for s in values))
+            magnitude={
+                'MeanSignedRelativeEffect':[s['MeanRelativeChange'] for s in values],
+                'MeanAbsoluteRelativeEffect':[s['MeanAbsoluteRelativeChange'] for s in values],
+                'MeanWithinSettingSpreadA':[s['BeforeDistribution']['PairwiseGapFractionOfMean'] for s in values],
+                'MeanWithinSettingSpreadB':[s['AfterDistribution']['PairwiseGapFractionOfMean'] for s in values]}
+            for key,observations in magnitude.items():
+                row[method][key]=statistics.mean(observations) if all(v is not None for v in observations) else None
+            row[method]['MeanSignedCostEffect']=statistics.mean(s['MeanDelta'] for s in values)
+            row[method]['MeanAbsoluteCostEffect']=statistics.mean(s['MeanAbsoluteDelta'] for s in values)
+            row[method]['RelativeBackgroundsAvailable']=sum(s['RelativeChangeCount']==s['Pairs'] for s in values)
         rows.append(row)
     return rows
 
