@@ -120,3 +120,58 @@ def export_rows(payload, repetitions=False):
                                      SeparatedRanges=s['SeparatedRanges'],PooledCostA=s['Pooled']['Before'],PooledCostB=s['Pooled']['After'],
                                      PublishedCostA=p['Published']['Before'],PublishedCostB=p['Published']['After']))
     return rows
+
+
+def transition_summary(groups):
+    """Equal-weight background percentages for each exact A-to-B transition.
+
+    Agreement counts the more common *direction*, excluding exact ties from
+    the numerator but retaining them in the ten-search denominator.
+    """
+    matching=defaultdict(list)
+    seen=set()
+    for group in groups:
+        for pair in group['Pairs']:
+            identity=(group['Id'],pair['From'],pair['To'])
+            if identity in seen:
+                raise ValueError('A background must contribute once per transition')
+            seen.add(identity)
+            matching[(group['Parameter'],pair['From'],pair['To'])].append((group,pair))
+    rows=[]
+    for (parameter,start,end),entries in sorted(matching.items(),key=lambda r:(r[0][0],float(r[0][1]),float(r[0][2]))):
+        row=dict(Parameter=parameter,From=start,To=end,Backgrounds=len(entries),GroupIds=[g['Id'] for g,p in entries])
+        for method in ('gini','liu'):
+            values=[p[method] for g,p in entries]
+            for s in values:
+                if s['Pairs']<=0 or s['BLower']+s['ALower']+s['ExactTies']!=s['Pairs']:
+                    raise ValueError('Direction counts must cover every paired search')
+            row[method]=dict(
+                MeanBLowerFraction=statistics.mean(s['BLower']/s['Pairs'] for s in values),
+                MeanALowerFraction=statistics.mean(s['ALower']/s['Pairs'] for s in values),
+                MeanExactTieFraction=statistics.mean(s['ExactTies']/s['Pairs'] for s in values),
+                MeanDirectionalAgreement=statistics.mean(max(s['BLower'],s['ALower'])/s['Pairs'] for s in values),
+                BMoreOftenBackgrounds=sum(s['BLower']>s['ALower'] for s in values),
+                AMoreOftenBackgrounds=sum(s['ALower']>s['BLower'] for s in values),
+                TiedDirectionBackgrounds=sum(s['ALower']==s['BLower'] for s in values),
+                SearchPairs=sum(s['Pairs'] for s in values))
+        rows.append(row)
+    return rows
+
+
+def scoped_transition_summaries(payload):
+    risks=sorted({g['Background']['Risk Aversion'] for g in payload['Groups']})
+    costs=sorted({g['Background']['Costs Multiplier'] for g in payload['Groups']},key=float)
+    rows=[]
+    for risk in ['*']+risks:
+        for cost in ['*']+costs:
+            groups=[g for g in payload['Groups'] if (risk=='*' or g['Background']['Risk Aversion']==risk)
+                    and (cost=='*' or g['Background']['Costs Multiplier']==cost)]
+            for row in transition_summary(groups):
+                rows.append(dict(row,RiskScope=risk,CostScope=cost))
+    return rows
+
+
+def transition_export_rows(payload):
+    return [dict(Parameter=row['Parameter'],From=row['From'],To=row['To'],RiskScope=row['RiskScope'],
+                 CostScope=row['CostScope'],Backgrounds=row['Backgrounds'],Method=method,**row[method])
+            for row in payload['TransitionSummaries'] for method in ('gini','liu')]

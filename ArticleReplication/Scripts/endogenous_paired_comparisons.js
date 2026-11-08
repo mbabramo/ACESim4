@@ -48,10 +48,44 @@ async function pairedComparisons(){
     if(groups.some(g=>g.Id===old))background.value=old;
     background.disabled=!groups.length;draw();
   }
+  const summaryRule=document.querySelector('#summary-rule'),summaryRisk=document.querySelector('#summary-risk'),summaryCost=document.querySelector('#summary-cost');
+  const fraction=x=>(100*x).toLocaleString(undefined,{minimumFractionDigits:1,maximumFractionDigits:1})+'%';
+  let currentTransition;
+  const scopeLabel=control=>control.options[control.selectedIndex].text;
+  function showBackgroundPair(g,p){
+    document.querySelector('#individual-comparisons').open=true;
+    rule.value=g.Parameter;risk.value=g.Background['Risk Aversion'];cost.value=g.Background['Costs Multiplier'];
+    chooseBackground();background.value=g.Id;draw();inspect(p);
+    document.querySelector('#pair-detail').scrollIntoView({behavior:'smooth',block:'start'});
+  }
+  function inspectTransition(row){
+    currentTransition=row;document.querySelector('#transition-detail').hidden=false;
+    document.querySelector('#transition-title').textContent=endpoint(row.Parameter,row.From)+' → '+endpoint(row.Parameter,row.To)+': '+row.Backgrounds+' matched backgrounds';
+    document.querySelector('#transition-direction-counts').textContent=['gini','liu'].map(m=>{const s=row[m];return (m==='gini'?'Gini':'Liu-affinity')+`: B is cheaper more often in ${s.BMoreOftenBackgrounds} backgrounds; A in ${s.AMoreOftenBackgrounds}; the directional counts tie in ${s.TiedDirectionBackgrounds}.`}).join(' ');
+    const body=document.querySelector('#transition-backgrounds tbody');body.replaceChildren();
+    for(const id of row.GroupIds){const g=data.Groups.find(g=>g.Id===id),p=g.Pairs.find(p=>p.From===row.From&&p.To===row.To);
+      const label=(Array.from(risk.options).find(o=>o.value===g.Background['Risk Aversion'])?.text||g.Background['Risk Aversion'])+'; '+(Array.from(cost.options).find(o=>o.value===g.Background['Costs Multiplier'])?.text||g.Background['Costs Multiplier'])+'; '+g.Label;
+      const tr=tableRow(body,[label,...['gini','liu'].map(m=>{const s=p[m];return `B cheaper: ${s.BLower}/10; A cheaper: ${s.ALower}/10; exact ties: ${s.ExactTies}/10.`})]);
+      const td=document.createElement('td'),button=document.createElement('button');button.textContent='See ten searches';button.onclick=()=>showBackgroundPair(g,p);td.append(button);tr.append(td);
+    }
+  }
+  function drawTransitionSummary(){
+    const rows=data.TransitionSummaries.filter(r=>r.Parameter===summaryRule.value&&r.RiskScope===summaryRisk.value&&r.CostScope===summaryCost.value);
+    const body=document.querySelector('#transition-summaries tbody');body.replaceChildren();document.querySelector('#transition-detail').hidden=true;
+    document.querySelector('#transition-scope').textContent=rows.length?`${scopeLabel(summaryCost)}; ${scopeLabel(summaryRisk)}. Each row averages the ten-search percentages across every available matched background for that exact transition. Background coverage can differ between rows.`:'No matched backgrounds contain both rule values for this scope. Missing combinations remain missing.';
+    for(const r of rows){const tr=tableRow(body,[endpoint(r.Parameter,r.From),endpoint(r.Parameter,r.To),String(r.Backgrounds)]);
+      for(const m of ['gini','liu']){const s=r[m],td=document.createElement('td'),b=document.createElement('strong'),agreement=document.createElement('strong'),small=document.createElement('span');b.textContent='B cheaper: '+fraction(s.MeanBLowerFraction);agreement.textContent='Agreement within backgrounds: '+fraction(s.MeanDirectionalAgreement);small.className='note';small.textContent='A cheaper: '+fraction(s.MeanALowerFraction)+'; exact ties: '+fraction(s.MeanExactTieFraction)+'.';td.append(b,document.createElement('br'),agreement,document.createElement('br'),small);tr.append(td)}
+      const td=document.createElement('td'),button=document.createElement('button');button.textContent='Inspect backgrounds '+r.From+' → '+r.To;button.onclick=()=>{inspectTransition(r);document.querySelector('#transition-detail').scrollIntoView({behavior:'smooth',block:'start'})};td.append(button);tr.append(td);body.append(tr);
+    }
+    document.querySelector('#transition-qualification').textContent='Every included background receives equal weight. The grid is not a complete factorial design or a representative sample of legal environments. Numerical accuracy qualifications apply to these descriptive counts.'+(summaryRisk.value!=='Risk Neutral'?' This scope includes risk-averse results, some of which still allow economically meaningful improvements. The ten initial searches need their own economic-accuracy review.':' The ten initial searches still need their own economic-accuracy review.');
+    if(currentTransition){const previous=rows.find(r=>r.From===currentTransition.From&&r.To===currentTransition.To&&r.Parameter===currentTransition.Parameter);if(previous)inspectTransition(previous);else currentTransition=null;}
+  }
+  summaryRule.onchange=summaryRisk.onchange=summaryCost.onchange=drawTransitionSummary;
   rule.onchange=risk.onchange=cost.onchange=chooseBackground;background.onchange=draw;
   document.querySelector('#download-selected-pair').onclick=()=>{if(!currentPair)return;const rows=[];for(const m of ['gini','liu'])for(let i=0;i<data.Repetitions;i++)rows.push({Parameter:currentGroup.Parameter,From:currentPair.From,To:currentPair.To,CaseA:currentPair.A,CaseB:currentPair.B,...currentGroup.Background,Method:m,Repetition:i+1,Seed:data.Seeds[i],CostA:currentPair[m].Before[i],CostB:currentPair[m].After[i],DeltaBMinusA:currentPair[m].Deltas[i],RelativeChange:currentPair[m].RelativeChanges[i],ARepaired:currentPair.RepairedA.includes(i+1),BRepaired:currentPair.RepairedB.includes(i+1)});download('selected-paired-searches.csv',csv(rows),'text/csv;charset=utf-8')};
   document.querySelector('#pair-coverage').textContent=`Coverage: ${data.PairCount.toLocaleString()} distinct rule comparisons across ${data.GroupCount.toLocaleString()} fixed backgrounds (counted separately for each rule). Each has ${data.Repetitions} same-seed pairs per method.`;
   chooseBackground();
+  drawTransitionSummary();
 }
 document.querySelectorAll('[data-paired-export]').forEach(button=>button.onclick=async()=>{const name=button.dataset.pairedExport;const r=await fetch(name+'.csv.gz');download(name+'.csv',await new Response(r.body.pipeThrough(new DecompressionStream('gzip'))).text(),'text/csv;charset=utf-8')});
-pairedComparisons().catch(error=>{const node=document.querySelector('#policy-description');if(node)node.textContent='The paired-comparison data could not be loaded. Please reload the page.';console.error(error)});
+pairedComparisons().catch(error=>{for(const id of ['policy-description','transition-scope']){const node=document.getElementById(id);if(node)node.textContent='The paired-comparison data could not be loaded. Please reload the page.';}console.error(error)});

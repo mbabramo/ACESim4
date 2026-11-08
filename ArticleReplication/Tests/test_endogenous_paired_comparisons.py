@@ -4,7 +4,7 @@ import sys
 import unittest
 
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'Scripts'))
-from endogenous_paired_comparisons import build_pairwise, paired_outcomes
+from endogenous_paired_comparisons import build_pairwise, paired_outcomes, transition_summary, scoped_transition_summaries
 
 
 class PairedComparisons(unittest.TestCase):
@@ -53,6 +53,36 @@ class PairedComparisons(unittest.TestCase):
         with self.assertRaises(ValueError):build_pairwise({'Repetitions':10,'Cases':cases+[duplicate]},list(range(10)),{})
         cases[0]['Selectors']['gini']['InitialValues'].pop()
         with self.assertRaises(ValueError):build_pairwise({'Repetitions':10,'Cases':cases},list(range(10)),{})
+
+    def test_background_average_and_agreement_are_different(self):
+        groups=[]
+        for i,(lower,higher,ties) in enumerate([(8,2,0),(6,4,0),(10,0,0)]):
+            counts=dict(Pairs=10,BLower=lower,ALower=higher,ExactTies=ties)
+            groups.append(dict(Id=str(i),Parameter='Fee Shifting Multiplier',
+                Pairs=[dict(From='0',To='1',gini=counts,liu=counts)]))
+        row=transition_summary(groups)[0]
+        self.assertAlmostEqual(row['gini']['MeanBLowerFraction'],.8)
+        self.assertAlmostEqual(row['gini']['MeanDirectionalAgreement'],.8)
+        groups[1]['Pairs'][0]['gini']=dict(Pairs=10,BLower=1,ALower=9,ExactTies=0)
+        row=transition_summary(groups)[0]
+        self.assertAlmostEqual(row['gini']['MeanBLowerFraction'],19/30)
+        self.assertAlmostEqual(row['gini']['MeanDirectionalAgreement'],.9)
+        self.assertEqual((row['gini']['BMoreOftenBackgrounds'],row['gini']['AMoreOftenBackgrounds']),(2,1))
+        self.assertEqual(row['Backgrounds'],3)
+
+    def test_summary_scopes_ties_and_distinct_transitions(self):
+        cases=[self.case(x) for x in ['0','1','2']]+[self.case(x,'4') for x in ['0','2']]
+        payload=build_pairwise({'Repetitions':10,'Cases':cases},list(range(10)),{})
+        summaries=scoped_transition_summaries(payload)
+        selected=[r for r in summaries if r['Parameter']=='Fee Shifting Multiplier' and r['RiskScope']=='*' and r['CostScope']=='*']
+        self.assertEqual({(r['From'],r['To']):r['Backgrounds'] for r in selected},{('0','1'):1,('0','2'):2,('1','2'):1})
+        cost4=[r for r in summaries if r['Parameter']=='Fee Shifting Multiplier' and r['RiskScope']=='*' and r['CostScope']=='4']
+        self.assertEqual([(r['From'],r['To'],r['Backgrounds']) for r in cost4],[('0','2',1)])
+        group=dict(Id='tie',Parameter='rule',Pairs=[dict(From='0',To='1',**{m:dict(Pairs=10,BLower=0,ALower=0,ExactTies=10) for m in ('gini','liu')})])
+        row=transition_summary([group])[0]
+        self.assertEqual(row['gini']['MeanDirectionalAgreement'],0)
+        self.assertEqual(row['gini']['MeanExactTieFraction'],1)
+        with self.assertRaises(ValueError):transition_summary([group,group])
 
 
 if __name__=='__main__':unittest.main()

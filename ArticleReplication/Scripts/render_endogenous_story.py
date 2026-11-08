@@ -3,6 +3,7 @@ import argparse
 import csv
 from collections import defaultdict
 import gzip
+import hashlib
 import html
 import io
 import json
@@ -21,7 +22,8 @@ import numpy as np
 from endogenous_story_report import MEASURES, METHODS, method_values, quantile
 from endogenous_report_language import OUTCOMES, outcome_name, parameter_name, setting_name
 from endogenous_report_pages import render_pages
-from endogenous_paired_comparisons import build_pairwise, export_rows, seed_provenance
+from endogenous_paired_comparisons import (build_pairwise, export_rows, seed_provenance,
+    scoped_transition_summaries, transition_export_rows)
 from endogenous_report_language import PARAMETERS
 
 LABELS={'published':'Original draft','gini':'Gini','liu':'Liu-affinity'}
@@ -87,6 +89,12 @@ def atlas_guide(pdf):
         ('Every available pair, without reverse duplicates','Five available rule values give ten comparisons. A lower number is placed first for consistent display, not because it is preferable. Only observed settings are compared. The online explorer offers every represented fixed background and lists all assumptions explicitly.'),
         ('What ten paired searches means','Repetition 1 under A is compared with repetition 1 under B, and likewise through repetition 10. The same original seeds identify these pairs; accepted repairs retain their original position. Seven lower-cost outcomes means 7 of 10 paired searches, not a 70% real-world probability. Tiny stored differences may be numerical error. Exact ties are shown separately online.'),
         ('Size as well as direction','The online detail table shows all ten before/after costs and differences, the mean and median difference, and separate means across ten searches under each setting. It also shows the original draft and final pooled outputs. Nonoverlapping ranges remain a stronger supplementary check. Numerical accuracy qualifications apply throughout.')]))
+    pages.append(('Averages for one specified rule change',[
+        ('Start with one transition','Fix the starting and ending rule values, such as no fee reimbursement to full reimbursement. Select litigation expense and, optionally, attitudes to financial risk. Within each background, every other recorded parameter must agree exactly between the two settings.'),
+        ('Average the ten-search percentages','For each matched background, count the ten same-seed searches in which the second value B has lower social cost. Divide by ten, then average across the available backgrounds, giving each equal weight. For example, 8/10, 6/10 and 10/10 produce an average of 80%. The online table reports how many backgrounds contribute to each transition.'),
+        ('Direction and agreement answer different questions','B cheaper is the average share favoring B. Agreement within backgrounds takes the larger of the A-cheaper and B-cheaper counts in each background, divides by ten, then averages. Strong agreement within backgrounds can coexist with different preferred rules across backgrounds.'),
+        ('Ties, coverage and numerical limits','Exact cost ties remain in the denominator and do not favor either direction. A 5-5 split gives 50% directional agreement; ten exact ties give 0% directional agreement and 100% ties. Tiny differences may be numerical error. The grid is incomplete and does not describe real-world frequencies. Only available matched backgrounds are included, with no missing permutations filled in.'),
+        ('How the charts differ','Charts labeled fixed risk-neutral settings show one default background at each litigation expense. Charts labeled background averages instead use baseline litigation costs and all available risk attitudes, varying the other represented assumptions. Each row states its A-to-B transition and background count. Risk-averse results and initial searches still need their economic-accuracy review.')]))
     for title,paragraphs in pages:
         fig=plt.figure(figsize=(8.27,11.69),facecolor='white')
         fig.text(.09,.93,title,fontsize=19,weight='bold',color='#17484f')
@@ -175,6 +183,17 @@ def figures(data,summary,out,paired):
                 ax.set_ylabel('Rule value A → rule value B');ax.set_title({'0.25':'Quarter litigation costs','1':'Baseline litigation costs','4':'Four-times litigation costs'}[cost])
                 ax.legend(fontsize=7)
             keep(fig,f'{parameter_name(parameter)}: same-seed rankings, fixed risk-neutral settings',SLUGS[parameter]+'-paired-agreement',pdf)
+        for parameter in CORE:
+            rows=[r for r in paired['TransitionSummaries'] if r['Parameter']==parameter and r['RiskScope']=='*' and r['CostScope']=='1']
+            fig,axes=plt.subplots(1,2,figsize=(12,7))
+            positions=np.arange(len(rows))
+            for ax,key,title in zip(axes,['MeanBLowerFraction','MeanDirectionalAgreement'],['Average searches where B is cheaper','Average agreement within backgrounds']):
+                for method,offset in [('gini',-.12),('liu',.12)]:
+                    ax.scatter([100*r[method][key] for r in rows],positions+offset,color=COLORS[method],label=LABELS[method],s=30)
+                ax.set_yticks(positions,[r['From']+' → '+r['To']+f" (n={r['Backgrounds']})" for r in rows]);ax.invert_yaxis()
+                ax.set_xlim(-2,102);ax.set_xticks(range(0,101,20));ax.set_xlabel('Equal-weight average of background percentages (%)')
+                ax.set_ylabel('Rule value A → B; n = matched backgrounds');ax.set_title(title);ax.legend(fontsize=8)
+            keep(fig,f'{parameter_name(parameter)}: background averages\nBaseline litigation costs; all available risk attitudes',SLUGS[parameter]+'-background-averages',pdf)
     return inventory
 
 
@@ -188,6 +207,7 @@ STYLE += '''\n.three{display:grid;grid-template-columns:repeat(3,1fr);gap:22px}.
 
 
 STYLE += '\n.wide-control{display:flex;max-width:100%;margin-top:16px}#policy-background{width:100%;text-overflow:ellipsis}#paired-comparisons td{min-width:110px}#paired-comparisons td:nth-child(3),#paired-comparisons td:nth-child(4){min-width:180px}#pair-detail{scroll-margin-top:20px}#pair-repetitions td{white-space:nowrap}\n'
+STYLE += '\n#transition-summaries td{min-width:100px}#transition-summaries td:nth-child(4),#transition-summaries td:nth-child(5){min-width:180px}#transition-backgrounds td:first-child{min-width:250px;max-width:430px}#transition-detail{scroll-margin-top:20px}\n'
 
 
 def table(headers,rows):
@@ -230,8 +250,10 @@ def html_reports(data,summary,out,inventory,findings,economic_review,paired):
     explorer_data=json.dumps(explorer,separators=(',',':'),allow_nan=False).encode()
     (out/'explorer.json.gz').write_bytes(gzip.compress(explorer_data,compresslevel=6,mtime=0))
     (out/'paired-comparisons.json.gz').write_bytes(gzip.compress(json.dumps(paired,separators=(',',':'),allow_nan=False).encode(),compresslevel=6,mtime=0))
-    for repetitions,name in [(False,'paired-comparison-summary'),(True,'paired-search-differences')]:
-        rows=export_rows(paired,repetitions);buffer=io.StringIO(newline='')
+    for rows,name in [(export_rows(paired,False),'paired-comparison-summary'),
+                      (export_rows(paired,True),'paired-search-differences'),
+                      (transition_export_rows(paired),'transition-background-summary')]:
+        buffer=io.StringIO(newline='')
         fields=list(dict.fromkeys(k for row in rows for k in row))
         writer=csv.DictWriter(buffer,fieldnames=fields);writer.writeheader();writer.writerows(rows)
         (out/(name+'.csv.gz')).write_bytes(gzip.compress(buffer.getvalue().encode(),compresslevel=6,mtime=0))
@@ -240,7 +262,15 @@ def html_reports(data,summary,out,inventory,findings,economic_review,paired):
     script=(out/'report.js').read_text(encoding='utf-8')
     script=script.replace("const data=await(await fetch('tables.json')).json();", "const response=await fetch('tables.json.gz');const data=await new Response(response.body.pipeThrough(new DecompressionStream('gzip'))).json();")
     script=script.replace("const rows=await(await fetch('explorer.json')).json();", "const response=await fetch('explorer.json.gz');const rows=await new Response(response.body.pipeThrough(new DecompressionStream('gzip'))).json();")
+    revision=hashlib.sha256((out/'paired-comparisons.json.gz').read_bytes()).hexdigest()[:16]
+    script=script.replace("fetch('paired-comparisons.json.gz')",f"fetch('paired-comparisons.json.gz?v={revision}')")
+    script=script.replace("fetch(name+'.csv.gz')",f"fetch(name+'.csv.gz?v={revision}')")
     (out/'report.js').write_text(script,encoding='utf-8')
+    for name in ('report.js','report.css','scientific-figure-atlas.pdf'):
+        revision=hashlib.sha256((out/name).read_bytes()).hexdigest()[:16]
+        for document in out.glob('*.html'):
+            content=document.read_text(encoding='utf-8').replace('"'+name+'"','"'+name+'?v='+revision+'"')
+            document.write_text(content,encoding='utf-8')
 
 
 def main():
@@ -250,6 +280,8 @@ def main():
     provenance=seed_provenance(args.initial_manifest,data['Repetitions'])
     paired=build_pairwise(data,[r['Seed'] for r in provenance['Repetitions']],BASE)
     paired['Provenance']=provenance
+    paired['TransitionSummaries']=scoped_transition_summaries(paired)
+    paired['SummaryWeighting']='Each available exact matched background has equal weight within the chosen rule transition and filters. Exact search ties remain in the denominator. No missing combinations are imputed.'
     paired['AssumptionLabels']={k:parameter_name(k) for k in data['Cases'][0]['Parameters']}
     if args.html_only:inventory=json.loads((out/'figure-inventory.json').read_text())
     else:
