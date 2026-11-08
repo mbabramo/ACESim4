@@ -48,13 +48,13 @@ public static class EndogenousPopulationExperiment
         }
         return options;
     }
-    public static async Task<StrategiesDeveloperBase> Initialize(Case spec)
+    public static async Task<StrategiesDeveloperBase> Initialize(Case spec, EvolutionSettings? suppliedSettings = null)
     {
         var options = OptionsFor(spec);
         // Initialization links the dispute generator to the game and its caches.
         // Keep only unused options here so completed games can be collected.
         optionSets!.Remove(spec.OptionSetName);
-        var settings = new EvolutionSettings
+        var settings = suppliedSettings ?? new EvolutionSettings
         {
             Algorithm = GameApproximationAlgorithm.GeneralizedVanilla, ParallelOptimization = false,
             CreateEFGFile = false, CreateEquilibriaFile = false, GenerateManualReports = false, GenerateReportsByPlaying = false,

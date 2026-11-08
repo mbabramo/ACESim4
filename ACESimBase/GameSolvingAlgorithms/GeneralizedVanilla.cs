@@ -1770,6 +1770,22 @@ namespace ACESim
             return reportCollection;
         }
 
+        /// <summary>Run the existing CFR updates on an explicitly initialized profile.
+        /// Unlike RunAlgorithm, this entry point never loads or writes legacy equilibrium
+        /// files. Callers own the fresh initialization and immutable output directory.</summary>
+        public Task<ReportCollection> RunInitializedIterations()
+        {
+            if (EvolutionSettings.UseExistingEquilibriaIfAvailable)
+                throw new InvalidOperationException("Fresh initialized runs must not reuse an equilibrium file.");
+            return EvolutionSettings.GeneralizedVanillaFlavor switch
+            {
+                GeneralizedVanillaFlavor.Regular => SolveGeneralizedVanillaCFR(),
+                GeneralizedVanillaFlavor.Unrolled => Unroll_SolveGeneralizedVanillaCFR(),
+                GeneralizedVanillaFlavor.Fast => Fast_SolveGeneralizedVanillaCFR(),
+                _ => throw new NotSupportedException("Independent CPU runs require Regular, Unrolled or Fast CFR.")
+            };
+        }
+
         private async Task<ReportCollection> SolveGeneralizedVanillaCFR()
         {
             ReportCollection reportCollection = new ReportCollection();

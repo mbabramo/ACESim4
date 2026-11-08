@@ -48,6 +48,27 @@ namespace ACESimTest.StrategiesTests
 
         private int _iterationsForParity =  100; // minimum number causing test to fail
 
+        [TestMethod]
+        [DataRow(false)]
+        [DataRow(true)]
+        public async Task FreshInitializedEntryMatchesRegularAndFast(bool randomInformationSets)
+        {
+            var regular=await BuildWithFlavor(false,randomInformationSets,GeneralizedVanillaFlavor.Regular,1,100);
+            var fast=await BuildWithFlavor(false,randomInformationSets,GeneralizedVanillaFlavor.Fast,1,100);
+            await regular.RunInitializedIterations();
+            await fast.RunInitializedIterations();
+            ConfirmInformationSetsMatch(regular,"Regular initialized",fast,"Fast initialized",maxLines:1)
+                .Should().BeTrue("the fresh no-file entry must preserve the existing CFR updates for both starting-profile types");
+        }
+
+        [TestMethod]
+        public async Task FreshInitializedEntryRejectsSavedEquilibriumReuse()
+        {
+            var developer=await BuildWithFlavor(false,false,GeneralizedVanillaFlavor.Regular,1,10);
+            developer.EvolutionSettings.UseExistingEquilibriaIfAvailable=true;
+            Assert.ThrowsException<InvalidOperationException>(()=>{ _=developer.RunInitializedIterations(); });
+        }
+
         private static bool ConfirmInformationSetsMatch(
             GeneralizedVanilla devA, string labelA,
             GeneralizedVanilla devB, string labelB,

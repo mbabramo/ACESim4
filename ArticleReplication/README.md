@@ -111,3 +111,80 @@ The optional full [saved-solutions release](https://github.com/mbabramo/correlat
 The default `TruthSensitivity` step (which can be omitted with `--steps`) revalidates the selected main-cost equilibria and freshly integrates alternative truth probabilities over posterior merits. It holds merits, signals, court decisions, payoffs and strategies fixed. No equilibrium search is started by this step. Include `Primary` and supply positive, distinct `--truth-exponents` containing 1. The approved default exponents are 0.5, 1, and 2; override them with `--truth-exponents`. The formula is `q^k / (q^k + (1-q)^k)`.
 
 For example, after selecting strengths, run `run --input SAVED_SOLVES --output NEW_DIRECTORY --extensions false --trial-only false --steps Primary,TruthSensitivity --truth-exponents 0.5,1,2 --missing wait --workers 2 --other-workers 2`. Worker counts must reflect concurrent work. Output automatically includes full per-profile replay audits under `ReportResults/TruthSensitivity` and an unrounded CSV, readable cost/risk tables, and validation record under `article/Results/Aggregated Data/Truth sensitivity`. The default exhibit and manuscript stages do not generate a numbered truth-sensitivity figure; the separate `truth-figure` command remains available if a figure is wanted. Identity-map welfare must reproduce the primary assessment within the existing reporting tolerance; complete strategy, strategic game and best-response gains must remain unchanged, and real expenditures must be exactly invariant across maps. Signs in the CSV are arithmetic signs, with no tolerance-based relabeling of small differences.
+
+## Endogenous litigation: independent starts and the staged comparison
+
+The endogenous study has separate numerical stages. The original-method stage runs
+ordinary generalized regret-matching CFR from ten explicit random starting profiles.
+Gini and Liu are different, selection-guided searches, each with ten starts; their
+pooled stage unions discovered strategies and solves again. They are not ten Nash
+results followed by two averages. Keep these stages and their equilibrium concepts
+separate in every report.
+
+Build once into a new runtime folder, then freeze that folder. From the code root:
+
+```sh
+dotnet publish ArticleReplication/ArticleReplication.csproj -c Release --artifacts-path ../traditional-build -o ../traditional-runtime -p:BuildInParallel=false -m:1
+python ArticleReplication/Scripts/endogenous_traditional.py prepare --input ../../outputs/endogenous-population-inputs --assembly ../traditional-runtime/ArticleReplication.dll --output ../../outputs/endogenous-traditional --workers 10 --repetitions 10 --iterations 1000 --check-every 100
+python ArticleReplication/Scripts/endogenous_traditional.py run --run ../../outputs/endogenous-traditional
+```
+
+The ten seeds are 1729 + 989 times the zero-based repetition index. Within each
+information set, independent exponential action weights are normalized (Dirichlet
+with all parameters one). Initial regrets are zero; the explicit starting behavior
+and initial strategy tallies are archived. No saved equilibrium, Gini/Liu result or
+other repetition warms the search. Both players use independent behavior, rather
+than a correlated distribution over complete strategy pairs.
+
+The existing 1,000-iteration regret-matching updates and best-average-exploitability
+checkpoint rule are retained. As in the legacy equilibrium file, the primary result
+is the checkpoint's current behavioral profile; its average profile is separately
+archived and audited, never substituted silently. Checks use unrounded probabilities.
+Routine report generation and legacy equilibrium file output/reuse are disabled;
+the update equations are unchanged. The fresh entry is tested for regular/Fast CFR
+parity on uniform and randomized starts. Every worker uses DOTNET_PROCESSOR_COUNT=1
+and disables library parallelism; the controller refuses more than ten workers.
+
+Each run saves its request, actual scalar solver settings, game fingerprint, seed
+archive, final current/average archives, final training arrays, outcomes and independent
+Nash audit. The native GEBR and detached policy-tree best-response utilities must
+agree. Raw and normalized Nash gains, grades at 1e-7 and 1e-5, and monetary certainty-
+equivalent gains are separate fields. The default economic screen is 0.1% of the
+0.001 activity benefit. It is a diagnostic, not a bound on welfare error. A completed
+job is not automatically a verified equilibrium. Failed numerical targets remain
+visible; no automatic tolerance change, profile substitution or convergence retry
+occurs. A fixed budget may recover the same equilibrium repeatedly or fail to verify
+some candidates. Report all those outcomes before drawing multiplicity conclusions.
+
+`batch.json` binds the code revision, controller hash, full numerical runtime hashes,
+input catalog, settings and seed schedule. Only `status.json` and the append-only
+progress ledger change. Completed attempts and evidence are immutable. Resume with
+`run --run RUN --resume` after diagnosis: completed results are hash-checked and skipped,
+and still-live children are adopted using PID plus creation identity. Interrupted
+attempts remain preserved and are not blindly repeated. Three worker/validation
+failures stop further dispatch. Optional progress-file sharing locks do not detach
+worker supervision. A previous pilot can be imported with `prepare --reuse-root PILOT`
+only when its full scientific settings, runtime, case and seed identities match;
+imported results retain their original evidence paths and count once.
+
+To join the work done in pieces, record a versioned study recipe after the runtime
+and batch are frozen:
+
+```sh
+python ArticleReplication/Scripts/endogenous_study.py record --workspace WORKSPACE --traditional-run RUN --source-snapshot SOURCE_TAR --output NEW_RECIPE.json
+python ArticleReplication/Scripts/endogenous_study.py verify --recipe NEW_RECIPE.json
+```
+
+The recipe indexes published inputs, the original independent-start manifest, both
+replacement indices, frozen prior configurations/runners/runtimes, validation receipts,
+versioned analysis/report inputs, this new traditional batch, and the exact code source
+archive. Its stage graph distinguishes original-method searches, Gini/Liu searches,
+pooling, scientific validation and reporting. Exact argument arrays document rebuilding,
+starting/resuming, and replaying reports. Internal paths are relative to the declared
+workspace; `verify --workspace MOVED_WORKSPACE` supports relocated indices. Embedded
+paths in older numerical archives need a separately recorded relocation, not rewriting
+historical receipts. Replaying saved evidence and recomputing numerical results are
+different operations. A new recipe version can bind later completed outputs without
+changing the earlier recipe. Existing qualified pooled results and economic/objective
+limitations remain qualified; reproducibility is not a numerical-accuracy certificate.
+The traditional-result report series is added after its numerical validation.
