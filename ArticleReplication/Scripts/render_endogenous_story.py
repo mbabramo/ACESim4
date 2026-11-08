@@ -259,7 +259,7 @@ def image(name,caption):return f'<figure><a href="figures/{name}.svg"><img loadi
 
 
 def page(title,body,active,economic_review=None):
-    navigation=[('index.html','Start here'),('published.html','Original draft'),('gini.html','Gini approach'),('liu.html','Liu approach'),('variability.html','Consistency'),('methods.html','How to read & downloads')]
+    navigation=[('index.html','Start here'),('published.html','Original draft'),('gini.html','Gini approach'),('liu.html','Liu approach'),('variability.html','Consistency'),('benchmarks.html','Cost ratios & variability'),('methods.html','How to read & downloads')]
     nav=''.join(f'<a href="{url}"'+(' aria-current="page"' if url==active else '')+'>'+label+'</a>' for url,label in navigation)
     notice='<strong>Results are provisional.</strong> Some calculations involving aversion to financial risk still allow economically meaningful improvements in behavior. Those results need greater accuracy before we draw firm conclusions. <a href="methods.html#economic-accuracy">What this means</a>.' if economic_review else '<strong>Results are provisional.</strong> Read the methods and limitations before interpreting the figures.'
     if economic_review and economic_review.get('InitialSearchReview'):
