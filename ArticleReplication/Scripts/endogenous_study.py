@@ -61,10 +61,10 @@ def record(args):
     add('traditional-candidates',traditional/'candidates.json','Completed original-method results and explicit numerical grades',False)
     add('traditional-completion',traditional/'completed.json','Execution completion, distinct from equilibrium qualification',False)
     add('code-snapshot',args.source_snapshot,'Git source archive for the new work',False) if args.source_snapshot else None
-    modules=['endogenous_traditional.py','endogenous_study.py','endogenous_population_inputs.py','population_combined.py','endogenous_population_assembly.py','endogenous_population_analysis.py','endogenous_story_report.py','render_endogenous_story.py','endogenous_benchmark_ratios.py','render_endogenous_benchmarks.py']
+    modules=['endogenous_traditional.py','audit_endogenous_traditional.py','endogenous_study.py','endogenous_population_inputs.py','population_combined.py','endogenous_population_assembly.py','endogenous_population_analysis.py','endogenous_story_report.py','render_endogenous_story.py','endogenous_benchmark_ratios.py','render_endogenous_benchmarks.py']
     for name in modules:add('source-'+name,code/'ArticleReplication/Scripts'/name,'Versioned stage implementation')
     recipe=dict(Schema='endogenous-study-recipe-v1',CreatedUtc=datetime.now(timezone.utc).isoformat(),Workspace=str(workspace),
-        CodeRevision=subprocess.check_output(['git','rev-parse','HEAD'],cwd=code,text=True).strip(),Artifacts=artifacts,
+        CodeRevision=subprocess.check_output(['git','rev-parse','HEAD'],cwd=code,text=True).strip(),TraditionalSourceRevision=batch['SourceRevision'],Artifacts=artifacts,
         Stages=[dict(Id='inputs',Purpose='Published CSV plus saved original strategy, parameter grid and source hashes'),
             dict(Id='traditional',DependsOn=['inputs'],Purpose='Ten independent original-method CFR searches per setting; raw, normalized and money-equivalent Nash checks'),
             dict(Id='initial-gini-liu',DependsOn=['inputs'],Purpose='Ten selection-guided searches per method, including preserved same-seed repair histories'),
@@ -75,6 +75,7 @@ def record(args):
             StartTraditional=['python','{traditional}/runner.py','run','--run','{traditional}'],
             ResumeTraditional=['python','{traditional}/runner.py','run','--run','{traditional}','--resume'],
             VerifyRecipe=['python','{code}/ArticleReplication/Scripts/endogenous_study.py','verify','--recipe','{recipe}'],
+            AuditTraditional=['python','{code}/ArticleReplication/Scripts/audit_endogenous_traditional.py','--run','{traditional}','--population-manifest','{workspace}/outputs/endogenous-population-memory-resumed/repetitions.json','--output','{fresh-audit}.json'],
             RebuildRuntime=['dotnet','publish','{code}/ArticleReplication/ArticleReplication.csproj','-c','Release','--artifacts-path','{fresh-build}','-o','{fresh-runtime}','-p:BuildInParallel=false','-m:1'],
             PrepareFreshTraditional=['python','{code}/ArticleReplication/Scripts/endogenous_traditional.py','prepare','--input','{inputs}','--assembly','{fresh-runtime}/ArticleReplication.dll','--output','{fresh-run}','--workers','10','--repetitions','10','--iterations',str(batch['Iterations']),'--check-every',str(batch['CheckEvery'])],
             ReplayReport=['python','{code}/ArticleReplication/Scripts/render_endogenous_story.py','--data','{report}/data-v2.json','--statistics','{report}/statistics-v2.json','--findings','{report}/reviewed-findings-v8-magnitude.json','--economic-review','{report}/economic-accuracy-review-20261107.json','--initial-manifest','{workspace}/outputs/endogenous-population-memory-resumed/repetitions.json','--initial-economic-review','{workspace}/outputs/endogenous-initial-economic-review-20261108/completed.json','--output','{fresh-report}']),

@@ -188,3 +188,17 @@ different operations. A new recipe version can bind later completed outputs with
 changing the earlier recipe. Existing qualified pooled results and economic/objective
 limitations remain qualified; reproducibility is not a numerical-accuracy certificate.
 The traditional-result report series is added after its numerical validation.
+
+After a complete traditional batch, run the read-only independent audit:
+
+```sh
+python ArticleReplication/Scripts/audit_endogenous_traditional.py --run RUN --population-manifest ORIGINAL_REPETITIONS.json --output NEW_AUDIT.json
+```
+
+This reconstructs the actual starting probabilities with an independent implementation
+of the seeded random generator, checks all current/average behavioral archives,
+compares strategic game hashes with the earlier population experiment, and checks
+money-equivalent gains with 60-digit decimal arithmetic. Optional `--repeat-root`
+checks that a separately rerun identical seed/settings pair produces identical
+strategies, numerical audits and outcomes. The audit preserves all numerical grades
+and reports exact profile distinctness without claiming multiple exact equilibria.
