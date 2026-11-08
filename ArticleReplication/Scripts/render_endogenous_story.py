@@ -1,8 +1,10 @@
 """Scientific figures and responsive three-view report from immutable report data."""
 import argparse
+import csv
 from collections import defaultdict
 import gzip
 import html
+import io
 import json
 import math
 from pathlib import Path
@@ -19,7 +21,8 @@ import numpy as np
 from endogenous_story_report import MEASURES, METHODS, method_values, quantile
 from endogenous_report_language import OUTCOMES, outcome_name, parameter_name, setting_name
 from endogenous_report_pages import render_pages
-from endogenous_policy_transitions import transition_tables, SCRIPT as TRANSITION_SCRIPT
+from endogenous_paired_comparisons import build_pairwise, export_rows, seed_provenance
+from endogenous_report_language import PARAMETERS
 
 LABELS={'published':'Original draft','gini':'Gini','liu':'Liu-affinity'}
 COLORS={'published':'#30383b','gini':'#007f86','liu':'#c46825'}
@@ -71,13 +74,19 @@ def atlas_guide(pdf):
         ('Why ten searches?','Each approach starts ten times from different initializations. The final calculation pools the plans found and chooses fresh probabilities. It is not an average of the ten outcomes. A range describes only those ten observed results, not all possible equilibria or statistical confidence about real litigation.'),
         ('The equilibrium distinction','The new methods permit correlation between complete plans and test whether either side would gain by committing in advance to another plan. This is a coarse correlated equilibrium, or CCE. Nash uses independent choices. Removing correlation and testing Nash is a separate exercise; the figures show the correlated outcomes.'),
         ('Units and denominators','Costs are shown per 10,000 opportunities to undertake the activity. One physical accident’s harm equals one model unit; values are not dollars. Care is on a 0–7 scale. Litigation events are shown either per 100,000 opportunities or as a percentage of disputes. Four settlements among ten disputes out of 100,000 opportunities means 4 per 100,000 opportunities and 40% of disputes.'),
-        ('Colors and comparison','Grey is the original draft, teal is Gini and orange is Liu. Lower total cost is better under the resource measure. More care or more settlement is not automatically better. For comparison summaries, the median is the middle change; the 90th percentile is a larger-change benchmark, not a confidence level.')]),
+        ('Colors and comparison','Grey is the original draft, teal is Gini and orange is Liu. Lower total cost is better under the resource measure. More care or more settlement is not automatically better. The paired-agreement charts show how many of ten same-seed comparisons give lower costs under value B. Each row names A and B, and each panel fixes the other assumptions.')]),
         ('Read before interpreting the risk-averse results',[
         ('A small ratio can hide a large incentive','The calculation divides a party’s available payoff improvement by the full utility range. Under risk aversion, costly possible outcomes can make that range enormous. A very small resulting ratio does not always mean a small economic gain from changing behavior.'),
         ('What the new review found','In nine high-cost, moderately risk-averse settings with double fee reimbursement and double damages, the 18 Gini/Liu defendant improvements are worth about 35–123% of the activity benefit. This converts utility improvements into changes in a guaranteed amount of money with the same utility effect: certainty-equivalent gains.'),
         ('What follows—and what does not','The deviations need not concern participation alone. We have not proved activity suppression is an artifact, but those participation rates are not yet established equilibrium predictions. Agreement across methods or starts does not remove a shared scaling limitation. Some risk, welfare and variability conclusions need reassessment.'),
         ('The limitation is uneven','The reviewed risk-neutral pooled defendant incentive gains are below 0.1% of the activity benefit. The money-equivalent gain is not a bound on error in social cost. Initial searches need their own economic-accuracy review. Cost-misperception variants measure incentives using perceived wealth.'),
         ('Records and further checks','Original data and formal classifications remain unchanged. One Liu output misses the original normalized tolerance of 0.0000001 but passes 0.000001; it remains flagged. Accounting reconciles across all 4,536 outputs. Full final certification and exact optimization of the selection objectives remain separate questions. Definitions and evidence are in the report’s How to read & downloads page.')])]
+    pages.append(('Specific comparisons and paired searches',[
+        ('What each comparison holds fixed','Each row in a paired-agreement chart compares two values of one rule. All other recorded model parameters are identical within that pair. The three panels separately set litigation expense to one-quarter, baseline and four-times costs. They do not average different environments.'),
+        ('Default assumptions for these charts','Both parties are risk-neutral. Unless it is the rule being varied: fee reimbursement is 0, damages multiplier is 1, and liability standard is 1. Adjudication mode, court noise and the number of signals/offers use their baseline settings. Both private-signal noise multipliers are 1. Cost misestimation is 1, relative costs are 1, half the costs occur at the beginning, unit care cost is 0.00001, wrongful attribution is Normal, and the issue is liability.'),
+        ('Every available pair, without reverse duplicates','Five available rule values give ten comparisons. A lower number is placed first for consistent display, not because it is preferable. Only observed settings are compared. The online explorer offers every represented fixed background and lists all assumptions explicitly.'),
+        ('What ten paired searches means','Repetition 1 under A is compared with repetition 1 under B, and likewise through repetition 10. The same original seeds identify these pairs; accepted repairs retain their original position. Seven lower-cost outcomes means 7 of 10 paired searches, not a 70% real-world probability. Tiny stored differences may be numerical error. Exact ties are shown separately online.'),
+        ('Size as well as direction','The online detail table shows all ten before/after costs and differences, the mean and median difference, and separate means across ten searches under each setting. It also shows the original draft and final pooled outputs. Nonoverlapping ranges remain a stronger supplementary check. Numerical accuracy qualifications apply throughout.')]))
     for title,paragraphs in pages:
         fig=plt.figure(figsize=(8.27,11.69),facecolor='white')
         fig.text(.09,.93,title,fontsize=19,weight='bold',color='#17484f')
@@ -92,7 +101,7 @@ def atlas_guide(pdf):
         pdf.savefig(fig);plt.close(fig)
 
 
-def figures(data,summary,out):
+def figures(data,summary,out,paired):
     target=out/'figures';target.mkdir(exist_ok=True)
     plt.rcParams.update({'font.family':'DejaVu Sans','font.size':9,'axes.spines.top':False,'axes.spines.right':False,
         'axes.grid':True,'grid.alpha':.18,'axes.axisbelow':True,'svg.fonttype':'none'})
@@ -153,37 +162,19 @@ def figures(data,summary,out):
                 handles,labels=axes[0,0].get_legend_handles_labels()
                 fig.legend(handles,labels,loc='upper center',bbox_to_anchor=(.5,.965),ncol=4,fontsize=7,frameon=False)
                 keep(fig,f'{LABELS[method]}: what makes up total cost under {parameter_name(parameter).lower()}',f'{method}-{slug}-components',pdf)
-        fig,axes=plt.subplots(2,2,figsize=(11,8))
-        for ax,metric in zip(axes.ravel(),['SocialWelfareLoss','PrecautionLevel','TrialGivenDispute','SettlementGivenDispute']):
-            for method in ('gini','liu'):
-                vals=[c['Selectors'][method]['InitializationRanges'][metric] for c in data['Cases']]
-                values=sorted((r['RelativeWidth']*100 if metric=='SocialWelfareLoss' else r['Width']*(100 if metric.endswith('GivenDispute') else 1)) for r in vals if (r['RelativeWidth'] if metric=='SocialWelfareLoss' else r['Width']) is not None)
-                ax.plot(values,np.arange(1,len(values)+1)/len(values),color=COLORS[method],label=LABELS[method])
-            ax.set_title(outcome_name(metric));ax.set_ylabel('Share of scenarios')
-            ax.set_xlabel('Range across ten searches (% of middle result)' if metric=='SocialWelfareLoss' else 'Range across ten searches (percentage points)' if metric.endswith('GivenDispute') else 'Range across ten searches (care levels)')
-            ax.set_xlim(left=0);ax.set_ylim(0,1);ax.legend(fontsize=7)
-        keep(fig,'How much do the ten searches disagree?', 'initialization-variability',pdf)
-        selected=[r for r in summary['MatchedSummary'] if r['Metric']=='SocialWelfareLoss' and r['Method']!='published']
-        parameters=list(dict.fromkeys(r['Parameter'] for r in selected));matrix=np.array([[next(r['FractionObservedRangeIdentifiesSign'] for r in selected if r['Parameter']==p and r['Method']==s) for s in ('gini','liu')] for p in parameters])
-        fig,ax=plt.subplots(figsize=(8,9));im=ax.imshow(matrix,vmin=0,vmax=1,cmap='YlGnBu',aspect='auto')
-        ax.set_xticks([0,1],['Gini','Liu-affinity']);ax.set_yticks(range(len(parameters)),[parameter_name(p) for p in parameters])
-        for i in range(len(parameters)):
-            for j in range(2):ax.text(j,i,f'{matrix[i,j]:.0%}',ha='center',va='center',color='white' if matrix[i,j]>.55 else '#202b30')
-        fig.colorbar(im,ax=ax,label='Share of comparisons with separated observed ranges')
-        keep(fig,'When do all observed results agree on which rule costs less?','policy-interpretability',pdf)
-        rows=[r for r in summary['MatchedSummary'] if r['Metric']=='SocialWelfareLoss']
-        parameters=list(dict.fromkeys(r['Parameter'] for r in rows))
-        fig,ax=plt.subplots(figsize=(11,9))
-        for offset,method in zip((-.23,0,.23),METHODS):
-            selected=[next(r for r in rows if r['Parameter']==p and r['Method']==method) for p in parameters]
-            y=np.arange(len(parameters))+offset
-            med=np.array([r['MedianAbsoluteRelativeChange']*100 for r in selected]);tail=np.array([r['P90AbsoluteRelativeChange']*100 for r in selected])
-            ax.barh(y,med,height=.19,color=COLORS[method],label=LABELS[method],alpha=.8)
-            for yi,m,t in zip(y,med,tail):ax.plot([m,t],[yi,yi],color=COLORS[method],lw=1);ax.plot(t,yi,'o',color=COLORS[method],ms=3)
-        ax.set_yticks(range(len(parameters)),[parameter_name(p) for p in parameters]);ax.invert_yaxis()
-        ax.set_xlabel('Size of cost change (%): bar = middle; dot = larger-change benchmark (90th percentile)')
-        ax.legend(loc='lower right',fontsize=8)
-        keep(fig,'How much do changes in rules and assumptions move total cost?','robustness-effects',pdf)
+        for parameter in CORE:
+            fig,axes=plt.subplots(1,3,figsize=(12,7),squeeze=False)
+            for col,cost in enumerate(('0.25','1','4')):
+                matches=[g for g in paired['Groups'] if g['Parameter']==parameter and g['Default'] and g['Background']['Risk Aversion']=='Risk Neutral' and g['Background']['Costs Multiplier']==cost]
+                if len(matches)!=1:raise ValueError('Missing or ambiguous fixed-background chart')
+                group=matches[0];ax=axes[0,col];positions=np.arange(len(group['Pairs']))
+                for method,offset in [('gini',-.12),('liu',.12)]:
+                    ax.scatter([p[method]['BLower'] for p in group['Pairs']],positions+offset,color=COLORS[method],label=LABELS[method],s=30)
+                ax.set_yticks(positions,[p['From']+' → '+p['To'] for p in group['Pairs']]);ax.invert_yaxis()
+                ax.set_xticks(range(0,11,2));ax.set_xlim(-.4,10.4);ax.set_xlabel('Paired searches where B costs less (of 10)')
+                ax.set_ylabel('Rule value A → rule value B');ax.set_title({'0.25':'Quarter litigation costs','1':'Baseline litigation costs','4':'Four-times litigation costs'}[cost])
+                ax.legend(fontsize=7)
+            keep(fig,f'{parameter_name(parameter)}: same-seed rankings, fixed risk-neutral settings',SLUGS[parameter]+'-paired-agreement',pdf)
     return inventory
 
 
@@ -194,6 +185,9 @@ STYLE += '\n#explorer td:first-child,#explorer th:first-child{min-width:190px;ma
 
 
 STYLE += '''\n.three{display:grid;grid-template-columns:repeat(3,1fr);gap:22px}.three article{background:#eef3ef;padding:18px;border-radius:6px}.three h3{margin-top:0}.steps{padding-left:25px;max-width:900px}.steps li{padding:8px 0}.read-next{background:#edf4f1;padding:15px;border-radius:6px}p{max-width:950px}details{margin:20px 0;padding:14px 18px;background:#f0f3f0;border:1px solid #d6dfd9;border-radius:5px}summary{cursor:pointer;font-weight:650;color:#07545b}details[open] summary{margin-bottom:15px}.skip{position:absolute;left:-10000px}.skip:focus{position:static;display:block;padding:12px}#explorer td:first-child{font-size:.78rem} @media(max-width:750px){.three{grid-template-columns:1fr}.three article{padding:15px}label{display:flex;margin:10px 0}h1{overflow-wrap:anywhere}}\n'''
+
+
+STYLE += '\n.wide-control{display:flex;max-width:100%;margin-top:16px}#policy-background{width:100%;text-overflow:ellipsis}#paired-comparisons td{min-width:110px}#paired-comparisons td:nth-child(3),#paired-comparisons td:nth-child(4){min-width:180px}#pair-detail{scroll-margin-top:20px}#pair-repetitions td{white-space:nowrap}\n'
 
 
 def table(headers,rows):
@@ -213,9 +207,10 @@ def page(title,body,active,economic_review=None):
 SCRIPT='function csv(rows){if(!rows.length)return \'\';const cols=Object.keys(rows[0]);const q=x=>x==null?\'\':(\'"\'+String(x).replaceAll(\'"\',\'""\')+\'"\');return cols.map(q).join(\',\')+\'\\r\\n\'+rows.map(r=>cols.map(c=>q(r[c])).join(\',\')).join(\'\\r\\n\')}\nfunction download(name,content,type){const a=document.createElement(\'a\');a.href=URL.createObjectURL(new Blob([content],{type}));a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),5000)}\ndocument.querySelectorAll(\'[data-export]\').forEach(b=>b.onclick=async()=>{const data=await(await fetch(\'tables.json\')).json();download(b.dataset.export+\'.csv\',csv(data[b.dataset.export]),\'text/csv;charset=utf-8\')});\nasync function explorer(){const node=document.querySelector(\'#explorer\');if(!node)return;const rows=await(await fetch(\'explorer.json\')).json();const metric=document.querySelector(\'#metric\'),search=document.querySelector(\'#search\'),sort=document.querySelector(\'#sort\');\nconst probability=m=>![\'SocialWelfareLoss\',\'OpportunityCost\',\'HarmCost\',\'LitigationExpenditures\',\'PrecautionLevel\'].includes(m);\nfunction format(x,m){if(x==null)return \'—\';if(probability(m))return (100*x).toLocaleString(undefined,{maximumFractionDigits:6})+\'%\';if(x===0)return \'0\';return Math.abs(x)<1e-9?x.toExponential(3):x.toLocaleString(undefined,{maximumFractionDigits:10})}\nfunction draw(){const m=metric.value,s=search.value.toLowerCase();let a=rows.filter(r=>(r.Name+\' \'+r.OriginalName+\' \'+r.Family).toLowerCase().includes(s));const width=r=>Math.max(r.gini.Ranges[m].Width??0,r.liu.Ranges[m].Width??0);if(sort.value===\'width\')a.sort((x,y)=>width(y)-width(x));else a.sort((x,y)=>x.Name.localeCompare(y.Name));document.querySelector(\'#count\').textContent=a.length+\' matching scenarios; showing first \'+Math.min(80,a.length)+\'.\';document.querySelector(\'#metric-help\').textContent=probability(m)?\'Rates are percentages. Among-dispute rates use all disputes, including those never filed.\':m===\'PrecautionLevel\'?\'Average care on the 0–7 scale, including zero for nonparticipation.\':\'Costs are model units per opportunity, not dollars. One physical accident causes one unit of harm.\';const body=document.querySelector(\'#explorer tbody\');body.replaceChildren();for(const r of a.slice(0,80)){const tr=document.createElement(\'tr\');const values=[r.Name+(r.Candidate?\' [Liu misses the original numerical target]\':\'\'),format(r.published[m],m),format(r.gini.Pooled[m],m),format(r.liu.Pooled[m],m),format(r.gini.Ranges[m].Minimum,m)+\' – \'+format(r.gini.Ranges[m].Maximum,m),format(r.liu.Ranges[m].Minimum,m)+\' – \'+format(r.liu.Ranges[m].Maximum,m)];for(const value of values){const td=document.createElement(\'td\');td.textContent=value;tr.append(td)}body.append(tr)}}metric.onchange=search.oninput=sort.onchange=draw;draw()}explorer();'
 
 
-def html_reports(data,summary,out,inventory,findings,economic_review=None):
+def html_reports(data,summary,out,inventory,findings,economic_review,paired):
     (out/'report.css').write_text(STYLE,encoding='utf-8')
-    (out/'report.js').write_text(SCRIPT+TRANSITION_SCRIPT,encoding='utf-8')
+    paired_script=Path(__file__).with_name('endogenous_paired_comparisons.js').read_text(encoding='utf-8')
+    (out/'report.js').write_text(SCRIPT+paired_script,encoding='utf-8')
     render_pages(data,summary,out,findings,economic_review,(esc,fmt,table,image,page,CORE,SLUGS,LABELS))
     explorer=[];case_rows=[];numerical=[]
     for c in data['Cases']:
@@ -234,9 +229,13 @@ def html_reports(data,summary,out,inventory,findings,economic_review=None):
                 'SourceStatus':r['Status'],'ResultSha256':r['ResultSha256']})
     explorer_data=json.dumps(explorer,separators=(',',':'),allow_nan=False).encode()
     (out/'explorer.json.gz').write_bytes(gzip.compress(explorer_data,compresslevel=6,mtime=0))
-    transitions,policy_pairs=transition_tables(data)
-    (out/'policy-transitions.json').write_text(json.dumps(transitions,separators=(',',':'),allow_nan=False),encoding='utf-8')
-    table_data=json.dumps({'policy-transitions':transitions,'policy-comparisons':policy_pairs,'case-outcomes':case_rows,'matched-summary':[dict(r,ParameterLabel=parameter_name(r['Parameter']),OutcomeLabel=outcome_name(r['Metric'])) for r in summary['MatchedSummary']],'numerical-checks':numerical,'outcome-guide':[{'Code':k,'Name':v[0],'Meaning':v[1],'Units':v[2]} for k,v in OUTCOMES.items()]},separators=(',',':'),allow_nan=False).encode()
+    (out/'paired-comparisons.json.gz').write_bytes(gzip.compress(json.dumps(paired,separators=(',',':'),allow_nan=False).encode(),compresslevel=6,mtime=0))
+    for repetitions,name in [(False,'paired-comparison-summary'),(True,'paired-search-differences')]:
+        rows=export_rows(paired,repetitions);buffer=io.StringIO(newline='')
+        fields=list(dict.fromkeys(k for row in rows for k in row))
+        writer=csv.DictWriter(buffer,fieldnames=fields);writer.writeheader();writer.writerows(rows)
+        (out/(name+'.csv.gz')).write_bytes(gzip.compress(buffer.getvalue().encode(),compresslevel=6,mtime=0))
+    table_data=json.dumps({'case-outcomes':case_rows,'numerical-checks':numerical,'outcome-guide':[{'Code':k,'Name':v[0],'Meaning':v[1],'Units':v[2]} for k,v in OUTCOMES.items()]},separators=(',',':'),allow_nan=False).encode()
     (out/'tables.json.gz').write_bytes(gzip.compress(table_data,compresslevel=6,mtime=0))
     script=(out/'report.js').read_text(encoding='utf-8')
     script=script.replace("const data=await(await fetch('tables.json')).json();", "const response=await fetch('tables.json.gz');const data=await new Response(response.body.pipeThrough(new DecompressionStream('gzip'))).json();")
@@ -246,19 +245,23 @@ def html_reports(data,summary,out,inventory,findings,economic_review=None):
 
 def main():
     parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--data',required=True);parser.add_argument('--statistics',required=True)
-    parser.add_argument('--output',required=True);parser.add_argument('--findings',required=True);parser.add_argument('--html-only',action='store_true');parser.add_argument('--economic-review')
+    parser.add_argument('--output',required=True);parser.add_argument('--findings',required=True);parser.add_argument('--html-only',action='store_true');parser.add_argument('--economic-review');parser.add_argument('--initial-manifest',required=True)
     args=parser.parse_args();data=json.loads(Path(args.data).read_text(encoding='utf-8'));summary=json.loads(Path(args.statistics).read_text(encoding='utf-8'));out=Path(args.output);out.mkdir(exist_ok=True,parents=True)
+    provenance=seed_provenance(args.initial_manifest,data['Repetitions'])
+    paired=build_pairwise(data,[r['Seed'] for r in provenance['Repetitions']],BASE)
+    paired['Provenance']=provenance
+    paired['AssumptionLabels']={k:parameter_name(k) for k in data['Cases'][0]['Parameters']}
     if args.html_only:inventory=json.loads((out/'figure-inventory.json').read_text())
     else:
-        inventory=figures(data,summary,out);(out/'figure-inventory.json').write_text(json.dumps(inventory,indent=2))
+        inventory=figures(data,summary,out,paired);(out/'figure-inventory.json').write_text(json.dumps(inventory,indent=2))
     economic_review=json.loads(Path(args.economic_review).read_text(encoding='utf-8')) if args.economic_review else None
     if economic_review:
         assert economic_review['Cases']==len(data['Cases']) and not economic_review['Errors']
         (out/'economic-accuracy-review.json.gz').write_bytes(gzip.compress(Path(args.economic_review).read_bytes(),compresslevel=6,mtime=0))
-    html_reports(data,summary,out,inventory,json.loads(Path(args.findings).read_text(encoding='utf-8')),economic_review)
+    html_reports(data,summary,out,inventory,json.loads(Path(args.findings).read_text(encoding='utf-8')),economic_review,paired)
     for source,name in [(args.data,'report-data.json.gz'),(args.statistics,'comparison-statistics.json.gz')]:
         (out/name).write_bytes(gzip.compress(Path(source).read_bytes(),compresslevel=6,mtime=0))
-    print(json.dumps({'Pages':6,'Figures':len(inventory),'Output':str(out.resolve())}))
+    print(json.dumps({'Pages':6,'Figures':len(inventory),'FixedBackgrounds':paired['GroupCount'],'Pairs':paired['PairCount'],'Output':str(out.resolve())}))
 
 
 if __name__=='__main__':main()
