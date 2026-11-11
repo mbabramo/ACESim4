@@ -77,7 +77,7 @@ def identity(pid):
 def validate_configuration(config):
     if config['Schema']!=SCHEMA:raise ValueError('Unknown batch schema')
     if any(type(config[k]) is not int for k in ('Workers','Repetitions','Iterations','CheckEvery')):raise ValueError('Integer execution dimensions required')
-    if not 1<=config['Workers']<=10:raise ValueError('The experiment is capped at ten workers')
+    if not 1<=config['Workers']<=20:raise ValueError('The experiment is capped at twenty workers')
     if not 1<=config['Repetitions']<=10:raise ValueError('Expected one to ten independent repetitions')
     if config['Iterations']<3 or config['CheckEvery']<1 or config['Iterations']%config['CheckEvery']:raise ValueError('Iterations must end on a checked checkpoint')
     if len(config['Cases'])!=len(set(config['Cases'])):raise ValueError('Duplicate case')

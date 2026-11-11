@@ -20,7 +20,8 @@ def config():
 class Traditional(unittest.TestCase):
     def test_cap_and_real_independent_seed_coverage(self):
         run.validate_configuration(config())
-        for changes in ({'Workers':11},{'Workers':0},{'Workers':2.5},{'Seeds':[1729]*10},{'Cases':['one','one']},{'Iterations':999},{'NormalizedNashTarget':float('nan')}):
+        run.validate_configuration(dict(config(),Workers=20))
+        for changes in ({'Workers':21},{'Workers':0},{'Workers':2.5},{'Seeds':[1729]*10},{'Cases':['one','one']},{'Iterations':999},{'NormalizedNashTarget':float('nan')}):
             c=dict(config(),**changes)
             with self.assertRaises(ValueError):run.validate_configuration(c)
 

@@ -143,7 +143,17 @@ archived and audited, never substituted silently. Checks use unrounded probabili
 Routine report generation and legacy equilibrium file output/reuse are disabled;
 the update equations are unchanged. The fresh entry is tested for regular/Fast CFR
 parity on uniform and randomized starts. Every worker uses DOTNET_PROCESSOR_COUNT=1
-and disables library parallelism; the controller refuses more than ten workers.
+and disables library parallelism; the controller refuses more than twenty workers.
+The initial batch used ten workers; twenty were authorized for the November 11
+restart. Worker concurrency does not change the per-search numerical settings.
+After a machine reset, preserve the stopped batch and its incomplete attempts.
+Prepare a fresh continuation root with the same scientific arguments and
+`--reuse-root` for the stopped batch and each of its prior reuse roots. Only
+hash-validated completed candidates are imported; interrupted starts are computed
+again with their original seeds, and incomplete evidence is never overwritten.
+Before launch, verify that the old coordinator and workers have exited. Do not
+use the new root to duplicate live searches. The final candidate index counts
+each case/repetition once, regardless of which batch produced it.
 
 Each run saves its request, actual scalar solver settings, game fingerprint, seed
 archive, final current/average archives, final training arrays, outcomes and independent
