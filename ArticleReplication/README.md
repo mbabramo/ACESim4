@@ -212,3 +212,41 @@ money-equivalent gains with 60-digit decimal arithmetic. Optional `--repeat-root
 checks that a separately rerun identical seed/settings pair produces identical
 strategies, numerical audits and outcomes. The audit preserves all numerical grades
 and reports exact profile distinctness without claiming multiple exact equilibria.
+
+### Traditional results and the paper-story review
+
+The November 12 analysis adds traditional searches as the primary initialization
+check while retaining the published draft and Gini/Liu pooled results separately.
+It does not edit the article or change numerical acceptance records.
+
+```sh
+python ArticleReplication/Scripts/endogenous_traditional_analysis.py collect --run COMPLETE_RUN --source PRIOR_DATA.json --output NEW_CACHE.json.gz
+python ArticleReplication/Scripts/endogenous_traditional_analysis.py analyze --cache NEW_CACHE.json.gz --source PRIOR_DATA.json --output FRESH_REVIEW --audit INDEPENDENT_AUDIT.json
+python ArticleReplication/Scripts/render_endogenous_traditional_review.py --analysis FRESH_REVIEW --findings REVIEWED_FINDINGS.json --site EXISTING_SITE_DIST
+```
+
+`collect` binds candidate/completion/result hashes and original seed positions.
+`analyze` preserves every search and separately reports monetary, loose-Nash-plus-
+monetary and strict-Nash-plus-monetary subsets. Endpoint comparisons pair the same
+seed and require both endpoints to pass a screen. Missing values are never filled;
+singleton SDs are unavailable. Every other recorded parameter is matched exactly,
+and all available unordered legal-rule pairs are included. Transition summaries
+average within-background percentages first, then weight backgrounds equally,
+only for identical endpoints and stated risk/cost scope.
+
+Four resource components reconcile to total cost: forgone activity, precaution,
+harm and litigation. Opportunity cost is not counted again. The old series is
+split using the model's common net activity benefit, beta=0.001; materially negative
+published rounding residuals stay unavailable. Ideal ratios retain the previous
+fixed twenty-search reference denominator, so adding traditional results does not
+move the comparison baseline. For policy changes both endpoints use A's reference.
+Missing exact ideal references are not borrowed from other calibrations.
+
+The report shows individual outcomes, mean/SD cost breakdowns, paired policy
+effects, reference ratios, screening coverage and the participation-cluster
+exception. The same-seed pairing is descriptive, SDs are not confidence intervals,
+and search frequency is not an equilibrium-selection probability. A review may
+be generated provisionally while the exhaustive audit runs: the audit state must
+be explicit and never promoted to passing without its bound receipt. Screened
+samples can select outcomes and are not silently substituted for ten equilibria.
+Exact objective optimality and Nash/CCE are distinct claims.
