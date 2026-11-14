@@ -194,6 +194,13 @@ public sealed class PolicyGameTree
     /// path is emitted once, with its joint-weighted probability, for game-specific reports.</summary>
     public double VisitJointTerminals(IReadOnlyList<PlayerPolicy> plaintiffs, IReadOnlyList<PlayerPolicy> defendants,
         IReadOnlyList<double> weights, Action<IReadOnlyList<byte>, double> visit)
+        => VisitJointTerminals(plaintiffs, defendants, weights, visit, null);
+
+    /// <summary>Read-only replay observer for the already accumulated terminal
+    /// utilities. This exposes no optimizer and does not change joint reach.</summary>
+    public double VisitJointTerminals(IReadOnlyList<PlayerPolicy> plaintiffs, IReadOnlyList<PlayerPolicy> defendants,
+        IReadOnlyList<double> weights, Action<IReadOnlyList<byte>, double> visit,
+        Action<IReadOnlyList<double>, double>? valuesVisit)
     {
         ValidateDistribution(weights, checked(plaintiffs.Count * defendants.Count));
         if (plaintiffs.Any(p => p.Player != 0) || defendants.Any(p => p.Player != 1)) throw new ArgumentException("Wrong population player.");
@@ -218,7 +225,11 @@ public sealed class PolicyGameTree
         }
         double total = 0;
         foreach (var n in nodes.Where(n => n.InformationSet == -2)) if (terminalMass[n.Index] > 0)
-        { total += terminalMass[n.Index]; visit(Array.AsReadOnly(n.Actions), terminalMass[n.Index]); }
+        {
+            total += terminalMass[n.Index];
+            valuesVisit?.Invoke(Array.AsReadOnly(n.Values), terminalMass[n.Index]);
+            visit(Array.AsReadOnly(n.Actions), terminalMass[n.Index]);
+        }
         if (Math.Abs(total - 1) > 1e-9) throw new ArithmeticException("Joint terminal mass differs from one.");
         return total;
     }

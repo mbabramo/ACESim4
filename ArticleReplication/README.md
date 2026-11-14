@@ -250,3 +250,54 @@ be generated provisionally while the exhaustive audit runs: the audit state must
 be explicit and never promoted to passing without its bound receipt. Screened
 samples can select outcomes and are not silently substituted for ten equilibria.
 Exact objective optimality and Nash/CCE are distinct claims.
+
+### Complete saved-strategy reproduction (no new equilibrium searches)
+
+`endogenous_saved_replay.py` preserves all original equilibria and archives and
+creates a separate finite forward-replay batch. Each worker reconstructs one game
+and loads the exact saved policies. It performs no CFR/JPSRO iterations and never
+substitutes product marginals for a joint Gini/Liu distribution. A read-only
+terminal-value observer exposes fresh detached payoffs while the existing native
+outcome traversal recomputes the economic measures. Original frozen DLLs are not
+replaced; publish the new replay entrypoint to a fresh runtime directory.
+
+```sh
+dotnet publish ArticleReplication/ArticleReplication.csproj -c Release --artifacts-path FRESH_BUILD -o FRESH_REPLAY_RUNTIME -p:BuildInParallel=false -m:1
+python ArticleReplication/Scripts/endogenous_saved_replay.py prepare --workspace WORKSPACE --assembly FRESH_REPLAY_RUNTIME/ArticleReplication.dll --output FRESH_REPLAY --workers 20 --finalize
+python FRESH_REPLAY/runner.py run --run FRESH_REPLAY
+```
+
+The complete scope is 74,844 reported results: 2,268 saved draft profiles, 22,680
+traditional primary profiles, 45,360 accepted initial Gini/Liu selections and
+4,536 selected pooled outputs. A further 22,680 traditional average profiles are
+diagnostics, not extra equilibria. The unverified-at-1e-7 Liu candidate remains
+identified and is replayed without promoting its original grade. Accepted paired
+repairs replace their corresponding original case/seed once; failed and superseded
+attempts remain untouched. No original files are deleted, moved or overwritten.
+
+`completed.json` certifies only the forward-computation stage. With `--finalize`,
+the same finite controller regenerates report data, traditional tables, matched
+effects, figures and PDF atlases from the freshly replayed outcomes. It writes
+`reproduction-completed.json` only after postprocessing finishes. A captured report
+snapshot, runtime hashes, source/result/archive hashes, frozen postprocessors,
+per-value differences, artifact comparisons and all source failures are retained.
+Replayed outputs live under the new root; the deployed site and article are not
+updated by this command. Original monetary-incentive audit ledgers remain explicitly
+referenced, unchanged and separately qualified.
+
+Data comparisons record bitwise equality as well as tight reproduction tolerances:
+1e-12 + 1e-10 times the absolute saved value for costs/probabilities, and 1e-8
+absolute for utilities carrying a large affine offset. These are round-trip
+comparison tolerances, not changes to equilibrium stopping criteria. Table-derived
+classification/sign changes and raster figure differences are reported separately,
+never hidden by overwriting prior artifacts. A reproducible result can still fail
+its original Nash, CCE, monetary or objective-optimality check.
+
+A six-case real-data pilot should precede full dispatch, covering legacy/raw and
+shared/compressed archives, the qualified Liu case, large joint populations and
+the participation-cluster example. The controller rejects a live duplicate and
+preserves interrupted attempts instead of retrying them automatically. `--resume`
+can adopt verified live children and skip hash-checked completed cases; after a
+finished computation inspect its receipt or invoke `finalize` explicitly rather
+than restarting numerical workers. Existing partial derived outputs require
+diagnosis and a fresh reviewed continuation, not automatic replacement.
