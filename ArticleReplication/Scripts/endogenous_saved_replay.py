@@ -36,6 +36,14 @@ def physical(path):
 def utc():return datetime.now(timezone.utc).isoformat()
 
 
+def freeze_postprocessors(source,target):
+    """Retain renderer browser assets as well as Python entry points."""
+    target.mkdir()
+    for module in source.iterdir():
+        if module.is_file() and module.suffix in ('.py','.js','.css'):
+            shutil.copy2(module,target/module.name)
+
+
 def prepare(args):
     workspace=Path(args.workspace).resolve();root=Path(args.output).resolve();assembly=Path(args.assembly).resolve()
     if root.exists():raise FileExistsError('Reproduction needs a fresh output root; no source is overwritten')
@@ -77,8 +85,7 @@ def prepare(args):
     if assembly.name not in runtime:raise FileNotFoundError(assembly)
     root.mkdir();script=Path(__file__).resolve();helper=script.with_name('endogenous_traditional.py')
     shutil.copy2(script,root/'runner.py');shutil.copy2(helper,root/helper.name)
-    postprocess=root/'postprocess';postprocess.mkdir()
-    for module in script.parent.glob('*.py'):shutil.copy2(module,postprocess/module.name)
+    postprocess=root/'postprocess';freeze_postprocessors(script.parent,postprocess)
     if args.finalize:
         marker=Path('C:/Users/Admin/.codex/plugins/cache/openai-primary-runtime/pdf/26.1110.11258/skills/pdf/container_tools/mark_artifact_operation_started.mjs')
         shutil.copy2(marker,postprocess/marker.name)

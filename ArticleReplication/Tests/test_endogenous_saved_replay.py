@@ -11,6 +11,15 @@ import endogenous_saved_replay as r
 
 
 class SavedReplay(unittest.TestCase):
+    def test_frozen_renderer_retains_its_browser_dependency(self):
+        # A real renderer reads this sibling at authoring time; Python-only
+        # packaging would pass imports but fail the final report generation.
+        with tempfile.TemporaryDirectory() as t:
+            target=Path(t)/'frozen'
+            r.freeze_postprocessors(Path(r.__file__).parent,target)
+            self.assertIn("with_name('endogenous_traditional_review.js')",(target/'render_endogenous_traditional_review.py').read_text(encoding='utf-8'))
+            self.assertEqual((target/'endogenous_traditional_review.js').read_bytes(),Path(r.__file__).with_name('endogenous_traditional_review.js').read_bytes())
+
     def test_table_comparison_does_not_hide_sign_or_coverage_changes(self):
         a={'values':[.0001,0.0],'direction':'positive','included':True}
         b={'values':[.0001+1e-14,0.0],'direction':'negative','included':False}
